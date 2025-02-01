@@ -1,0 +1,10 @@
+appName: starter-template
+port: 3000
+db:
+  options:
+    type: postgres
+    username: root
+    password: admin
+    host: localhost
+    port: 5434
+    database: postgres_db

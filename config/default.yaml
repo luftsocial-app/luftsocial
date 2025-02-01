@@ -1,0 +1,24 @@
+appName: starter-template
+logger:
+  pinoHttp:
+    level: info
+    transport:
+      target: pino-pretty
+      options:
+        colorize: true,   
+        translateTime: 'HH:MM:ss Z'
+        ignore: 'pid,hostname'
+    redact:
+      paths:
+        - req.headers.authorization
+      censor: '***'
+port: 3000
+db:
+  options:
+    type: postgres
+    username: root
+    password: admin
+    host: localhost
+    port: 5434
+    database: start-template
+    synchronize: true

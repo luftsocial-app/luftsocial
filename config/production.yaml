@@ -1,0 +1,6 @@
+appName: starter-template
+db:
+  options:
+    extra:
+      ssl:
+        rejectUnauthorized: false

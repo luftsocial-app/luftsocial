@@ -1,0 +1,64 @@
+services:
+  postgres_db:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: start-template
+      POSTGRES_USER: root
+      PGPORT: 5434
+    container_name: postgres
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    ports: ['5434:5434']
+
+  # app:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: nest-docker-postgres
+  #   environment:
+  #     - PORT=${PORT}
+  #   ports:
+  #     - '3000:3000'
+  #   depends_on:
+  #     - db
+  #   volumes:
+  #     - ./src:/app/src
+
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: always
+    container_name: pgadmin-app
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+      - PGADMIN_DEFAULT_PASSWORD=pgadmin4
+    ports:
+      - '5050:80'
+    depends_on:
+      - postgres_db
+
+  # redis:
+  #   image: redis:6.2-alpine
+  #   restart: always
+  #   ports:
+  #     - '6379:6379'
+  #   command: redis-server --save 20 1 --loglevel warning
+  #   environment:
+  #     - ALLOW_EMPTY_PASSWORD=yes
+  #   volumes:
+  #     - redis-cache:/data
+
+  # alpine-sqs:
+  #   image: roribio16/alpine-sqs:latest
+  #   container_name: alpine-sqs
+  #   ports:
+  #     - '9324:9324'
+  #     - '9325:9325'
+  #   stdin_open: true
+  #   tty: true
+
+volumes:
+  postgres-data: {}
+  redis-cache:
+    driver: local

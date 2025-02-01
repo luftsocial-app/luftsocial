@@ -1,0 +1,50 @@
+GET http://localhost:3000/auth
+
+###
+GET http://localhost:3000/user/user
+
+###
+# @name  CreateUser
+# "{{CreateUser.response.body.¢.access_token}}" is the access token of the user
+### Create a new user
+# Authorization: Bearer {{CreateUser.response.body.¢.access_token}}
+POST http://localhost:3000/user
+Content-Type: application/json
+
+{
+    "username": "JohnDoe1",
+    "password": 123456,
+    "email": "akupuomeikenna@gmail.com",
+    "firstName": "first161",
+    "lastName": "last16"
+}
+
+###
+# @name  LoginUser
+POST http://localhost:8080/realms/Heimly/protocol/openid-connect/token
+Content-Type: application/x-www-form-urlencoded; charset=UTF-8
+
+client_id= heimly-backend
+&client_secret=63ujCOoasmPbk3u0BUs8oYgvGPdUCkSm
+&grant_type=password
+&username=JohnDoe
+&password=123456
+
+###
+# @name  GetUser
+GET http://localhost:3000/user/2093d5d1-90a2-47e9-b3be-5b6bea48b1c3
+Authorization: Bearer {{LoginUser.response.body.$.access_token}}
+
+
+###
+# @name  UpdateUser
+
+PUT http://localhost:3000/user/user
+Content-Type: application/json
+Authorization: Bearer {{LoginUser.response.body.$.access_token}}
+
+{
+    "username": "JohnDoe1",
+    "password": 123456,
+    "email": ""
+}
