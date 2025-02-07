@@ -14,6 +14,11 @@ import { LoggerMiddleware } from '../logger.middleware';
 import { ScheduleModule } from '@nestjs/schedule';
 import { UserModule } from './user/user.module';
 import { Users } from './entities/user.entity';
+import { Message } from './entities/message.entity';
+import { Group } from './entities/group.entity';
+import { GroupMember } from './entities/groupMembers.entity';
+import { GroupModule } from './group/group.module'
+import { GroupMemberModule } from './group-member/group-member.module';
 
 @Module({
   imports: [
@@ -27,7 +32,7 @@ import { Users } from './entities/user.entity';
     }),
     TypeOrmModule.forRoot({
       ...config.get('db.options'),
-      entities: [Users],
+      entities: [Users, Message, Group, GroupMember],
     }),
     LoggerModule.forRoot({
       ...JSON.parse(JSON.stringify(config.get('logger'))),
@@ -40,6 +45,9 @@ import { Users } from './entities/user.entity';
     ]),
 
     HealthModule,
+    GroupModule,
+    GroupMemberModule,
+    // Notification
   ],
   controllers: [AppController],
   providers: [
@@ -54,4 +62,4 @@ import { Users } from './entities/user.entity';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

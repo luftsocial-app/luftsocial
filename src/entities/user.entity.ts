@@ -1,9 +1,13 @@
-import { Column, Entity, PrimaryColumn } from 'typeorm';
+import { Column, Entity, OneToMany, PrimaryColumn } from 'typeorm';
+import { Message } from './message.entity';
+import { GroupMember } from './groupMembers.entity';
+import { Group } from './group.entity';
+// import { Notification } from './notification.entity'
 
 @Entity({ name: 'tbl_users' })
 export class Users {
   @PrimaryColumn({ name: 'id', nullable: false })
-  id: string;
+  id: number;
 
   @Column({ name: 'user_name', nullable: false })
   username: string;
@@ -49,4 +53,19 @@ export class Users {
 
   @Column({ name: 'profile_picture', nullable: true })
   profilePicture: string;
+
+  @OneToMany(() => Message, (message) => message.sender)
+  sentMessages: Message[];
+
+  @OneToMany(() => Message, (message) => message.receiver)
+  receivedMessages: Message[];
+
+  @OneToMany(() => GroupMember, (groupMember) => groupMember.user)
+  groupMembers: GroupMember[];
+
+  @OneToMany(() => Group, (group) => group.createdBy)
+  createdGroups: Group[];
+
+  // @OneToMany(() => Notification, (notification) => notification.user)
+  // notifications: Notification[];
 }
