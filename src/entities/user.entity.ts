@@ -1,58 +1,44 @@
-import { Column, Entity, OneToMany, PrimaryColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  ManyToMany,
+  JoinTable,
+  JoinColumn,
+} from 'typeorm';
 import { Message } from './message.entity';
 import { GroupMember } from './groupMembers.entity';
 import { Group } from './group.entity';
-// import { Notification } from './notification.entity'
+import { Organization } from './organization.entity';
+import { Role } from './role.entity';
 
 @Entity({ name: 'tbl_users' })
-export class Users {
-  @PrimaryColumn({ name: 'id', nullable: false })
-  id: number;
+export class User {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @Column({ name: 'user_name', nullable: false })
-  username: string;
+  @Column({ unique: true })
+  clerkId: string;
 
-  @Column({ name: 'first_name', nullable: true })
-  firstName: string;
-
-  @Column({ name: 'last_name', nullable: true })
-  lastName: string;
-
-  @Column({ name: 'email', nullable: false })
+  @Column({ unique: true })
   email: string;
 
-  @Column({ name: 'phone_number', nullable: true })
-  phoneNumber: string;
+  @Column()
+  firstName: string;
 
-  @Column({ name: 'password', nullable: true })
-  password: string;
+  @Column()
+  lastName: string;
 
-  @Column({ name: 'is_active', default: true, nullable: true })
+  @Column({ default: true })
   isActive: boolean;
 
-  @Column({ name: 'created_at', nullable: true })
-  createdAt: Date;
+  @ManyToOne(() => Organization, (org) => org.users)
+  organization: Organization;
 
-  @Column({ name: 'updated_at', nullable: true })
-  updatedAt: Date;
-
-  @Column({ name: 'created_by', nullable: true })
-  createdBy: string;
-
-  @Column({ name: 'updated_by', nullable: true })
-  updatedBy: string;
-
-  @Column({ name: 'is_deleted', default: true })
-  isDeleted: boolean;
-
-  @Column({ name: 'deleted_at', nullable: true })
-  deletedAt: Date;
-
-  @Column({ name: 'deleted_by', nullable: true })
-  deletedBy: string;
-
-  @Column({ name: 'profile_picture', nullable: true })
-  profilePicture: string;
+  @Column()
+  organizationId: string;
 
   @OneToMany(() => Message, (message) => message.sender)
   sentMessages: Message[];
@@ -66,6 +52,7 @@ export class Users {
   @OneToMany(() => Group, (group) => group.createdBy)
   createdGroups: Group[];
 
-  // @OneToMany(() => Notification, (notification) => notification.user)
-  // notifications: Notification[];
+  @ManyToMany(() => Role)
+  @JoinTable()
+  roles: Role[];
 }

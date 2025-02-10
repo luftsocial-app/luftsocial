@@ -5,25 +5,29 @@ import { HealthModule } from './health/health.module';
 import { LoggerModule } from 'nestjs-pino';
 import { APP_INTERCEPTOR, APP_GUARD } from '@nestjs/core';
 import { RequestInterceptor } from './interceptors/request-interceptor-2';
-import { RoleGuard } from './guards/role-guard';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ConfigModule } from '@nestjs/config';
 import * as config from 'config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoggerMiddleware } from '../logger.middleware';
 import { ScheduleModule } from '@nestjs/schedule';
-import { UserModule } from './user/user.module';
-import { Users } from './entities/user.entity';
 import { Message } from './entities/message.entity';
 import { Group } from './entities/group.entity';
 import { GroupMember } from './entities/groupMembers.entity';
-import { GroupModule } from './group/group.module'
+import { GroupModule } from './group/group.module';
 import { GroupMemberModule } from './group-member/group-member.module';
+import { TenantMiddleware } from './middleware/tenant.middleware';
+import { UsersModule } from './users/users.module';
+import { AuthModule } from './auth/auth.module';
+import { User } from './entities/user.entity';
+import { ClerkAuthGuard } from './guards/clerk-auth.guard';
+import { RolesGuard } from './guards/role-guard';
+import { Role } from './entities/role.entity';
 
 @Module({
   imports: [
     ScheduleModule.forRoot(),
-    UserModule,
+    UsersModule,
     ConfigModule.forRoot({
       ignoreEnvFile: true,
       ignoreEnvVars: true,
@@ -32,7 +36,7 @@ import { GroupMemberModule } from './group-member/group-member.module';
     }),
     TypeOrmModule.forRoot({
       ...config.get('db.options'),
-      entities: [Users, Message, Group, GroupMember],
+      entities: [User, Message, Group, GroupMember, Role],
     }),
     LoggerModule.forRoot({
       ...JSON.parse(JSON.stringify(config.get('logger'))),
@@ -47,6 +51,8 @@ import { GroupMemberModule } from './group-member/group-member.module';
     HealthModule,
     GroupModule,
     GroupMemberModule,
+    UsersModule,
+    AuthModule,
     // Notification
   ],
   controllers: [AppController],
@@ -58,8 +64,16 @@ import { GroupMemberModule } from './group-member/group-member.module';
     },
     {
       provide: APP_GUARD,
-      useClass: RoleGuard,
+      useClass: RolesGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ClerkAuthGuard,
     },
   ],
 })
-export class AppModule { }
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(TenantMiddleware).forRoutes('*');
+  }
+}

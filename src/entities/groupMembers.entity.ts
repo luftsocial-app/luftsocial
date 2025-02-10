@@ -1,44 +1,63 @@
-import { Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn, Column, DeleteDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  JoinColumn,
+  Column,
+  DeleteDateColumn,
+} from 'typeorm';
 import { Group } from './group.entity';
-import { Users } from './user.entity';  // Assuming you already have a User entity
+import { User } from './user.entity'; // Assuming you already have a User entity
+import { GroupRole } from '../types/enums';
 
 @Entity()
 export class GroupMember {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn()
+  id: number;
 
-    @ManyToOne(() => Group, (group) => group.members)
-    @JoinColumn({ name: 'groupId' })
-    group: Group;
+  @ManyToOne(() => Group, (group) => group.members)
+  @JoinColumn({ name: 'groupId' })
+  group: Group;
 
-    @Column()
-    groupId: number;
+  @Column()
+  groupId: number;
 
-    @ManyToOne(() => Users, (user) => user.groupMembers)
-    @JoinColumn({ name: 'userId' })
-    user: Users;
+  @ManyToOne(() => User, (user) => user.groupMembers)
+  @JoinColumn({ name: 'userId' })
+  user: User;
 
-    @Column()
-    userId: number;
+  @Column()
+  userId: number;
 
-    @Column({ type: 'boolean', default: true })
-    isActive: boolean; // Marks if the member is active in the group
+  @Column({ type: 'boolean', default: true })
+  isActive: boolean; // Marks if the member is active in the group
 
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-    joinedAt: Date;
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  joinedAt: Date;
 
-    // @DeleteDateColumn({ nullable: true })
-    // deletedAt: Date; // Soft delete
+  @Column({
+    type: 'enum',
+    enum: GroupRole,
+    default: GroupRole.MEMBER,
+  })
+  role: GroupRole;
 
-    @Column({ type: 'boolean', default: true })
-    status: boolean;
+  // @DeleteDateColumn({ nullable: true })
+  // deletedAt: Date; // Soft delete
 
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-    createdAt: Date;
+  @Column({ type: 'boolean', default: true })
+  status: boolean;
 
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
-    updatedAt: Date;
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  createdAt: Date;
 
-    @Column({ type: 'enum', enum: ['member', 'admin'], default: 'member' })
-    role: 'member' | 'admin';
+  @Column({
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+    onUpdate: 'CURRENT_TIMESTAMP',
+  })
+  updatedAt: Date;
+
+  @Column()
+  tenantId: string;
 }

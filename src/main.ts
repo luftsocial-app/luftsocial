@@ -3,11 +3,12 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import * as config from 'config';
+import { clerkMiddleware } from '@clerk/express';
 
 import { Logger, LoggerErrorInterceptor, PinoLogger } from 'nestjs-pino';
 import {
   BadRequestException,
-  ConsoleLogger,
+  // ConsoleLogger,
   ValidationError,
   ValidationPipe,
   VersioningType,
@@ -46,12 +47,16 @@ const logger: Logger = new Logger(
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    // logger,
-    logger: new ConsoleLogger({
-      json: true,
-      colors: true,
-    }),
+    logger,
+    // logger: new ConsoleLogger({
+    //   json: true,
+    //   colors: true,
+    // }),
   });
+
+  // Initialize Clerk with the correct middleware
+  app.use(clerkMiddleware());
+
   app.enableVersioning({
     type: VersioningType.URI,
   });

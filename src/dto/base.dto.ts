@@ -1,4 +1,12 @@
-import { IsString, IsOptional, IsBoolean, IsEnum, IsNumber, IsDate, IsUrl } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsBoolean,
+  IsEnum,
+  IsNumber,
+  IsDate,
+  IsUrl,
+} from 'class-validator';
 
 // Enum for status in MessageDto
 enum StatusEnum {
