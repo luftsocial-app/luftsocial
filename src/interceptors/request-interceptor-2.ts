@@ -1,4 +1,9 @@
-import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
+import {
+  Injectable,
+  NestInterceptor,
+  ExecutionContext,
+  CallHandler,
+} from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 
@@ -16,7 +21,7 @@ export class RequestInterceptor implements NestInterceptor {
       tap((data) => {
         // You can manipulate the response data if needed
         console.log('Response:', data);
-      })
+      }),
     );
   }
 }

@@ -16,9 +16,9 @@ port: 3000
 db:
   options:
     type: postgres
-    username: root
-    password: admin
+    username: postgres
+    password: Akinolami6650
     host: localhost
-    port: 5434
-    database: start-template
+    port: 5433
+    database: loftSocial
     synchronize: true

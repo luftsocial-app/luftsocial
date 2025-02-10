@@ -9,7 +9,6 @@ import {
   Put,
   Request,
   UseGuards,
-  Version,
 } from '@nestjs/common';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { ThrottlerBehindProxyGuard } from '../guards/throttler-behind-proxy.guard';

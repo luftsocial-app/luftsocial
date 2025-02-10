@@ -7,14 +7,14 @@ import { FacebookPageInsightsJob } from './jobs/page-insight.job';
 import { FacebookService } from './facebook.service';
 
 @Module({
-    controllers: [FacebookController],
-    providers: [
-        FacebookService,
-        FacebookRepository,
-        FacebookMetricsCollectionJob,
-        FacebookTokenRefreshJob,
-        FacebookPageInsightsJob
-    ],
-    exports: [FacebookService]
+  controllers: [FacebookController],
+  providers: [
+    FacebookService,
+    FacebookRepository,
+    FacebookMetricsCollectionJob,
+    FacebookTokenRefreshJob,
+    FacebookPageInsightsJob,
+  ],
+  exports: [FacebookService],
 })
 export class FacebookModule {}

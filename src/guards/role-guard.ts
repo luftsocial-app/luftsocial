@@ -27,7 +27,9 @@ export class RoleGuard implements CanActivate {
     if (
       !user ||
       !user.realm_access?.roles ||
-      !requiredRoles?.roles.some((role) => user.realm_access.roles.includes(role))
+      !requiredRoles?.roles.some((role) =>
+        user.realm_access.roles.includes(role),
+      )
     ) {
       throw new ForbiddenException('Forbidden resource');
     }

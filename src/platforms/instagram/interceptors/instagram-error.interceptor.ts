@@ -8,26 +8,27 @@ import {
 } from '@nestjs/common';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { FacebookApiException } from './facebook-api.exception';
+import { InstagramApiException } from '../helpers/instagram-api.exception';
 
 @Injectable()
-export class FacebookErrorInterceptor implements NestInterceptor {
+export class InstagramErrorInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     return next.handle().pipe(
       catchError((error) => {
-        if (error instanceof FacebookApiException) {
-          // Map Facebook error codes to HTTP status codes
-          switch (error.code) {
+        if (error instanceof InstagramApiException) {
+          switch (error.errorCode) {
             case '190': // Invalid access token
             case '463': // Token expired
               return throwError(
                 () =>
                   new HttpException(
-                    'Facebook session expired',
+                    'Instagram session expired',
                     HttpStatus.UNAUTHORIZED,
                   ),
               );
-            case '200': // Permission error
+
+            case '10': // Permission error
+            case '200':
               return throwError(
                 () =>
                   new HttpException(
@@ -35,15 +36,26 @@ export class FacebookErrorInterceptor implements NestInterceptor {
                     HttpStatus.FORBIDDEN,
                   ),
               );
+
+            case '24': // Rate limit error
+              return throwError(
+                () =>
+                  new HttpException(
+                    'Rate limit exceeded',
+                    HttpStatus.TOO_MANY_REQUESTS,
+                  ),
+              );
+
             case '100': // Invalid parameter
               return throwError(
                 () => new HttpException(error.message, HttpStatus.BAD_REQUEST),
               );
+
             default:
               return throwError(
                 () =>
                   new HttpException(
-                    'Facebook API error',
+                    'Instagram API error',
                     HttpStatus.INTERNAL_SERVER_ERROR,
                   ),
               );

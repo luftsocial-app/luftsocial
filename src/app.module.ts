@@ -14,6 +14,11 @@ import { LoggerMiddleware } from '../logger.middleware';
 import { ScheduleModule } from '@nestjs/schedule';
 import { UserModule } from './user/user.module';
 import { Users } from './entities/user.entity';
+import { PlatformsModule } from './platforms/platforms.module';
+import { CrossPlatformModule } from './cross-platform/cross-platform.module';
+import { AuthModule } from './auth/auth.module';
+import { ClerkMiddleware } from './middleware/clerk.middleware';
+import { SharedModule } from './shared/shared.module';
 
 @Module({
   imports: [
@@ -40,6 +45,10 @@ import { Users } from './entities/user.entity';
     ]),
 
     HealthModule,
+    PlatformsModule,
+    CrossPlatformModule,
+    AuthModule,
+    SharedModule,
   ],
   controllers: [AppController],
   providers: [
@@ -54,4 +63,8 @@ import { Users } from './entities/user.entity';
     },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(ClerkMiddleware).forRoutes('*'); // Apply Clerk to all routes
+  }
+}
