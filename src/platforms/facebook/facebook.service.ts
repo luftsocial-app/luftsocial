@@ -92,7 +92,11 @@ export class FacebookService implements PlatformService {
     };
   }
 
-  async handleCallback(code: string): Promise<any> {
+  async handleCallback(
+    code: string,
+    state: string,
+    userId: string,
+  ): Promise<any> {
     const token = await this.exchangeCodeForToken(code);
     const longLivedToken = await this.getLongLivedToken(token.access_token);
     const userProfile = await this.getUserProfile(longLivedToken.access_token);
@@ -505,6 +509,7 @@ export class FacebookService implements PlatformService {
       throw new HttpException(
         'Failed to update Facebook post',
         HttpStatus.BAD_REQUEST,
+        error,
       );
     }
   }
@@ -549,6 +554,7 @@ export class FacebookService implements PlatformService {
       throw new HttpException(
         'Failed to update Facebook page',
         HttpStatus.BAD_REQUEST,
+        error,
       );
     }
   }

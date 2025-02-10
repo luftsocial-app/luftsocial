@@ -41,7 +41,7 @@ export class FacebookController {
     @Query('state') state: string,
     @CurrentUser() userId: string,
   ) {
-    return this.facebookService.handleCallback(code);
+    return this.facebookService.handleCallback(code, state, userId);
   }
   //    ======================================================================
   //    ================ FACEBOOK POSTS ======================================

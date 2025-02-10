@@ -25,7 +25,11 @@ export interface CommentResponse {
 
 export interface PlatformService {
   authorize(userId: string): Promise<string>;
-  handleCallback(code: string): Promise<TokenResponse>;
+  handleCallback(
+    code: string,
+    state: string,
+    userId: string,
+  ): Promise<TokenResponse>;
   refreshToken(refreshToken: string): Promise<TokenResponse>;
   post(
     accountId: string,

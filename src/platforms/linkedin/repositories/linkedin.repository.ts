@@ -1,0 +1,215 @@
+import * as crypto from 'crypto';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
+import { EntityManager, LessThan, MoreThan, Repository } from 'typeorm';
+import { LinkedInAccount } from '../entities/linkedin-account.entity';
+import { LinkedInOrganization } from '../entities/linkedin-organization.entity';
+import { LinkedInMetric } from '../entities/linkedin-metric.entity';
+import { SocialAccount } from 'src/platforms/entity/social-account.entity';
+import { LinkedInPost } from '../entities/linkedin-post.entity';
+import { SocialPlatform } from 'src/enum/social-platform.enum';
+import { AuthState } from 'src/platforms/facebook/entity/auth-state.entity';
+
+@Injectable()
+export class LinkedInRepository {
+  constructor(
+    @InjectRepository(LinkedInAccount)
+    private readonly accountRepo: Repository<LinkedInAccount>,
+    @InjectRepository(LinkedInOrganization)
+    private readonly orgRepo: Repository<LinkedInOrganization>,
+    @InjectRepository(LinkedInPost)
+    private readonly postRepo: Repository<LinkedInPost>,
+    @InjectRepository(AuthState)
+    private readonly authStateRepo: Repository<AuthState>,
+    @InjectRepository(LinkedInMetric)
+    private readonly metricRepo: Repository<LinkedInMetric>,
+    @InjectEntityManager()
+    private readonly entityManager: EntityManager,
+  ) {}
+
+  async createAuthState(userId: string): Promise<string> {
+    const state = crypto.randomBytes(32).toString('hex');
+
+    const authState = await this.entityManager.save('auth_states', {
+      state,
+      userId,
+      platform: SocialPlatform.LINKEDIN,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+    });
+    await this.authStateRepo.save(authState);
+
+    return state;
+  }
+
+  async getById(id: string): Promise<LinkedInAccount> {
+    return this.accountRepo.findOne({
+      where: { id },
+      relations: [
+        'socialAccount',
+        'organizations',
+        'organizations.posts',
+        'organizations.posts.metrics',
+      ],
+    });
+  }
+
+  async getOrganizationMetrics(orgId: string, timeframe: string): Promise<any> {
+    const timeAgo = new Date();
+    timeAgo.setDate(timeAgo.getDate() - parseInt(timeframe));
+
+    const metrics = await this.metricRepo
+      .createQueryBuilder('metric')
+      .leftJoin('metric.post', 'post')
+      .where('post.organization.id = :orgId', { orgId })
+      .andWhere('metric.collectedAt > :timeAgo', { timeAgo })
+      .getMany();
+
+    return this.aggregateMetrics(metrics);
+  }
+
+  private aggregateMetrics(metrics: LinkedInMetric[]): any {
+    return metrics.reduce(
+      (acc, metric) => ({
+        totalImpressions: acc.totalImpressions + metric.impressions,
+        totalEngagements:
+          acc.totalEngagements +
+          (metric.likes + metric.comments + metric.shares),
+        avgEngagementRate: (acc.avgEngagementRate + metric.engagementRate) / 2,
+        industries: { ...acc.industries, ...metric.industryData },
+      }),
+      {
+        totalImpressions: 0,
+        totalEngagements: 0,
+        avgEngagementRate: 0,
+        industries: {},
+      },
+    );
+  }
+
+  async getAccountsNearingExpiration(): Promise<LinkedInAccount[]> {
+    const expirationThreshold = new Date();
+    expirationThreshold.setHours(expirationThreshold.getHours() + 24); // 24 hours from now
+
+    return this.accountRepo.find({
+      where: {
+        socialAccount: {
+          tokenExpiresAt: LessThan(expirationThreshold),
+        },
+      },
+      relations: ['socialAccount'],
+    });
+  }
+
+  async updateAccountTokens(
+    accountId: string,
+    tokens: {
+      accessToken: string;
+      refreshToken?: string;
+      expiresAt: Date;
+    },
+  ): Promise<LinkedInAccount> {
+    const account = await this.accountRepo.findOne({
+      where: { id: accountId },
+      relations: ['socialAccount'],
+    });
+
+    if (!account?.socialAccount) {
+      throw new NotFoundException('Account not found');
+    }
+
+    // Update the social account token information
+    await this.entityManager.update(SocialAccount, account.socialAccount.id, {
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      tokenExpiresAt: tokens.expiresAt,
+      updatedAt: new Date(),
+    });
+
+    return this.getById(accountId);
+  }
+
+  async getRecentPosts(
+    organizationId: string,
+    days: number = 30,
+  ): Promise<LinkedInPost[]> {
+    const timeAgo = new Date();
+    timeAgo.setDate(timeAgo.getDate() - days);
+
+    return this.postRepo.find({
+      where: {
+        organization: { id: organizationId },
+        publishedAt: MoreThan(timeAgo),
+      },
+      relations: ['metrics'],
+      order: { publishedAt: 'DESC' },
+    });
+  }
+
+  async upsertMetrics(
+    postId: string,
+    metrics: Partial<LinkedInMetric>,
+  ): Promise<LinkedInMetric> {
+    const existingMetric = await this.metricRepo.findOne({
+      where: {
+        post: { id: postId },
+        collectedAt: metrics.collectedAt,
+      },
+    });
+
+    if (existingMetric) {
+      await this.metricRepo.update(existingMetric.id, {
+        ...metrics,
+        updatedAt: new Date(),
+      });
+      return this.metricRepo.findOne({ where: { id: existingMetric.id } });
+    }
+
+    const newMetric = this.metricRepo.create({
+      post: { id: postId },
+      ...metrics,
+    });
+
+    return this.metricRepo.save(newMetric);
+  }
+
+  async getActiveOrganizations(): Promise<LinkedInOrganization[]> {
+    return this.orgRepo.find({
+      where: {
+        account: {
+          socialAccount: {
+            tokenExpiresAt: MoreThan(new Date()),
+          },
+        },
+      },
+      relations: ['account', 'account.socialAccount'],
+    });
+  }
+
+  async upsertOrganization(data: {
+    account: LinkedInAccount;
+    organizationId: string;
+    name: string;
+    vanityName?: string;
+    description?: string;
+  }): Promise<LinkedInOrganization> {
+    const existing = await this.orgRepo.findOne({
+      where: {
+        account: { id: data.account.id },
+        organizationId: data.organizationId,
+      },
+    });
+
+    if (existing) {
+      await this.orgRepo.update(existing.id, {
+        name: data.name,
+        vanityName: data.vanityName,
+        description: data.description,
+        updatedAt: new Date(),
+      });
+      return this.orgRepo.findOne({ where: { id: existing.id } });
+    }
+
+    const newOrg = this.orgRepo.create(data);
+    return this.orgRepo.save(newOrg);
+  }
+}

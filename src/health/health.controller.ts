@@ -7,7 +7,6 @@ import {
   HealthIndicatorService,
 } from '@nestjs/terminus';
 import { PinoLogger } from 'nestjs-pino';
-import { split } from '../../node_modules/cspell-lib/dist/lib/util/wordSplitter';
 
 @Controller('health')
 export class HealthController {
