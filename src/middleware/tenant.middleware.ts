@@ -1,26 +1,14 @@
-import {
-  Inject,
-  Injectable,
-  NestMiddleware,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
-import { TenantAwareRepository } from '../database/tenant-aware.repository';
+import { TenantService } from '../database/tenant.service';
 
 @Injectable()
 export class TenantMiddleware implements NestMiddleware {
-  constructor(
-    @Inject('TenantAwarePostRepository')
-    private readonly tenantAwareRepository: TenantAwareRepository,
-  ) {}
+    constructor(private tenantService: TenantService) {}
 
-  async use(req: Request, res: Response, next: NextFunction) {
-    const tenantId = req.auth?.orgId || req.auth?.userId; // Use orgId if available, else fallback to userId
-    console.log({ req: req.auth });
-    if (!tenantId) {
-      throw new UnauthorizedException('Tenant ID is required');
+    use(req: Request, res: Response, next: NextFunction) {
+        const tenantId = req.headers['x-tenant-id'] as string;
+        this.tenantService.setTenantId(tenantId);
+        next();
     }
-    this.tenantAwareRepository.setTenantId(tenantId);
-    next();
-  }
 }

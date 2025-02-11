@@ -27,7 +27,7 @@ export class GroupMember {
   user: User;
 
   @Column()
-  userId: number;
+  userId: string;
 
   @Column({ type: 'boolean', default: true })
   isActive: boolean; // Marks if the member is active in the group

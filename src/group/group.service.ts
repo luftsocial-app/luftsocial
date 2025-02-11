@@ -1,88 +1,114 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { Injectable, HttpException, HttpStatus, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Group } from '../entities/group.entity';
+import { GroupMember } from '../entities/groupMembers.entity';
+import { TenantService } from '../database/tenant.service';
 import { GroupDto, GroupMemberDto } from '../dto/base.dto';
-import { GroupMember } from 'src/entities/groupMembers.entity';
-import { Users } from 'src/entities/user.entity';
 
 @Injectable()
 export class GroupService {
   constructor(
     @InjectRepository(Group)
-    private readonly groupRepository: Repository<Group>,
+    private readonly groupRepo: Repository<Group>,
     @InjectRepository(GroupMember)
-    private readonly groupMemberRepository: Repository<GroupMember>,
-  ) {}
+    private readonly groupMemberRepo: Repository<GroupMember>,
+    private readonly tenantService: TenantService
+  ) { }
 
-  async createGroup(
-    groupDto: GroupDto,
-    id: number,
-  ): Promise<{ data: Group | null; status: number }> {
+  async findAll() {
+    const groups = await this.groupRepo.find({
+      where: { tenantId: this.tenantService.getTenantId() },
+      relations: ['members', 'user']
+    });
+    return { data: groups, status: HttpStatus.OK };
+  }
+
+  async findOne(id: string) {
+    const group = await this.groupRepo.findOne({
+      where: {
+        id: Number(id),
+        tenantId: this.tenantService.getTenantId()
+      },
+      relations: ['members', 'user']
+    });
+
+    if (!group) {
+      throw new NotFoundException('Group not found');
+    }
+
+    return { data: group, status: HttpStatus.OK };
+  }
+
+  async getGroupMembers(id: string) {
+    const members = await this.groupMemberRepo.find({
+      where: {
+        groupId: Number(id),
+        tenantId: this.tenantService.getTenantId()
+      },
+      relations: ['user']
+    });
+
+    return { data: members, status: HttpStatus.OK };
+  }
+
+  async createGroup(groupDto: GroupDto, id: number) {
     try {
-      groupDto.createdBy = id ?? 1;
-      const newGroup = this.groupRepository.create(groupDto);
-      const data = await this.groupRepository.save(newGroup);
-      const payload = {
-        userId: data?.createdBy,
-        role: 'admin' as 'admin' | 'member',
-        groupId: data?.id,
-      };
-      const addGroupMember = this.groupMemberRepository.create(payload);
-      await this.groupMemberRepository.save(addGroupMember);
-      if (data) {
-        return {
-          data,
-          status: 1,
-        };
-      }
-      return {
-        status: 0,
-        data: null,
-      };
+      const newGroup = this.groupRepo.create({
+        ...groupDto,
+        createdBy: id ?? 1,
+        tenantId: this.tenantService.getTenantId()
+      });
+
+      const group = await this.groupRepo.save(newGroup);
+
+      await this.groupMemberRepo.save({
+        status: true,
+        tenantId: this.tenantService.getTenantId()
+      });
+
+      return { data: group, status: HttpStatus.CREATED };
     } catch (err) {
       throw new HttpException(err.message || err, HttpStatus.BAD_REQUEST);
     }
   }
 
-  async joinGroup(
-    joinGroupDto: GroupMemberDto,
-  ): Promise<{ data: GroupMember | null; status: number }> {
+  async joinGroup(joinGroupDto: GroupMemberDto) {
     const { userId, groupId } = joinGroupDto;
     try {
-      const group = await this.groupRepository.findOne({
-        where: { id: groupId },
-      });
-      if (!group) {
-        return {
-          status: 2,
-          data: null,
-        };
-      }
-      const existingMember = await this.groupMemberRepository.findOne({
+      const group = await this.groupRepo.findOne({
         where: {
-          user: { id: userId },
+          id: groupId,
+          tenantId: this.tenantService.getTenantId()
+        }
+      });
+
+      if (!group) {
+        return { status: 2, data: null };
+      }
+
+      const existingMember = await this.groupMemberRepo.findOne({
+        where: {
+          userId: userId,
           group: { id: groupId },
+          tenantId: this.tenantService.getTenantId()
         },
       });
+
       if (existingMember) {
-        return {
-          status: 3,
-          data: null,
-        };
+        return { status: 3, data: null };
       }
-      const joinGroup = await this.groupMemberRepository.save(joinGroupDto);
-      if (joinGroup) {
-        return {
-          status: 1,
-          data: joinGroup,
-        };
-      } else if (!joinGroup) {
-        return {
-          status: 0,
-          data: null,
-        };
-      }
+
+      const memberData = {
+        userId: userId,
+        group: { id: groupId },
+        role: 'member',
+        status: true,
+        tenantId: this.tenantService.getTenantId()
+      } as GroupMember;
+
+      const joinGroup = await this.groupMemberRepo.save(memberData);
+      return joinGroup ? { status: 1, data: joinGroup } : { status: 0, data: null };
     } catch (err) {
       throw new HttpException(err.message || err, HttpStatus.BAD_REQUEST);
     }

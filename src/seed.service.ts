@@ -1,10 +1,10 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { PostsService } from './posts/posts.service';
-import { Post } from './posts/post.entity';
+import { Post } from './entities/post.entity';
 
 @Injectable()
 export class SeedService implements OnModuleInit {
-  constructor(private readonly postsService: PostsService) {}
+  constructor(private readonly postsService: PostsService) { }
 
   async onModuleInit() {
     const posts: Partial<Post>[] = [

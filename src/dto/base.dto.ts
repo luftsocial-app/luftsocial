@@ -6,7 +6,9 @@ import {
   IsNumber,
   IsDate,
   IsUrl,
+  IsNotEmpty,
 } from 'class-validator';
+import { GroupRole } from '../types/enums';
 
 // Enum for status in MessageDto
 enum StatusEnum {
@@ -38,8 +40,9 @@ class IBase {
 }
 
 export class GroupDto extends IBase {
+  @IsNotEmpty()
   @IsString()
-  name?: string;
+  name: string;
 
   @IsOptional()
   @IsString()
@@ -52,16 +55,20 @@ export class GroupDto extends IBase {
   @IsOptional()
   @IsBoolean()
   status?: boolean;
+
+  @IsOptional()
+  @IsString()
+  tenantId: string;
 }
 
 export class GroupMemberDto extends IBase {
-  @IsOptional()
+  @IsNotEmpty()
   @IsNumber()
-  groupId?: number;
+  groupId: number;
 
   @IsOptional()
-  @IsNumber()
-  userId?: number;
+  @IsString()
+  userId?: string;
 
   @IsOptional()
   @IsBoolean()
@@ -74,6 +81,13 @@ export class GroupMemberDto extends IBase {
   @IsOptional()
   @IsBoolean()
   joinedAt?: Date;
+
+  @IsOptional()
+  role?: GroupRole;
+
+  @IsOptional()
+  @IsString()
+  tenantId: string;
 }
 
 export class MessageDto extends IBase {

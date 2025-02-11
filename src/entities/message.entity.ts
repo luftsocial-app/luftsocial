@@ -7,7 +7,7 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Users } from './user.entity'; // Assuming you have a User entity
+import { User } from './user.entity'; // Assuming you have a User entity
 import { Group } from './group.entity';
 
 @Entity()
@@ -15,16 +15,16 @@ export class Message {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => Users, (user) => user.sentMessages)
+  @ManyToOne(() => User, (user) => user.sentMessages)
   @JoinColumn({ name: 'senderId' })
-  sender: Users;
+  sender: User;
 
   @Column()
   senderId: number;
 
-  @ManyToOne(() => Users, (user) => user.receivedMessages)
+  @ManyToOne(() => User, (user) => user.receivedMessages)
   @JoinColumn({ name: 'receiverId' })
-  receiver: Users;
+  receiver: User;
 
   @Column()
   receiverId: number;

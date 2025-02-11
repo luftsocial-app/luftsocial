@@ -17,10 +17,19 @@ export class GroupMemberService {
 
   async addMember(id: string, tenantId: string, addMemberDto: AddMemberDto) {
     const { userId, groupId, role } = addMemberDto;
+    
+    const numGroupId = Number(groupId);
+    const numTenantId = Number(tenantId);
+    const numUserId = Number(userId);
+    const numId = Number(id);
 
     const group = await this.groupRepository.findOne({
-      where: { id: groupId, tenantId },
+      where: { 
+        id: numGroupId,
+        tenantId: numTenantId 
+      } as any
     });
+
     if (!group) {
       return {
         data: null,
@@ -30,11 +39,11 @@ export class GroupMemberService {
     }
     const admin = await this.groupMemberRepository.findOne({
       where: {
-        user: { id: id },
-        group: { id: groupId },
+        user: { id: numId },
+        group: { id: numGroupId },
         role: GroupRole.ADMIN,
-        tenantId,
-      },
+        tenantId: numTenantId
+      } as any
     });
     if (!admin) {
       return {
@@ -44,7 +53,11 @@ export class GroupMemberService {
       };
     }
     const existingMember = await this.groupMemberRepository.findOne({
-      where: { user: { id: userId }, group: { id: groupId }, tenantId },
+      where: { 
+        user: { id: numUserId },
+        group: { id: numGroupId },
+        tenantId: numTenantId 
+      } as any
     });
     if (existingMember) {
       return {
@@ -53,12 +66,15 @@ export class GroupMemberService {
         message: 'User is already a member.',
       };
     }
-    const newMember = this.groupMemberRepository.create({
-      user: { id: userId },
-      group: { id: groupId },
+    const memberData = {
+      user: { id: numUserId },
+      group: { id: numGroupId },
       role: role || GroupRole.MEMBER,
-      tenantId,
-    });
+      tenantId: numTenantId,
+      status: true
+    };
+
+    const newMember = this.groupMemberRepository.create(memberData as unknown as GroupMember);
     console.log(newMember, 'Member created');
 
     const savedMember = await this.groupMemberRepository.save(newMember);
@@ -85,11 +101,11 @@ export class GroupMemberService {
     try {
       const member = await this.groupMemberRepository.findOne({
         where: {
-          user: { id: userId },
-          group: { id: groupId },
+          user: { id: Number(userId) },
+          group: { id: Number(groupId) },
           status: true,
-          tenantId,
-        },
+          tenantId: Number(tenantId)
+        } as any
       });
       if (!member) {
         return {
@@ -99,11 +115,11 @@ export class GroupMemberService {
       }
       const admin = await this.groupMemberRepository.findOne({
         where: {
-          user: { id: adminId },
-          group: { id: groupId },
+          user: { id: Number(adminId) },
+          group: { id: Number(groupId) },
           role: GroupRole.ADMIN,
-          tenantId,
-        },
+          tenantId: Number(tenantId)
+        } as any
       });
       if (!admin) {
         return {
@@ -136,12 +152,15 @@ export class GroupMemberService {
     updateRoleDto: UpdateMemberRoleDto,
   ) {
     // Add tenantId to all queries
-    // ...existing code...
+    // ...existing code with similar number conversions if needed...
   }
 
   async getGroupMembers(groupId: string, tenantId: string) {
     return await this.groupMemberRepository.find({
-      where: { group: { id: groupId }, tenantId },
+      where: { 
+        group: { id: Number(groupId) },
+        tenantId: Number(tenantId) 
+      } as any,
       relations: ['user'],
     });
   }

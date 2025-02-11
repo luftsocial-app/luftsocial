@@ -13,8 +13,8 @@ import { Message } from './message.entity';
 
 @Entity()
 export class Group {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number; // modified from 'uuid' and type string to number
 
   @Column()
   name: string;
@@ -52,5 +52,5 @@ export class Group {
   messages: Message[];
 
   @Column()
-  tenantId: string;
+  tenantId: string
 }

@@ -8,7 +8,6 @@ import { clerkMiddleware } from '@clerk/express';
 import { Logger, LoggerErrorInterceptor, PinoLogger } from 'nestjs-pino';
 import {
   BadRequestException,
-  // ConsoleLogger,
   ValidationError,
   ValidationPipe,
   VersioningType,
@@ -42,21 +41,16 @@ const logger: Logger = new Logger(
       ...config.get('logger'),
     },
   }),
-  { renameContext: 'starter-template' },
+  { renameContext: 'luftsocial' },
 );
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+  const app = await NestFactory.create(AppModule, {
     logger,
-    // logger: new ConsoleLogger({
-    //   json: true,
-    //   colors: true,
-    // }),
   });
 
   // Initialize Clerk with the correct middleware
   app.use(clerkMiddleware());
-
   app.enableVersioning({
     type: VersioningType.URI,
   });

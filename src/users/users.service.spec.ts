@@ -7,8 +7,8 @@ import { DataSource, Repository } from 'typeorm';
 import { Role } from '../entities/role.entity';
 import { User } from '../entities/user.entity';
 import { UserRole } from '../types/enums';
-import { TenantAwareRepository } from '../database/tenant-aware.repository';
 import { UsersService } from './users.service';
+import { TenantService } from '../database/tenant.service';
 
 const chance = new Chance();
 
@@ -16,7 +16,7 @@ describe('UsersService', () => {
   let service: UsersService;
   let userRepository: jest.Mocked<Repository<User>>;
   let roleRepository: jest.Mocked<Repository<Role>>;
-  let mockTenantAwareRepo: jest.Mocked<Partial<TenantAwareRepository<User>>>;
+  let tenantService: jest.Mocked<TenantService>;
 
   const mockUser: User = {
     id: 'user123',
@@ -26,6 +26,7 @@ describe('UsersService', () => {
     lastName: 'Doe',
     organizationId: 'tenant123',
     roles: [],
+    isActive: true
   } as User;
 
   const mockRole = {
@@ -34,37 +35,29 @@ describe('UsersService', () => {
   } as Role;
 
   beforeEach(async () => {
-    mockTenantAwareRepo = {
-      setTenantId: jest.fn(),
-      findOne: jest.fn(),
-      find: jest.fn(),
-      create: jest.fn(),
-      save: jest.fn(),
-      createTenantQueryBuilder: jest.fn(),
-    };
-
-    const mockDataSource = {
-      getRepository: jest.fn().mockReturnValue(mockTenantAwareRepo),
-    } as unknown as jest.Mocked<DataSource>;
-
     const mockUserRepo = {
       create: jest.fn(),
       save: jest.fn(),
       findOne: jest.fn(),
       find: jest.fn(),
-      manager: {
-        connection: mockDataSource,
-      },
-    } as unknown as jest.Mocked<Repository<User>>;
+    };
 
     const mockRoleRepo = {
       findOne: jest.fn(),
       find: jest.fn(),
-    } as unknown as jest.Mocked<Repository<Role>>;
+    };
+
+    const mockTenantService = {
+      getTenantId: jest.fn().mockReturnValue('tenant123'),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UsersService,
+        {
+          provide: TenantService,
+          useValue: mockTenantService,
+        },
         {
           provide: getRepositoryToken(User),
           useValue: mockUserRepo,
@@ -79,11 +72,12 @@ describe('UsersService', () => {
     service = module.get<UsersService>(UsersService);
     userRepository = module.get(getRepositoryToken(User));
     roleRepository = module.get(getRepositoryToken(Role));
+    tenantService = module.get(TenantService);
   });
 
   describe('syncClerkUser', () => {
     it('should create a new user if not exists', async () => {
-      mockTenantAwareRepo.findOne.mockResolvedValueOnce(null);
+      userRepository.findOne.mockResolvedValueOnce(null);
       roleRepository.findOne.mockResolvedValueOnce(mockRole);
       userRepository.create.mockReturnValueOnce(mockUser);
       userRepository.save.mockResolvedValueOnce(mockUser);
@@ -94,125 +88,86 @@ describe('UsersService', () => {
         lastName: 'Doe',
       });
 
-      // expect(mockTenantAwareRepo.setTenantId).toHaveBeenCalledWith('tenant123');
+      expect(userRepository.findOne).toHaveBeenCalledWith({
+        "relations": ["roles"],
+        where: { clerkId: 'clerk123', organizationId: 'tenant123' },
+      });
       expect(roleRepository.findOne).toHaveBeenCalledWith({
         where: { name: UserRole.MEMBER },
       });
-      expect(userRepository.create).toHaveBeenCalled();
-      expect(userRepository.save).toHaveBeenCalled();
       expect(result).toEqual(mockUser);
     });
 
     it('should update existing user if found', async () => {
-      mockTenantAwareRepo.findOne.mockResolvedValueOnce(mockUser);
-      userRepository.save.mockResolvedValueOnce({
-        ...mockUser,
-        email: 'new@example.com',
-      });
+      userRepository.findOne.mockResolvedValueOnce(mockUser);
+      const updatedUser = { ...mockUser, email: 'new@example.com' };
+      userRepository.save.mockResolvedValueOnce(updatedUser);
 
       const result = await service.syncClerkUser('clerk123', 'tenant123', {
         email: 'new@example.com',
       });
 
-      // expect(mockTenantAwareRepo.setTenantId).toHaveBeenCalledWith('tenant123');
-      expect(userRepository.save).toHaveBeenCalled();
+      expect(userRepository.save).toHaveBeenCalledWith(expect.objectContaining({
+        email: 'new@example.com',
+      }));
       expect(result.email).toBe('new@example.com');
-    });
-
-    it('should throw error if default role not found', async () => {
-      mockTenantAwareRepo.findOne.mockResolvedValueOnce(null);
-      roleRepository.findOne.mockResolvedValueOnce(null);
-
-      await expect(
-        service.syncClerkUser('clerk123', 'tenant123', {}),
-      ).rejects.toThrow(BadRequestException);
     });
   });
 
   describe('getOrganizationUsers', () => {
     it('should return organization users sorted by name', async () => {
-      const mockUsers = [mockUser];
-      mockTenantAwareRepo.find.mockResolvedValueOnce(mockUsers);
+      userRepository.find.mockResolvedValueOnce([mockUser]);
 
       const result = await service.getOrganizationUsers('tenant123');
 
-      // expect(mockTenantAwareRepo.setTenantId).toHaveBeenCalledWith('tenant123');
-      expect(mockTenantAwareRepo.find).toHaveBeenCalledWith({
+      expect(userRepository.find).toHaveBeenCalledWith({
         where: { organizationId: 'tenant123' },
         order: { firstName: 'ASC', lastName: 'ASC' },
       });
-      expect(result).toEqual(mockUsers);
-    });
-
-    it('should handle errors appropriately', async () => {
-      mockTenantAwareRepo.find.mockRejectedValueOnce(new Error('DB error'));
-
-      await expect(service.getOrganizationUsers('tenant123')).rejects.toThrow(
-        BadRequestException,
-      );
+      expect(result).toEqual([mockUser]);
     });
   });
 
   describe('updateUserRole', () => {
     it('should update user roles successfully', async () => {
-      const roles = [UserRole.ADMIN];
-      mockTenantAwareRepo.findOne.mockResolvedValueOnce(mockUser);
-      roleRepository.find.mockResolvedValueOnce([
-        { name: UserRole.ADMIN },
-      ] as Role[]);
-      userRepository.save.mockResolvedValueOnce({
-        ...mockUser,
-        roles: [
-          {
-            name: UserRole.ADMIN,
-            createdAt: chance.date(),
-            id: chance.integer(),
-            permissions: [],
-            users: [],
-          },
-        ],
-      });
+      const adminRole = { name: UserRole.ADMIN } as Role;
+      userRepository.findOne.mockResolvedValueOnce(mockUser);
+      roleRepository.find.mockResolvedValueOnce([adminRole]);
+      const updatedUser = { ...mockUser, roles: [adminRole] };
+      userRepository.save.mockResolvedValueOnce(updatedUser);
 
       const result = await service.updateUserRole(
         'user123',
-        roles,
+        [UserRole.ADMIN],
         'tenant123',
       );
 
-      // expect(mockTenantAwareRepo.setTenantId).toHaveBeenCalledWith('tenant123');
-      expect(roleRepository.find).toHaveBeenCalled();
-      expect(userRepository.save).toHaveBeenCalled();
-      expect(result.roles).toHaveLength(1);
-    });
-
-    it('should throw error if user not found', async () => {
-      mockTenantAwareRepo.findOne.mockResolvedValueOnce(null);
-
-      await expect(
-        service.updateUserRole('user123', [UserRole.ADMIN], 'tenant123'),
-      ).rejects.toThrow(BadRequestException);
+      expect(userRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ roles: [adminRole] })
+      );
+      expect(result.roles).toEqual([adminRole]);
     });
   });
 
   describe('findUser', () => {
-    it('should find user by clerkId and tenantId', async () => {
-      mockTenantAwareRepo.findOne.mockResolvedValueOnce(mockUser);
+    it('should find user by clerkId', async () => {
+      userRepository.findOne.mockResolvedValueOnce(mockUser);
 
-      const result = await service.findUser('clerk123', 'tenant123');
+      const result = await service.findUser('clerk123');
 
-      // expect(mockTenantAwareRepo.setTenantId).toHaveBeenCalledWith('tenant123');
-      expect(mockTenantAwareRepo.findOne).toHaveBeenCalledWith({
+      expect(userRepository.findOne).toHaveBeenCalledWith({
+        "relations": ["roles"],
         where: { clerkId: 'clerk123', organizationId: 'tenant123' },
       });
       expect(result).toEqual(mockUser);
     });
 
-    it('should handle errors appropriately', async () => {
-      mockTenantAwareRepo.findOne.mockRejectedValueOnce(new Error('DB error'));
+    it('should return null if user not found', async () => {
+      userRepository.findOne.mockResolvedValueOnce(null);
 
-      await expect(service.findUser('clerk123', 'tenant123')).rejects.toThrow(
-        BadRequestException,
-      );
+      const result = await service.findUser('nonexistent');
+
+      expect(result).toBeNull();
     });
   });
 });

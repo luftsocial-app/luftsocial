@@ -11,7 +11,7 @@ import { tap } from 'rxjs/operators';
 export class RequestInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
-    console.log('Intercepted Request:', request.user, request.body);
+    console.log('Intercepted Request:', { user: request.user, body: request.body });
 
     // You can manipulate the request here if necessary
     // For example, add custom headers or log specific data

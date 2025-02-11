@@ -3,7 +3,6 @@ import {
   Get,
   Patch,
   Body,
-  UseGuards,
   Param,
   Post,
   HttpException,
@@ -13,12 +12,16 @@ import {
 import { UsersService } from './users.service';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { UserRole, Permission } from '../types/enums';
-import { ClerkAuthGuard } from '../guards/clerk-auth.guard';
 
 @Controller('users')
-@UseGuards(ClerkAuthGuard)
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  @Get()
+  // @Roles(Role.Admin)
+  async getUsers() {
+    return this.usersService.getUsers();
+  }
 
   @Get('organization')
   async getOrganizationUsers(@CurrentUser() user: any) {
@@ -79,10 +82,9 @@ export class UsersController {
   @Get(':tenantId/:clerkId')
   async findUser(
     @Param('clerkId') clerkId: string,
-    @Param('tenantId') tenantId: string,
   ) {
     try {
-      const user = await this.usersService.findUser(clerkId, tenantId);
+      const user = await this.usersService.findUser(clerkId);
       if (!user) {
         throw new HttpException('User not found', HttpStatus.NOT_FOUND);
       }

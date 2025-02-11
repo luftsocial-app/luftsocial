@@ -13,7 +13,7 @@ import { Reflector } from '@nestjs/core';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(private reflector: Reflector) { }
 
   canActivate(context: ExecutionContext): boolean {
     const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
@@ -30,10 +30,10 @@ export class RolesGuard implements CanActivate {
 
     const user = req.auth;
     console.log({ user, permissions: user.has({ role: 'org:member' }) });
-    console.log({ metatata: user.sessionClaims?.permissions });
+    console.log({ metatata: user.sessionClaims?.metadata.role });
 
     return requiredRoles.some((role) =>
-      user.sessionClaims?.metadata.role.includes(role),
+      user.sessionClaims?.org_role.includes(role),
     );
   }
 }

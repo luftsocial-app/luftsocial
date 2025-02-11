@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "prebuild": "rm -rf dist",
+    "prebuild": "rimraf dist",
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
@@ -19,7 +19,12 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "eslint:fix": "eslint --fix \"{src,apps,libs,test}/**/*.ts\""
+    "eslint:fix": "eslint --fix \"{src,apps,libs,test}/**/*.ts\"",
+    "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
+    "migration:generate": "npm run typeorm -- migration:generate -d src/migrations/config/typeorm.config.ts",
+    "migration:create": "npm run typeorm -- migration:create",
+    "migration:run": "npm run typeorm -- migration:run -d src/migrations/config/typeorm.config.ts",
+    "migration:revert": "npm run typeorm -- migration:revert -d src/migrations/config/typeorm.config.ts"
   },
   "dependencies": {
     "@clerk/express": "^1.3.46",
@@ -40,7 +45,6 @@
     "http2": "^3.3.7",
     "joi": "^17.13.3",
     "js-yaml": "^4.1.0",
-    "mailparser-mit": "^1.0.0",
     "nestjs-pino": "^4.3.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
@@ -48,6 +52,7 @@
     "pino": "^9.6.0",
     "pino-http": "^10.4.0",
     "reflect-metadata": "^0.2.2",
+    "rimraf": "^6.0.1",
     "rxjs": "^7.8.1",
     "sanitize-html": "^2.14.0",
     "simple-oauth2": "^5.1.0",

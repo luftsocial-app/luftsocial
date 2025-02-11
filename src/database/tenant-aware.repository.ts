@@ -1,97 +1,39 @@
-import {
-  DataSource,
-  DeepPartial,
-  EntityTarget,
-  FindManyOptions,
-  FindOneOptions,
-  ObjectLiteral,
-  Repository,
-  SelectQueryBuilder,
-  UpdateResult,
-  DeleteResult,
-  FindOptionsWhere,
-} from 'typeorm';
+import { Injectable } from '@nestjs/common';
+import { Repository } from 'typeorm';
 
-export class CustomTenantAwareRepository<T extends ObjectLiteral> {
-  private organizationId = '';
-  private readonly baseRepository: Repository<T>;
+@Injectable()
+export class TenantAwareRepository {
+    private tenantId: string = '';
+    
+    constructor(protected readonly baseRepository: Repository<any>) {}
 
-  constructor(dataSource: DataSource, entity: EntityTarget<T>) {
-    this.baseRepository = dataSource.getRepository(entity);
-  }
-
-  setTenantId(organizationId: string): void {
-    this.organizationId = organizationId;
-  }
-
-  private isTenantSet(): boolean {
-    return (
-      typeof this.organizationId === 'string' &&
-      this.organizationId.trim().length > 0
-    );
-  }
-
-  createTenantQueryBuilder(alias: string): SelectQueryBuilder<T> {
-    const qb = this.baseRepository.createQueryBuilder(alias);
-    if (this.isTenantSet()) {
-      qb.andWhere(`${alias}.organizationId = :organizationId`, {
-        organizationId: this.organizationId,
-      });
+    setTenantId(tenantId: string): void {
+        this.tenantId = tenantId;
     }
-    return qb;
-  }
 
-  async find(options?: FindManyOptions<T>): Promise<T[]> {
-    if (this.isTenantSet()) {
-      options = options || {};
-      options.where = options.where || {};
-      Object.assign(options.where, { organizationId: this.organizationId });
+    private withTenant(criteria: any = {}) {
+        return this.tenantId ? { ...criteria, organizationId: this.tenantId } : criteria;
     }
-    return this.baseRepository.find(options);
-  }
 
-  async findOne(options: FindOneOptions<T>): Promise<T | null> {
-    if (this.isTenantSet()) {
-      options = options || {};
-      options.where = options.where || {};
-      Object.assign(options.where, { organizationId: this.organizationId });
+    find(options: any = {}) {
+        options.where = this.withTenant(options.where);
+        return this.baseRepository.find(options);
     }
-    return this.baseRepository.findOne(options);
-  }
 
-  async update(
-    criteria: FindOptionsWhere<T>,
-    partialEntity: DeepPartial<T>,
-  ): Promise<UpdateResult> {
-    if (this.isTenantSet()) {
-      Object.assign(criteria, { organizationId: this.organizationId });
+    findOne(options: any = {}) {
+        options.where = this.withTenant(options.where);
+        return this.baseRepository.findOne(options);
     }
-    return this.baseRepository.update(criteria, partialEntity);
-  }
 
-  async delete(criteria: FindOptionsWhere<T>): Promise<DeleteResult> {
-    if (this.isTenantSet()) {
-      Object.assign(criteria, { organizationId: this.organizationId });
+    create(data: any) {
+        return this.baseRepository.create(data);
     }
-    return this.baseRepository.delete(criteria);
-  }
 
-  // Delegate other necessary repository methods
-  create(entityLike: DeepPartial<T>): T {
-    return this.baseRepository.create(entityLike);
-  }
+    save(data: any) {
+        return this.baseRepository.save(data);
+    }
 
-  async save(entity: Partial<T>): Promise<T> {
-    return this.baseRepository.save(entity as T);
-  }
-}
-
-export type TenantAwareRepository<T extends ObjectLiteral> =
-  CustomTenantAwareRepository<T>;
-
-export function createTenantAwareRepository<T extends ObjectLiteral>(
-  dataSource: DataSource,
-  entity: EntityTarget<T>,
-): TenantAwareRepository<T> {
-  return new CustomTenantAwareRepository(dataSource, entity);
+    delete(criteria: any) {
+        return this.baseRepository.delete(this.withTenant(criteria));
+    }
 }

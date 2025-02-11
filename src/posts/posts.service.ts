@@ -1,35 +1,60 @@
-import { Injectable, Inject } from '@nestjs/common';
-import { Post } from './post.entity';
-import { TenantAwareRepository } from '../database/tenant-aware.repository';
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
+import { Post } from '../entities/post.entity';
+import { Repository } from 'typeorm';
+import { InjectRepository } from '@nestjs/typeorm';
+import { TenantService } from '../database/tenant.service';
 
 @Injectable()
 export class PostsService {
   constructor(
-    @Inject('TenantAwarePostRepository')
-    private readonly postRepository: TenantAwareRepository<Post>,
-  ) {}
+    @InjectRepository(Post)
+    private readonly postRepository: Repository<Post>,
+    private readonly tenantService: TenantService
+  ) { }
 
   async findOne(id: string): Promise<Post> {
-    return this.postRepository.findOne({
-      where: { id },
+    const post = await this.postRepository.findOne({
+      where: {
+        id,
+        organizationId: this.tenantService.getTenantId()
+      },
     });
+    if (!post) throw new NotFoundException('Post not found');
+    return post;
   }
 
   async find(): Promise<Post[]> {
-    return this.postRepository.find();
+    return this.postRepository.find({
+      where: { organizationId: this.tenantService.getTenantId() }
+    });
   }
 
   async create(post: Partial<Post>): Promise<Post> {
-    const newPost = this.postRepository.create(post);
+    const newPost = this.postRepository.create({
+      ...post,
+      organizationId: this.tenantService.getTenantId()
+    });
     return this.postRepository.save(newPost);
   }
 
   async update(postId: string, post: Partial<Post>): Promise<Post> {
-    await this.postRepository.update({ id: postId }, post);
-    return this.postRepository.findOne({ where: { id: postId } });
+    await this.postRepository.update(
+      {
+        id: postId,
+        organizationId: this.tenantService.getTenantId()
+      },
+      post
+    );
+    return this.findOne(postId);
   }
 
   async delete(postId: string): Promise<void> {
-    await this.postRepository.delete({ id: postId });
+    const result = await this.postRepository.delete({
+      id: postId,
+      organizationId: this.tenantService.getTenantId()
+    });
+    if (result.affected === 0) {
+      throw new NotFoundException('Post not found');
+    }
   }
 }

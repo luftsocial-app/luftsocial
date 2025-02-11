@@ -9,7 +9,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { ConfigModule } from '@nestjs/config';
 import * as config from 'config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { LoggerMiddleware } from '../logger.middleware';
+// import { LoggerMiddleware } from '../logger.middleware';
 import { ScheduleModule } from '@nestjs/schedule';
 import { Message } from './entities/message.entity';
 import { Group } from './entities/group.entity';
@@ -18,25 +18,28 @@ import { GroupModule } from './group/group.module';
 import { GroupMemberModule } from './group-member/group-member.module';
 import { TenantMiddleware } from './middleware/tenant.middleware';
 import { UsersModule } from './users/users.module';
-import { AuthModule } from './auth/auth.module';
 import { User } from './entities/user.entity';
 import { ClerkAuthGuard } from './guards/clerk-auth.guard';
 import { RolesGuard } from './guards/role-guard';
 import { Role } from './entities/role.entity';
-
+import { Permissions } from './entities/permissions.entity';
+import { Organization } from './entities/organization.entity';
+import { DatabaseModule } from './database/database.module';
+import { PostsModule } from './posts/posts.module';
+import { Post } from './entities/post.entity';
 @Module({
   imports: [
     ScheduleModule.forRoot(),
     UsersModule,
     ConfigModule.forRoot({
-      ignoreEnvFile: true,
-      ignoreEnvVars: true,
+      // ignoreEnvFile: true,
+      // ignoreEnvVars: true,
       isGlobal: true,
       load: [config.util.toObject],
     }),
     TypeOrmModule.forRoot({
       ...config.get('db.options'),
-      entities: [User, Message, Group, GroupMember, Role],
+      entities: [User, Message, Group, GroupMember, Role, Permissions, Organization, Post],
     }),
     LoggerModule.forRoot({
       ...JSON.parse(JSON.stringify(config.get('logger'))),
@@ -52,8 +55,8 @@ import { Role } from './entities/role.entity';
     GroupModule,
     GroupMemberModule,
     UsersModule,
-    AuthModule,
-    // Notification
+    DatabaseModule,
+    PostsModule
   ],
   controllers: [AppController],
   providers: [
