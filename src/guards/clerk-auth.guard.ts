@@ -1,11 +1,16 @@
-import { CanActivate, type ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  CanActivate,
+  type ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
-import { clerkClient } from "@clerk/express";
+import { clerkClient } from '@clerk/express';
 
 @Injectable()
 export class ClerkAuthGuard implements CanActivate {
-  constructor(private reflector: Reflector) { }
+  constructor(private reflector: Reflector) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
@@ -19,8 +24,6 @@ export class ClerkAuthGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest();
     const sessionId = request.auth?.sessionId;
-
-
 
     if (!sessionId) {
       throw new UnauthorizedException('No session token provided');

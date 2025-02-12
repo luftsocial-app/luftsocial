@@ -2,72 +2,65 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToOne,
-  JoinColumn,
+  OneToOne,
   CreateDateColumn,
   UpdateDateColumn,
+  DeleteDateColumn,
 } from 'typeorm';
-import { User } from './user.entity'; // Assuming you have a User entity
-import { Group } from './group.entity';
+import { MessageType, MessageStatus } from '../common/enums/messaging';
+import { MessageMetadata } from './message.metadata';
 
 @Entity()
 export class Message {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @ManyToOne(() => User, (user) => user.sentMessages)
-  @JoinColumn({ name: 'senderId' })
-  sender: User;
+  @Column('uuid')
+  conversationId: string;
 
-  @Column()
-  senderId: number;
-
-  @ManyToOne(() => User, (user) => user.receivedMessages)
-  @JoinColumn({ name: 'receiverId' })
-  receiver: User;
-
-  @Column()
-  receiverId: number;
+  @Column('uuid')
+  senderId: string;
 
   @Column()
   content: string;
 
-  @Column({ type: 'boolean', default: false })
-  isRead: boolean;
+  @Column({
+    type: 'enum',
+    enum: MessageType,
+    default: MessageType.TEXT,
+  })
+  type: MessageType;
+
+  @Column({ type: 'uuid', array: true, default: [] })
+  readBy: string[];
+
+  @Column({ type: 'uuid', array: true, default: [] })
+  deliveredTo: string[];
 
   @Column({
     type: 'enum',
-    enum: ['sent', 'delivered', 'read'],
-    default: 'sent',
+    enum: MessageStatus,
+    default: MessageStatus.SENDING,
   })
-  status: 'sent' | 'delivered' | 'read';
+  status: MessageStatus;
+
+  @Column({ nullable: true })
+  replyToId?: string;
 
   @CreateDateColumn()
-  sentAt: Date;
+  createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @Column({ type: 'boolean', default: false })
-  isDeleted: boolean;
-
-  @ManyToOne(() => Group, (group) => group.messages, {
-    nullable: true,
-    onDelete: 'CASCADE',
-  })
-  @JoinColumn({ name: 'groupId' })
-  group: Group;
+  @DeleteDateColumn()
+  deletedAt?: Date;
 
   @Column({ nullable: true })
-  groupId: number;
+  deletedBy?: string;
 
-  @Column({
-    type: 'enum',
-    enum: ['text', 'image', 'video', 'link', 'mixed'],
-    default: 'text',
+  @OneToOne(() => MessageMetadata, (metadata) => metadata.message, {
+    cascade: true,
   })
-  type: 'text' | 'image' | 'video' | 'link' | 'mixed';
-
-  @Column({ nullable: true })
-  mediaUrl: string;
+  metadata: MessageMetadata;
 }

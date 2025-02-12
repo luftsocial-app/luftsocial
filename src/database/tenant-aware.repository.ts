@@ -3,37 +3,39 @@ import { Repository } from 'typeorm';
 
 @Injectable()
 export class TenantAwareRepository {
-    private tenantId: string = '';
-    
-    constructor(protected readonly baseRepository: Repository<any>) {}
+  private tenantId: string = '';
 
-    setTenantId(tenantId: string): void {
-        this.tenantId = tenantId;
-    }
+  constructor(protected readonly baseRepository: Repository<any>) {}
 
-    private withTenant(criteria: any = {}) {
-        return this.tenantId ? { ...criteria, organizationId: this.tenantId } : criteria;
-    }
+  setTenantId(tenantId: string): void {
+    this.tenantId = tenantId;
+  }
 
-    find(options: any = {}) {
-        options.where = this.withTenant(options.where);
-        return this.baseRepository.find(options);
-    }
+  private withTenant(criteria: any = {}) {
+    return this.tenantId
+      ? { ...criteria, organizationId: this.tenantId }
+      : criteria;
+  }
 
-    findOne(options: any = {}) {
-        options.where = this.withTenant(options.where);
-        return this.baseRepository.findOne(options);
-    }
+  find(options: any = {}) {
+    options.where = this.withTenant(options.where);
+    return this.baseRepository.find(options);
+  }
 
-    create(data: any) {
-        return this.baseRepository.create(data);
-    }
+  findOne(options: any = {}) {
+    options.where = this.withTenant(options.where);
+    return this.baseRepository.findOne(options);
+  }
 
-    save(data: any) {
-        return this.baseRepository.save(data);
-    }
+  create(data: any) {
+    return this.baseRepository.create(data);
+  }
 
-    delete(criteria: any) {
-        return this.baseRepository.delete(this.withTenant(criteria));
-    }
+  save(data: any) {
+    return this.baseRepository.save(data);
+  }
+
+  delete(criteria: any) {
+    return this.baseRepository.delete(this.withTenant(criteria));
+  }
 }

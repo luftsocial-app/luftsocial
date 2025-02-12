@@ -6,15 +6,13 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { GroupMember } from './groupMembers.entity';
+import { GroupMember } from './group.members.entity';
 import { User } from './user.entity';
-import { Message } from './message.entity';
-// import { Organization } from './Organization';
 
 @Entity()
 export class Group {
   @PrimaryGeneratedColumn()
-  id: number; // modified from 'uuid' and type string to number
+  id: string; // modified from 'uuid' and type string to number
 
   @Column()
   name: string;
@@ -46,11 +44,8 @@ export class Group {
   user: User;
 
   @Column({ nullable: true })
-  createdBy: number;
-
-  @OneToMany(() => Message, (message) => message.group)
-  messages: Message[];
+  createdBy: string;
 
   @Column()
-  tenantId: string
+  tenantId: string;
 }

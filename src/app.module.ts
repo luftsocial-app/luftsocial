@@ -13,11 +13,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
 import { Message } from './entities/message.entity';
 import { Group } from './entities/group.entity';
-import { GroupMember } from './entities/groupMembers.entity';
-import { GroupModule } from './group/group.module';
-import { GroupMemberModule } from './group-member/group-member.module';
+import { GroupMember } from './entities/group.members.entity';
 import { TenantMiddleware } from './middleware/tenant.middleware';
-import { UsersModule } from './users/users.module';
+import { UsersModule } from './user-management/users/users.module';
 import { User } from './entities/user.entity';
 import { ClerkAuthGuard } from './guards/clerk-auth.guard';
 import { RolesGuard } from './guards/role-guard';
@@ -25,8 +23,10 @@ import { Role } from './entities/role.entity';
 import { Permissions } from './entities/permissions.entity';
 import { Organization } from './entities/organization.entity';
 import { DatabaseModule } from './database/database.module';
-import { PostsModule } from './posts/posts.module';
+import { PostsModule } from './post-management/posts/posts.module';
 import { Post } from './entities/post.entity';
+import { GroupMemberModule } from './user-management/group-member/group-member.module';
+import { GroupModule } from './user-management/group/group.module';
 @Module({
   imports: [
     ScheduleModule.forRoot(),
@@ -39,7 +39,16 @@ import { Post } from './entities/post.entity';
     }),
     TypeOrmModule.forRoot({
       ...config.get('db.options'),
-      entities: [User, Message, Group, GroupMember, Role, Permissions, Organization, Post],
+      entities: [
+        User,
+        Message,
+        Group,
+        GroupMember,
+        Role,
+        Permissions,
+        Organization,
+        Post,
+      ],
     }),
     LoggerModule.forRoot({
       ...JSON.parse(JSON.stringify(config.get('logger'))),
@@ -56,7 +65,7 @@ import { Post } from './entities/post.entity';
     GroupMemberModule,
     UsersModule,
     DatabaseModule,
-    PostsModule
+    PostsModule,
   ],
   controllers: [AppController],
   providers: [

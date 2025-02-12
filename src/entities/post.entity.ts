@@ -1,6 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity({ name: "tbl_posts" })
+@Entity('tbl_posts')
 export class Post {
   @PrimaryGeneratedColumn()
   id: string;
@@ -11,6 +11,6 @@ export class Post {
   @Column()
   content: string;
 
-  @Column({ name: "organization_id" })
+  @Column({ name: 'organization_id' })
   organizationId: string; // Add organizationId to the Post entity
 }

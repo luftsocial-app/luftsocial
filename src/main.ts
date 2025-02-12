@@ -1,7 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import { NestExpressApplication } from '@nestjs/platform-express';
 import * as config from 'config';
 import { clerkMiddleware } from '@clerk/express';
 
@@ -60,10 +59,11 @@ async function bootstrap() {
   // app.set('trust proxy', 'loopback'); // Trust requests from the loopback address
 
   const swaggerConfig = new DocumentBuilder()
-    .setTitle('User Profile Service')
-    .setDescription('User Profile Service API description')
+    .setTitle('LuftSocial API')
+    .setDescription('The LuftSocial API description')
     .setVersion('1.0')
-    .addTag('user-profile-service')
+    .addBearerAuth()
+    .addTag('lustsocial endpoints')
     .addServer('http://localhost:3000') // Replace with actual server URL
     .addSecurity('token', {
       type: 'apiKey',
@@ -71,14 +71,6 @@ async function bootstrap() {
       in: 'header',
       name: 'auth-token',
     })
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-      },
-      'access-token',
-    )
     .build();
 
   const documentFactory = () =>

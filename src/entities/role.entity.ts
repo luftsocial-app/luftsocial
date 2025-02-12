@@ -8,7 +8,7 @@ import {
 } from 'typeorm';
 import { Permissions } from './permissions.entity';
 import { User } from './user.entity';
-import { UserRole } from '../types/enums';
+import { UserRole } from '../common/enums/roles';
 
 @Entity()
 export class Role {

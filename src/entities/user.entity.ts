@@ -6,13 +6,15 @@ import {
   ManyToOne,
   ManyToMany,
   JoinTable,
-  JoinColumn,
+  CreateDateColumn,
+  DeleteDateColumn,
+  UpdateDateColumn,
 } from 'typeorm';
-import { Message } from './message.entity';
-import { GroupMember } from './groupMembers.entity';
+import { GroupMember } from './group.members.entity';
 import { Group } from './group.entity';
 import { Organization } from './organization.entity';
 import { Role } from './role.entity';
+import { UserRole, Permission } from '../common/enums/roles';
 
 @Entity({ name: 'tbl_users' })
 export class User {
@@ -26,25 +28,35 @@ export class User {
   email: string;
 
   @Column()
+  username: string;
+
+  @Column()
   firstName: string;
 
   @Column()
   lastName: string;
 
+  @Column({ nullable: true })
+  profilePicture?: string;
+
+  @Column({ nullable: true })
+  phoneNumber?: string;
+
+  @Column({ nullable: true })
+  avatar?: string;
+
   @Column({ default: true })
   isActive: boolean;
 
-  @ManyToOne(() => Organization, (org) => org.users)
-  organization: Organization;
+  @Column({
+    type: 'enum',
+    enum: UserRole,
+    default: UserRole.MEMBER,
+  })
+  userRole: UserRole;
 
-  @Column()
-  organizationId: string;
-
-  @OneToMany(() => Message, (message) => message.sender)
-  sentMessages: Message[];
-
-  @OneToMany(() => Message, (message) => message.receiver)
-  receivedMessages: Message[];
+  @Column({ type: 'jsonb', default: [] })
+  permissions: Permission[];
 
   @OneToMany(() => GroupMember, (groupMember) => groupMember.user)
   groupMembers: GroupMember[];
@@ -55,4 +67,38 @@ export class User {
   @ManyToMany(() => Role)
   @JoinTable()
   roles: Role[];
+
+  @Column({ type: 'timestamp', nullable: true })
+  lastSeen?: Date;
+
+  @Column({ nullable: true })
+  status?: string;
+
+  @Column({ nullable: true })
+  customStatus?: string;
+
+  // Users can belong to multiple organizations
+  @ManyToMany(() => Organization, (organization) => organization.users)
+  @JoinTable({
+    name: 'user_organizations',
+    joinColumn: { name: 'userId', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'organizationId', referencedColumnName: 'id' },
+  })
+  organizations: Organization[];
+
+  // Tracks the currently active organization
+  @Column({ nullable: true })
+  activeOrganizationId?: string;
+
+  @ManyToOne(() => Organization, { nullable: true, onDelete: 'SET NULL' })
+  activeOrganization?: Organization;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @DeleteDateColumn()
+  deletedAt?: Date;
 }
