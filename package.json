@@ -150,11 +150,7 @@
     }
   },
   "pre-commit": [
-    "eslint:fix",
-    "prettier -c \"src/**/*.ts\" \"test/**/*.ts\"",
-    "cspell '**/*.{js,ts,json,md,yml,yaml}'",
-    "depcheck",
-    "test",
-    "build"
+    "lint",
+    "format"
   ]
 }
