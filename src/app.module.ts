@@ -19,6 +19,7 @@ import { Group } from './entities/group.entity';
 import { GroupMember } from './entities/groupMembers.entity';
 import { GroupModule } from './group/group.module'
 import { GroupMemberModule } from './group-member/group-member.module';
+import { MessageModule } from './message/message.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { GroupMemberModule } from './group-member/group-member.module';
     HealthModule,
     GroupModule,
     GroupMemberModule,
+    MessageModule
     // Notification
   ],
   controllers: [AppController],

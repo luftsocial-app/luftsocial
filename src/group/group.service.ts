@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Group } from '../entities/group.entity';
 import { GroupDto, GroupMemberDto } from '../dto/base.dto';
-import { GroupMember } from 'src/entities/groupMembers.entity';
+import { GroupMember } from '../entities/groupMembers.entity';
 import { Users } from 'src/entities/user.entity';
 
 @Injectable()
@@ -15,7 +15,7 @@ export class GroupService {
         private readonly groupMemberRepository: Repository<GroupMember>,
     ) { }
 
-    async createGroup(groupDto: GroupDto, id: number): Promise<{ data: Group | null; status: number }> {
+    async createGroup(groupDto: GroupDto, id: number): Promise<{ data: GroupDto | null; status: number }> {
         try {
             groupDto.createdBy = id ?? 1;
             const newGroup = this.groupRepository.create(groupDto);
@@ -42,7 +42,7 @@ export class GroupService {
         }
     }
 
-    async joinGroup(joinGroupDto: GroupMemberDto): Promise<{ data: GroupMember | null; status: number }> {
+    async joinGroup(joinGroupDto: GroupMemberDto): Promise<{ data: GroupMemberDto | null; status: number }> {
         const { userId, groupId } = joinGroupDto;
         try {
             const group = await this.groupRepository.findOne({ where: { id: groupId } });

@@ -13,8 +13,6 @@ export class GroupMemberController {
         try {
             // const { id } = req.user
             const id = req?.user?.id ?? 1
-            console.log(groupMemberDto, 'test_groupMemberDto');
-
             const { data, status } = await this.groupMemberService.addMember(groupMemberDto, id);
             if (status === 1) {
                 return res.status(HttpStatus.OK).json({ message: 'User added to the group successfully.', status: 1, data });
@@ -36,7 +34,6 @@ export class GroupMemberController {
     async removeMember(@Param('groupId') groupId: number, @Param('userId') userId: number, @Res() res: Response, @Req() req) {
         try {
             const id = req?.user?.id ?? 1
-            console.log(id, 'user_id');
             const { status, message } = await this.groupMemberService.removeMember(groupId, userId, id);
             if (status === 1) {
                 return res.status(HttpStatus.OK).json({ message, status });

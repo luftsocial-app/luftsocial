@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Group } from '../entities/group.entity';
 import { GroupDto, GroupMemberDto } from '../dto/base.dto';
-import { GroupMember } from 'src/entities/groupMembers.entity';
+import { GroupMember } from '../entities/groupMembers.entity';
 import { Users } from 'src/entities/user.entity';
 
 @Injectable()
@@ -47,7 +47,6 @@ export class GroupMemberService {
                 }
             }
             const newMember = this.groupMemberRepository.create({ user: { id: userId }, group: { id: groupId }, role: 'member' });
-            console.log(newMember, 'Member created');
 
             const savedMember = await this.groupMemberRepository.save(newMember);
             if (savedMember) {

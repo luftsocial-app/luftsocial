@@ -4,7 +4,7 @@ import { AuthMiddleware } from '../middleware/AuthMiddleware';
 import { Request, Response } from 'express';
 
 @Controller('messages')
-@UseGuards(AuthMiddleware) // Protect the route
+// @UseGuards(AuthMiddleware) // Protect the route
 export class MessageController {
     constructor(private readonly messageService: MessageService) { }
 

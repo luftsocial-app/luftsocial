@@ -11,8 +11,8 @@ export class GroupController {
     @Post('/create')
     async createGroup(@Body() groupDto: GroupDto, @Res() res: Response, @Req() req) {
         try {
-            const id = req?.user?.id
-            const { data, status } = await this.groupService.createGroup(groupDto, id);
+            const userId = req?.user?.id
+            const { data, status } = await this.groupService.createGroup(groupDto, userId);
             if (status === 1) {
                 return res.status(HttpStatus.OK).json({
                     message: 'Group created successfully',
@@ -38,8 +38,6 @@ export class GroupController {
     @Post('join')
     async joinGroup(@Body() joinGroupDto: GroupMemberDto, @Res() res: Response) {
         try {
-            console.log(joinGroupDto, 'joinGroupDto_test');
-
             const { data, status } = await this.groupService.joinGroup(joinGroupDto);
             if (status === 1) {
                 return res.status(HttpStatus.OK).json({

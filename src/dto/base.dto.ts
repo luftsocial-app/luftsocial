@@ -1,13 +1,21 @@
-import { IsString, IsOptional, IsBoolean, IsEnum, IsNumber, IsDate, IsUrl } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsBoolean,
+  IsEnum,
+  IsNumber,
+  IsDate,
+  IsUrl,
+} from 'class-validator';
 
 // Enum for status in MessageDto
-enum StatusEnum {
+export enum StatusEnum {
   sent = 'sent',
   delivered = 'delivered',
   read = 'read',
 }
 
-enum MessageTypeEnum {
+export enum MessageTypeEnum {
   text = 'text',
   image = 'image',
   video = 'video',
