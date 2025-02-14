@@ -7,7 +7,6 @@ import {
   HealthIndicatorService,
 } from '@nestjs/terminus';
 import { PinoLogger } from 'nestjs-pino';
-import { split } from '../../node_modules/cspell-lib/dist/lib/util/wordSplitter';
 
 @Controller('health')
 export class HealthController {
@@ -21,12 +20,17 @@ export class HealthController {
 
   @Get()
   @HealthCheck()
-  check() {
+  async check() {
     this.logger.info('Health check');
-    return this.health.check([
-      () => this.httpHealthIndicator.pingCheck('localhost', '/'),
-      //   () => this.typeOrmHealthIndicator.pingCheck('database'),
-    ]);
+    try {
+      return this.health.check([
+        () => this.httpHealthIndicator.pingCheck('localhost', '/'),
+        //   () => this.typeOrmHealthIndicator.pingCheck('database'),
+      ]);
+    } catch (err) {
+      this.logger.error('Health check failed', err);
+      throw err;
+    }
   }
 
   async isHealthy(key: string) {
@@ -42,6 +46,7 @@ export class HealthController {
       // Mark the health indicator as up
       return indicator.up();
     } catch (error) {
+      this.logger.error(error);
       return indicator.down('Unable to retrieve dogs');
     }
   }
