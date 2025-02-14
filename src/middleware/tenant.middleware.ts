@@ -4,7 +4,7 @@ import { TenantService } from '../database/tenant.service';
 
 @Injectable()
 export class TenantMiddleware implements NestMiddleware {
-  constructor(private tenantService: TenantService) { }
+  constructor(private tenantService: TenantService) {}
 
   use(req: Request, res: Response, next: NextFunction) {
     const TenantId = req.headers['x-tenant-id'] as string;

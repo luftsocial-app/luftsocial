@@ -39,7 +39,7 @@ export default new DataSource({
     Notification,
     Post,
     Team,
-    UserTenant
+    UserTenant,
   ],
   migrations: ['src/database/migrations/*.ts'],
   migrationsTableName: 'migrations_history',

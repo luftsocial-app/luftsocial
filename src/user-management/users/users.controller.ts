@@ -15,7 +15,7 @@ import { Permission, UserRole } from '../../common/enums/roles';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) { }
+  constructor(private readonly usersService: UsersService) {}
 
   @Get()
   // @Roles(Role.Admin)

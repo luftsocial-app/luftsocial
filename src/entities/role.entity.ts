@@ -9,7 +9,7 @@ import {
 import { Permissions } from './permissions.entity';
 import { UserRole } from '../common/enums/roles';
 
-@Entity({ name: "tbl_role" })
+@Entity({ name: 'tbl_role' })
 export class Role {
   @PrimaryGeneratedColumn()
   id: number;

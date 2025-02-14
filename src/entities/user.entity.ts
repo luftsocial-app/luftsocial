@@ -80,7 +80,9 @@ export class User {
   customStatus?: string;
 
   // User belongs to multiple tenants
-  @OneToMany(() => UserTenant, (userTenant) => userTenant.user, { cascade: true })
+  @OneToMany(() => UserTenant, (userTenant) => userTenant.user, {
+    cascade: true,
+  })
   userTenants: UserTenant[];
 
   // User belongs to multiple teams

@@ -1,7 +1,7 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import { UserRole } from '../common/enums/roles';
 
-@Entity({name: "tbl_user_role_change"})
+@Entity({ name: 'tbl_user_role_change' })
 export class UserRoleChange {
   @PrimaryGeneratedColumn({ type: 'integer' })
   id: string;

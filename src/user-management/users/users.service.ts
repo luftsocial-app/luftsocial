@@ -15,7 +15,7 @@ export class UsersService {
     @InjectRepository(Role)
     private readonly roleRepo: Repository<Role>,
     private readonly tenantService: TenantService,
-  ) { }
+  ) {}
 
   async getUsers(): Promise<clerkUser[]> {
     const users = await clerkClient.users.getUserList();

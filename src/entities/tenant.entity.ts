@@ -25,8 +25,10 @@ export class Tenant {
   @Column({ name: 'logo', nullable: true })
   logo?: string;
 
-  @OneToMany(() => UserTenant, (userTenant) => userTenant.tenant, { cascade: true })
-  @JoinColumn({name: "tenant_users"})
+  @OneToMany(() => UserTenant, (userTenant) => userTenant.tenant, {
+    cascade: true,
+  })
+  @JoinColumn({ name: 'tenant_users' })
   userTenants: UserTenant[];
 
   @OneToMany(() => Team, (team) => team.tenantId, { cascade: true })

@@ -55,7 +55,7 @@ import { Team } from './entities/team.entity';
         Notification,
         Post,
         Team,
-        UserTenant
+        UserTenant,
       ],
     }),
     LoggerModule.forRoot({

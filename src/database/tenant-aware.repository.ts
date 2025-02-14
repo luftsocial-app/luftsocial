@@ -5,16 +5,14 @@ import { Repository } from 'typeorm';
 export class TenantAwareRepository {
   private TenantId: string = '';
 
-  constructor(protected readonly baseRepository: Repository<any>) { }
+  constructor(protected readonly baseRepository: Repository<any>) {}
 
   setTenantId(TenantId: string): void {
     this.TenantId = TenantId;
   }
 
   private withTenant(criteria: any = {}) {
-    return this.TenantId
-      ? { ...criteria, TenantId: this.TenantId }
-      : criteria;
+    return this.TenantId ? { ...criteria, TenantId: this.TenantId } : criteria;
   }
 
   find(options: any = {}) {
