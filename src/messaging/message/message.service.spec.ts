@@ -33,15 +33,15 @@ describe('MessageService', () => {
     it('should return message history successfully', async () => {
       const mockMessages = [
         {
-          id: 1,
+          id: '1',
           content: 'Test message 1',
-          senderId: '1',
+          sender: { id: '1' },
           createdAt: new Date(),
         },
         {
-          id: 2,
+          id: '2',
           content: 'Test message 2',
-          senderId: '1',
+          sender: { id: '1' },
           createdAt: new Date(),
         },
       ];
@@ -53,12 +53,12 @@ describe('MessageService', () => {
       expect(result.status).toBe(1);
       expect(result.data).toEqual(mockMessages);
       expect(mockMessageRepository.find).toHaveBeenCalledWith({
-        where: [{ senderId: '1' }],
+        where: [{ sender: { id: '1' } }],
         order: { createdAt: 'ASC' },
       });
     });
 
-    it('should return empty array when no messages found', async () => {
+    it('should return status 1 when no messages found', async () => {
       mockMessageRepository.find.mockResolvedValue([]);
 
       const result = await service.getMessageHistory('1');
@@ -69,7 +69,7 @@ describe('MessageService', () => {
       });
 
       expect(mockMessageRepository.find).toHaveBeenCalledWith({
-        where: [{ senderId: '1' }],
+        where: [{ sender: { id: '1' } }],
         order: { createdAt: 'ASC' },
       });
     });

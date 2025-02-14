@@ -22,10 +22,10 @@ export class CreatePostDto {
   content: string;
 
   @ApiProperty({
-    description: 'The organization ID',
+    description: 'The Tenant ID',
     example: 'org_123456',
   })
   @IsString()
   @IsNotEmpty()
-  organizationId: string;
+  TenantId: string;
 }

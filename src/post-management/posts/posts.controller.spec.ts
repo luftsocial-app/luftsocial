@@ -37,7 +37,7 @@ describe('PostsController', () => {
         title: chance.sentence(),
         content: chance.paragraph(),
         authorId: chance.guid(),
-        organizationId: chance.guid(),
+        TenantId: chance.guid(),
         createdAt: chance.date(),
         updatedAt: chance.date(),
       }));

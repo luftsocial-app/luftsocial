@@ -1,9 +1,9 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 import { UserRole } from '../common/enums/roles';
 
-@Entity()
+@Entity({name: "tbl_user_role_change"})
 export class UserRoleChange {
-  @PrimaryGeneratedColumn({ type: 'number' })
+  @PrimaryGeneratedColumn({ type: 'integer' })
   id: string;
   @Column('uuid')
   userId: string;
@@ -14,9 +14,9 @@ export class UserRoleChange {
   @Column()
   previousRole: UserRole;
 
-  @Column()
+  @Column({ name: 'new_role' })
   newRole: UserRole;
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ name: 'reason', type: 'text', nullable: true })
   reason?: string;
 }

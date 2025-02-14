@@ -7,7 +7,7 @@ import {
   IsOptional,
 } from 'class-validator';
 
-export class CreateGroupDto {
+export class CreateTenantDto {
   @ApiProperty({
     description: 'The name of the group',
     example: 'Development Team',
@@ -28,10 +28,10 @@ export class CreateGroupDto {
   description?: string;
 
   @ApiProperty({
-    description: 'The organization ID',
+    description: 'The Tenant ID',
     example: 'org_123456',
   })
   @IsString()
   @IsNotEmpty()
-  organizationId: string;
+  TenantId: string;
 }

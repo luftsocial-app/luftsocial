@@ -9,12 +9,13 @@ import {
   CreateDateColumn,
   DeleteDateColumn,
   UpdateDateColumn,
+  JoinColumn,
 } from 'typeorm';
-import { GroupMember } from './group.members.entity';
-import { Group } from './group.entity';
-import { Organization } from './organization.entity';
+import { Tenant } from './tenant.entity';
 import { Role } from './role.entity';
-import { UserRole, Permission } from '../common/enums/roles';
+import { Permission } from '../common/enums/roles';
+import { Team } from './team.entity';
+import { UserTenant } from './user-tenant.entity';
 
 @Entity({ name: 'tbl_users' })
 export class User {
@@ -30,42 +31,43 @@ export class User {
   @Column()
   username: string;
 
-  @Column()
+  @Column({ name: 'first_name' })
   firstName: string;
 
-  @Column()
+  @Column({ name: 'last_name' })
   lastName: string;
 
-  @Column({ nullable: true })
+  @Column({ name: 'profile', nullable: true })
   profilePicture?: string;
 
-  @Column({ nullable: true })
+  @Column({ name: 'phone', nullable: true })
   phoneNumber?: string;
 
   @Column({ nullable: true })
   avatar?: string;
 
-  @Column({ default: true })
+  @Column({ name: 'is_active', default: true })
   isActive: boolean;
-
-  @Column({
-    type: 'enum',
-    enum: UserRole,
-    default: UserRole.MEMBER,
-  })
-  userRole: UserRole;
 
   @Column({ type: 'jsonb', default: [] })
   permissions: Permission[];
 
-  @OneToMany(() => GroupMember, (groupMember) => groupMember.user)
-  groupMembers: GroupMember[];
+  @OneToMany(() => Team, (team) => team.createdBy)
+  @JoinColumn({ name: 'user_created_groups' })
+  createdTeams: Team[];
 
-  @OneToMany(() => Group, (group) => group.createdBy)
-  createdGroups: Group[];
-
-  @ManyToMany(() => Role)
-  @JoinTable()
+  @ManyToMany(() => Role, (role) => role.id)
+  @JoinTable({
+    name: 'tbl_user_roles',
+    joinColumn: {
+      name: 'role_id',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'user_id',
+      referencedColumnName: 'id',
+    },
+  })
   roles: Role[];
 
   @Column({ type: 'timestamp', nullable: true })
@@ -77,28 +79,27 @@ export class User {
   @Column({ nullable: true })
   customStatus?: string;
 
-  // Users can belong to multiple organizations
-  @ManyToMany(() => Organization, (organization) => organization.users)
-  @JoinTable({
-    name: 'user_organizations',
-    joinColumn: { name: 'userId', referencedColumnName: 'id' },
-    inverseJoinColumn: { name: 'organizationId', referencedColumnName: 'id' },
-  })
-  organizations: Organization[];
+  // User belongs to multiple tenants
+  @OneToMany(() => UserTenant, (userTenant) => userTenant.user, { cascade: true })
+  userTenants: UserTenant[];
 
-  // Tracks the currently active organization
+  // User belongs to multiple teams
+  @ManyToMany(() => Team, (team) => team.users)
+  teams: Team[];
+
+  // Tracks the currently active Tenant
   @Column({ nullable: true })
-  activeOrganizationId?: string;
+  activeTenantId?: string;
 
-  @ManyToOne(() => Organization, { nullable: true, onDelete: 'SET NULL' })
-  activeOrganization?: Organization;
+  @ManyToOne(() => Tenant, { nullable: true, onDelete: 'SET NULL' })
+  activeTenant?: Tenant;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @DeleteDateColumn()
+  @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt?: Date;
 }

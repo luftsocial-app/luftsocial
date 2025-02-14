@@ -9,7 +9,6 @@ import {
   IsUUID,
 } from 'class-validator';
 import { MessageStatus, MessageType } from '../enums/messaging';
-import { IMessageMetadata } from '../interface/interfaces';
 import { GroupRole, Permission, UserRole } from '../enums/roles';
 
 // Enum for status in MessageDto
@@ -60,7 +59,7 @@ export class GroupDto extends IBase {
 
   @IsOptional()
   @IsString()
-  tenantId: string;
+  TenantId: string;
 }
 
 export class GroupMemberDto extends IBase {
@@ -89,7 +88,7 @@ export class GroupMemberDto extends IBase {
 
   @IsOptional()
   @IsString()
-  tenantId: string;
+  TenantId: string;
 }
 
 export class CreateMessageRequest {
@@ -103,7 +102,9 @@ export class CreateMessageRequest {
   conversationId: string;
 
   @IsOptional()
-  metadata?: IMessageMetadata;
+  metadata?: {
+    reactions?: Record<string, unknown>;
+  };
 }
 
 export class UpdateUserRoleRequest {
@@ -123,7 +124,7 @@ export class BaseEntityDto {
   id: string;
 
   @IsUUID()
-  organizationId: string;
+  TenantId: string;
 
   @IsDate()
   createdAt: Date;
@@ -152,7 +153,7 @@ export class UserDto extends BaseEntityDto {
   permissions?: Permission[];
 
   @IsUUID()
-  organizationId: string;
+  TenantId: string;
 
   @IsDate()
   createdAt: Date;
@@ -182,5 +183,7 @@ export class MessageDto extends BaseEntityDto {
   conversationId: string;
 
   @IsOptional()
-  metadata?: IMessageMetadata;
+  metadata?: {
+    reactions?: Record<string, unknown>;
+  };
 }

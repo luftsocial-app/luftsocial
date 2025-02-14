@@ -14,7 +14,7 @@ export class MessageService {
   ): Promise<{ data: Message[]; status: number }> {
     try {
       const messageHistory = await this.messageRepository.find({
-        where: [{ senderId: userId }],
+        where: [{ sender: { id: userId } }],
         order: { createdAt: 'ASC' },
       });
       if (messageHistory) {

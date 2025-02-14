@@ -23,3 +23,16 @@ export enum MessageType {
   LINK = 'link',
   LOCATION = 'location',
 }
+
+export enum AttachmentType {
+  IMAGE = 'image',
+  VIDEO = 'video',
+  AUDIO = 'audio',
+  FILE = 'file',
+}
+
+export interface Attachment {
+  url: string;
+
+  type: MessageType;
+}

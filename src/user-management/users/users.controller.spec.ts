@@ -11,7 +11,7 @@ describe('UsersController', () => {
 
   const mockUsersService = {
     getUsers: jest.fn(),
-    getOrganizationUsers: jest.fn(),
+    getTenantUsers: jest.fn(),
     updateUserRole: jest.fn(),
     syncClerkUser: jest.fn(),
     findUser: jest.fn(),
@@ -31,33 +31,33 @@ describe('UsersController', () => {
     controller = module.get<UsersController>(UsersController);
   });
 
-  describe('getOrganizationUsers', () => {
-    it('should return organization users', async () => {
-      const mockUser = { organizationId: chance.guid() };
+  describe('getTenantUsers', () => {
+    it('should return Tenant users', async () => {
+      const mockUser = { TenantId: chance.guid() };
       const mockUsers = Array.from({ length: 3 }, () => ({
         id: chance.guid(),
         name: chance.name(),
         email: chance.email(),
-        organizationId: mockUser.organizationId,
+        TenantId: mockUser.TenantId,
       }));
 
-      mockUsersService.getOrganizationUsers.mockResolvedValue(mockUsers);
+      mockUsersService.getTenantUsers.mockResolvedValue(mockUsers);
 
-      const result = await controller.getOrganizationUsers(mockUser);
+      const result = await controller.getTenantUsers(mockUser);
 
       expect(result).toEqual(mockUsers);
-      expect(mockUsersService.getOrganizationUsers).toHaveBeenCalledWith(
-        mockUser.organizationId,
+      expect(mockUsersService.getTenantUsers).toHaveBeenCalledWith(
+        mockUser.TenantId,
       );
     });
 
     it('should handle errors', async () => {
-      const mockUser = { organizationId: chance.guid() };
-      mockUsersService.getOrganizationUsers.mockRejectedValue(
+      const mockUser = { TenantId: chance.guid() };
+      mockUsersService.getTenantUsers.mockRejectedValue(
         new Error('Test error'),
       );
 
-      await expect(controller.getOrganizationUsers(mockUser)).rejects.toThrow(
+      await expect(controller.getTenantUsers(mockUser)).rejects.toThrow(
         HttpException,
       );
     });
@@ -67,7 +67,7 @@ describe('UsersController', () => {
     it('should sync clerk user', async () => {
       const clerkId = chance.guid();
       const currentUser = {
-        organizationId: chance.guid(),
+        TenantId: chance.guid(),
         email: chance.email(),
         firstName: chance.first(),
         lastName: chance.last(),
@@ -86,7 +86,7 @@ describe('UsersController', () => {
       expect(result).toEqual(mockSyncedUser);
       expect(mockUsersService.syncClerkUser).toHaveBeenCalledWith(
         clerkId,
-        currentUser.organizationId,
+        currentUser.TenantId,
         currentUser,
       );
     });

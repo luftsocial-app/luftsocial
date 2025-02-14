@@ -3,17 +3,17 @@ import { Repository } from 'typeorm';
 
 @Injectable()
 export class TenantAwareRepository {
-  private tenantId: string = '';
+  private TenantId: string = '';
 
-  constructor(protected readonly baseRepository: Repository<any>) {}
+  constructor(protected readonly baseRepository: Repository<any>) { }
 
-  setTenantId(tenantId: string): void {
-    this.tenantId = tenantId;
+  setTenantId(TenantId: string): void {
+    this.TenantId = TenantId;
   }
 
   private withTenant(criteria: any = {}) {
-    return this.tenantId
-      ? { ...criteria, organizationId: this.tenantId }
+    return this.TenantId
+      ? { ...criteria, TenantId: this.TenantId }
       : criteria;
   }
 

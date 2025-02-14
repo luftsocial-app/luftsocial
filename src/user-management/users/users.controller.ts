@@ -15,7 +15,7 @@ import { Permission, UserRole } from '../../common/enums/roles';
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
   @Get()
   // @Roles(Role.Admin)
@@ -23,10 +23,10 @@ export class UsersController {
     return this.usersService.getUsers();
   }
 
-  @Get('organization')
-  async getOrganizationUsers(@CurrentUser() user: any) {
+  @Get('Tenant')
+  async getTenantUsers(@CurrentUser() user: any) {
     try {
-      return await this.usersService.getOrganizationUsers(user.organizationId);
+      return await this.usersService.getTenantUsers(user.TenantId);
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -42,7 +42,7 @@ export class UsersController {
       return await this.usersService.updateUserRole(
         body.userId,
         body.roles,
-        user.organizationId,
+        user.TenantId,
       );
     } catch (error) {
       throw new HttpException(
@@ -63,10 +63,10 @@ export class UsersController {
       if (!clerkId) {
         throw new BadRequestException('ClerkId is required');
       }
-      // currentUser should include the relevant properties (e.g. email, firstName, lastName, organizationId)
+      // currentUser should include the relevant properties (e.g. email, firstName, lastName, TenantId)
       return await this.usersService.syncClerkUser(
         clerkId,
-        currentUser.organizationId,
+        currentUser.TenantId,
         currentUser,
       );
     } catch (error) {
@@ -79,7 +79,7 @@ export class UsersController {
     }
   }
 
-  @Get(':tenantId/:clerkId')
+  @Get(':TenantId/:clerkId')
   async findUser(@Param('clerkId') clerkId: string) {
     try {
       const user = await this.usersService.findUser(clerkId);

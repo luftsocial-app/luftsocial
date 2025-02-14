@@ -15,7 +15,7 @@ export class UsersService {
     @InjectRepository(Role)
     private readonly roleRepo: Repository<Role>,
     private readonly tenantService: TenantService,
-  ) {}
+  ) { }
 
   async getUsers(): Promise<clerkUser[]> {
     const users = await clerkClient.users.getUserList();
@@ -27,7 +27,7 @@ export class UsersService {
     return this.userRepo.findOne({
       where: {
         clerkId,
-        activeOrganizationId: this.tenantService.getTenantId(),
+        activeTenantId: this.tenantService.getTenantId(),
       },
       relations: ['roles'],
     });
@@ -35,7 +35,7 @@ export class UsersService {
 
   async syncClerkUser(
     clerkId: string,
-    tenantId: string,
+    TenantId: string,
     userData: Partial<User>,
   ) {
     let user = await this.findUser(clerkId);
@@ -51,7 +51,7 @@ export class UsersService {
         email: userData.email || '',
         firstName: userData.firstName || '',
         lastName: userData.lastName || '',
-        activeOrganizationId: tenantId,
+        activeTenantId: TenantId,
         roles: [defaultRole],
       });
     } else {
@@ -66,10 +66,10 @@ export class UsersService {
     return this.userRepo.save(user);
   }
 
-  async getOrganizationUsers(tenantId: string): Promise<User[]> {
+  async getTenantUsers(TenantId: string): Promise<User[]> {
     try {
       return await this.userRepo.find({
-        where: { activeOrganizationId: tenantId },
+        where: { activeTenantId: TenantId },
         order: {
           firstName: 'ASC',
           lastName: 'ASC',
@@ -77,7 +77,7 @@ export class UsersService {
       });
     } catch (error) {
       throw new BadRequestException(
-        `Failed to fetch organization users: ${error.message}`,
+        `Failed to fetch Tenant users: ${error.message}`,
       );
     }
   }
@@ -85,15 +85,15 @@ export class UsersService {
   async updateUserRole(
     userId: string,
     roles: UserRole[],
-    tenantId: string,
+    TenantId: string,
   ): Promise<User> {
     try {
       const user = await this.userRepo.findOne({
-        where: { id: userId, activeOrganizationId: tenantId },
+        where: { id: userId, activeTenantId: TenantId },
         relations: ['roles'],
       });
       if (!user) {
-        throw new BadRequestException('User not found in organization');
+        throw new BadRequestException('User not found in Tenant');
       }
 
       const roleEntities = await this.roleRepo.find({

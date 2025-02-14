@@ -19,7 +19,7 @@ describe('UsersService', () => {
     email: 'test@example.com',
     firstName: 'John',
     lastName: 'Doe',
-    activeOrganizationId: 'tenant123',
+    activeTenantId: 'tenant123',
     roles: [],
     isActive: true,
   } as User;
@@ -84,7 +84,7 @@ describe('UsersService', () => {
 
       expect(userRepository.findOne).toHaveBeenCalledWith({
         relations: ['roles'],
-        where: { clerkId: 'clerk123', activeOrganizationId: 'tenant123' },
+        where: { clerkId: 'clerk123', activeTenantId: 'tenant123' },
       });
       expect(roleRepository.findOne).toHaveBeenCalledWith({
         where: { name: UserRole.MEMBER },
@@ -110,14 +110,14 @@ describe('UsersService', () => {
     });
   });
 
-  describe('getOrganizationUsers', () => {
-    it('should return organization users sorted by name', async () => {
+  describe('getTenantUsers', () => {
+    it('should return Tenant users sorted by name', async () => {
       userRepository.find.mockResolvedValueOnce([mockUser]);
 
-      const result = await service.getOrganizationUsers('tenant123');
+      const result = await service.getTenantUsers('tenant123');
 
       expect(userRepository.find).toHaveBeenCalledWith({
-        where: { activeOrganizationId: 'tenant123' },
+        where: { activeTenantId: 'tenant123' },
         order: { firstName: 'ASC', lastName: 'ASC' },
       });
       expect(result).toEqual([mockUser]);
@@ -153,7 +153,7 @@ describe('UsersService', () => {
 
       expect(userRepository.findOne).toHaveBeenCalledWith({
         relations: ['roles'],
-        where: { clerkId: 'clerk123', activeOrganizationId: 'tenant123' },
+        where: { clerkId: 'clerk123', activeTenantId: 'tenant123' },
       });
       expect(result).toEqual(mockUser);
     });

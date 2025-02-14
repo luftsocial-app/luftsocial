@@ -2,65 +2,82 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  OneToOne,
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
-import { MessageType, MessageStatus } from '../common/enums/messaging';
-import { MessageMetadata } from './message.metadata';
+import {
+  MessageType,
+  MessageStatus,
+  Attachment,
+} from '../common/enums/messaging';
+import { Conversation } from './conversation.entity';
+import { User } from './user.entity';
 
-@Entity()
+@Entity('tbl_messages')
 export class Message {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryGeneratedColumn('uuid', { name: 'id' })
   id: string;
 
-  @Column('uuid')
-  conversationId: string;
+  @ManyToOne(() => Conversation, (conversation) => conversation.messages)
+  @JoinColumn({ name: 'conversation_id' })
+  conversation: Conversation;
 
-  @Column('uuid')
-  senderId: string;
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'sender_id' })
+  sender: User;
 
-  @Column()
+  @Column({ name: 'content' })
   content: string;
 
   @Column({
+    name: 'type',
     type: 'enum',
     enum: MessageType,
     default: MessageType.TEXT,
   })
   type: MessageType;
 
-  @Column({ type: 'uuid', array: true, default: [] })
-  readBy: string[];
+  @Column({ name: 'attachments', type: 'jsonb', nullable: true })
+  attachments?: Attachment[];
 
-  @Column({ type: 'uuid', array: true, default: [] })
-  deliveredTo: string[];
+  @Column({ name: 'is_edited', default: false })
+  isEdited: boolean;
+
+  @Column({ name: 'is_deleted', default: false })
+  isDeleted: boolean;
+
+  @Column({ name: 'is_pinned', type: 'boolean', default: false })
+  isPinned: boolean;
 
   @Column({
+    name: 'status',
     type: 'enum',
     enum: MessageStatus,
     default: MessageStatus.SENDING,
   })
   status: MessageStatus;
 
-  @Column({ nullable: true })
-  replyToId?: string;
-
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @DeleteDateColumn()
+  @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt?: Date;
 
-  @Column({ nullable: true })
+  @Column({ name: 'deleted_by', nullable: true })
   deletedBy?: string;
 
-  @OneToOne(() => MessageMetadata, (metadata) => metadata.message, {
-    cascade: true,
-  })
-  metadata: MessageMetadata;
+  @ManyToOne(() => Message, { nullable: true })
+  @JoinColumn({ name: 'parent_message_id' })
+  parentMessage?: Message; // For threads
+
+  @Column({ name: 'metadata', type: 'jsonb', default: {} })
+  metadata?: {
+    reactions?: { [userId: string]: string }; // { user1: '👍', user2: '❤️' }
+  };
 }

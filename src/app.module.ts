@@ -12,8 +12,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 // import { LoggerMiddleware } from '../logger.middleware';
 import { ScheduleModule } from '@nestjs/schedule';
 import { Message } from './entities/message.entity';
-import { Group } from './entities/group.entity';
-import { GroupMember } from './entities/group.members.entity';
 import { TenantMiddleware } from './middleware/tenant.middleware';
 import { UsersModule } from './user-management/users/users.module';
 import { User } from './entities/user.entity';
@@ -21,12 +19,17 @@ import { ClerkAuthGuard } from './guards/clerk-auth.guard';
 import { RolesGuard } from './guards/role-guard';
 import { Role } from './entities/role.entity';
 import { Permissions } from './entities/permissions.entity';
-import { Organization } from './entities/organization.entity';
+import { Tenant } from './entities/tenant.entity';
 import { DatabaseModule } from './database/database.module';
 import { PostsModule } from './post-management/posts/posts.module';
 import { Post } from './entities/post.entity';
-import { GroupMemberModule } from './user-management/group-member/group-member.module';
-import { GroupModule } from './user-management/group/group.module';
+import { Conversation } from './entities/conversation.entity';
+import { ConversationMember } from './entities/conversation-members.entity';
+import { UserRoleChange } from './entities/user-role-change.entity';
+import { Notification } from './entities/notification.entity';
+import { MessageRead } from './entities/message-read.entity';
+import { UserTenant } from './entities/user-tenant.entity';
+import { Team } from './entities/team.entity';
 @Module({
   imports: [
     ScheduleModule.forRoot(),
@@ -41,13 +44,18 @@ import { GroupModule } from './user-management/group/group.module';
       ...config.get('db.options'),
       entities: [
         User,
-        Message,
-        Group,
-        GroupMember,
-        Role,
+        Tenant,
+        UserRoleChange,
         Permissions,
-        Organization,
+        Role,
+        Message,
+        MessageRead,
+        Conversation,
+        ConversationMember,
+        Notification,
         Post,
+        Team,
+        UserTenant
       ],
     }),
     LoggerModule.forRoot({
@@ -61,8 +69,6 @@ import { GroupModule } from './user-management/group/group.module';
     ]),
 
     HealthModule,
-    GroupModule,
-    GroupMemberModule,
     UsersModule,
     DatabaseModule,
     PostsModule,

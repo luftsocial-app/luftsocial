@@ -1,19 +1,26 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
-import { GroupRole } from '../common/enums/messaging';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
+import { GroupRole } from '../common/enums/roles';
+import { Conversation } from './conversation.entity';
+import { User } from './user.entity';
 
-@Entity()
+@Entity('tbl_conversation_members')
 export class ConversationMember {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ unique: true })
-  name: string;
+  @ManyToOne(() => Conversation)
+  @JoinColumn({ name: 'conversation_id' })
+  conversation: Conversation;
 
-  @Column('uuid')
-  conversationId: string;
-
-  @Column('uuid')
-  userId: string;
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'user_id' })
+  user: User;
 
   @Column({
     type: 'enum',
@@ -21,6 +28,20 @@ export class ConversationMember {
     default: GroupRole.MEMBER,
   })
   role: GroupRole;
+
+  @Column({
+    type: 'enum',
+    enum: ['pending', 'member', 'banned'],
+    default: 'member',
+  })
+  status: 'pending' | 'member' | 'banned';
+
+  @Column({
+    name: 'last_active_at',
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
+  lastActiveAt?: Date;
 
   @Column({ type: 'jsonb', default: {} })
   settings: {

@@ -3,14 +3,13 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  ManyToMany,
-  JoinTable,
+  OneToMany,
+  JoinColumn,
 } from 'typeorm';
 import { Permissions } from './permissions.entity';
-import { User } from './user.entity';
 import { UserRole } from '../common/enums/roles';
 
-@Entity()
+@Entity({ name: "tbl_role" })
 export class Role {
   @PrimaryGeneratedColumn()
   id: number;
@@ -28,10 +27,7 @@ export class Role {
   @CreateDateColumn()
   createdAt: Date;
 
-  @ManyToMany(() => Permissions)
-  @JoinTable()
+  @OneToMany(() => Permissions, (permission) => permission.id)
+  @JoinColumn({ name: 'permissions' })
   permissions: Permissions[];
-
-  @ManyToMany(() => User, (user) => user.roles)
-  users: User[];
 }

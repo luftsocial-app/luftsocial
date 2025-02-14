@@ -1,16 +1,28 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 @Entity('tbl_posts')
 export class Post {
   @PrimaryGeneratedColumn()
   id: string;
 
-  @Column()
+  @Column({ name: 'title' })
   title: string;
 
   @Column()
   content: string;
 
-  @Column({ name: 'organization_id' })
-  organizationId: string; // Add organizationId to the Post entity
+  @Column({ name: 'Tenant_id' })
+  TenantId: string; // Add TenantId to the Post entity
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
 }

@@ -1,33 +1,3 @@
-import { UserRole, GroupRole, Permission } from '../enums/roles';
-
-export interface IBaseEntity {
-  id: string | number;
-  createdAt: Date;
-  updatedAt: Date;
-  deletedAt?: Date;
-}
-
-export interface IUserPermissions {
-  appPermissions: Permission[];
-  groupPermissions: Map<string, Permission[]>;
-}
-
-export interface IUserRoles {
-  UserRoles: UserRole[];
-  groupRole: GroupRole[];
-}
-
-export interface ITenantEntity extends IBaseEntity {
-  organizationId: string;
-}
-
-export interface IUserData {
-  email?: string;
-  firstName?: string;
-  lastName?: string;
-  roles?: UserRole[];
-}
-
 export interface IMessageMetadata {
   fileName?: string;
   fileSize?: number;
@@ -53,8 +23,10 @@ export interface IConversationSettings {
   theme?: string;
   notifications: boolean;
   archiveOnExit?: boolean;
-  messageExpiry?: number; // Time-to-live for messages (in seconds)
+  messageExpiry?: number;
   encryptionEnabled?: boolean;
+  allowReactions?: boolean;
+  allowThreads?: boolean;
 }
 
 export interface IGroupSettings {

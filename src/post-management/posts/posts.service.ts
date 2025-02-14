@@ -10,13 +10,13 @@ export class PostsService {
     @InjectRepository(Post)
     private readonly postRepository: Repository<Post>,
     private readonly tenantService: TenantService,
-  ) {}
+  ) { }
 
   async findOne(id: string): Promise<Post> {
     const post = await this.postRepository.findOne({
       where: {
         id,
-        organizationId: this.tenantService.getTenantId(),
+        TenantId: this.tenantService.getTenantId(),
       },
     });
     if (!post) throw new NotFoundException('Post not found');
@@ -25,14 +25,14 @@ export class PostsService {
 
   async find(): Promise<Post[]> {
     return this.postRepository.find({
-      where: { organizationId: this.tenantService.getTenantId() },
+      where: { TenantId: this.tenantService.getTenantId() },
     });
   }
 
   async create(post: Partial<Post>): Promise<Post> {
     const newPost = this.postRepository.create({
       ...post,
-      organizationId: this.tenantService.getTenantId(),
+      TenantId: this.tenantService.getTenantId(),
     });
     return this.postRepository.save(newPost);
   }
@@ -41,7 +41,7 @@ export class PostsService {
     await this.postRepository.update(
       {
         id: postId,
-        organizationId: this.tenantService.getTenantId(),
+        TenantId: this.tenantService.getTenantId(),
       },
       post,
     );
@@ -51,7 +51,7 @@ export class PostsService {
   async delete(postId: string): Promise<void> {
     const result = await this.postRepository.delete({
       id: postId,
-      organizationId: this.tenantService.getTenantId(),
+      TenantId: this.tenantService.getTenantId(),
     });
     if (result.affected === 0) {
       throw new NotFoundException('Post not found');
