@@ -1,37 +1,39 @@
-import {
-  Injectable,
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-} from '@nestjs/common';
+import { SetMetadata } from '@nestjs/common';
+
+export enum Role {
+  User = 'user',
+  Admin = 'admin',
+}
+
+export const ROLES_KEY = 'roles';
+export const Roles = (...roles: Role[]) => SetMetadata(ROLES_KEY, roles);
+
+import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 
 @Injectable()
-export class RoleGuard implements CanActivate {
+export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
-    const requiredRoles = this.reflector.get<{ roles: string[] }>(
-      'roles',
+    const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
       context.getHandler(),
+      context.getClass(),
+    ]);
+
+    console.log({ requiredRoles });
+
+    if (!requiredRoles) {
+      return true;
+    }
+    const req = context.switchToHttp().getRequest();
+
+    const user = req.auth;
+    console.log({ user, permissions: user.has({ role: 'org:member' }) });
+    console.log({ metatata: user.sessionClaims?.metadata.role });
+
+    return requiredRoles.some((role) =>
+      user.sessionClaims?.org_role.includes(role),
     );
-    if (!requiredRoles || requiredRoles.roles.length === 0) {
-      return true; // No roles required; grant access.
-    }
-
-    const request = context.switchToHttp().getRequest();
-    const user = request.user;
-
-    console.log({ user: user.realm_access, requiredRoles });
-
-    if (
-      !user ||
-      !user.realm_access?.roles ||
-      !requiredRoles?.roles.some((role) => user.realm_access.roles.includes(role))
-    ) {
-      throw new ForbiddenException('Forbidden resource');
-    }
-
-    return true;
   }
 }

@@ -1,39 +1,108 @@
-import { Column, Entity, OneToMany, PrimaryColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  OneToMany,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  ManyToMany,
+  JoinTable,
+  CreateDateColumn,
+  DeleteDateColumn,
+  UpdateDateColumn,
+  JoinColumn,
+} from 'typeorm';
+import { Tenant } from './tenant.entity';
+import { Role } from './role.entity';
+import { Permission } from '../common/enums/roles';
+import { Team } from './team.entity';
+import { UserTenant } from './user-tenant.entity';
 import { Message } from './message.entity';
 import { GroupMember } from './groupMembers.entity';
 import { Group } from './group.entity';
-import { Notification } from './notification.entity'
 
 @Entity({ name: 'tbl_users' })
-export class Users {
-  @PrimaryColumn({ name: 'id', nullable: false })
-  id: number;
+export class Users{
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @Column({ name: 'user_name', nullable: false })
-  username: string;
+  @Column({ unique: true })
+  clerkId: string;
 
-  @Column({ name: 'first_name', nullable: true })
-  firstName: string;
-
-  @Column({ name: 'last_name', nullable: true })
-  lastName: string;
-
-  @Column({ name: 'email', nullable: false })
+  @Column({ unique: true })
   email: string;
 
-  @Column({ name: 'phone_number', nullable: true })
-  phoneNumber: string;
+  @Column()
+  username: string;
 
-  @Column({ name: 'password', nullable: true })
-  password: string;
+  @Column({ name: 'first_name' })
+  firstName: string;
 
-  @Column({ name: 'is_active', default: true, nullable: true })
+  @Column({ name: 'last_name' })
+  lastName: string;
+
+  @Column({ name: 'profile', nullable: true })
+  profilePicture?: string;
+
+  @Column({ name: 'phone', nullable: true })
+  phoneNumber?: string;
+
+  @Column({ nullable: true })
+  avatar?: string;
+
+  @Column({ name: 'is_active', default: true })
   isActive: boolean;
 
-  @Column({ name: 'created_at', nullable: true })
+  @Column({ type: 'jsonb', default: [] })
+  permissions: Permission[];
+
+  @OneToMany(() => Team, (team) => team.createdBy)
+  @JoinColumn({ name: 'user_created_groups' })
+  createdTeams: Team[];
+
+  @ManyToMany(() => Role, (role) => role.id)
+  @JoinTable({
+    name: 'tbl_user_roles',
+    joinColumn: {
+      name: 'role_id',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'user_id',
+      referencedColumnName: 'id',
+    },
+  })
+  roles: Role[];
+
+  @Column({ type: 'timestamp', nullable: true })
+  lastSeen?: Date;
+
+  @Column({ nullable: true })
+  status?: string;
+
+  @Column({ nullable: true })
+  customStatus?: string;
+
+  // User belongs to multiple tenants
+  @OneToMany(() => UserTenant, (userTenant) => userTenant.user, {
+    cascade: true,
+  })
+  userTenants: UserTenant[];
+
+  // User belongs to multiple teams
+  @ManyToMany(() => Team, (team) => team.users)
+  teams: Team[];
+
+  // Tracks the currently active Tenant
+  @Column({ nullable: true })
+  activeTenantId?: string;
+
+  @ManyToOne(() => Tenant, { nullable: true, onDelete: 'SET NULL' })
+  activeTenant?: Tenant;
+
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @Column({ name: 'updated_at', nullable: true })
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
   @Column({ name: 'created_by', nullable: true })
@@ -51,9 +120,6 @@ export class Users {
   @Column({ name: 'deleted_by', nullable: true })
   deletedBy: string;
 
-  @Column({ name: 'profile_picture', nullable: true })
-  profilePicture: string;
-
   @OneToMany(() => Message, (message) => message.sender)
   sentMessages: Message[];
 
@@ -66,6 +132,6 @@ export class Users {
   @OneToMany(() => Group, (group) => group.createdBy)
   createdGroups: Group[];
 
-  @OneToMany(() => Notification, (notification) => notification.user)
-  notifications: Notification[];
+  // @OneToMany(() => Notification, (notification) => notification.user)
+  // notifications: Notification[];
 }

@@ -1,27 +1,34 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn } from 'typeorm';
-import { Users } from './user.entity'; // Assuming you have a User entity
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  Column,
+  CreateDateColumn,
+} from 'typeorm';
+import { Message } from './message.entity';
+import { Users } from './user.entity';
 
-@Entity()
+@Entity('tbl_notifications')
 export class Notification {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn('uuid', { name: 'id' })
+  id: string;
 
-    @ManyToOne(() => Users, (user) => user.notifications)
-    @JoinColumn({ name: 'userId' })
-    user: Users;
+  @ManyToOne(() => Users)
+  user: Users;
 
-    @Column()
-    userId: number;
+  @ManyToOne(() => Message, { nullable: true })
+  message?: Message;
 
-    @Column()
-    message: string;
+  @Column({
+    name: 'type',
+    type: 'enum',
+    enum: ['mention', 'reaction', 'message'],
+  })
+  type: 'mention' | 'reaction' | 'message';
 
-    @Column({ type: 'boolean', default: false })
-    isRead: boolean;
+  @Column({ name: 'is_read', default: false })
+  isRead: boolean;
 
-    @Column({ type: 'boolean', default: false })
-    isEmailSent: boolean;
-
-    @CreateDateColumn()
-    createdAt: Date;
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
 }
