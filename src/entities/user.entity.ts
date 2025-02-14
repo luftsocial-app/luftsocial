@@ -2,7 +2,7 @@ import { Column, Entity, OneToMany, PrimaryColumn } from 'typeorm';
 import { Message } from './message.entity';
 import { GroupMember } from './groupMembers.entity';
 import { Group } from './group.entity';
-// import { Notification } from './notification.entity'
+import { Notification } from './notification.entity'
 
 @Entity({ name: 'tbl_users' })
 export class Users {
@@ -66,6 +66,6 @@ export class Users {
   @OneToMany(() => Group, (group) => group.createdBy)
   createdGroups: Group[];
 
-  // @OneToMany(() => Notification, (notification) => notification.user)
-  // notifications: Notification[];
+  @OneToMany(() => Notification, (notification) => notification.user)
+  notifications: Notification[];
 }

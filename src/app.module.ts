@@ -20,6 +20,8 @@ import { GroupMember } from './entities/groupMembers.entity';
 import { GroupModule } from './group/group.module'
 import { GroupMemberModule } from './group-member/group-member.module';
 import { MessageModule } from './message/message.module';
+import { NotificationModule } from './notification/notification.module';
+import { Notification } from './entities/notification.entity';
 
 @Module({
   imports: [
@@ -33,7 +35,7 @@ import { MessageModule } from './message/message.module';
     }),
     TypeOrmModule.forRoot({
       ...config.get('db.options'),
-      entities: [Users, Message, Group, GroupMember],
+      entities: [Users, Message, Group, GroupMember, Notification],
     }),
     LoggerModule.forRoot({
       ...JSON.parse(JSON.stringify(config.get('logger'))),
@@ -48,8 +50,8 @@ import { MessageModule } from './message/message.module';
     HealthModule,
     GroupModule,
     GroupMemberModule,
-    MessageModule
-    // Notification
+    MessageModule,
+    NotificationModule
   ],
   controllers: [AppController],
   providers: [

@@ -16,9 +16,9 @@ port: 3000
 db:
   options:
     type: postgres
-    username: root
-    password: admin
+    username: postgres
+    password: postgres
     host: localhost
-    port: 5434
+    port: 5432
     database: start-template
     synchronize: true
