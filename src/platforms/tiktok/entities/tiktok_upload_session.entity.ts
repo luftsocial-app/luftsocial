@@ -17,13 +17,19 @@ export class TikTokUploadSession {
   account: TikTokAccount;
 
   @Column()
+  publishId: string;
+
+  @Column()
   uploadUrl: string;
 
   @Column('jsonb')
   uploadParams: any;
 
-  @Column()
-  status: 'PENDING' | 'COMPLETED' | 'FAILED';
+  @Column({
+    type: 'enum',
+    enum: ['PENDING', 'COMPLETED', 'FAILED'],
+  })
+  status: string;
 
   @Column({ type: 'timestamp' })
   expiresAt: Date;

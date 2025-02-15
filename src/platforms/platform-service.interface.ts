@@ -31,15 +31,5 @@ export interface PlatformService {
     userId: string,
   ): Promise<TokenResponse>;
   refreshToken(refreshToken: string): Promise<TokenResponse>;
-  post(
-    accountId: string,
-    content: string,
-    mediaUrls?: string[],
-  ): Promise<PostResponse>;
-  getComments(
-    accountId: string,
-    postId: string,
-    pageToken?: string,
-  ): Promise<CommentResponse>;
   getMetrics(accountId: string, postId: string): Promise<Record<string, any>>;
 }

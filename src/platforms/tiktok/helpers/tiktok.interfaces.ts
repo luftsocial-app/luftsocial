@@ -1,3 +1,18 @@
+import { TokenResponse } from 'src/platforms/platform-service.interface';
+
+export enum TikTokVideoPrivacyLevel {
+  'PUBLIC_TO_EVERYONE',
+  'MUTUAL_FOLLOW_FRIENDS',
+  'FOLLOWER_OF_CREATOR',
+  'SELF_ONLY',
+}
+
+export enum TikTokPostVideoStatus {
+  'PENDING',
+  'COMPLETED',
+  'FAILED',
+}
+
 export interface TikTokComment {
   id: string;
   content: string;
@@ -12,33 +27,47 @@ export interface VideoMetrics {
   commentCount: number;
   shareCount: number;
   playCount: number;
-  downloadCount: number;
-  engagementRate: number;
-  averageWatchTime?: number;
-  totalWatchTime?: number;
-  totalWatchTimeMillis?: number;
-  retentionRate?: any;
-  audienceTerritories?: any;
+}
+
+export interface CreateUploadSessionParams {
+  accountId: string;
+  publishId: string;
+  uploadUrl: string;
+  uploadParams: any;
+  status: TikTokPostVideoStatus;
+  expiresAt: Date;
 }
 
 export interface CreateVideoParams {
-  accountId: string;
-  description: string;
-  privacyLevel?: 'PUBLIC' | 'FRIENDS' | 'PRIVATE';
-  disableComments?: boolean;
-  allowDuet?: boolean;
-  allowStitch?: boolean;
+  publishId?: string;
+  uploadUrl?: string;
+  status?: TikTokPostVideoStatus;
+  title?: string;
+  privacyLevel: TikTokVideoPrivacyLevel;
+  disableDuet?: boolean;
+  disableStitch?: boolean;
+  disableComment?: boolean;
+  videoCoverTimestampMs?: number;
+  brandContentToggle?: boolean;
+  brandOrganicToggle?: boolean;
+  isAigc?: boolean;
 }
 
-export interface TikTokVideo {
-  id: string;
-  platformVideoId: string;
-  description: string;
-  shareUrl?: string;
-  thumbnailUrl?: string;
-  status: 'DRAFT' | 'PUBLISHED' | 'FAILED';
-  privacyLevel: string;
-  metrics?: VideoMetrics;
-  createdAt: Date;
-  updatedAt: Date;
+export interface VideoUploadInit {
+  source: 'PULL_FROM_URL' | 'FILE_UPLOAD';
+  videoUrl?: string;
+  videoSize?: number;
+  chunkSize?: number;
+  totalChunkCount?: number;
+}
+
+export interface VideoUploadResponse {
+  publishId: string;
+  uploadUrl?: string;
+}
+
+export interface TIktokTokenResponse extends TokenResponse {
+  metadata: {
+    userInfo: any;
+  };
 }

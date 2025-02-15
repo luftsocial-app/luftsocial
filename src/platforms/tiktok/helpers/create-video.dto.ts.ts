@@ -5,28 +5,24 @@ import {
   IsBoolean,
   IsNumber,
   IsEnum,
-  IsDateString,
   MaxLength,
-  Min,
 } from 'class-validator';
-
-export enum PrivacyLevel {
-  PUBLIC = 'PUBLIC',
-  FRIENDS = 'FRIENDS',
-  PRIVATE = 'PRIVATE',
-}
+import {
+  TikTokPostVideoStatus,
+  TikTokVideoPrivacyLevel,
+} from './tiktok.interfaces';
 
 export class CreateVideoDto {
   @IsString()
   @MaxLength(2200)
-  description: string;
+  title?: string;
 
-  @IsUrl()
-  videoUrl: string;
+  @IsEnum(TikTokVideoPrivacyLevel)
+  privacyLevel: TikTokVideoPrivacyLevel =
+    TikTokVideoPrivacyLevel.PUBLIC_TO_EVERYONE;
 
-  @IsOptional()
-  @IsEnum(PrivacyLevel)
-  privacyLevel?: PrivacyLevel;
+  @IsEnum(TikTokPostVideoStatus)
+  status: TikTokPostVideoStatus = TikTokPostVideoStatus.PENDING;
 
   @IsOptional()
   @IsBoolean()
@@ -38,28 +34,25 @@ export class CreateVideoDto {
 
   @IsOptional()
   @IsBoolean()
-  disableComments?: boolean;
+  disableComment?: boolean;
 
   @IsOptional()
   @IsNumber()
-  @Min(0)
-  coverTimestamp?: number;
+  videoCoverTimestampMs?: number;
 
   @IsOptional()
-  @IsDateString()
-  scheduleTime?: string;
-}
+  @IsBoolean()
+  brandContentToggle?: boolean;
 
-export class CreateDraftDto {
-  @IsString()
-  @MaxLength(2200)
-  description: string;
+  @IsOptional()
+  @IsBoolean()
+  brandOrganicToggle?: boolean;
 
+  @IsOptional()
+  @IsBoolean()
+  isAigc?: boolean;
+
+  @IsOptional()
   @IsUrl()
-  videoUrl: string;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  coverTimestamp?: number;
+  videoUrl?: string;
 }

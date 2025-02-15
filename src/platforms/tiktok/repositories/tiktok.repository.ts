@@ -1,22 +1,37 @@
-import { Injectable } from '@nestjs/common';
+import * as crypto from 'crypto';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, LessThan, MoreThan, Repository } from 'typeorm';
 import { TikTokAccount } from '../entities/tiktok-account.entity';
 import { TikTokVideo } from '../entities/tiktok-video.entity';
 import { TikTokMetric } from '../entities/tiktok-metric.entity';
 import { TikTokRateLimit } from '../entities/tiktok_rate_limits.entity';
+import { TikTokComment } from '../entities/tiktok_comments.entity';
+import {
+  CreateUploadSessionParams,
+  TikTokVideoPrivacyLevel,
+} from '../helpers/tiktok.interfaces';
+import { SocialAccount } from 'src/platforms/entity/social-account.entity';
+import { AuthState } from 'src/platforms/facebook/entity/auth-state.entity';
+import { SocialPlatform } from 'src/enum/social-platform.enum';
 
 @Injectable()
 export class TikTokRepository {
   constructor(
     @InjectRepository(TikTokAccount)
     private readonly accountRepo: Repository<TikTokAccount>,
+    @InjectRepository(AuthState)
+    private readonly authStateRepo: Repository<AuthState>,
+    @InjectRepository(SocialAccount)
+    private readonly socialAccountRepo: Repository<SocialAccount>,
     @InjectRepository(TikTokVideo)
     private readonly videoRepo: Repository<TikTokVideo>,
     @InjectRepository(TikTokMetric)
     private readonly metricRepo: Repository<TikTokMetric>,
     @InjectRepository(TikTokRateLimit)
     private readonly rateLimitRepo: Repository<TikTokRateLimit>,
+    @InjectRepository(TikTokComment)
+    private readonly commentRepo: Repository<TikTokComment>,
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
   ) {}
@@ -26,9 +41,65 @@ export class TikTokRepository {
     return this.accountRepo.save(account);
   }
 
-  async createVideo(data: Partial<TikTokVideo>): Promise<TikTokVideo> {
+  async createAuthState(userId: string): Promise<string> {
+    const state = crypto.randomBytes(32).toString('hex');
+
+    const authState = this.authStateRepo.create({
+      state,
+      userId,
+      platform: SocialPlatform.INSTAGRAM,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+    });
+
+    await this.authStateRepo.save(authState);
+    return state;
+  }
+
+  async createVideo(data: {
+    account: TikTokAccount;
+    publishId: string;
+    uploadUrl?: string;
+    status: string;
+    title?: string;
+    privacyLevel: TikTokVideoPrivacyLevel;
+    disableDuet?: boolean;
+    disableStitch?: boolean;
+    disableComment?: boolean;
+    videoCoverTimestampMs?: number;
+    brandContentToggle?: boolean;
+    brandOrganicToggle?: boolean;
+    isAigc?: boolean;
+  }): Promise<TikTokVideo> {
     const video = this.videoRepo.create(data);
     return this.videoRepo.save(video);
+  }
+
+  async updateAccountTokens(
+    accountId: string,
+    tokenData: {
+      accessToken: string;
+      refreshToken: string;
+      expiresAt: Date;
+    },
+  ): Promise<TikTokAccount> {
+    const account = await this.accountRepo.findOne({
+      where: { id: accountId },
+      relations: ['socialAccount'],
+    });
+
+    if (!account?.socialAccount) {
+      throw new NotFoundException('Account not found');
+    }
+
+    // Update the social account token information
+    await this.socialAccountRepo.update(account.socialAccount.id, {
+      accessToken: tokenData.accessToken,
+      refreshToken: tokenData.refreshToken,
+      tokenExpiresAt: tokenData.expiresAt,
+      updatedAt: new Date(),
+    });
+
+    return this.getById(accountId);
   }
 
   async updateMetrics(
@@ -51,6 +122,44 @@ export class TikTokRepository {
     return this.metricRepo.save(metric);
   }
 
+  async createComment(data: {
+    videoId: string;
+    platformCommentId: string;
+    content: string;
+    authorId: string;
+    authorUsername: string;
+    likeCount?: number;
+    replyCount?: number;
+    commentedAt: Date;
+  }): Promise<TikTokComment> {
+    const comment = this.commentRepo.create({
+      video: { id: data.videoId },
+      platformCommentId: data.platformCommentId,
+      content: data.content,
+      authorId: data.authorId,
+      authorUsername: data.authorUsername,
+      likeCount: data.likeCount || 0,
+      replyCount: data.replyCount || 0,
+      commentedAt: data.commentedAt,
+    });
+
+    return this.commentRepo.save(comment);
+  }
+
+  async updateVideoStatus(
+    publishId: string,
+    status: string,
+  ): Promise<TikTokVideo> {
+    await this.videoRepo.update(
+      { publishId },
+      {
+        status,
+        updatedAt: new Date(),
+      },
+    );
+    return this.videoRepo.findOne({ where: { publishId } });
+  }
+
   async getAccountById(
     id: string,
     relations: string[] = [],
@@ -67,7 +176,7 @@ export class TikTokRepository {
   ): Promise<TikTokVideo[]> {
     return this.videoRepo.find({
       where: { account: { id: accountId } },
-      order: { postedAt: 'DESC' },
+      order: { createdAt: 'DESC' },
       take: limit,
       relations: ['metrics'],
     });
@@ -159,17 +268,13 @@ export class TikTokRepository {
     });
   }
 
-  async createUploadSession(data: {
-    accountId: string;
-    uploadUrl: string;
-    uploadParams: any;
-    expiresAt: Date;
-  }): Promise<any> {
+  async createUploadSession(data: CreateUploadSessionParams): Promise<any> {
     const session = this.entityManager.create('tiktok_upload_sessions', {
       account: { id: data.accountId },
+      publishId: data.publishId,
       uploadUrl: data.uploadUrl,
       uploadParams: data.uploadParams,
-      status: 'PENDING',
+      status: data.status,
       expiresAt: data.expiresAt,
     });
 

@@ -9,56 +9,57 @@ import {
 } from 'typeorm';
 import { TikTokAccount } from './tiktok-account.entity';
 import { TikTokMetric } from './tiktok-metric.entity';
+import { TikTokVideoPrivacyLevel } from '../helpers/tiktok.interfaces';
 
 @Entity('tiktok_videos')
 export class TikTokVideo {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => TikTokAccount, (account) => account.videos)
+  @ManyToOne(() => TikTokAccount)
   account: TikTokAccount;
 
   @Column()
-  platformVideoId: string;
+  publishId: string;
+
+  @Column({ nullable: true })
+  uploadUrl: string;
 
   @Column()
-  videoId: string;
+  privacyLevel: TikTokVideoPrivacyLevel;
 
   @Column({ nullable: true })
-  description: string;
+  title: string;
+
+  @Column({ default: false })
+  disableDuet: boolean;
+
+  @Column({ default: false })
+  disableStitch: boolean;
+
+  @Column({ default: false })
+  disableComment: boolean;
 
   @Column({ nullable: true })
-  shareUrl: string;
+  videoCoverTimestampMs: number;
 
-  @Column({ nullable: true })
-  embedUrl: string;
+  @Column({ default: false })
+  brandContentToggle: boolean;
 
-  @Column({ nullable: true })
-  thumbnailUrl: string;
+  @Column({ default: false })
+  brandOrganicToggle: boolean;
 
-  @Column({ type: 'int', nullable: true })
-  duration: number;
-
-  @Column({ type: 'int', nullable: true })
-  width: number;
-
-  @Column({ type: 'int', nullable: true })
-  height: number;
-
-  @Column('jsonb', { nullable: true })
-  musicInfo: any;
-
-  @Column()
-  status: string;
-
-  @Column({ type: 'timestamp', nullable: true })
-  scheduledTime: Date;
-
-  @Column({ type: 'timestamp', nullable: true })
-  postedAt: Date;
+  @Column({ default: false })
+  isAigc: boolean;
 
   @OneToMany(() => TikTokMetric, (metric) => metric.video)
   metrics: TikTokMetric[];
+
+  @Column({
+    type: 'enum',
+    enum: ['PENDING', 'UPLOADED', 'PUBLISHED', 'FAILED'],
+  })
+  status: string;
 
   @CreateDateColumn()
   createdAt: Date;

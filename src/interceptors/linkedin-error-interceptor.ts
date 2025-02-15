@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
-import { LinkedInApiException } from 'src/platforms/linkedin/linkedin-api.exception';
+import { LinkedInApiException } from 'src/platforms/linkedin/helpers/linkedin-api.exception';
 
 @Injectable()
 export class LinkedInErrorInterceptor implements NestInterceptor {

@@ -6,7 +6,6 @@ import { FacebookModule } from './facebook/facebook.module';
 import { LinkedInModule } from './linkedin/linked.module';
 import { TikTokModule } from './tiktok/titkot.module';
 import { PlatformsService } from './platforms.service';
-import { TwitterModule } from './twitter/twitter.module';
 
 @Module({
   imports: [
@@ -14,7 +13,6 @@ import { TwitterModule } from './twitter/twitter.module';
     InstagramModule,
     LinkedInModule,
     TikTokModule,
-    TwitterModule,
     CrossPlatformModule,
   ],
   providers: [PlatformsService],

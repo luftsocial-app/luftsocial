@@ -29,7 +29,7 @@ export class TikTokMetricsCollectionJob {
             try {
               const metrics = await this.tiktokService.getMetrics(
                 account.id,
-                video.platformVideoId,
+                video.id,
               );
 
               await this.tiktokRepo.createVideoMetrics({
@@ -37,12 +37,10 @@ export class TikTokMetricsCollectionJob {
                 metrics,
               });
 
-              this.logger.debug(
-                `Collected metrics for video ${video.platformVideoId}`,
-              );
+              this.logger.debug(`Collected metrics for video ${video.id}`);
             } catch (error) {
               this.logger.error(
-                `Failed to collect metrics for video ${video.platformVideoId}`,
+                `Failed to collect metrics for video ${video.id}`,
                 error.stack,
               );
             }

@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { TwitterService } from './twitter/twitter.service';
 import { FacebookService } from './facebook/facebook.service';
 import { InstagramService } from './instagram/instagram.service';
 import { LinkedInService } from './linkedin/linkedin.service';
@@ -13,7 +12,6 @@ export class PlatformsService {
     private readonly instagramService: InstagramService,
     private readonly linkedinService: LinkedInService,
     private readonly tiktokService: TikTokService,
-    private readonly twitterService: TwitterService,
   ) {}
 
   getServiceForPlatform(platform: SocialPlatform) {
@@ -26,8 +24,6 @@ export class PlatformsService {
         return this.linkedinService;
       case SocialPlatform.TIKTOK:
         return this.tiktokService;
-      case SocialPlatform.TWITTER:
-        return this.twitterService;
       default:
         throw new Error(`Unsupported platform: ${platform}`);
     }
