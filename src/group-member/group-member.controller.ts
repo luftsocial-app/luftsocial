@@ -1,7 +1,7 @@
 import { Controller, Post, Body, UseGuards, Res, HttpStatus, HttpException, Req, Delete, Param } from '@nestjs/common';
 import { GroupMemberService } from './group-member.service';
 import { GroupDto, GroupMemberDto } from '../dto/base.dto';
-import { AuthMiddleware } from '../middleware/AuthMiddleware';
+// import { AuthMiddleware } from '../middleware/AuthMiddleware';
 import { Response } from 'express';
 @Controller('group-member')
 export class GroupMemberController {
@@ -12,8 +12,8 @@ export class GroupMemberController {
     async addMember(@Body() groupMemberDto: GroupMemberDto, @Res() res: Response, @Req() req) {
         try {
             // const { id } = req.user
-            const id = req?.user?.id ?? 1
-            const { data, status } = await this.groupMemberService.addMember(groupMemberDto, id);
+            const userId = req?.user?.id ?? "1"
+            const { data, status } = await this.groupMemberService.addMember(groupMemberDto, userId);
             if (status === 1) {
                 return res.status(HttpStatus.OK).json({ message: 'User added to the group successfully.', status: 1, data });
             } else if (status === 2) {
@@ -31,9 +31,9 @@ export class GroupMemberController {
     }
 
     @Delete('remove-member/:groupId/:userId')
-    async removeMember(@Param('groupId') groupId: number, @Param('userId') userId: number, @Res() res: Response, @Req() req) {
+    async removeMember(@Param('groupId') groupId: string, @Param('userId') userId: string, @Res() res: Response, @Req() req) {
         try {
-            const id = req?.user?.id ?? 1
+            const id = req?.user?.id ?? "1"
             const { status, message } = await this.groupMemberService.removeMember(groupId, userId, id);
             if (status === 1) {
                 return res.status(HttpStatus.OK).json({ message, status });

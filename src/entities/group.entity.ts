@@ -1,13 +1,13 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, DeleteDateColumn, JoinColumn } from 'typeorm';
 import { GroupMember } from './groupMembers.entity';
-import { Users } from './user.entity';
+import { User } from './user.entity';
 import { Message } from './message.entity';
 // import { Organization } from './Organization';
 
 @Entity()
 export class Group {
-    @PrimaryGeneratedColumn()
-    id: number;
+    @PrimaryGeneratedColumn('uuid')
+    id: string;
 
     @Column()
     name: string;
@@ -30,12 +30,12 @@ export class Group {
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
     updatedAt: Date;
 
-    @ManyToOne(() => Users, (user) => user.createdGroups)
+    @ManyToOne(() => User, (user) => user.createdGroups)
     @JoinColumn({ name: 'createdBy' })
-    user: Users;
+    user: User;
 
     @Column({ nullable: true })
-    createdBy: number;
+    createdBy: string;
 
     @OneToMany(() => Message, (message) => message.group)
     messages: Message[];

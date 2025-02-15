@@ -9,7 +9,7 @@ export class MessageService {
     @InjectRepository(Message)
     private readonly messageRepository: Repository<Message>,
   ) { }
-  async getMessageHistory(userId: number): Promise<{ data: Message[]; status: number }> {
+  async getMessageHistory(userId: string): Promise<{ data: Message[]; status: number }> {
     try {
       const messageHistory = await this.messageRepository.find({
         where: [
@@ -19,11 +19,11 @@ export class MessageService {
         order: { sentAt: 'ASC' },
       });
       if (messageHistory.length > 0) {
-      return {
-        status: 1,
-        data: messageHistory,
-      };
-    }
+        return {
+          status: 1,
+          data: messageHistory,
+        };
+      }
       return {
         status: 0,
         data: [],

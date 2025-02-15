@@ -1,25 +1,25 @@
 import { Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn, Column, DeleteDateColumn } from 'typeorm';
 import { Group } from './group.entity';
-import { Users } from './user.entity';  // Assuming you already have a User entity
+import { User } from './user.entity';  // Assuming you already have a User entity
 
 @Entity()
 export class GroupMember {
-    @PrimaryGeneratedColumn()
-    id: number;
+    @PrimaryGeneratedColumn('uuid')
+    id: string;
 
     @ManyToOne(() => Group, (group) => group.members)
     @JoinColumn({ name: 'groupId' })
     group: Group;
 
     @Column()
-    groupId: number;
+    groupId: string;
 
-    @ManyToOne(() => Users, (user) => user.groupMembers)
+    @ManyToOne(() => User, (user) => user.groupMembers, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'userId' })
-    user: Users;
+    user: User;
 
     @Column()
-    userId: number;
+    userId: string;
 
     @Column({ type: 'boolean', default: true })
     isActive: boolean; // Marks if the member is active in the group

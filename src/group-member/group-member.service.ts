@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { Group } from '../entities/group.entity';
 import { GroupDto, GroupMemberDto } from '../dto/base.dto';
 import { GroupMember } from '../entities/groupMembers.entity';
-import { Users } from 'src/entities/user.entity';
+import { User } from 'src/entities/user.entity';
 
 @Injectable()
 export class GroupMemberService {
@@ -15,7 +15,7 @@ export class GroupMemberService {
         private readonly groupMemberRepository: Repository<GroupMember>,
     ) { }
 
-    async addMember(groupMemberDto: GroupMemberDto, id: number): Promise<{ data: GroupMember | null; status: number; message: string }> {
+    async addMember(groupMemberDto: GroupMemberDto, userId: string): Promise<{ data: GroupMember | null; status: number; message: string }> {
         try {
             const { userId, groupId } = groupMemberDto;
             const group = await this.groupRepository.findOne({ where: { id: groupId } });
@@ -27,7 +27,7 @@ export class GroupMemberService {
                 }
             }
             const admin = await this.groupMemberRepository.findOne({
-                where: { user: { id: id }, group: { id: groupId }, role: 'admin' },
+                where: { user: { id: userId }, group: { id: groupId }, role: 'admin' },
             });
             if (!admin) {
                 return {
@@ -67,7 +67,7 @@ export class GroupMemberService {
         }
     }
 
-    async removeMember(groupId: number, userId: number, id: number): Promise<{ status: number; message: string }> {
+    async removeMember(groupId: string, userId: string, id: string): Promise<{ status: number; message: string }> {
         try {
             const member = await this.groupMemberRepository.findOne({
                 where: { user: { id: userId }, group: { id: groupId }, status: true },

@@ -1,6 +1,6 @@
 import { Controller, Get, Param, UseGuards, Req, Res, HttpStatus } from '@nestjs/common';
 import { MessageService } from './message.service';
-import { AuthMiddleware } from '../middleware/AuthMiddleware';
+// import { AuthMiddleware } from '../middleware/AuthMiddleware';
 import { Request, Response } from 'express';
 
 @Controller('messages')
@@ -11,7 +11,7 @@ export class MessageController {
     @Get('history/:userId')
     async getMessageHistory(
         @Req() req: Request,
-        @Param('userId') userId: number,
+        @Param('userId') userId: string,
         @Res() res: Response,
     ) {
         try {

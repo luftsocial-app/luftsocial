@@ -35,20 +35,20 @@ describe('MessageService', () => {
 
   describe('getMessageHistory', () => {
     it('should return message history successfully', async () => {
-      const userId = 1;
+      const userId = "1";
 
       const mockMessages = [
         {
-          id: 1,
-          senderId: 1,
-          receiverId: 2,
+          id: "1",
+          senderId: "1",
+          receiverId: "2",
           content: 'Test message 1',
           sentAt: new Date(),
         },
         {
-          id: 2,
-          senderId: 2,
-          receiverId: 1,
+          id: "2",
+          senderId: "2",
+          receiverId: "1",
           content: 'Test message 2',
           sentAt: new Date(),
         },
@@ -67,7 +67,7 @@ describe('MessageService', () => {
     });
 
     it('should return an empty array when no messages are found', async () => {
-      const userId = 1;
+      const userId = "1";
 
       // Mock the repository to return an empty array
       mockMessageRepository.find.mockResolvedValue([]);
@@ -83,7 +83,7 @@ describe('MessageService', () => {
     });
 
     it('should throw an error if something goes wrong', async () => {
-      const userId = 1;
+      const userId = "1";
 
       // Mock the repository to throw an error
       mockMessageRepository.find.mockRejectedValue(new Error('Database error'));

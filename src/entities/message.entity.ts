@@ -1,62 +1,110 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
-import { Users } from './user.entity'; // Assuming you have a User entity
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+  DeleteDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
+import {
+  MessageType,
+  MessageStatus,
+  Attachment,
+} from '../common/enums/messaging';
+import { Conversation } from './conversation.entity';
+import { User } from './user.entity';
 import { Group } from './group.entity';
 
-@Entity()
+@Entity('tbl_messages')
 export class Message {
-    @PrimaryGeneratedColumn()
-    id: number;
+  @PrimaryGeneratedColumn('uuid', { name: 'id' })
+  id: string;
 
-    @ManyToOne(() => Users, user => user.sentMessages)
-    @JoinColumn({ name: 'senderId' })
-    sender: Users;
+  @ManyToOne(() => Conversation, (conversation) => conversation.messages)
+  @JoinColumn({ name: 'conversation_id' })
+  conversation: Conversation;
 
-    @Column()
-    senderId: number;
+  @Column()
+  conversation_id?: string
 
-    @ManyToOne(() => Users, user => user.receivedMessages)
-    @JoinColumn({ name: 'receiverId' })
-    receiver: Users;
+  @ManyToOne(() => User)
+  @JoinColumn({ name: 'sender_id' })
+  sender: User;
 
-    @Column()
-    receiverId: number;
+  @Column()
+  senderId?: string
 
-    @Column()
-    content: string;
+  @Column({ name: 'content' })
+  content: string;
 
-    @Column({ type: 'boolean', default: false })
-    isRead: boolean;
+  @Column({
+    name: 'type',
+    type: 'enum',
+    enum: MessageType,
+    default: MessageType.TEXT,
+  })
+  type: MessageType;
 
-    @Column({
-        type: 'enum',
-        enum: ['sent', 'delivered', 'read'],
-        default: 'sent'
-    })
-    status: 'sent' | 'delivered' | 'read';
+  @Column({ name: 'attachments', type: 'jsonb', nullable: true })
+  attachments?: Attachment[];
 
-    @CreateDateColumn()
-    sentAt: Date;
+  @Column({ name: 'is_edited', default: false })
+  isEdited?: boolean;
 
-    @UpdateDateColumn()
-    updatedAt: Date;
+  @Column({ name: 'is_deleted', default: false })
+  isDeleted?: boolean;
 
-    @Column({ type: 'boolean', default: false })
-    isDeleted: boolean;
+  @Column({ name: 'is_pinned', type: 'boolean', default: false })
+  isPinned?: boolean;
 
-    @ManyToOne(() => Group, group => group.messages, { nullable: true, onDelete: 'CASCADE' })
-    @JoinColumn({ name: 'groupId' })
-    group: Group;
+  @Column({
+    name: 'status',
+    type: 'enum',
+    enum: MessageStatus,
+    default: MessageStatus.SENDING,
+  })
+  status: MessageStatus;
 
-    @Column({ nullable: true })
-    groupId: number;
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt?: Date;
 
-    @Column({
-        type: 'enum',
-        enum: ['text', 'image', 'video', 'link', 'mixed'],
-        default: 'text'
-    })
-    type: 'text' | 'image' | 'video' | 'link' | 'mixed';
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt?: Date;
 
-    @Column({ nullable: true })
-    mediaUrl: string;
+  @DeleteDateColumn({ name: 'deleted_at' })
+  deletedAt?: Date;
+
+  @Column({ name: 'deleted_by', nullable: true })
+  deletedBy?: string;
+
+  @ManyToOne(() => Message, { nullable: true })
+  @JoinColumn({ name: 'parent_message_id' })
+  parentMessage?: Message; // For threads
+
+  @Column({ name: 'metadata', type: 'jsonb', default: {} })
+  metadata?: {
+    reactions?: { [userId: string]: string }; // { user1: '👍', user2: '❤️' }
+  };
+
+  @ManyToOne(() => Group, group => group.messages, { nullable: true, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'groupId' })
+  group: Group;
+
+  @Column({ nullable: true })
+  groupId?: string;
+
+  @ManyToOne(() => User, user => user.receivedMessages)
+  @JoinColumn({ name: 'receiverId' })
+  receiver: User;
+
+  @Column()
+  receiverId?: string;
+
+  @Column()
+  sentAt?: Date;
+
+  // @Column({ type: 'boolean', default: false })
+  // isRead: boolean;
 }

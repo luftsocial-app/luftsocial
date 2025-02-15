@@ -5,16 +5,16 @@ import { HttpStatus } from '@nestjs/common';
 import { Response } from 'express';
 
 const mockGroupMemberDto = {
-  id: 1,
-  userId: 2,
-  groupId: 3,
+  id: "1",
+  userId: "2",
+  groupId: "3",
 };
 
 const mockResponse = {
   status: HttpStatus.OK,
   data: {
-    userId: 2,
-    groupId: 3,
+    userId: "2",
+    groupId: "3",
   },
   message: 'User added to the group successfully.',
 };
@@ -53,7 +53,7 @@ describe('GroupMemberController', () => {
   describe('addMember', () => {
     it('should add a member successfully', async () => {
       const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
-      const req = { user: { id: 1 } };
+      const req = { user: { id: "1" } };
   
       mockGroupMemberService.addMember.mockResolvedValue({
         status: 1,
@@ -67,7 +67,7 @@ describe('GroupMemberController', () => {
         req as any,
       );
   
-      expect(service.addMember).toHaveBeenCalledWith(mockGroupMemberDto, 1);
+      expect(service.addMember).toHaveBeenCalledWith(mockGroupMemberDto, "1");
       expect(res.status).toHaveBeenCalledWith(HttpStatus.OK);
       expect(res.json).toHaveBeenCalledWith({
         message: 'User added to the group successfully.',
@@ -78,7 +78,7 @@ describe('GroupMemberController', () => {
 
     it('should handle error if group is not found', async () => {
       const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
-      const req = { user: { id: 1 } };
+      const req = { user: { id: "1" } };
 
       mockGroupMemberService.addMember.mockResolvedValue({
         status: 2,
@@ -104,16 +104,16 @@ describe('GroupMemberController', () => {
   describe('removeMember', () => {
     it('should remove a member successfully', async () => {
       const res = { status: jest.fn().mockReturnThis(), json: jest.fn() };
-      const req = { user: { id: 1 } }; // Mocked user ID
+      const req = { user: { id: "1" } }; // Mocked user ID
 
       await controller.removeMember(
-        1,
-        2,
+        "1",
+        "2",
         res as unknown as Response,
         req as any,
       );
 
-      expect(service.removeMember).toHaveBeenCalledWith(1, 2, 1);
+      expect(service.removeMember).toHaveBeenCalledWith("1", "2", "1");
       expect(res.status).toHaveBeenCalledWith(HttpStatus.OK);
       expect(res.json).toHaveBeenCalledWith({
         message: 'User removed from the group successfully.',

@@ -34,14 +34,14 @@ describe('GroupController', () => {
   describe('createGroup', () => {
     it('should successfully create a group', async () => {
       const groupDto: GroupDto = { name: 'Test Group', description: 'Test Description' };
-      const userId = 1;
+      const userId = "1";
       const res: Partial<Response> = {
         status: jest.fn().mockReturnThis(),
         json: jest.fn(),
       };
 
       jest.spyOn(service, 'createGroup').mockResolvedValue({
-        data: { id: 1, ...groupDto, createdBy: userId },
+        data: { id: "1", ...groupDto, createdBy: userId },
         status: 1,
       });
 
@@ -50,7 +50,7 @@ describe('GroupController', () => {
       expect(res.json).toHaveBeenCalledWith({
         message: 'Group created successfully',
         status: 1,
-        data: { id: 1, ...groupDto, createdBy: userId },
+        data: { id: "1", ...groupDto, createdBy: userId },
       });
     });
 
@@ -63,7 +63,7 @@ describe('GroupController', () => {
 
       jest.spyOn(service, 'createGroup').mockResolvedValue({ data: null, status: 0 });
 
-      await controller.createGroup(groupDto, res as Response, { user: { id: 1 } });
+      await controller.createGroup(groupDto, res as Response, { user: { id: "1" } });
       expect(res.status).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST);
       expect(res.json).toHaveBeenCalledWith({
         message: 'Group creation failed. Please try again.',
@@ -75,7 +75,7 @@ describe('GroupController', () => {
 
   describe('joinGroup', () => {
     it('should successfully join a group', async () => {
-      const joinGroupDto: GroupMemberDto = { userId: 1, groupId: 1 };
+      const joinGroupDto: GroupMemberDto = { userId: "1", groupId: "1" };
       const res: Partial<Response> = {
         status: jest.fn().mockReturnThis(),
         json: jest.fn(),
@@ -93,7 +93,7 @@ describe('GroupController', () => {
     });
 
     it('should fail to join a group because group not found', async () => {
-      const joinGroupDto: GroupMemberDto = { userId: 1, groupId: 1 };
+      const joinGroupDto: GroupMemberDto = { userId: "1", groupId: "1" };
       const res: Partial<Response> = {
         status: jest.fn().mockReturnThis(),
         json: jest.fn(),

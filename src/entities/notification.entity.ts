@@ -6,15 +6,15 @@ import {
   CreateDateColumn,
 } from 'typeorm';
 import { Message } from './message.entity';
-import { Users } from './user.entity';
+import { User } from './user.entity';
 
 @Entity('tbl_notifications')
 export class Notification {
   @PrimaryGeneratedColumn('uuid', { name: 'id' })
   id: string;
 
-  @ManyToOne(() => Users)
-  user: Users;
+  @ManyToOne(() => User)
+  user: User;
 
   @ManyToOne(() => Message, { nullable: true })
   message?: Message;

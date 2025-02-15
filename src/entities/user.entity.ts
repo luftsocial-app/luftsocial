@@ -21,7 +21,7 @@ import { GroupMember } from './groupMembers.entity';
 import { Group } from './group.entity';
 
 @Entity({ name: 'tbl_users' })
-export class Users{
+export class User{
   @PrimaryGeneratedColumn('uuid')
   id: string;
 

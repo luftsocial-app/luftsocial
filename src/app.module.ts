@@ -17,12 +17,12 @@ import { GroupMember } from './entities/groupMembers.entity';
 import { GroupModule } from './group/group.module'
 import { GroupMemberModule } from './group-member/group-member.module';
 import { MessageModule } from './message/message.module';
-import { NotificationModule } from './notification/notification.module';
+// import { NotificationModule } from './notification/notification.module';
 
 import { Message } from './entities/message.entity';
 import { TenantMiddleware } from './middleware/tenant.middleware';
 import { UsersModule } from './user-management/users/users.module';
-import { Users } from './entities/user.entity';
+import { User } from './entities/user.entity';
 import { ClerkAuthGuard } from './guards/clerk-auth.guard';
 import { RolesGuard } from './guards/role-guard';
 import { Role } from './entities/role.entity';
@@ -51,7 +51,7 @@ import { Team } from './entities/team.entity';
     TypeOrmModule.forRoot({
       ...config.get('db.options'),
       entities: [
-        Users,
+        User,
         Tenant,
         UserRoleChange,
         Permissions,
@@ -60,10 +60,12 @@ import { Team } from './entities/team.entity';
         MessageRead,
         Conversation,
         ConversationMember,
-        Notification,
+        // Notification,
         Post,
         Team,
         UserTenant,
+        Group,
+        GroupMember,
       ],
     }),
     LoggerModule.forRoot({
@@ -80,7 +82,7 @@ import { Team } from './entities/team.entity';
     GroupModule,
     GroupMemberModule,
     MessageModule,
-    NotificationModule,
+    // NotificationModule,
     UsersModule,
     DatabaseModule,
     PostsModule,

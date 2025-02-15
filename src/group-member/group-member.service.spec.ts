@@ -50,7 +50,7 @@ describe('GroupMemberService', () => {
     it('should return status 2 if group is not found', async () => {
       mockGroupRepository.findOne.mockResolvedValue(null);
 
-      const result = await service.addMember({ groupId: 1, userId: 2 } as GroupMemberDto, 1);
+      const result = await service.addMember({ groupId: "1", userId: "2" } as GroupMemberDto, "1");
       expect(result).toEqual({ data: null, status: 2, message: 'Group not found.' });
     });
 
@@ -58,7 +58,7 @@ describe('GroupMemberService', () => {
       mockGroupRepository.findOne.mockResolvedValue({ id: 1 });
       mockGroupMemberRepository.findOne.mockResolvedValue(null);
 
-      const result = await service.addMember({ groupId: 1, userId: 2 } as GroupMemberDto, 1);
+      const result = await service.addMember({ groupId: "1", userId: "2" } as GroupMemberDto, "1");
       expect(result).toEqual({ data: null, status: 3, message: 'Only admins can add members.' });
     });
 
@@ -68,7 +68,7 @@ describe('GroupMemberService', () => {
         .mockResolvedValueOnce({})
         .mockResolvedValueOnce({});
 
-      const result = await service.addMember({ groupId: 1, userId: 2 } as GroupMemberDto, 1);
+      const result = await service.addMember({ groupId: "1", userId: "2" } as GroupMemberDto, "1");
       expect(result).toEqual({ data: null, status: 4, message: 'User is already a member.' });
     });
 
@@ -79,7 +79,7 @@ describe('GroupMemberService', () => {
       mockGroupMemberRepository.create.mockReturnValue({ id: 3 });
       mockGroupMemberRepository.save.mockResolvedValue({ id: 3 });
 
-      const result = await service.addMember({ groupId: 1, userId: 2 } as GroupMemberDto, 1);
+      const result = await service.addMember({ groupId: "1", userId: "2" } as GroupMemberDto, "1");
       expect(result).toEqual({ data: { id: 3 }, status: 1, message: 'User added to the group successfully.' });
     });
   });
@@ -88,7 +88,7 @@ describe('GroupMemberService', () => {
     it('should return status 2 if user is not a member', async () => {
       mockGroupMemberRepository.findOne.mockResolvedValue(null);
 
-      const result = await service.removeMember(1, 2, 1);
+      const result = await service.removeMember("1", "2", "1");
       expect(result).toEqual({ status: 2, message: 'User is not a member of the group.' });
     });
 
@@ -97,7 +97,7 @@ describe('GroupMemberService', () => {
         .mockResolvedValueOnce({})
         .mockResolvedValueOnce(null);
 
-      const result = await service.removeMember(1, 2, 1);
+      const result = await service.removeMember("1", "2", "1");
       expect(result).toEqual({ status: 3, message: 'Only admins can remove members.' });
     });
 
@@ -107,7 +107,7 @@ describe('GroupMemberService', () => {
       mockGroupMemberRepository.findOne.mockResolvedValueOnce({});
       mockGroupMemberRepository.update.mockResolvedValue({ affected: 1 });
 
-      const result = await service.removeMember(1, 2, 1);
+      const result = await service.removeMember("1", "2", "1");
       expect(result).toEqual({ status: 1, message: 'User removed from the group successfully.' });
     });
   });

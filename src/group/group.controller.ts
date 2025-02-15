@@ -1,7 +1,7 @@
 import { Controller, Post, Body, UseGuards, Res, HttpStatus, HttpException, Req, Delete, Param } from '@nestjs/common';
 import { GroupService } from './group.service';
 import { GroupDto, GroupMemberDto } from '../dto/base.dto';
-import { AuthMiddleware } from '../middleware/AuthMiddleware';
+// import { AuthMiddleware } from '../middleware/AuthMiddleware';
 import { Response } from 'express';
 @Controller('groups')
 export class GroupController {

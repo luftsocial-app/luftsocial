@@ -32,18 +32,18 @@ describe('MessageController', () => {
 
     describe('getMessageHistory', () => {
         it('should return message history successfully', async () => {
-            const userId = 1;
+            const userId = "1";
             const res: Partial<Response> = {
                 status: jest.fn().mockReturnThis(),
                 json: jest.fn(),
             };
-        
+
             const mockMessages: MessageDto[] = [
                 {
-                    id: 1,
-                    senderId: 1,
-                    receiverId: 2,
-                    groupId: 1,
+                    id: "1",
+                    senderId: "1",
+                    receiverId: "2",
+                    groupId: "1",
                     type: MessageTypeEnum.text,
                     content: 'Test message',
                     isRead: false,
@@ -52,25 +52,25 @@ describe('MessageController', () => {
                     isDeleted: false,
                 },
             ];
-        
+
             jest.spyOn(service, 'getMessageHistory').mockResolvedValue({
                 data: mockMessages,
                 status: 1,
             });
-        
+
             await controller.getMessageHistory({} as any, userId, res as Response);
-        
+
             expect(res.status).toHaveBeenCalledWith(HttpStatus.OK);
             expect(res.json).toHaveBeenCalledWith({
                 message: 'Message history fetched successfully.',
                 status: 1,
                 data: [
                     {
-                        id: 1,
+                        id: "1",
                         content: 'Test message',
-                        senderId: 1,
-                        receiverId: 2,
-                        groupId: 1,
+                        senderId: "1",
+                        receiverId: "2",
+                        groupId: "1",
                         isRead: false,
                         status: 'sent',
                         sentAt: expect.any(Date),
@@ -82,7 +82,7 @@ describe('MessageController', () => {
         });
 
         it('should return an error when service fails', async () => {
-            const userId = 1;
+            const userId = "1";
             const res: Partial<Response> = {
                 status: jest.fn().mockReturnThis(),
                 json: jest.fn(),

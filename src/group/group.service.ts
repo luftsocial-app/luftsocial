@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { Group } from '../entities/group.entity';
 import { GroupDto, GroupMemberDto } from '../dto/base.dto';
 import { GroupMember } from '../entities/groupMembers.entity';
-import { Users } from 'src/entities/user.entity';
+import { User } from 'src/entities/user.entity';
 
 @Injectable()
 export class GroupService {
@@ -15,9 +15,9 @@ export class GroupService {
         private readonly groupMemberRepository: Repository<GroupMember>,
     ) { }
 
-    async createGroup(groupDto: GroupDto, id: number): Promise<{ data: GroupDto | null; status: number }> {
+    async createGroup(groupDto: GroupDto, id: string): Promise<{ data: GroupDto | null; status: number }> {
         try {
-            groupDto.createdBy = id ?? 1;
+            groupDto.createdBy = id ?? "1";
             const newGroup = this.groupRepository.create(groupDto);
             const data = await this.groupRepository.save(newGroup);
             const payload = {
@@ -54,8 +54,10 @@ export class GroupService {
             }
             const existingMember = await this.groupMemberRepository.findOne({
                 where: {
-                    user: { id: userId },
-                    group: { id: groupId },
+                    // user: { id: userId },
+                    // group: { id: groupId },
+                    userId: userId,
+                    groupId: groupId
                 },
             });
             if (existingMember) {

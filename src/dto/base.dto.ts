@@ -24,9 +24,9 @@ export enum MessageTypeEnum {
 }
 
 class IBase {
-  @IsNumber()
+  @IsString()
   @IsOptional()
-  id?: number;
+  id?: string;
 
   @IsOptional()
   @IsDate()
@@ -46,22 +46,28 @@ export class GroupDto extends IBase {
   description?: string;
 
   @IsOptional()
-  @IsNumber()
-  createdBy?: number;
+  @IsString()
+  createdBy?: string;
 
   @IsOptional()
   @IsBoolean()
   status?: boolean;
+
+  @IsOptional()
+  members?: any[]; // Adjust type as needed if GroupMemberDto is included
+
+  @IsOptional()
+  messages?: any[]; // Adjust type as needed if MessageDto is included
 }
 
 export class GroupMemberDto extends IBase {
   @IsOptional()
-  @IsNumber()
-  groupId?: number;
+  @IsString()
+  groupId?: string;
 
   @IsOptional()
-  @IsNumber()
-  userId?: number;
+  @IsString()
+  userId?: string;
 
   @IsOptional()
   @IsBoolean()
@@ -78,14 +84,14 @@ export class GroupMemberDto extends IBase {
 
 export class MessageDto extends IBase {
   @IsOptional()
-  @IsNumber()
-  senderId?: number;
+  @IsString()
+  senderId?: string;
 
   @IsOptional()
-  receiverId?: number;
+  receiverId?: string;
 
   @IsOptional()
-  groupId?: number;
+  groupId?: string;
 
   @IsEnum(MessageTypeEnum)
   type: MessageTypeEnum;
@@ -113,4 +119,7 @@ export class MessageDto extends IBase {
   @IsOptional()
   @IsBoolean()
   isDeleted?: boolean;
+
+  @IsOptional()
+  conversation_id?:string
 }
