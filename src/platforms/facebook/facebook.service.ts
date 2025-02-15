@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   HttpException,
   HttpStatus,
   Injectable,
@@ -22,6 +23,10 @@ import {
   PlatformService,
   TokenResponse,
 } from '../platform-service.interface';
+import {
+  FacebookPageMetrics,
+  FacebookPostMetrics,
+} from './helpers/facebook.interfaces';
 
 @Injectable()
 export class FacebookService implements PlatformService {
@@ -145,27 +150,6 @@ export class FacebookService implements PlatformService {
     };
   }
 
-  async getMetrics(postId: string): Promise<any> {
-    const post = await this.facebookRepo.getPostById(postId);
-    if (!post) throw new Error('Post not found');
-
-    const response = await axios.get(
-      `${this.baseUrl}/${this.apiVersion}/${post.postId}/insights`,
-      {
-        params: {
-          access_token: post.page.accessToken,
-          metric: [
-            'post_impressions',
-            'post_engagements',
-            'post_reactions_by_type_total',
-          ].join(','),
-        },
-      },
-    );
-
-    return this.processMetricsResponse(response.data);
-  }
-
   async refreshLongLivedToken(token: string): Promise<any> {
     const response = await axios.get(
       `${this.baseUrl}/${this.apiVersion}/oauth/access_token`,
@@ -264,14 +248,6 @@ export class FacebookService implements PlatformService {
       },
     );
     return { media_fbid: response.data.id };
-  }
-
-  private processMetricsResponse(data: any): any {
-    const metrics = {};
-    data.data.forEach((metric) => {
-      metrics[metric.name] = metric.values[0].value;
-    });
-    return metrics;
   }
 
   async createPagePost(
@@ -448,32 +424,79 @@ export class FacebookService implements PlatformService {
             'page_engaged_users',
             'page_fan_adds',
             'page_views_total',
+            'page_post_engagements',
+            'page_followers',
           ].join(','),
           period,
         },
       },
     );
-
-    return response.data.data;
+    return this.transformPageMetrics(response.data.data);
   }
 
-  async getPostMetrics(postId: string): Promise<any> {
-    const post = await this.facebookRepo.getPostById(postId);
-    const response = await axios.get(
-      `${this.baseUrl}/${this.apiVersion}/${post.postId}/insights`,
-      {
-        params: {
-          access_token: post.page.accessToken,
-          metric: [
-            'post_impressions',
-            'post_engagements',
-            'post_reactions_by_type_total',
-          ].join(','),
-        },
-      },
-    );
+  private transformPageMetrics(data: any[]): FacebookPageMetrics {
+    const metrics: any = {};
+    data.forEach((metric) => {
+      metrics[metric.name] = metric.values[0].value;
+    });
 
-    return this.processMetricsResponse(response.data);
+    return {
+      impressions: metrics.page_impressions || 0,
+      engagedUsers: metrics.page_engaged_users || 0,
+      newFans: metrics.page_fan_adds || 0,
+      pageViews: metrics.page_views_total || 0,
+      engagements: metrics.page_post_engagements || 0,
+      followers: metrics.page_followers || 0,
+      collectedAt: new Date(),
+    };
+  }
+
+  private transformPostMetrics(data: any[]): FacebookPostMetrics {
+    const metrics: any = {};
+    data.forEach((metric) => {
+      metrics[metric.name] = metric.values[0].value;
+    });
+
+    return {
+      impressions: metrics.post_impressions || 0,
+      engagedUsers: metrics.post_engaged_users || 0,
+      reactions: metrics.post_reactions_by_type_total || {},
+      clicks: metrics.post_clicks || 0,
+      videoViews: metrics.post_video_views || 0,
+      videoViewTime: metrics.post_video_view_time || 0,
+      collectedAt: new Date(),
+    };
+  }
+
+  async getPostMetrics(accountId: string, postId: string): Promise<any> {
+    try {
+      const account = await this.facebookRepo.getAccountById(accountId);
+      if (!account) {
+        throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
+      }
+
+      const post = await this.facebookRepo.getPostById(postId);
+      const response = await axios.get(
+        `${this.baseUrl}/${this.apiVersion}/${post.postId}/insights`,
+        {
+          params: {
+            access_token: post.page.accessToken,
+            metric: [
+              'post_impressions',
+              'post_engaged_users',
+              'post_reactions_by_type_total',
+              'post_clicks',
+              'post_video_views',
+              'post_video_view_time',
+            ].join(','),
+          },
+        },
+      );
+
+      return this.transformPostMetrics(response.data);
+    } catch (error) {
+      throw new BadRequestException('Failed to fetch Instagram metrics', error);
+    }
   }
 
   async editPost(

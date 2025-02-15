@@ -85,7 +85,7 @@ export class TikTokController {
     @Param('accountId') accountId: string,
     @Param('videoId') videoId: string,
   ) {
-    return this.tiktokService.getMetrics(accountId, videoId);
+    return this.tiktokService.getPostMetrics(accountId, videoId);
   }
 
   @Get(':accountId/analytics')

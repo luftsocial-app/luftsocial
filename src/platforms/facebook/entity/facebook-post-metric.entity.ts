@@ -6,11 +6,15 @@ import {
   CreateDateColumn,
 } from 'typeorm';
 import { FacebookPost } from './facebook-post.entity';
+import { FacebookAccount } from './facebook-account.entity';
 
 @Entity('facebook_post_metrics')
 export class FacebookPostMetric {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @ManyToOne(() => FacebookAccount)
+  account: FacebookAccount;
 
   @ManyToOne(() => FacebookPost, (post) => post.metrics)
   post: FacebookPost;

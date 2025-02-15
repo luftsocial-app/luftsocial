@@ -1,26 +1,22 @@
 import { Module } from '@nestjs/common';
-import { ContentPublisherService } from './services/content-publisher.service';
+import { FacebookModule } from 'src/platforms/facebook/facebook.module';
+import { InstagramModule } from 'src/platforms/instagram/instagram.module';
+import { LinkedInModule } from 'src/platforms/linkedin/linkedin.module';
+import { TikTokModule } from 'src/platforms/tiktok/titkot.module';
+import { CrossPlatformService } from './cross-platform.service';
 import { AnalyticsService } from './services/analytics.service';
-import { ContentOptimizationService } from './services/content-optimization.service';
+import { ContentPublisherService } from './services/content-publisher.service';
 import { SchedulerService } from './services/scheduler.service';
-import { ContentPublisherRepository } from './repositories/content-publisher.repository';
-import { AnalyticsRepository } from './repositories/analytics.repository';
-import { ContentOptimizationRepository } from './repositories/content-optimization.repository';
-
+import { CrossPlatformController } from './cross-platform.controller';
 @Module({
+  imports: [FacebookModule, InstagramModule, LinkedInModule, TikTokModule],
   providers: [
+    CrossPlatformService,
     ContentPublisherService,
     AnalyticsService,
-    ContentOptimizationService,
     SchedulerService,
-    ContentPublisherRepository,
-    AnalyticsRepository,
-    ContentOptimizationRepository,
   ],
-  exports: [
-    ContentPublisherService,
-    AnalyticsService,
-    ContentOptimizationService,
-  ],
+  controllers: [CrossPlatformController],
+  exports: [CrossPlatformService],
 })
 export class CrossPlatformModule {}

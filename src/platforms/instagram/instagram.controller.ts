@@ -67,7 +67,7 @@ export class InstagramController {
     @Param('accountId') accountId: string,
     @Param('mediaId') mediaId: string,
   ) {
-    return this.instagramService.getMetrics(accountId, mediaId);
+    return this.instagramService.getPostMetrics(accountId, mediaId);
   }
 
   @Get(':accountId/insights')

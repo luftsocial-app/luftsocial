@@ -59,7 +59,7 @@ export class LinkedInController {
     @Param('accountId') accountId: string,
     @Param('postId') postId: string,
   ) {
-    return this.linkedInService.getMetrics(accountId, postId);
+    return this.linkedInService.getPostMetrics(accountId, postId);
   }
 
   @Get(':accountId/organizations')

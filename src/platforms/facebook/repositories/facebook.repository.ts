@@ -5,7 +5,7 @@ import { FacebookAccount } from '../entity/facebook-account.entity';
 import { FacebookPage } from '../entity/facebook-page.entity';
 import { FacebookPost } from '../entity/facebook-post.entity';
 import { FacebookPostMetric } from '../entity/facebook-post-metric.entity';
-import { FacebookPageMetric } from '../entity/page-metric.entity';
+import { FacebookPageMetric } from '../entity/facebook-page-metric.entity';
 
 @Injectable()
 export class FacebookRepository {
@@ -76,6 +76,21 @@ export class FacebookRepository {
     return this.postRepo.findOne({
       where: { id },
       relations,
+    });
+  }
+  async getRecentPosts(timeframe: number = 24): Promise<FacebookPost[]> {
+    const cutoffTime = new Date();
+    cutoffTime.setHours(cutoffTime.getHours() - timeframe);
+
+    return this.postRepo.find({
+      where: {
+        createdAt: MoreThan(cutoffTime),
+        isPublished: true,
+      },
+      relations: ['account'],
+      order: {
+        createdAt: 'DESC',
+      },
     });
   }
 
@@ -160,7 +175,7 @@ export class FacebookRepository {
   }
 
   // Upsert metrics with atomic transaction
-  async upsertMetrics(data: {
+  async upsertPostMetrics(data: {
     postId: string;
     metrics: Partial<FacebookPostMetric>;
   }): Promise<FacebookPostMetric> {
@@ -245,6 +260,36 @@ export class FacebookRepository {
         },
       },
     });
+  }
+
+  async upsertPageMetrics(data: {
+    pageId: string;
+    impressions: number;
+    engagedUsers: number;
+    newFans: number;
+    pageViews: number;
+    engagements: number;
+    followers: number;
+    collectedAt: Date;
+  }): Promise<FacebookPageMetric> {
+    const existingMetric = await this.pageMetricRepo.findOne({
+      where: {
+        page: { id: data.pageId },
+        collectedAt: data.collectedAt,
+      },
+    });
+
+    if (existingMetric) {
+      await this.pageMetricRepo.update(existingMetric.id, data);
+      return this.pageMetricRepo.findOne({ where: { id: existingMetric.id } });
+    }
+
+    const newMetric = this.pageMetricRepo.create({
+      page: { id: data.pageId },
+      ...data,
+    });
+
+    return this.pageMetricRepo.save(newMetric);
   }
 
   async deletePost(postId: string): Promise<void> {

@@ -15,25 +15,25 @@ export class FacebookPageMetric {
   @ManyToOne(() => FacebookPage)
   page: FacebookPage;
 
-  @Column({ type: 'int' })
-  followerCount: number;
-
-  @Column({ type: 'int' })
-  fanCount: number;
-
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  engagement: number;
-
-  @Column({ type: 'int' })
+  @Column()
   impressions: number;
 
-  @Column({ type: 'int' })
-  reach: number;
-
-  @Column('jsonb')
-  demographics: any;
+  @Column()
+  engagedUsers: number;
 
   @Column()
+  newFans: number;
+
+  @Column()
+  pageViews: number;
+
+  @Column()
+  engagements: number;
+
+  @Column()
+  followers: number;
+
+  @Column({ type: 'timestamp' })
   collectedAt: Date;
 
   @CreateDateColumn()

@@ -63,14 +63,6 @@ export class FacebookController {
     return this.facebookService.getComments(accountId, postId, pageToken);
   }
 
-  @Get(':accountId/posts/:postId/metrics')
-  async getMetrics(
-    @Param('accountId') accountId: string,
-    @Param('postId') postId: string,
-  ) {
-    return this.facebookService.getMetrics(postId);
-  }
-
   @Put('posts/:postId')
   async updatePost(
     @Param('postId') postId: string,
@@ -134,9 +126,12 @@ export class FacebookController {
     return this.facebookService.getPageInsights(pageId, period);
   }
 
-  @Get('posts/:postId/metrics')
-  async getPostMetrics(@Param('postId') postId: string) {
-    return this.facebookService.getPostMetrics(postId);
+  @Get('posts/:accountId/:postId/metrics')
+  async getPostMetrics(
+    @Param('accountId') accountId: string,
+    @Param('postId') postId: string,
+  ) {
+    return this.facebookService.getPostMetrics(accountId, postId);
   }
 
   @Put('pages/:pageId')

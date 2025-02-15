@@ -9,11 +9,15 @@ import {
 } from 'typeorm';
 import { FacebookPage } from './facebook-page.entity';
 import { FacebookPostMetric } from './facebook-post-metric.entity';
+import { FacebookAccount } from './facebook-account.entity';
 
 @Entity('facebook_posts')
 export class FacebookPost {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @ManyToOne(() => FacebookAccount)
+  account: FacebookAccount;
 
   @ManyToOne(() => FacebookPage, (page) => page.posts)
   page: FacebookPage;

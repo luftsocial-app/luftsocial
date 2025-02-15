@@ -154,7 +154,10 @@ export class TikTokService implements PlatformService {
     }
   }
 
-  async getMetrics(accountId: string, videoId: string): Promise<VideoMetrics> {
+  async getPostMetrics(
+    accountId: string,
+    videoId: string,
+  ): Promise<VideoMetrics> {
     try {
       const account = await this.tiktokRepo.getById(accountId);
       if (!account) {

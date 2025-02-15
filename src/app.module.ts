@@ -10,7 +10,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { ConfigModule } from '@nestjs/config';
 import * as config from 'config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { LoggerMiddleware } from '../logger.middleware';
+// import { LoggerMiddleware } from '../logger.middleware';
 import { ScheduleModule } from '@nestjs/schedule';
 import { UserModule } from './user/user.module';
 import { Users } from './entities/user.entity';
@@ -18,7 +18,6 @@ import { PlatformsModule } from './platforms/platforms.module';
 import { CrossPlatformModule } from './cross-platform/cross-platform.module';
 import { AuthModule } from './auth/auth.module';
 import { ClerkMiddleware } from './middleware/clerk.middleware';
-import { SharedModule } from './shared/shared.module';
 
 @Module({
   imports: [
@@ -48,7 +47,6 @@ import { SharedModule } from './shared/shared.module';
     PlatformsModule,
     CrossPlatformModule,
     AuthModule,
-    SharedModule,
   ],
   controllers: [AppController],
   providers: [

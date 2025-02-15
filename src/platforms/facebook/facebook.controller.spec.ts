@@ -1,12 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { FacebookController } from './facebook.controller';
 import { FacebookService } from './facebook.service';
-import {
-  CreatePostDto,
-  SchedulePagePostDto,
-  UpdatePageDto,
-  UpdatePostDto,
-} from './helpers/post.dto';
+import { SchedulePagePostDto, UpdatePageDto } from './helpers/post.dto';
 import { FacebookPost } from './entity/facebook-post.entity';
 import { FacebookPage } from './entity/facebook-page.entity';
 
@@ -178,7 +173,6 @@ describe('FacebookController', () => {
         content: scheduleDto.content,
         scheduledTime: scheduleDto.scheduledTime,
         media: scheduleDto.media,
-        
       } as FacebookPost;
 
       mockFacebookService.schedulePagePost.mockResolvedValue(expectedPost);

@@ -31,5 +31,8 @@ export interface PlatformService {
     userId: string,
   ): Promise<TokenResponse>;
   refreshToken(refreshToken: string): Promise<TokenResponse>;
-  getMetrics(accountId: string, postId: string): Promise<Record<string, any>>;
+  getPostMetrics(
+    accountId: string,
+    postId: string,
+  ): Promise<Record<string, any>>;
 }

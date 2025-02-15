@@ -3,9 +3,9 @@ import { Module } from '@nestjs/common';
 import { InstagramModule } from './instagram/instagram.module';
 import { CrossPlatformModule } from '../cross-platform/cross-platform.module';
 import { FacebookModule } from './facebook/facebook.module';
-import { LinkedInModule } from './linkedin/linked.module';
 import { TikTokModule } from './tiktok/titkot.module';
 import { PlatformsService } from './platforms.service';
+import { LinkedInModule } from './linkedin/linkedin.module';
 
 @Module({
   imports: [

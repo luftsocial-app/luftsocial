@@ -25,7 +25,7 @@ export class LinkedInMetricsCollectionJob {
 
           for (const post of posts) {
             try {
-              const metrics = await this.linkedInService.getMetrics(
+              const metrics = await this.linkedInService.getPostMetrics(
                 org.id,
                 post.postId,
               );

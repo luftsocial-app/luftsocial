@@ -226,7 +226,7 @@ export class InstagramService implements PlatformService {
     }
   }
 
-  async getMetrics(
+  async getPostMetrics(
     accountId: string,
     postId: string,
   ): Promise<Record<string, any>> {

@@ -27,7 +27,7 @@ export class TikTokMetricsCollectionJob {
           // Collect metrics for each video
           for (const video of videos) {
             try {
-              const metrics = await this.tiktokService.getMetrics(
+              const metrics = await this.tiktokService.getPostMetrics(
                 account.id,
                 video.id,
               );
