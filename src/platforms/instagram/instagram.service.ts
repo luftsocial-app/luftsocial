@@ -15,6 +15,7 @@ import {
   CommentResponse,
   PlatformService,
   PostResponse,
+  SocialAccountDetails,
   TokenResponse,
 } from '../platform-service.interface';
 import {
@@ -22,6 +23,11 @@ import {
   InstagramTokenResponse,
 } from './helpers/instagram-account.interface';
 import { CreateStoryDto } from './helpers/create-content.dto';
+import {
+  AccountMetrics,
+  DateRange,
+  PostMetrics,
+} from 'src/cross-platform/helpers/cross-platform.interface';
 
 @Injectable()
 export class InstagramService implements PlatformService {
@@ -131,6 +137,34 @@ export class InstagramService implements PlatformService {
     }
   }
 
+  async getUserAccounts(userId: string): Promise<SocialAccountDetails[]> {
+    const account = await this.instagramRepo.getAccountByUserId(userId);
+    if (!account) {
+      throw new NotFoundException('No Instagram accounts found for user');
+    }
+
+    try {
+      const response = await axios.get(`${this.baseUrl}/me/accounts`, {
+        params: {
+          access_token: account.accessToken,
+          fields: 'id,username,profile_picture_url,account_type',
+        },
+      });
+
+      return response.data.data.map((account) => ({
+        id: account.id,
+        name: account.username,
+        type: account.account_type,
+        avatarUrl: account.profile_picture_url,
+        platformSpecific: {
+          accountType: account.account_type,
+        },
+      }));
+    } catch (error) {
+      throw new InstagramApiException('Failed to fetch user accounts', error);
+    }
+  }
+
   async post(
     accountId: string,
     content: string,
@@ -229,7 +263,7 @@ export class InstagramService implements PlatformService {
   async getPostMetrics(
     accountId: string,
     postId: string,
-  ): Promise<Record<string, any>> {
+  ): Promise<PostMetrics> {
     try {
       const account = await this.instagramRepo.getAccountByUserId(accountId);
       if (!account) {
@@ -239,22 +273,88 @@ export class InstagramService implements PlatformService {
       const response = await axios.get(`${this.baseUrl}/${postId}/insights`, {
         params: {
           access_token: account.accessToken,
-          metric: 'engagement,impressions,reach,saved',
+          metric:
+            'engagement,impressions,reach,saved,likes_count,comments_count,shares',
           period: 'lifetime',
         },
       });
 
-      const metrics = {};
+      const metrics: Record<string, number> = {};
       response.data.data.forEach((metric) => {
         metrics[metric.name] = metric.values[0].value;
       });
 
-      return metrics;
+      return {
+        engagement: metrics.engagement || 0,
+        impressions: metrics.impressions || 0,
+        reach: metrics.reach || 0,
+        reactions: metrics.likes_count || 0,
+        comments: metrics.comments_count || 0,
+        shares: metrics.shares || 0,
+        saves: metrics.saved || 0,
+        platformSpecific: {
+          // Instagram specific metrics can go here
+          saved: metrics.saved || 0,
+          storyReplies: metrics.story_replies || 0,
+          storyTaps: metrics.story_taps_back || 0,
+          storyExits: metrics.story_exits || 0,
+        },
+      };
     } catch (error) {
       throw new InstagramApiException(
         'Failed to fetch Instagram metrics',
         error,
       );
+    }
+  }
+
+  async getAccountMetrics(
+    accountId: string,
+    dateRange: DateRange,
+  ): Promise<AccountMetrics> {
+    const account = await this.instagramRepo.getAccountByUserId(accountId);
+    if (!account) throw new NotFoundException('Account not found');
+
+    try {
+      const response = await axios.get(`${this.baseUrl}/insights`, {
+        params: {
+          access_token: account.socialAccount.accessToken,
+          metric: [
+            'impressions',
+            'reach',
+            'profile_views',
+            'follower_count',
+            'email_contacts',
+            'get_directions_clicks',
+            'phone_call_clicks',
+            'text_message_clicks',
+            'website_clicks',
+          ].join(','),
+          period: 'day',
+          since: dateRange.startDate,
+          until: dateRange.endDate,
+        },
+      });
+
+      return {
+        followers: response.data.follower_count || 0,
+        engagement:
+          (response.data.profile_views || 0) +
+          (response.data.website_clicks || 0),
+        impressions: response.data.impressions || 0,
+        reach: response.data.reach || 0,
+        platformSpecific: {
+          profileViews: response.data.profile_views,
+          emailContacts: response.data.email_contacts,
+          getDirectionsClicks: response.data.get_directions_clicks,
+          phoneCallClicks: response.data.phone_call_clicks,
+          textMessageClicks: response.data.text_message_clicks,
+          websiteClicks: response.data.website_clicks,
+        },
+        dateRange,
+      };
+    } catch (error) {
+      throw new InstagramApiException('Failed to fetch account metrics', error);
     }
   }
 

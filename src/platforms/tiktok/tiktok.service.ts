@@ -11,6 +11,7 @@ import {
   CommentResponse,
   PlatformService,
   PostResponse,
+  SocialAccountDetails,
   TokenResponse,
 } from '../platform-service.interface';
 import { TikTokRepository } from './repositories/tiktok.repository';
@@ -18,11 +19,15 @@ import {
   CreateVideoParams,
   TikTokPostVideoStatus,
   TIktokTokenResponse,
-  VideoMetrics,
   VideoUploadInit,
   VideoUploadResponse,
 } from './helpers/tiktok.interfaces';
 import { TikTokConfig } from './config/tiktok.config';
+import {
+  AccountMetrics,
+  DateRange,
+  PostMetrics,
+} from 'src/cross-platform/helpers/cross-platform.interface';
 
 @Injectable()
 export class TikTokService implements PlatformService {
@@ -99,6 +104,36 @@ export class TikTokService implements PlatformService {
     }
   }
 
+  async getUserAccounts(userId: string): Promise<SocialAccountDetails[]> {
+    const account = await this.tiktokRepo.getAccountById(userId);
+    if (!account) {
+      throw new NotFoundException('No Tiktok accounts found for user');
+    }
+
+    try {
+      const response = await axios.get(`${this.baseUrl}/user/info/`, {
+        headers: {
+          Authorization: `Bearer ${account.socialAccount.accessToken}`,
+        },
+      });
+
+      return [
+        {
+          id: response.data.data.user.open_id,
+          name: response.data.data.user.display_name,
+          type: 'creator',
+          avatarUrl: response.data.data.user.avatar_url,
+          platformSpecific: {
+            bio: response.data.data.user.bio_description,
+            isVerified: response.data.data.user.verified,
+          },
+        },
+      ];
+    } catch (error) {
+      throw new TikTokApiException('Failed to fetch user account', error);
+    }
+  }
+
   async getComments(
     accountId: string,
     videoId: string,
@@ -157,7 +192,7 @@ export class TikTokService implements PlatformService {
   async getPostMetrics(
     accountId: string,
     videoId: string,
-  ): Promise<VideoMetrics> {
+  ): Promise<PostMetrics> {
     try {
       const account = await this.tiktokRepo.getById(accountId);
       if (!account) {
@@ -179,6 +214,9 @@ export class TikTokService implements PlatformService {
               'comment_count',
               'share_count',
               'view_count',
+              'play_count',
+              'forward_count',
+              'download_count',
             ].join(','),
           },
           headers: {
@@ -195,11 +233,19 @@ export class TikTokService implements PlatformService {
       const video = response.data.data.videos[0];
 
       return {
-        viewCount: video.view_count,
-        likeCount: video.like_count,
-        commentCount: video.comment_count,
-        shareCount: video.share_count,
-        playCount: video.view_count, // TikTok considers views as plays
+        engagement:
+          video.like_count + video.comment_count + video.share_count || 0,
+        impressions: video.view_count || 0,
+        reactions: video.like_count || 0,
+        comments: video.comment_count || 0,
+        shares: video.share_count || 0,
+        platformSpecific: {
+          playCount: video.play_count || video.view_count || 0,
+          forwardCount: video.forward_count || 0,
+          downloadCount: video.download_count || 0,
+          avgWatchTime: video.average_watch_time || 0,
+          completionRate: video.video_completion_rate || 0,
+        },
       };
     } catch (error) {
       throw new TikTokApiException('Failed to fetch video metrics', error);
@@ -671,6 +717,54 @@ export class TikTokService implements PlatformService {
       return response.data.data;
     } catch (error) {
       throw new TikTokApiException('Failed to fetch video performance', error);
+    }
+  }
+
+  async getAccountMetrics(
+    accountId: string,
+    dateRange: DateRange,
+  ): Promise<AccountMetrics> {
+    const account = await this.tiktokRepo.getById(accountId);
+    if (!account) throw new NotFoundException('Account not found');
+
+    try {
+      const response = await axios.get(`${this.baseUrl}/user/stats/`, {
+        headers: {
+          Authorization: `Bearer ${account.socialAccount.accessToken}`,
+        },
+        params: {
+          fields: [
+            'follower_count',
+            'following_count',
+            'likes_count',
+            'video_count',
+            'profile_views',
+            'comment_count',
+            'share_count',
+          ].join(','),
+          start_date: dateRange.startDate,
+          end_date: dateRange.endDate,
+        },
+      });
+
+      return {
+        followers: response.data.data.follower_count || 0,
+        engagement:
+          (response.data.data.likes_count || 0) +
+          (response.data.data.comment_count || 0),
+        impressions: response.data.data.profile_views || 0,
+        reach: response.data.data.profile_views || 0, // TikTok doesn't provide specific reach metrics
+        posts: response.data.data.video_count || 0,
+        platformSpecific: {
+          followingCount: response.data.data.following_count,
+          likesCount: response.data.data.likes_count,
+          commentCount: response.data.data.comment_count,
+          shareCount: response.data.data.share_count,
+        },
+        dateRange,
+      };
+    } catch (error) {
+      throw new TikTokApiException('Failed to fetch account metrics', error);
     }
   }
 

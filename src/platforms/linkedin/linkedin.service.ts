@@ -1,4 +1,3 @@
-// src/platforms/linkedin/services/linkedin.service.ts
 import {
   Injectable,
   HttpException,
@@ -12,6 +11,7 @@ import {
   CommentResponse,
   PlatformService,
   PostResponse,
+  SocialAccountDetails,
   TokenResponse,
 } from '../platform-service.interface';
 import { LinkedInApiException } from './helpers/linkedin-api.exception';
@@ -19,6 +19,11 @@ import {
   LinkedInOrganization,
   LinkedInTokenResponse,
 } from './helpers/linkedin.interface';
+import {
+  AccountMetrics,
+  DateRange,
+  PostMetrics,
+} from 'src/cross-platform/helpers/cross-platform.interface';
 
 @Injectable()
 export class LinkedInService implements PlatformService {
@@ -130,6 +135,50 @@ export class LinkedInService implements PlatformService {
     }
   }
 
+  async getUserAccounts(userId: string): Promise<SocialAccountDetails[]> {
+    const account = await this.linkedInRepo.getById(userId);
+    if (!account) {
+      throw new NotFoundException('No Linkedin accounts found for user');
+    }
+
+    try {
+      const response = await axios.get(`${this.baseUrl}/organizationAcls`, {
+        headers: {
+          Authorization: `Bearer ${account.socialAccount.accessToken}`,
+        },
+        params: {
+          q: 'roleAssignee',
+        },
+      });
+
+      const organizationIds = response.data.elements.map(
+        (el) => el.organization,
+      );
+      const orgDetails = await Promise.all(
+        organizationIds.map((orgId) =>
+          axios.get(`${this.baseUrl}/organizations/${orgId}`, {
+            headers: {
+              Authorization: `Bearer ${account.socialAccount.accessToken}`,
+            },
+          }),
+        ),
+      );
+
+      return orgDetails.map((org) => ({
+        id: org.data.id,
+        name: org.data.localizedName,
+        type: 'organization',
+        avatarUrl: org.data.logoV2?.original,
+        platformSpecific: {
+          vanityName: org.data.vanityName,
+          locations: org.data.locations,
+        },
+      }));
+    } catch (error) {
+      throw new LinkedInApiException('Failed to fetch user accounts', error);
+    }
+  }
+
   async post(
     accountId: string,
     content: string,
@@ -238,7 +287,7 @@ export class LinkedInService implements PlatformService {
   async getPostMetrics(
     accountId: string,
     postId: string,
-  ): Promise<Record<string, any>> {
+  ): Promise<PostMetrics> {
     try {
       const account = await this.linkedInRepo.getById(accountId);
       if (!account) {
@@ -260,19 +309,111 @@ export class LinkedInService implements PlatformService {
         },
       );
 
+      const stats = response.data.totalShareStatistics;
+
       return {
-        impressions: response.data.totalShareStatistics.impressionCount,
-        engagement: response.data.totalShareStatistics.engagement,
-        clickCount: response.data.totalShareStatistics.clickCount,
-        likeCount: response.data.totalShareStatistics.likeCount,
-        commentCount: response.data.totalShareStatistics.commentCount,
-        shareCount: response.data.totalShareStatistics.shareCount,
+        engagement: stats.engagement || 0,
+        impressions: stats.impressionCount || 0,
+        reach: stats.uniqueImpressionsCount || 0,
+        reactions: stats.likeCount || 0,
+        comments: stats.commentCount || 0,
+        shares: stats.shareCount || 0,
+        platformSpecific: {
+          clicks: stats.clickCount || 0,
+          engagement_detail: {
+            likes: stats.likeCount || 0,
+            comments: stats.commentCount || 0,
+            shares: stats.shareCount || 0,
+            clicks: stats.clickCount || 0,
+          },
+        },
       };
     } catch (error) {
       throw new LinkedInApiException('Failed to fetch LinkedIn metrics', error);
     }
   }
 
+  async getAccountMetrics(
+    accountId: string,
+    dateRange: DateRange,
+  ): Promise<AccountMetrics> {
+    const account = await this.linkedInRepo.getById(accountId);
+    if (!account) throw new NotFoundException('Account not found');
+    if (!account.organizations || account.organizations.length === 0) {
+      throw new LinkedInApiException('No organizations found for account');
+    }
+
+    try {
+      // Fetch metrics for all organizations and aggregate them
+      const metrics = await Promise.all(
+        account.organizations.map(async (orgId) => {
+          const response = await axios.get(
+            `${this.baseUrl}/organizationalEntityShareStatistics`,
+            {
+              params: {
+                q: 'organizationalEntity',
+                organizationalEntity: orgId,
+                timeIntervals: {
+                  start: dateRange.startDate,
+                  end: dateRange.endDate,
+                },
+              },
+              headers: {
+                Authorization: `Bearer ${account.socialAccount.accessToken}`,
+              },
+            },
+          );
+
+          return {
+            followers: response.data.followerCount || 0,
+            engagement: response.data.engagement || 0,
+            impressions: response.data.impressionCount || 0,
+            reach: response.data.uniqueImpressionsCount || 0,
+            posts: response.data.shareCount || 0,
+            platformSpecific: {
+              organizationId: orgId,
+              clickCount: response.data.clickCount,
+              likeCount: response.data.likeCount,
+              commentCount: response.data.commentCount,
+              shareCount: response.data.shareCount,
+            },
+          };
+        }),
+      );
+
+      // Aggregate metrics from all organizations
+      const aggregatedMetrics = metrics.reduce(
+        (acc, curr) => ({
+          followers: acc.followers + curr.followers,
+          engagement: acc.engagement + curr.engagement,
+          impressions: acc.impressions + curr.impressions,
+          reach: acc.reach + curr.reach,
+          posts: acc.posts + curr.posts,
+          platformSpecific: {
+            organizations: [
+              ...(acc.platformSpecific?.organizations || []),
+              curr.platformSpecific,
+            ],
+          },
+        }),
+        {
+          followers: 0,
+          engagement: 0,
+          impressions: 0,
+          reach: 0,
+          posts: 0,
+          platformSpecific: { organizations: [] },
+        },
+      );
+
+      return {
+        ...aggregatedMetrics,
+        dateRange,
+      };
+    } catch (error) {
+      throw new LinkedInApiException('Failed to fetch account metrics', error);
+    }
+  }
   private async getAccessToken(code: string): Promise<any> {
     const response = await axios.post(
       'https://www.linkedin.com/oauth/v2/accessToken',

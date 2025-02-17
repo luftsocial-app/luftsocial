@@ -3,7 +3,10 @@ import { CreateDateColumn } from 'typeorm/decorator/columns/CreateDateColumn';
 import { PrimaryGeneratedColumn } from 'typeorm/decorator/columns/PrimaryGeneratedColumn';
 import { UpdateDateColumn } from 'typeorm/decorator/columns/UpdateDateColumn';
 import { Entity } from 'typeorm/decorator/entity/Entity';
-import { PublishStatus } from '../helpers/cross-platform.interface';
+import {
+  PublishPlatformResult,
+  PublishStatus,
+} from '../helpers/cross-platform.interface';
 
 @Entity('publish_records')
 export class PublishRecord {
@@ -32,7 +35,7 @@ export class PublishRecord {
   status: PublishStatus;
 
   @Column('jsonb', { nullable: true })
-  results: any[];
+  results: PublishPlatformResult[];
 
   @CreateDateColumn()
   createdAt: Date;

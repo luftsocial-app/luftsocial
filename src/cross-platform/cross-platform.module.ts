@@ -8,10 +8,47 @@ import { AnalyticsService } from './services/analytics.service';
 import { ContentPublisherService } from './services/content-publisher.service';
 import { SchedulerService } from './services/scheduler.service';
 import { CrossPlatformController } from './cross-platform.controller';
+import { FacebookService } from 'src/platforms/facebook/facebook.service';
+import { InstagramService } from 'src/platforms/instagram/instagram.service';
+import { LinkedInService } from 'src/platforms/linkedin/linkedin.service';
+import { TikTokService } from 'src/platforms/tiktok/tiktok.service';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { AnalyticsRecord } from './entity/analytics.entity';
+import { PublishRecord } from './entity/publish.entity';
+import { ScheduledPost } from './entity/schedule.entity';
+
 @Module({
-  imports: [FacebookModule, InstagramModule, LinkedInModule, TikTokModule],
+  imports: [
+    FacebookModule,
+    InstagramModule,
+    LinkedInModule,
+    TikTokModule,
+    TypeOrmModule.forFeature([PublishRecord, AnalyticsRecord, ScheduledPost]),
+  ],
   providers: [
-    CrossPlatformService,
+    // Core services
+    {
+      provide: CrossPlatformService,
+      useFactory: (
+        facebookService: FacebookService,
+        instagramService: InstagramService,
+        linkedInService: LinkedInService,
+        tiktokService: TikTokService,
+      ) => {
+        return new CrossPlatformService(
+          facebookService,
+          instagramService,
+          linkedInService,
+          tiktokService,
+        );
+      },
+      inject: [
+        FacebookService,
+        InstagramService,
+        LinkedInService,
+        TikTokService,
+      ],
+    },
     ContentPublisherService,
     AnalyticsService,
     SchedulerService,

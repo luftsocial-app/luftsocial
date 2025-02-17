@@ -13,6 +13,8 @@ import { TikTokService } from 'src/platforms/tiktok/tiktok.service';
 import { Repository } from 'typeorm';
 import { PublishRecord } from '../entity/publish.entity';
 import {
+  PublishParams,
+  PublishPlatformResult,
   PublishResult,
   PublishStatus,
 } from '../helpers/cross-platform.interface';
@@ -28,17 +30,7 @@ export class ContentPublisherService {
     private readonly tiktokService: TikTokService,
   ) {}
 
-  async publishContent(params: {
-    userId: string;
-    content: string;
-    mediaUrls?: string[];
-    platforms: {
-      platform: SocialPlatform;
-      accountId: string;
-      platformSpecificParams?: any;
-    }[];
-    scheduleTime?: Date;
-  }): Promise<PublishResult> {
+  async publishContent(params: PublishParams): Promise<PublishResult> {
     // Create publishing record
     const publishRecord = await this.publishRepo.save({
       userId: params.userId,
@@ -47,9 +39,10 @@ export class ContentPublisherService {
       platforms: params.platforms,
       scheduleTime: params.scheduleTime,
       status: PublishStatus.PENDING,
+      results: [],
     });
 
-    const results = await Promise.allSettled(
+    const publishAttempts = await Promise.allSettled(
       params.platforms.map(async (platform) => {
         try {
           const result = await this.publishToPlatform({
@@ -67,43 +60,43 @@ export class ContentPublisherService {
             success: true,
             postId: result.platformPostId,
             postedAt: result.postedAt,
-          };
+          } as PublishPlatformResult;
         } catch (error) {
           return {
             platform: platform.platform,
             accountId: platform.accountId,
             success: false,
             error: error.message,
-          };
+          } as PublishPlatformResult;
         }
       }),
     );
 
+    // Transform results to the correct format
+    const results: PublishPlatformResult[] = publishAttempts.map((attempt) =>
+      attempt.status === 'fulfilled'
+        ? attempt.value
+        : {
+            platform: attempt.reason.platform,
+            accountId: attempt.reason.accountId,
+            success: false,
+            error: attempt.reason.message,
+          },
+    );
+
     // Update publish record with results
-    const status = this.determineOverallStatus(results);
+    const status = this.determineOverallStatus(publishAttempts);
     await this.publishRepo.update(publishRecord.id, {
       status,
-      results: results.map((result) =>
-        result.status === 'fulfilled'
-          ? result.value
-          : {
-              platform: result.reason.platform,
-              accountId: result.reason.accountId,
-              success: false,
-              error: result.reason.message,
-            },
-      ),
+      results,
     });
 
     return {
       publishId: publishRecord.id,
       status,
-      results: results.map((result) =>
-        result.status === 'fulfilled' ? result.value : result.reason,
-      ),
+      results,
     };
   }
-
   private async publishToPlatform(params: {
     platform: SocialPlatform;
     accountId: string;
@@ -118,7 +111,7 @@ export class ContentPublisherService {
           params.accountId,
           params.content,
           params.mediaUrls,
-          params.platformSpecificParams,
+          // params.platformSpecificParams,
         );
 
       case SocialPlatform.INSTAGRAM:
@@ -131,7 +124,7 @@ export class ContentPublisherService {
           params.accountId,
           params.content,
           params.mediaUrls,
-          params.platformSpecificParams,
+          // params.platformSpecificParams,
         );
 
       case SocialPlatform.LINKEDIN:
@@ -139,16 +132,15 @@ export class ContentPublisherService {
           params.accountId,
           params.content,
           params.mediaUrls,
-          params.platformSpecificParams,
+          // params.platformSpecificParams,
         );
 
       case SocialPlatform.TIKTOK:
         if (!params.mediaUrls?.length) {
           throw new BadRequestException('TikTok requires a video');
         }
-        return this.tiktokService.post(
+        return this.tiktokService.uploadVideo(
           params.accountId,
-          params.content,
           params.mediaUrls[0], // TikTok only accepts one video
           params.platformSpecificParams,
         );
@@ -161,7 +153,7 @@ export class ContentPublisherService {
   }
 
   private determineOverallStatus(
-    results: PromiseSettledResult<any>[],
+    results: PromiseSettledResult<PublishPlatformResult>[],
   ): PublishStatus {
     const allSuccessful = results.every((r) => r.status === 'fulfilled');
     const allFailed = results.every((r) => r.status === 'rejected');
@@ -171,12 +163,18 @@ export class ContentPublisherService {
     return PublishStatus.PARTIALLY_COMPLETED;
   }
 
-  async getPublishStatus(publishId: string): Promise<PublishRecord> {
-    const record = await this.publishRepo.findOne({ where: { id: publishId } });
-    if (!record) {
+  async getPublishStatus(
+    publishId: string,
+    userId: string,
+  ): Promise<PublishStatus> {
+    const publishRecord = await this.publishRepo.findOne({
+      where: { id: publishId, userId },
+    });
+
+    if (!publishRecord) {
       throw new NotFoundException('Publish record not found');
     }
-    return record;
+
+    return publishRecord.status;
   }
 }
-

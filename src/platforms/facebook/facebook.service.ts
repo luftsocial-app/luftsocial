@@ -5,6 +5,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
@@ -21,12 +22,18 @@ import { FacebookPost } from './entity/facebook-post.entity';
 import {
   CommentResponse,
   PlatformService,
+  SocialAccountDetails,
   TokenResponse,
 } from '../platform-service.interface';
 import {
   FacebookPageMetrics,
   FacebookPostMetrics,
 } from './helpers/facebook.interfaces';
+import { FacebookApiException } from './helpers/facebook-api.exception';
+import {
+  AccountMetrics,
+  DateRange,
+} from 'src/cross-platform/helpers/cross-platform.interface';
 
 @Injectable()
 export class FacebookService implements PlatformService {
@@ -95,6 +102,37 @@ export class FacebookService implements PlatformService {
       })),
       nextPageToken: response.data.paging?.cursors?.after,
     };
+  }
+
+  async getUserAccounts(userId: string): Promise<SocialAccountDetails[]> {
+    const account = await this.facebookRepo.getAccountById(userId);
+    if (!account) {
+      throw new NotFoundException('No Facebook accounts found for user');
+    }
+    try {
+      const response = await axios.get(`${this.baseUrl}/me/accounts`, {
+        params: {
+          access_token: account.accessToken,
+          fields: 'id,name,category,picture',
+        },
+      });
+
+      return response.data.data.map((account) => ({
+        id: account.id,
+        name: account.name,
+        type: account.category,
+        avatarUrl: account.picture?.data?.url,
+        platformSpecific: {
+          category: account.category,
+        },
+      }));
+    } catch (error) {
+      throw new FacebookApiException(
+        500,
+        'Failed to fetch user accounts',
+        error,
+      );
+    }
   }
 
   async handleCallback(
@@ -496,6 +534,50 @@ export class FacebookService implements PlatformService {
       return this.transformPostMetrics(response.data);
     } catch (error) {
       throw new BadRequestException('Failed to fetch Instagram metrics', error);
+    }
+  }
+
+  async getPageMetrics(
+    pageId: string,
+    dateRange: DateRange,
+  ): Promise<AccountMetrics> {
+    const page = await this.facebookRepo.getPageById(pageId);
+    if (!page) throw new NotFoundException('Account not found');
+
+    try {
+      const response = await axios.get(`${this.baseUrl}/${pageId}/insights`, {
+        params: {
+          access_token: page.accessToken,
+          metric: [
+            'page_impressions',
+            'page_engaged_users',
+            'page_fan_adds',
+            'page_followers_adds',
+            'page_views_total',
+          ].join(','),
+          period: 'day',
+          since: dateRange.startDate,
+          until: dateRange.endDate,
+        },
+      });
+
+      return {
+        followers: response.data.page_followers_adds || 0,
+        engagement: response.data.page_engaged_users || 0,
+        impressions: response.data.page_impressions || 0,
+        reach: response.data.page_impressions_unique || 0,
+        platformSpecific: {
+          pageViews: response.data.page_views_total,
+          fanAdds: response.data.page_fan_adds,
+        },
+        dateRange,
+      };
+    } catch (error) {
+      throw new FacebookApiException(
+        500,
+        'Failed to fetch account metrics',
+        error,
+      );
     }
   }
 

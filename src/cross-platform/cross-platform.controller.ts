@@ -93,7 +93,7 @@ export class CrossPlatformController {
     @Param('publishId') publishId: string,
     @CurrentUser() userId: string,
   ) {
-    return this.contentPublisherService.getPublishStatus(publishId);
+    return this.contentPublisherService.getPublishStatus(publishId, userId);
   }
 
   // Scheduling Endpoints
@@ -104,7 +104,10 @@ export class CrossPlatformController {
   ) {
     return this.schedulerService.schedulePost({
       userId,
-      ...schedulePostDto,
+      content: schedulePostDto.content,
+      mediaUrls: schedulePostDto.mediaUrls,
+      platforms: schedulePostDto.platforms,
+      scheduledTime: new Date(schedulePostDto.scheduledTime),
     });
   }
 
@@ -113,7 +116,13 @@ export class CrossPlatformController {
     @Query() filters: ScheduleFiltersDto,
     @CurrentUser() userId: string,
   ) {
-    return this.schedulerService.getScheduledPosts(userId, filters);
+    const transformedFilters = {
+      ...filters,
+      startDate: filters.startDate ? new Date(filters.startDate) : undefined,
+      endDate: filters.endDate ? new Date(filters.endDate) : undefined,
+    };
+
+    return this.schedulerService.getScheduledPosts(userId, transformedFilters);
   }
 
   @Put('schedule/:postId')
@@ -122,10 +131,17 @@ export class CrossPlatformController {
     @Body() updateScheduleDto: UpdateScheduleDto,
     @CurrentUser() userId: string,
   ) {
+    const serviceParams = {
+      ...updateScheduleDto,
+      scheduledTime: updateScheduleDto.scheduledTime
+        ? new Date(updateScheduleDto.scheduledTime)
+        : undefined,
+    };
+
     return this.schedulerService.updateScheduledPost(
       postId,
       userId,
-      updateScheduleDto,
+      serviceParams,
     );
   }
 

@@ -8,6 +8,7 @@ import { TikTokService } from 'src/platforms/tiktok/tiktok.service';
 import { Repository } from 'typeorm';
 import {
   ContentPerformance,
+  DateRange,
   PlatformAnalytics,
   PlatformMetrics,
   PostMetrics,
@@ -31,10 +32,7 @@ export class AnalyticsService {
       platform: SocialPlatform;
       accountId: string;
     }[];
-    dateRange: {
-      start: Date;
-      end: Date;
-    };
+    dateRange: DateRange;
   }): Promise<PlatformAnalytics[]> {
     const analytics = await Promise.allSettled(
       params.platforms.map(async ({ platform, accountId }) => {
@@ -87,7 +85,7 @@ export class AnalyticsService {
   private async getPlatformAnalytics(
     platform: SocialPlatform,
     accountId: string,
-    dateRange: { start: Date; end: Date },
+    dateRange: DateRange,
   ): Promise<PlatformMetrics> {
     switch (platform) {
       case SocialPlatform.FACEBOOK:
@@ -104,78 +102,72 @@ export class AnalyticsService {
   }
 
   private async getFacebookAnalytics(
-    accountId: string,
-    dateRange: { start: Date; end: Date },
+    pageId: string,
+    dateRange: DateRange,
   ): Promise<PlatformMetrics> {
-    const metrics = await this.facebookService.getMetrics(accountId);
+    const metrics = await this.facebookService.getPageMetrics(
+      pageId,
+      dateRange,
+    );
     return {
-      followers: metrics.followers_count,
-      engagement: metrics.engagement_rate,
+      followers: metrics.followers,
+      engagement: metrics.engagement,
       impressions: metrics.impressions,
       reach: metrics.reach,
-      posts: metrics.posts_count,
-      platformSpecific: {
-        pageViews: metrics.page_views,
-        reactions: metrics.reactions,
-        shares: metrics.shares,
-      },
+      platformSpecific: metrics.platformSpecific,
     };
   }
 
   private async getInstagramAnalytics(
     accountId: string,
-    dateRange: { start: Date; end: Date },
+    dateRange: DateRange,
   ): Promise<PlatformMetrics> {
-    const metrics = await this.instagramService.getMetrics(accountId);
+    const metrics = await this.instagramService.getAccountMetrics(
+      accountId,
+      dateRange,
+    );
     return {
-      followers: metrics.followers_count,
-      engagement: metrics.engagement_rate,
+      followers: metrics.followers,
+      engagement: metrics.engagement,
       impressions: metrics.impressions,
       reach: metrics.reach,
-      posts: metrics.media_count,
-      platformSpecific: {
-        stories: metrics.stories_count,
-        profileVisits: metrics.profile_views,
-        saves: metrics.saves,
-      },
+      platformSpecific: metrics.platformSpecific,
     };
   }
 
   private async getLinkedInAnalytics(
     accountId: string,
-    dateRange: { start: Date; end: Date },
+    dateRange: DateRange,
   ): Promise<PlatformMetrics> {
-    const metrics = await this.linkedinService.getAccountMetrics(accountId);
+    const metrics = await this.linkedinService.getAccountMetrics(
+      accountId,
+      dateRange,
+    );
     return {
-      followers: metrics.followers_count,
-      engagement: metrics.engagement_rate,
+      followers: metrics.followers,
+      engagement: metrics.engagement,
       impressions: metrics.impressions,
-      reach: metrics.unique_impressions,
-      posts: metrics.posts_count,
-      platformSpecific: {
-        clicks: metrics.clicks,
-        shares: metrics.shares,
-        comments: metrics.comments,
-      },
+      reach: metrics.reach,
+      posts: metrics.posts,
+      platformSpecific: metrics.platformSpecific,
     };
   }
 
   private async getTikTokAnalytics(
     accountId: string,
-    dateRange: { start: Date; end: Date },
+    dateRange: DateRange,
   ): Promise<PlatformMetrics> {
-    const metrics = await this.tiktokService.getAccountMetrics(accountId);
+    const metrics = await this.tiktokService.getAccountMetrics(
+      accountId,
+      dateRange,
+    );
     return {
-      followers: metrics.followers_count,
-      engagement: metrics.engagement_rate,
-      impressions: metrics.video_views,
+      followers: metrics.followers,
+      engagement: metrics.engagement,
+      impressions: metrics.impressions,
       reach: metrics.reach,
-      posts: metrics.video_count,
-      platformSpecific: {
-        likes: metrics.likes_count,
-        shares: metrics.shares_count,
-        comments: metrics.comments_count,
-      },
+      posts: metrics.posts,
+      platformSpecific: metrics.platformSpecific,
     };
   }
 
@@ -189,7 +181,11 @@ export class AnalyticsService {
     return Promise.all(
       params.postIds.map(async ({ platform, postId }) => {
         try {
-          const metrics = await this.getPostMetrics(platform, postId);
+          const metrics = await this.getPostMetrics(
+            platform,
+            params.userId,
+            postId,
+          );
           return {
             platform,
             postId,

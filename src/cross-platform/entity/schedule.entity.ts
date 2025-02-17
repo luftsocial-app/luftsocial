@@ -6,7 +6,10 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { ScheduleStatus } from '../helpers/cross-platform.interface';
+import {
+  PublishPlatformResult,
+  ScheduleStatus,
+} from '../helpers/cross-platform.interface';
 
 @Entity('scheduled_posts')
 export class ScheduledPost {
@@ -40,7 +43,7 @@ export class ScheduledPost {
   status: ScheduleStatus;
 
   @Column('jsonb', { nullable: true })
-  results: any[];
+  results: PublishPlatformResult[];
 
   @Column({ type: 'timestamp', nullable: true })
   publishedAt: Date;

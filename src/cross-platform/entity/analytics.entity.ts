@@ -3,6 +3,7 @@ import { Column } from 'typeorm/decorator/columns/Column';
 import { CreateDateColumn } from 'typeorm/decorator/columns/CreateDateColumn';
 import { PrimaryGeneratedColumn } from 'typeorm/decorator/columns/PrimaryGeneratedColumn';
 import { Entity } from 'typeorm/decorator/entity/Entity';
+import { DateRange } from '../helpers/cross-platform.interface';
 
 @Entity('analytics_records')
 export class AnalyticsRecord {
@@ -13,10 +14,7 @@ export class AnalyticsRecord {
   userId: string;
 
   @Column('jsonb')
-  dateRange: {
-    start: Date;
-    end: Date;
-  };
+  dateRange: DateRange;
 
   @Column('jsonb')
   platforms: {

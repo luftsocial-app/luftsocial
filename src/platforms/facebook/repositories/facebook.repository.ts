@@ -6,12 +6,17 @@ import { FacebookPage } from '../entity/facebook-page.entity';
 import { FacebookPost } from '../entity/facebook-post.entity';
 import { FacebookPostMetric } from '../entity/facebook-post-metric.entity';
 import { FacebookPageMetric } from '../entity/facebook-page-metric.entity';
+import * as crypto from 'crypto';
+import { AuthState } from '../entity/auth-state.entity';
+import { SocialPlatform } from 'src/enum/social-platform.enum';
 
 @Injectable()
 export class FacebookRepository {
   constructor(
     @InjectRepository(FacebookAccount)
     private readonly accountRepo: Repository<FacebookAccount>,
+    @InjectRepository(AuthState)
+    private readonly authStateRepo: Repository<AuthState>,
     @InjectRepository(FacebookPage)
     private readonly pageRepo: Repository<FacebookPage>,
     @InjectRepository(FacebookPost)
@@ -29,6 +34,20 @@ export class FacebookRepository {
   ): Promise<FacebookAccount> {
     const account = this.accountRepo.create(data);
     return this.accountRepo.save(account);
+  }
+
+  async createAuthState(userId: string): Promise<string> {
+    const state = crypto.randomBytes(32).toString('hex');
+
+    const authState = this.authStateRepo.create({
+      state,
+      userId,
+      platform: SocialPlatform.FACEBOOK,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+    });
+
+    await this.authStateRepo.save(authState);
+    return state;
   }
 
   async updateAccount(

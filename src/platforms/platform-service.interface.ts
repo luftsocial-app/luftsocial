@@ -36,3 +36,11 @@ export interface PlatformService {
     postId: string,
   ): Promise<Record<string, any>>;
 }
+
+export interface SocialAccountDetails {
+  id: string;
+  name: string;
+  type: string;
+  avatarUrl?: string;
+  platformSpecific?: any;
+}

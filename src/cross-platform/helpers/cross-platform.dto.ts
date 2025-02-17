@@ -3,6 +3,7 @@ import {
   IsArray,
   IsDateString,
   IsEnum,
+  IsNotEmpty,
   IsObject,
   IsOptional,
   IsString,
@@ -11,7 +12,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { SocialPlatform } from 'src/enum/social-platform.enum';
-import { ScheduleStatus } from './cross-platform.interface';
+import { DateRange, ScheduleStatus } from './cross-platform.interface';
 import { IsNotPastDate } from 'src/utils/IsNotPastDate';
 
 export class CreateCrossPlatformPostDto {
@@ -95,11 +96,8 @@ export class AnalyticsDto {
   @Type(() => PlatformAnalyticsDto)
   platforms: PlatformAnalyticsDto[];
 
-  @IsDateString()
-  startDate: string;
-
-  @IsDateString()
-  endDate: string;
+  @IsNotEmpty()
+  dateRange: DateRange;
 }
 
 export class PlatformAnalyticsDto {

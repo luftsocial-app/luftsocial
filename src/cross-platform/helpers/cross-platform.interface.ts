@@ -16,12 +16,6 @@ export enum PublishStatus {
   FAILED = 'FAILED',
 }
 
-export interface PublishResult {
-  publishId: string;
-  status: PublishStatus;
-  results: any[];
-}
-
 export interface PlatformAnalytics {
   platform: SocialPlatform;
   accountId: string;
@@ -35,14 +29,14 @@ export interface PlatformMetrics {
   engagement: number;
   impressions: number;
   reach: number;
-  posts: number;
+  posts?: number;
   platformSpecific: any;
 }
 
 export interface PostMetrics {
   engagement: number;
   impressions: number;
-  reach: number;
+  reach?: number;
   reactions?: number;
   comments?: number;
   shares?: number;
@@ -65,4 +59,51 @@ export enum ScheduleStatus {
   PARTIALLY_PUBLISHED = 'PARTIALLY_PUBLISHED',
   FAILED = 'FAILED',
   CANCELLED = 'CANCELLED',
+}
+
+export interface AccountMetrics {
+  followers: number;
+  engagement: number;
+  impressions: number;
+  reach: number;
+  posts?: number;
+  platformSpecific: any;
+  dateRange: DateRange;
+}
+
+export interface DateRange {
+  startDate: string; // ISO format date string
+  endDate: string; // ISO format date string
+}
+
+export interface PublishPlatformResult {
+  platform: SocialPlatform;
+  accountId: string;
+  success: boolean;
+  postId?: string;
+  postedAt?: Date;
+  error?: string;
+}
+
+export interface PlatformPublishResponse {
+  platformPostId: string;
+  postedAt: Date;
+}
+
+export interface PublishParams {
+  userId: string;
+  content: string;
+  mediaUrls?: string[];
+  platforms: {
+    platform: SocialPlatform;
+    accountId: string;
+    platformSpecificParams?: any;
+  }[];
+  scheduleTime?: Date;
+}
+
+export interface PublishResult {
+  publishId: string;
+  status: PublishStatus;
+  results: PublishPlatformResult[];
 }
