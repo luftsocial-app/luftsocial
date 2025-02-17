@@ -12,11 +12,6 @@ import { MessageStatus, MessageType } from '../enums/messaging';
 import { GroupRole, Permission, UserRole } from '../enums/roles';
 
 // Enum for status in MessageDto
-export enum StatusEnum {
-  sent = 'sent',
-  delivered = 'delivered',
-  read = 'read',
-}
 
 export enum MessageTypeEnum {
   text = 'text',
@@ -59,7 +54,7 @@ export class GroupDto extends IBase {
 
   @IsOptional()
   @IsString()
-  TenantId: string;
+  tenantId: string;
 }
 
 export class GroupMemberDto extends IBase {
@@ -88,7 +83,7 @@ export class GroupMemberDto extends IBase {
 
   @IsOptional()
   @IsString()
-  TenantId: string;
+  tenantId: string;
 }
 
 export class CreateMessageRequest {
@@ -124,7 +119,7 @@ export class BaseEntityDto {
   id: string;
 
   @IsUUID()
-  TenantId: string;
+  tenantId: string;
 
   @IsDate()
   createdAt: Date;
@@ -153,7 +148,7 @@ export class UserDto extends BaseEntityDto {
   permissions?: Permission[];
 
   @IsUUID()
-  TenantId: string;
+  tenantId: string;
 
   @IsDate()
   createdAt: Date;

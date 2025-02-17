@@ -26,7 +26,7 @@ export class UsersController {
   @Get('Tenant')
   async getTenantUsers(@CurrentUser() user: any) {
     try {
-      return await this.usersService.getTenantUsers(user.TenantId);
+      return await this.usersService.getTenantUsers(user.tenantId);
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -42,7 +42,7 @@ export class UsersController {
       return await this.usersService.updateUserRole(
         body.userId,
         body.roles,
-        user.TenantId,
+        user.tenantId,
       );
     } catch (error) {
       throw new HttpException(
@@ -63,10 +63,10 @@ export class UsersController {
       if (!clerkId) {
         throw new BadRequestException('ClerkId is required');
       }
-      // currentUser should include the relevant properties (e.g. email, firstName, lastName, TenantId)
+      // currentUser should include the relevant properties (e.g. email, firstName, lastName, tenantId)
       return await this.usersService.syncClerkUser(
         clerkId,
-        currentUser.TenantId,
+        currentUser.tenantId,
         currentUser,
       );
     } catch (error) {
@@ -79,7 +79,7 @@ export class UsersController {
     }
   }
 
-  @Get(':TenantId/:clerkId')
+  @Get(':tenantId/:clerkId')
   async findUser(@Param('clerkId') clerkId: string) {
     try {
       const user = await this.usersService.findUser(clerkId);

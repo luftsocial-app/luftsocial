@@ -11,29 +11,29 @@ import * as config from 'config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 // import { LoggerMiddleware } from '../logger.middleware';
 import { ScheduleModule } from '@nestjs/schedule';
-import { Message } from './entities/message.entity';
 import { TenantMiddleware } from './middleware/tenant.middleware';
 import { UsersModule } from './user-management/users/users.module';
-import { User } from './entities/user.entity';
+import { User } from './entities/users/user.entity';
 import { ClerkAuthGuard } from './guards/clerk-auth.guard';
 import { RolesGuard } from './guards/role-guard';
-import { Role } from './entities/role.entity';
-import { Permissions } from './entities/permissions.entity';
-import { Tenant } from './entities/tenant.entity';
+import { Role } from './entities/roles/role.entity';
+import { Permissions } from './entities/roles/permissions.entity';
+import { Tenant } from './entities/users/tenant.entity';
 import { DatabaseModule } from './database/database.module';
 import { PostsModule } from './post-management/posts/posts.module';
-import { Post } from './entities/post.entity';
-import { Conversation } from './entities/conversation.entity';
-import { ConversationMember } from './entities/conversation-members.entity';
-import { UserRoleChange } from './entities/user-role-change.entity';
-import { Notification } from './entities/notification.entity';
-import { MessageRead } from './entities/message-read.entity';
-import { UserTenant } from './entities/user-tenant.entity';
-import { Team } from './entities/team.entity';
+import { Post } from './entities/posts/post.entity';
+import { Conversation } from './entities/chats/conversation.entity';
+import { ChatParticipants } from './entities/chats/chat-participants.entity';
+import { UserRoleChange } from './entities/roles/user-role-change.entity';
+import { Notification } from './entities/notifications/notification.entity';
+import { MessageRead } from './entities/chats/message-read.entity';
+import { Team } from './entities/users/team.entity';
+import { UserTenant } from './entities/users/user-tenant.entity';
+import { ChatService } from './messaging/chat/chat.service';
+import { MessageModule } from './messaging/message/message.module';
+import { Message } from './entities/chats/message.entity';
 @Module({
   imports: [
-    ScheduleModule.forRoot(),
-    UsersModule,
     ConfigModule.forRoot({
       // ignoreEnvFile: true,
       // ignoreEnvVars: true,
@@ -48,10 +48,10 @@ import { Team } from './entities/team.entity';
         UserRoleChange,
         Permissions,
         Role,
-        Message,
         MessageRead,
         Conversation,
-        ConversationMember,
+        Message,
+        ChatParticipants,
         Notification,
         Post,
         Team,
@@ -67,11 +67,12 @@ import { Team } from './entities/team.entity';
         limit: 5,
       },
     ]),
-
-    HealthModule,
+    ScheduleModule.forRoot(),
     UsersModule,
+    HealthModule,
     DatabaseModule,
     PostsModule,
+    MessageModule,
   ],
   controllers: [AppController],
   providers: [
@@ -88,6 +89,7 @@ import { Team } from './entities/team.entity';
       provide: APP_GUARD,
       useClass: ClerkAuthGuard,
     },
+    ChatService,
   ],
 })
 export class AppModule implements NestModule {

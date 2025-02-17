@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Post } from '../../entities/post.entity';
+import { Post } from '../../entities/posts/post.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TenantService } from '../../database/tenant.service';
@@ -16,7 +16,7 @@ export class PostsService {
     const post = await this.postRepository.findOne({
       where: {
         id,
-        TenantId: this.tenantService.getTenantId(),
+        tenantId: this.tenantService.getTenantId(),
       },
     });
     if (!post) throw new NotFoundException('Post not found');
@@ -25,14 +25,14 @@ export class PostsService {
 
   async find(): Promise<Post[]> {
     return this.postRepository.find({
-      where: { TenantId: this.tenantService.getTenantId() },
+      where: { tenantId: this.tenantService.getTenantId() },
     });
   }
 
   async create(post: Partial<Post>): Promise<Post> {
     const newPost = this.postRepository.create({
       ...post,
-      TenantId: this.tenantService.getTenantId(),
+      tenantId: this.tenantService.getTenantId(),
     });
     return this.postRepository.save(newPost);
   }
@@ -41,7 +41,7 @@ export class PostsService {
     await this.postRepository.update(
       {
         id: postId,
-        TenantId: this.tenantService.getTenantId(),
+        tenantId: this.tenantService.getTenantId(),
       },
       post,
     );
@@ -51,7 +51,7 @@ export class PostsService {
   async delete(postId: string): Promise<void> {
     const result = await this.postRepository.delete({
       id: postId,
-      TenantId: this.tenantService.getTenantId(),
+      tenantId: this.tenantService.getTenantId(),
     });
     if (result.affected === 0) {
       throw new NotFoundException('Post not found');

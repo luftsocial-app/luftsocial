@@ -14,7 +14,7 @@ export interface IUserData {
   email: string;
   clerkId?: string;
   firstName?: string;
-  TenantId: string;
+  tenantId: string;
   lastName?: string;
   role?: UserRole;
   permissions?: Permission[];

@@ -2,15 +2,15 @@ import { Injectable, Scope } from '@nestjs/common';
 
 @Injectable({ scope: Scope.REQUEST })
 export class TenantService {
-  private TenantId: string;
+  private tenantId: string;
 
   setTenantId(id: string) {
-    this.TenantId = id;
+    this.tenantId = id;
   }
 
   getTenantId(): string {
-    console.log({ TenantId: this.TenantId });
+    console.log({ tenantId: this.tenantId });
 
-    return this.TenantId;
+    return this.tenantId;
   }
 }

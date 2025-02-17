@@ -6,8 +6,8 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { User } from './user.entity';
 import { Tenant } from './tenant.entity';
+import { User } from './user.entity';
 
 @Entity({ name: 'tbl_user_tenants' })
 export class UserTenant {

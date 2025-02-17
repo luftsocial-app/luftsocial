@@ -12,8 +12,8 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Tenant } from './tenant.entity';
-import { Role } from './role.entity';
-import { Permission } from '../common/enums/roles';
+import { Role } from '../roles/role.entity';
+import { Permission } from '../../common/enums/roles';
 import { Team } from './team.entity';
 import { UserTenant } from './user-tenant.entity';
 

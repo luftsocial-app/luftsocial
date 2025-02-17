@@ -33,12 +33,12 @@ describe('UsersController', () => {
 
   describe('getTenantUsers', () => {
     it('should return Tenant users', async () => {
-      const mockUser = { TenantId: chance.guid() };
+      const mockUser = { tenantId: chance.guid() };
       const mockUsers = Array.from({ length: 3 }, () => ({
         id: chance.guid(),
         name: chance.name(),
         email: chance.email(),
-        TenantId: mockUser.TenantId,
+        tenantId: mockUser.tenantId,
       }));
 
       mockUsersService.getTenantUsers.mockResolvedValue(mockUsers);
@@ -47,12 +47,12 @@ describe('UsersController', () => {
 
       expect(result).toEqual(mockUsers);
       expect(mockUsersService.getTenantUsers).toHaveBeenCalledWith(
-        mockUser.TenantId,
+        mockUser.tenantId,
       );
     });
 
     it('should handle errors', async () => {
-      const mockUser = { TenantId: chance.guid() };
+      const mockUser = { tenantId: chance.guid() };
       mockUsersService.getTenantUsers.mockRejectedValue(
         new Error('Test error'),
       );
@@ -67,7 +67,7 @@ describe('UsersController', () => {
     it('should sync clerk user', async () => {
       const clerkId = chance.guid();
       const currentUser = {
-        TenantId: chance.guid(),
+        tenantId: chance.guid(),
         email: chance.email(),
         firstName: chance.first(),
         lastName: chance.last(),
@@ -86,7 +86,7 @@ describe('UsersController', () => {
       expect(result).toEqual(mockSyncedUser);
       expect(mockUsersService.syncClerkUser).toHaveBeenCalledWith(
         clerkId,
-        currentUser.TenantId,
+        currentUser.tenantId,
         currentUser,
       );
     });

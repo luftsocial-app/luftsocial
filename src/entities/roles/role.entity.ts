@@ -7,7 +7,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Permissions } from './permissions.entity';
-import { UserRole } from '../common/enums/roles';
+import { UserRole } from '../../common/enums/roles';
 
 @Entity({ name: 'tbl_role' })
 export class Role {

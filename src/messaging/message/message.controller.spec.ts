@@ -3,6 +3,7 @@ import { MessageController } from './message.controller';
 import { MessageService } from './message.service';
 import { HttpStatus } from '@nestjs/common';
 import * as Chance from 'chance';
+import { ChatService } from '../chat/chat.service';
 
 const chance = new Chance();
 
@@ -17,6 +18,7 @@ describe('MessageController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [MessageController],
       providers: [
+        ChatService,
         {
           provide: MessageService,
           useValue: mockMessageService,

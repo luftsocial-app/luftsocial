@@ -7,8 +7,8 @@ export class TenantMiddleware implements NestMiddleware {
   constructor(private tenantService: TenantService) {}
 
   use(req: Request, res: Response, next: NextFunction) {
-    const TenantId = req.headers['x-tenant-id'] as string;
-    this.tenantService.setTenantId(TenantId);
+    const tenantId = req.headers['x-tenant-id'] as string;
+    this.tenantService.setTenantId(tenantId);
     next();
   }
 }

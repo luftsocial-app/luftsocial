@@ -5,7 +5,7 @@ import {
   ManyToOne,
 } from 'typeorm';
 import { Message } from './message.entity';
-import { User } from './user.entity';
+import { User } from '../users/user.entity';
 
 @Entity('tbl_message_read')
 export class MessageRead {

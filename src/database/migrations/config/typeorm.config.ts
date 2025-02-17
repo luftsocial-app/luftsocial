@@ -1,19 +1,19 @@
 import { DataSource } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { config } from 'dotenv';
-import { User } from '../../../entities/user.entity';
-import { Message } from '../../../entities/message.entity';
-import { Role } from '../../../entities/role.entity';
-import { Permissions } from '../../../entities/permissions.entity';
-import { Tenant } from '../../../entities/tenant.entity';
-import { Post } from '../../../entities/post.entity';
-import { ConversationMember } from '../../../entities/conversation-members.entity';
-import { Conversation } from '../../../entities/conversation.entity';
-import { MessageRead } from '../../../entities/message-read.entity';
-import { UserRoleChange } from '../../../entities/user-role-change.entity';
-import { Notification } from '../../../entities/notification.entity';
-import { Team } from '../../../entities/team.entity';
-import { UserTenant } from '../../../entities/user-tenant.entity';
+import { User } from '../../../entities/users/user.entity';
+import { Message } from '../../../entities/chats/message.entity';
+import { Role } from '../../../entities/roles/role.entity';
+import { Permissions } from '../../../entities/roles/permissions.entity';
+import { Tenant } from '../../../entities/users/tenant.entity';
+import { Post } from '../../../entities/posts/post.entity';
+import { ChatParticipants } from '../../../entities/chats/chat-participants.entity';
+import { Conversation } from '../../../entities/chats/conversation.entity';
+import { MessageRead } from '../../../entities/chats/message-read.entity';
+import { UserRoleChange } from '../../../entities/roles/user-role-change.entity';
+import { Notification } from '../../../entities/notifications/notification.entity';
+import { Team } from '../../../entities/users/team.entity';
+import { UserTenant } from '../../../entities/users/user-tenant.entity';
 
 config();
 
@@ -35,7 +35,7 @@ export default new DataSource({
     Message,
     MessageRead,
     Conversation,
-    ConversationMember,
+    ChatParticipants,
     Notification,
     Post,
     Team,
