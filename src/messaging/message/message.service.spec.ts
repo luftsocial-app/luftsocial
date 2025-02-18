@@ -1,8 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { MessageService } from './message.service';
-import { Message } from '../../entities/message.entity';
+import { Message } from '../../entities/chats/message.entity';
 import { HttpException } from '@nestjs/common';
+import { TenantService } from '../../database/tenant.service';
 
 describe('MessageService', () => {
   let service: MessageService;
@@ -15,6 +16,7 @@ describe('MessageService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MessageService,
+        TenantService,
         {
           provide: getRepositoryToken(Message),
           useValue: mockMessageRepository,

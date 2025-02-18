@@ -7,24 +7,28 @@ import {
   DeleteDateColumn,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import {
   MessageType,
   MessageStatus,
   Attachment,
-} from '../common/enums/messaging';
+} from '../../common/enums/messaging';
 import { Conversation } from './conversation.entity';
-import { User } from './user.entity';
-import { Group } from './group.entity';
+import { Group } from '../group.entity';
+import { User } from '../users/user.entity';
 
 @Entity('tbl_messages')
 export class Message {
   @PrimaryGeneratedColumn('uuid', { name: 'id' })
   id: string;
 
-  @ManyToOne(() => Conversation, (conversation) => conversation.messages)
-  @JoinColumn({ name: 'conversation_id' })
-  conversation: Conversation;
+  @Index()
+  @Column({ name: 'tenant_id' })
+  tenantId: string;
+
+  @Column({ name: 'conversation_id' })
+  conversationId: string;
 
   @Column()
   conversation_id?: string

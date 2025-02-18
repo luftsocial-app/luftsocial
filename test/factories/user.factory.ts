@@ -1,5 +1,5 @@
 import { UserRole } from '../../src/common/enums/roles';
-import { User } from '../../src/entities/user.entity';
+import { User } from '../../src/entities/users/user.entity';
 import { DatabaseHelper } from '../helpers/database.helper';
 
 export class UserFactory {

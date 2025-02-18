@@ -33,5 +33,5 @@ export class CreateTenantDto {
   })
   @IsString()
   @IsNotEmpty()
-  TenantId: string;
+  tenantId: string;
 }

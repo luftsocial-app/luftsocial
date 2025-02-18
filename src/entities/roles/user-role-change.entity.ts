@@ -1,5 +1,5 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
-import { UserRole } from '../common/enums/roles';
+import { UserRole } from '../../common/enums/roles';
 
 @Entity({ name: 'tbl_user_role_change' })
 export class UserRoleChange {

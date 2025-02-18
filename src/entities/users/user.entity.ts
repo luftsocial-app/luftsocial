@@ -12,13 +12,13 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { Tenant } from './tenant.entity';
-import { Role } from './role.entity';
-import { Permission } from '../common/enums/roles';
+import { Role } from '../roles/role.entity';
+import { Permission } from '../../common/enums/roles';
 import { Team } from './team.entity';
 import { UserTenant } from './user-tenant.entity';
-import { Message } from './message.entity';
-import { GroupMember } from './groupMembers.entity';
-import { Group } from './group.entity';
+import { Message } from '../../entities/chats/message.entity';
+import { GroupMember } from '../groupMembers.entity';
+import { Group } from '../group.entity';
 
 @Entity({ name: 'tbl_users' })
 export class User{

@@ -17,8 +17,8 @@ export class Post {
   @Column()
   content: string;
 
-  @Column({ name: 'Tenant_id' })
-  TenantId: string; // Add TenantId to the Post entity
+  @Column({ name: 'tenant_id' })
+  tenantId: string; // Add tenantId to the Post entity
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

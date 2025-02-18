@@ -1,6 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, ManyToOne, JoinColumn, Column, DeleteDateColumn } from 'typeorm';
 import { Group } from './group.entity';
-import { User } from './user.entity';  // Assuming you already have a User entity
+import { User } from './users/user.entity';  // Assuming you already have a User entity
 
 @Entity()
 export class GroupMember {

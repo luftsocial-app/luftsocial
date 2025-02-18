@@ -6,7 +6,7 @@ export class BaseEntityDto {
   id: string;
 
   @IsUUID()
-  TenantId: string;
+  tenantId: string;
 
   @IsDate()
   createdAt: Date;

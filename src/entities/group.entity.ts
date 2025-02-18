@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, DeleteDateColumn, JoinColumn } from 'typeorm';
 import { GroupMember } from './groupMembers.entity';
-import { User } from './user.entity';
-import { Message } from './message.entity';
+import { User } from './users/user.entity';
+import { Message } from './chats/message.entity';
 // import { Organization } from './Organization';
 
 @Entity()

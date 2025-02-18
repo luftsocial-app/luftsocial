@@ -17,5 +17,5 @@ db:
     password: postgres
     host: localhost
     port: 5432
-    database: start-template
+    database: luftsocial
     synchronize: true

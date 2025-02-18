@@ -6,13 +6,20 @@ import {
   OneToMany,
   JoinColumn,
 } from 'typeorm';
-import { IConversationSettings } from '../common/interface/message.interface';
+import { IConversationSettings } from '../../common/interface/message.interface';
 import { Message } from './message.entity';
+import { ChatParticipants } from './chat-participants.entity';
 
 @Entity('tbl_conversations')
 export class Conversation {
   @PrimaryGeneratedColumn('uuid', { name: 'id' })
   id: string;
+
+  @Column()
+  senderId: string;
+
+  @Column({ name: 'tenant_id' })
+  tenantId: string;
 
   @Column({ name: 'name', unique: true })
   name: string;
@@ -27,10 +34,14 @@ export class Conversation {
   @Column({ name: 'is_private', type: 'boolean', default: false })
   isPrivate: boolean; // Only invited users can join if true
 
-  @Column({ name: 'participant_ids', type: 'uuid', array: true })
-  participantIds: string[];
+  @OneToMany(
+    () => ChatParticipants,
+    (chatParticipants) => chatParticipants.conversation,
+  )
+  @JoinColumn({ name: 'participant_ids' })
+  participantIds: ChatParticipants[];
 
-  @OneToMany(() => Message, (message) => message.conversation)
+  @OneToMany(() => Message, (message) => message.conversationId)
   @JoinColumn({ name: 'message_id' })
   messages: Message[];
 

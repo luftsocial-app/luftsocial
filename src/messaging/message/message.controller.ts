@@ -1,11 +1,45 @@
-import { Controller, Get, Param, Req, Res, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Req,
+  Res,
+  HttpStatus,
+  Query,
+  UseGuards,
+  Body,
+  Post,
+} from '@nestjs/common';
 import { MessageService } from './message.service';
 
 import { Request, Response } from 'express';
+import { ChatGuard } from '../../guards/chat.guard';
+import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
+import { MessageQueryDto } from '../dtos/conversation.dto';
 
 @Controller('messages')
 export class MessageController {
   constructor(private readonly messageService: MessageService) {}
+
+  @UseGuards(ChatGuard)
+  @Get(':conversationId/messages')
+  async getMessages(
+    @Param('conversationId') conversationId: string,
+    @Query() query: MessageQueryDto,
+  ) {
+    return this.messageService.getMessages(conversationId, query);
+  }
+
+  @UseGuards(ChatGuard)
+  @Post('conversations/:conversationId/messages')
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ rate: { limit: 5, ttl: 10 } }) // 5 requests per 30 seconds
+  async createMessage(
+    @Param('conversationId') conversationId: string,
+    @Body('content') content: string,
+  ) {
+    return this.messageService.createMessage(conversationId, content);
+  }
 
   @Get('history/:userId')
   async getMessageHistory(

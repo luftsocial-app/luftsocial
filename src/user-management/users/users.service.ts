@@ -1,8 +1,8 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '../../entities/user.entity';
-import { Role } from '../../entities/role.entity';
+import { User } from '../../entities/users/user.entity';
+import { Role } from '../../entities/roles/role.entity';
 import { TenantService } from '../../database/tenant.service';
 import { clerkClient, User as clerkUser } from '@clerk/express';
 import { UserRole } from '../../common/enums/roles';
@@ -35,7 +35,7 @@ export class UsersService {
 
   async syncClerkUser(
     clerkId: string,
-    TenantId: string,
+    tenantId: string,
     userData: Partial<User>,
   ) {
     let user = await this.findUser(clerkId);
@@ -51,7 +51,7 @@ export class UsersService {
         email: userData.email || '',
         firstName: userData.firstName || '',
         lastName: userData.lastName || '',
-        activeTenantId: TenantId,
+        activeTenantId: tenantId,
         roles: [defaultRole],
       });
     } else {
@@ -66,10 +66,10 @@ export class UsersService {
     return this.userRepo.save(user);
   }
 
-  async getTenantUsers(TenantId: string): Promise<User[]> {
+  async getTenantUsers(tenantId: string): Promise<User[]> {
     try {
       return await this.userRepo.find({
-        where: { activeTenantId: TenantId },
+        where: { activeTenantId: tenantId },
         order: {
           firstName: 'ASC',
           lastName: 'ASC',
@@ -85,11 +85,11 @@ export class UsersService {
   async updateUserRole(
     userId: string,
     roles: UserRole[],
-    TenantId: string,
+    tenantId: string,
   ): Promise<User> {
     try {
       const user = await this.userRepo.findOne({
-        where: { id: userId, activeTenantId: TenantId },
+        where: { id: userId, activeTenantId: tenantId },
         relations: ['roles'],
       });
       if (!user) {

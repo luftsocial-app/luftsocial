@@ -27,5 +27,5 @@ export class CreatePostDto {
   })
   @IsString()
   @IsNotEmpty()
-  TenantId: string;
+  tenantId: string;
 }
