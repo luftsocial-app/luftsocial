@@ -27,10 +27,9 @@ export class LinkedInController {
   @Get('callback')
   async handleCallback(
     @Query('code') code: string,
-    @Query('state') state: string,
     @CurrentUser() userId: string,
   ) {
-    return this.linkedInService.handleCallback(code, state, userId);
+    return this.linkedInService.handleCallback(code, userId);
   }
 
   @Post(':accountId/posts')

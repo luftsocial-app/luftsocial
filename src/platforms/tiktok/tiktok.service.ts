@@ -774,4 +774,23 @@ export class TikTokService implements PlatformService {
     });
     return Buffer.from(response.data, 'binary');
   }
+
+  async revokeAccess(accountId: string): Promise<void> {
+    const account = await this.tiktokRepo.getById(accountId);
+    if (!account) throw new NotFoundException('Account not found');
+
+    try {
+      await axios.post(`${this.baseUrl}/oauth/revoke/`, null, {
+        params: {
+          client_key: this.configService.get('TIKTOK_CLIENT_KEY'),
+          client_secret: this.configService.get('TIKTOK_CLIENT_SECRET'),
+          token: account.socialAccount.accessToken,
+        },
+      });
+
+      await this.tiktokRepo.deleteAccount(accountId);
+    } catch (error) {
+      throw new TikTokApiException('Failed to revoke TikTok access', error);
+    }
+  }
 }

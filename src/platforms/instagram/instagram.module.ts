@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { InstagramMetricsCollectionJob } from './jobs/metrics-collection.job';
 import { InstagramTokenRefreshJob } from './jobs/token-refresh.job';
 import { InstagramController } from './instagram.controller';
-import { InstagramRepository } from './repositories/Instagram.repository';
+import { InstagramRepository } from './repositories/instagram.repository';
 import { InstagramService } from './instagram.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -16,7 +16,6 @@ import { InstagramMedia } from './entities/instagram-media.entity';
 import { RateLimitInterceptor } from './interceptors/rate-limit.interceptor';
 
 @Module({
-  controllers: [InstagramController],
   imports: [
     ConfigModule,
     TypeOrmModule.forFeature([
@@ -28,14 +27,16 @@ import { RateLimitInterceptor } from './interceptors/rate-limit.interceptor';
       SocialAccount,
     ]),
   ],
+  controllers: [InstagramController],
   providers: [
-    // Repository first as it's a dependency for other services
     {
       provide: InstagramRepository,
       useClass: InstagramRepository,
     },
-    // Config service and Instagram config
-    ConfigService,
+    InstagramService,
+    InstagramMetricsCollectionJob,
+    InstagramTokenRefreshJob,
+    RateLimitInterceptor,
     {
       provide: InstagramConfig,
       useFactory: (configService: ConfigService) => ({
@@ -49,54 +50,6 @@ import { RateLimitInterceptor } from './interceptors/rate-limit.interceptor';
         ),
       }),
       inject: [ConfigService],
-    },
-    // Main service
-    {
-      provide: InstagramService,
-      useFactory: (
-        configService: ConfigService,
-        instagramRepo: InstagramRepository,
-        instagramConfig: InstagramConfig,
-      ) => {
-        return new InstagramService(
-          configService,
-          instagramRepo,
-          instagramConfig,
-        );
-      },
-      inject: [ConfigService, InstagramRepository, InstagramConfig],
-    },
-    // Jobs
-    {
-      provide: InstagramMetricsCollectionJob,
-      useFactory: (
-        instagramRepo: InstagramRepository,
-        instagramService: InstagramService,
-      ) => {
-        return new InstagramMetricsCollectionJob(
-          instagramRepo,
-          instagramService,
-        );
-      },
-      inject: [InstagramRepository, InstagramService],
-    },
-    {
-      provide: InstagramTokenRefreshJob,
-      useFactory: (
-        instagramRepo: InstagramRepository,
-        instagramService: InstagramService,
-      ) => {
-        return new InstagramTokenRefreshJob(instagramRepo, instagramService);
-      },
-      inject: [InstagramRepository, InstagramService],
-    },
-    // Rate limit interceptor
-    {
-      provide: RateLimitInterceptor,
-      useFactory: (instagramRepo: InstagramRepository) => {
-        return new RateLimitInterceptor(instagramRepo);
-      },
-      inject: [InstagramRepository],
     },
   ],
   exports: [InstagramService, InstagramRepository, RateLimitInterceptor],

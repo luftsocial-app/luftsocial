@@ -4,8 +4,13 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToOne,
 } from 'typeorm';
 import { SocialPlatform } from 'src/enum/social-platform.enum';
+import { TikTokAccount } from '../tiktok/entities/tiktok-account.entity';
+import { FacebookAccount } from '../facebook/entity/facebook-account.entity';
+import { InstagramAccount } from '../instagram/entities/instagram-account.entity';
+import { LinkedInAccount } from '../linkedin/entities/linkedin-account.entity';
 
 @Entity('social_accounts')
 export class SocialAccount {
@@ -35,4 +40,24 @@ export class SocialAccount {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @OneToOne(() => FacebookAccount, (account) => account.socialAccount, {
+    onDelete: 'CASCADE',
+  })
+  facebookAccount: FacebookAccount;
+
+  @OneToOne(() => InstagramAccount, (account) => account.socialAccount, {
+    onDelete: 'CASCADE',
+  })
+  instagramAccount: InstagramAccount;
+
+  @OneToOne(() => LinkedInAccount, (account) => account.socialAccount, {
+    onDelete: 'CASCADE',
+  })
+  linkedInAccount: LinkedInAccount;
+
+  @OneToOne(() => TikTokAccount, (account) => account.socialAccount, {
+    onDelete: 'CASCADE',
+  })
+  tiktokAccount: TikTokAccount;
 }

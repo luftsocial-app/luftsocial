@@ -42,9 +42,13 @@ export class CrossPlatformService {
   ): Promise<TokenResponse> {
     switch (platform) {
       case SocialPlatform.FACEBOOK:
-        return this.facebookService.handleCallback(code, state, userId);
+        return this.facebookService.handleCallback(code);
+      case SocialPlatform.INSTAGRAM:
+        return this.instagramService.handleCallback(code);
       case SocialPlatform.LINKEDIN:
-        return this.linkedinService.handleCallback(code, state, userId);
+        return this.linkedinService.handleCallback(code, userId);
+      case SocialPlatform.TIKTOK:
+        return this.tiktokService.handleCallback(code);
       default:
         throw new BadRequestException(`Unsupported platform: ${platform}`);
     }
@@ -80,7 +84,7 @@ export class CrossPlatformService {
           accounts: instagramAccounts.map((account) => ({
             id: account.id,
             name: account.name,
-            type: 'page',
+            type: 'individual',
           })),
         });
       }
@@ -99,7 +103,7 @@ export class CrossPlatformService {
           accounts: linkedInAccounts.map((account) => ({
             id: account.id,
             name: account.name,
-            type: 'page',
+            type: account.type,
           })),
         });
       }
@@ -127,6 +131,29 @@ export class CrossPlatformService {
     }
 
     return connectedPlatforms;
+  }
+
+  async disconnectPlatform(
+    userId: string,
+    platform: SocialPlatform,
+    accountId: string,
+  ): Promise<void> {
+    switch (platform) {
+      case SocialPlatform.FACEBOOK:
+        await this.facebookService.revokeAccess(accountId);
+        break;
+      case SocialPlatform.INSTAGRAM:
+        await this.instagramService.revokeAccess(accountId);
+        break;
+      case SocialPlatform.LINKEDIN:
+        await this.linkedinService.revokeAccess(accountId);
+        break;
+      case SocialPlatform.TIKTOK:
+        await this.tiktokService.revokeAccess(accountId);
+        break;
+      default:
+        throw new BadRequestException(`Unsupported platform: ${platform}`);
+    }
   }
 
   async refreshTokens(

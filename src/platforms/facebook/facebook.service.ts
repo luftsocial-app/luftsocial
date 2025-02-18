@@ -5,7 +5,6 @@ import {
   Injectable,
   Logger,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
@@ -135,11 +134,7 @@ export class FacebookService implements PlatformService {
     }
   }
 
-  async handleCallback(
-    code: string,
-    state: string,
-    userId: string,
-  ): Promise<any> {
+  async handleCallback(code: string): Promise<any> {
     const token = await this.exchangeCodeForToken(code);
     const longLivedToken = await this.getLongLivedToken(token.access_token);
     const userProfile = await this.getUserProfile(longLivedToken.access_token);
@@ -659,6 +654,29 @@ export class FacebookService implements PlatformService {
       throw new HttpException(
         'Failed to update Facebook page',
         HttpStatus.BAD_REQUEST,
+        error,
+      );
+    }
+  }
+
+  async revokeAccess(accountId: string): Promise<void> {
+    const account = await this.facebookRepo.getAccountById(accountId);
+    if (!account) throw new NotFoundException('Account not found');
+
+    try {
+      await axios.post(`${this.baseUrl}/oauth/revoke/`, null, {
+        params: {
+          client_key: this.configService.get('FACEBOOK_CLIENT_KEY'),
+          client_secret: this.configService.get('FACEBOOK_CLIENT_SECRET'),
+          token: account.socialAccount.accessToken,
+        },
+      });
+
+      await this.facebookRepo.deleteAccount(accountId);
+    } catch (error) {
+      throw new FacebookApiException(
+        500,
+        'Failed to revoke Facebook access',
         error,
       );
     }

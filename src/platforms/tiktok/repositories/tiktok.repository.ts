@@ -286,4 +286,30 @@ export class TikTokRepository {
       where: { id: sessionId },
     });
   }
+
+  async deleteAccount(accountId: string): Promise<void> {
+    const account = await this.accountRepo.findOne({
+      where: { id: accountId },
+      relations: ['socialAccount'],
+    });
+
+    if (!account) {
+      throw new NotFoundException('Account not found');
+    }
+
+    await this.entityManager.transaction(async (transactionalEntityManager) => {
+      // Delete associated videos first
+      await transactionalEntityManager.delete(TikTokVideo, {
+        account: { id: accountId },
+      });
+
+      // Delete the social account (this will cascade to the TikTok account)
+      if (account.socialAccount) {
+        await transactionalEntityManager.remove(account.socialAccount);
+      }
+
+      // Delete the TikTok account
+      await transactionalEntityManager.remove(account);
+    });
+  }
 }

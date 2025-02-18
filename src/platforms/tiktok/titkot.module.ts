@@ -3,7 +3,7 @@ import { MulterModule } from '@nestjs/platform-express';
 import { TikTokMetricsCollectionJob } from './jobs/metrics-collection.job';
 import { TikTokTokenRefreshJob } from './jobs/token-refresh.job';
 import { TikTokController } from './tiktok.controller';
-import { TikTokRepository } from './repositories/TikTok.repository';
+import { TikTokRepository } from './repositories/tiktok.repository';
 import { TikTokService } from './tiktok.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';

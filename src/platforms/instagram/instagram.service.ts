@@ -35,8 +35,8 @@ export class InstagramService implements PlatformService {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly instagramRepo: InstagramRepository,
     private readonly instagramConfig: InstagramConfig,
+    private readonly instagramRepo: InstagramRepository,
   ) {}
 
   async authorize(userId: string): Promise<string> {
@@ -586,6 +586,28 @@ export class InstagramService implements PlatformService {
     } catch (error) {
       throw new InstagramApiException(
         'Failed to create Instagram story',
+        error,
+      );
+    }
+  }
+
+  async revokeAccess(accountId: string): Promise<void> {
+    const account = await this.instagramRepo.getAccountByUserId(accountId);
+    if (!account) throw new NotFoundException('Account not found');
+
+    try {
+      await axios.post(`${this.baseUrl}/oauth/revoke/`, null, {
+        params: {
+          client_key: this.configService.get('INSTAGRAM_CLIENT_KEY'),
+          client_secret: this.configService.get('INSTAGRAM_CLIENT_SECRET'),
+          token: account.socialAccount.accessToken,
+        },
+      });
+
+      await this.instagramRepo.deleteAccount(accountId);
+    } catch (error) {
+      throw new InstagramApiException(
+        'Failed to revoke Instagram access',
         error,
       );
     }

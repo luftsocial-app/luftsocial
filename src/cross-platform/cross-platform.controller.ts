@@ -63,6 +63,19 @@ export class CrossPlatformController {
     return this.crossPlatformService.getConnectedPlatforms(userId);
   }
 
+  @Delete('platforms/:platform/:accountId')
+  async disconnectPlatform(
+    @Param('platform') platform: SocialPlatform,
+    @Param('accountId') accountId: string,
+    @CurrentUser() userId: string,
+  ) {
+    return this.crossPlatformService.disconnectPlatform(
+      userId,
+      platform,
+      accountId,
+    );
+  }
+
   // Content Publishing Endpoints
   @Post('publish')
   async publishContent(

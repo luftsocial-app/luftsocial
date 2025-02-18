@@ -61,7 +61,6 @@ export class LinkedInService implements PlatformService {
 
   async handleCallback(
     code: string,
-    state: string,
     userId: string,
   ): Promise<LinkedInTokenResponse> {
     try {
@@ -538,6 +537,31 @@ export class LinkedInService implements PlatformService {
         HttpStatus.BAD_REQUEST,
         error,
       );
+    }
+  }
+
+  async revokeAccess(accountId: string): Promise<void> {
+    const account = await this.linkedInRepo.getById(accountId);
+    if (!account) throw new NotFoundException('Account not found');
+
+    try {
+      await axios.post(
+        'https://www.linkedin.com/oauth/v2/revoke',
+        new URLSearchParams({
+          client_id: this.configService.get('LINKEDIN_CLIENT_ID'),
+          client_secret: this.configService.get('LINKEDIN_CLIENT_SECRET'),
+          token: account.socialAccount.accessToken,
+        }),
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        },
+      );
+
+      await this.linkedInRepo.deleteAccount(accountId);
+    } catch (error) {
+      throw new LinkedInApiException('Failed to revoke LinkedIn access', error);
     }
   }
 }

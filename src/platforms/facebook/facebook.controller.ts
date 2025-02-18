@@ -36,12 +36,8 @@ export class FacebookController {
   }
 
   @Get('callback')
-  async handleCallback(
-    @Query('code') code: string,
-    @Query('state') state: string,
-    @CurrentUser() userId: string,
-  ) {
-    return this.facebookService.handleCallback(code, state, userId);
+  async handleCallback(@Query('code') code: string) {
+    return this.facebookService.handleCallback(code);
   }
   //    ======================================================================
   //    ================ FACEBOOK POSTS ======================================

@@ -326,4 +326,35 @@ export class FacebookRepository {
       await transactionalEntityManager.remove(post);
     });
   }
+
+  async deleteAccount(accountId: string): Promise<void> {
+    const account = await this.accountRepo.findOne({
+      where: { id: accountId },
+      relations: ['socialAccount'],
+    });
+
+    if (!account) {
+      throw new NotFoundException('Account not found');
+    }
+
+    await this.entityManager.transaction(async (transactionalEntityManager) => {
+      // Delete associated pages first
+      await transactionalEntityManager.delete(FacebookPage, {
+        account: { id: accountId },
+      });
+
+      // Delete associated posts first
+      await transactionalEntityManager.delete(FacebookPost, {
+        account: { id: accountId },
+      });
+
+      // Delete the social account (this will cascade to the TikTok account)
+      if (account.socialAccount) {
+        await transactionalEntityManager.remove(account.socialAccount);
+      }
+
+      // Delete the TikTok account
+      await transactionalEntityManager.remove(account);
+    });
+  }
 }
