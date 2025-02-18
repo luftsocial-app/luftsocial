@@ -27,15 +27,15 @@ export class TikTokMetricsCollectionJob {
           // Collect metrics for each video
           for (const video of videos) {
             try {
-              const metrics = await this.tiktokService.getPostMetrics(
-                account.id,
-                video.id,
-              );
+              // const metrics = await this.tiktokService.getPostMetrics(
+              //   account.id,
+              //   video.id,
+              // );
 
-              await this.tiktokRepo.createVideoMetrics({
-                videoId: video.id,
-                metrics,
-              });
+              // await this.tiktokRepo.createVideoMetrics({
+              //   videoId: video.id,
+              //   metrics,
+              // });
 
               this.logger.debug(`Collected metrics for video ${video.id}`);
             } catch (error) {

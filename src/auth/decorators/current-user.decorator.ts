@@ -1,5 +1,5 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { ClerkUser } from '../interfaces/clerk-user.interface';
+import { ClerkUser } from '../helpers/clerk-user.interface';
 
 export const CurrentUser = createParamDecorator(
   (data: keyof ClerkUser | undefined, context: ExecutionContext) => {
