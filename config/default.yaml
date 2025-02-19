@@ -13,9 +13,9 @@ port: 3000
 db:
   options:
     type: postgres
-    username: postgres
-    password: postgres
+    username: root
+    password: admin
     host: localhost
     port: 5432
-    database: luftsocial
-    synchronize: true
+    database: postgres
+    synchronize: false

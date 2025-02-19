@@ -1,10 +1,11 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Group } from '../entities/group.entity';
-import { GroupDto, GroupMemberDto } from '../dto/base.dto';
-import { GroupMember } from '../entities/groupMembers.entity';
-import { User } from '../entities/users/user.entity';
+import { Group } from '../../../entities/group.entity';
+import { GroupDto, GroupMemberDto } from '../../../dto/base.dto';
+import { GroupMember } from '../../../entities/groupMembers.entity';
+import { User } from '../../../entities/users/user.entity';
+import { OperationStatus } from '../../../common/enums/operation-status.enum'
 
 @Injectable()
 export class GroupMemberService {
@@ -22,7 +23,7 @@ export class GroupMemberService {
             if (!group) {
                 return {
                     data: null,
-                    status: 2,
+                    status: OperationStatus.NotFound,
                     message: 'Group not found.'
                 }
             }
@@ -32,7 +33,7 @@ export class GroupMemberService {
             if (!admin) {
                 return {
                     data: null,
-                    status: 3,
+                    status: OperationStatus.Unauthorized,
                     message: 'Only admins can add members.'
                 }
             }
@@ -42,7 +43,7 @@ export class GroupMemberService {
             if (existingMember) {
                 return {
                     data: null,
-                    status: 4,
+                    status: OperationStatus.AlreadyExists,
                     message: 'User is already a member.'
                 }
             }
@@ -52,13 +53,13 @@ export class GroupMemberService {
             if (savedMember) {
                 return {
                     data: savedMember,
-                    status: 1,
+                    status: OperationStatus.Success,
                     message: 'User added to the group successfully.'
                 }
             }
             return {
                 data: null,
-                status: 0,
+                status: OperationStatus.Failed,
                 message: 'Failed to add user to the group.'
             }
 
@@ -74,7 +75,7 @@ export class GroupMemberService {
             });
             if (!member) {
                 return {
-                    status: 2,
+                    status: OperationStatus.NotAMember,
                     message: 'User is not a member of the group.'
                 }
             }
@@ -83,19 +84,19 @@ export class GroupMemberService {
             });
             if (!admin) {
                 return {
-                    status: 3,
+                    status: OperationStatus.Unauthorized,
                     message: 'Only admins can remove members.'
                 }
             }
             const deleteMember = await this.groupMemberRepository.update(member.id, { status: false });
             if (deleteMember) {
                 return {
-                    status: 1,
+                    status: OperationStatus.Success,
                     message: 'User removed from the group successfully.'
                 }
             }
             return {
-                status: 0,
+                status: OperationStatus.Failed,
                 message: 'Failed to remove user from the group. Please try again.'
             }
         } catch (err) {

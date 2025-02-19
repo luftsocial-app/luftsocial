@@ -1,10 +1,11 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Group } from '../entities/group.entity';
-import { GroupDto, GroupMemberDto } from '../dto/base.dto';
-import { GroupMember } from '../entities/groupMembers.entity';
-import { User } from '../entities/users/user.entity';
+import { Group } from '../../../entities/group.entity';
+import { GroupDto, GroupMemberDto } from '../../../dto/base.dto';
+import { GroupMember } from '../../../entities/groupMembers.entity';
+import { User } from '../../../entities/users/user.entity';
+import { OperationStatus } from 'src/common/enums/operation-status.enum';
 
 @Injectable()
 export class GroupService {
@@ -30,11 +31,11 @@ export class GroupService {
             if (data) {
                 return {
                     data,
-                    status: 1
+                    status: OperationStatus.Success
                 };
             }
             return {
-                status: 0,
+                status: OperationStatus.Failed,
                 data: null,
             };
         } catch (err) {
@@ -48,7 +49,7 @@ export class GroupService {
             const group = await this.groupRepository.findOne({ where: { id: groupId } });
             if (!group) {
                 return {
-                    status: 2,
+                    status: OperationStatus.NotFound,
                     data: null
                 }
             }
@@ -62,19 +63,19 @@ export class GroupService {
             });
             if (existingMember) {
                 return {
-                    status: 3,
+                    status: OperationStatus.AlreadyExists,
                     data: null
                 }
             }
             const joinGroup = await this.groupMemberRepository.save(joinGroupDto);
             if (joinGroup) {
                 return {
-                    status: 1,
+                    status: OperationStatus.Success,
                     data: joinGroup
                 }
             } else if (!joinGroup) {
                 return {
-                    status: 0,
+                    status: OperationStatus.Failed,
                     data: null
                 }
             }

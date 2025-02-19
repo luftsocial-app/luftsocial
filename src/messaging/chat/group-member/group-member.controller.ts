@@ -1,6 +1,6 @@
 import { Controller, Post, Body, UseGuards, Res, HttpStatus, HttpException, Req, Delete, Param } from '@nestjs/common';
 import { GroupMemberService } from './group-member.service';
-import { GroupDto, GroupMemberDto } from '../dto/base.dto';
+import { GroupDto, GroupMemberDto } from '../../../dto/base.dto';
 // import { AuthMiddleware } from '../middleware/AuthMiddleware';
 import { Response } from 'express';
 @Controller('group-member')

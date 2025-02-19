@@ -1,10 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { GroupMemberService } from './group-member.service';
 import { Repository } from 'typeorm';
-import { Group } from '../entities/group.entity';
-import { GroupMember } from '../entities/groupMembers.entity';
+import { Group } from '../../../entities/group.entity';
+import { GroupMember } from '../../../entities/groupMembers.entity';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { GroupMemberDto } from '../dto/base.dto';
+import { GroupMemberDto } from '../../../dto/base.dto';
 
 const mockGroupRepository = {
   findOne: jest.fn(),

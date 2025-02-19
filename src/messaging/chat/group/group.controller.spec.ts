@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { GroupController } from './group.controller';
 import { GroupService } from './group.service';
-import { GroupDto, GroupMemberDto } from '../dto/base.dto';
+import { GroupDto, GroupMemberDto } from '../../../dto/base.dto';
 import { Response } from 'express';
 import { HttpStatus } from '@nestjs/common';
 
