@@ -1,0 +1,7 @@
+# All files are owned by luftsocial
+* @luftsocial
+
+# Specific folders or files can have different owners
+/docs/ @luftsocial
+/scripts/ @luftsocial
+README.md @luftsocial
