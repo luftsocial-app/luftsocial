@@ -30,18 +30,6 @@ import { ClerkAuthGuard } from 'src/guards/clerk-auth.guard';
 export class FacebookController {
   constructor(private readonly facebookService: FacebookService) {}
 
-  @Get('auth')
-  async getAuthUrl(@CurrentUser() userId: string) {
-    return { url: await this.facebookService.authorize(userId) };
-  }
-
-  @Get('callback')
-  async handleCallback(@Query('code') code: string) {
-    return this.facebookService.handleCallback(code);
-  }
-  //    ======================================================================
-  //    ================ FACEBOOK POSTS ======================================
-
   @Post(':accountId/posts')
   async createPost(
     @Param('accountId') accountId: string,
@@ -49,31 +37,6 @@ export class FacebookController {
   ) {
     return this.facebookService.post(accountId, body.content, body.mediaUrls);
   }
-
-  @Get(':accountId/posts/:postId/comments')
-  async getComments(
-    @Param('accountId') accountId: string,
-    @Param('postId') postId: string,
-    @Query('pageToken') pageToken?: string,
-  ) {
-    return this.facebookService.getComments(accountId, postId, pageToken);
-  }
-
-  @Put('posts/:postId')
-  async updatePost(
-    @Param('postId') postId: string,
-    @Body() updateDto: UpdatePostDto,
-  ): Promise<FacebookPost> {
-    return this.facebookService.editPost(postId, updateDto);
-  }
-
-  @Delete('posts/:postId')
-  async deletePost(@Param('postId') postId: string): Promise<void> {
-    return this.facebookService.deletePost(postId);
-  }
-
-  //    ======================================================================
-  //    ================ FACEBOOK PAGES ======================================
 
   @Post('pages/:pageId/posts')
   async createPostForPage(
@@ -98,6 +61,25 @@ export class FacebookController {
   ): Promise<FacebookPost> {
     scheduleDto.pageId = pageId;
     return this.facebookService.schedulePagePost(scheduleDto);
+  }
+
+  @Get(':accountId/posts/:postId/comments')
+  async getComments(
+    @Param('accountId') accountId: string,
+    @Param('postId') postId: string,
+    @Query('pageToken') pageToken?: string,
+  ) {
+    return this.facebookService.getComments(accountId, postId, pageToken);
+  }
+
+  @Get('auth')
+  async getAuthUrl(@CurrentUser() userId: string) {
+    return { url: await this.facebookService.authorize(userId) };
+  }
+
+  @Get('callback')
+  async handleCallback(@Query('code') code: string) {
+    return this.facebookService.handleCallback(code);
   }
 
   @Get('pages')
@@ -130,11 +112,24 @@ export class FacebookController {
     return this.facebookService.getPostMetrics(accountId, postId);
   }
 
+  @Put('posts/:postId')
+  async updatePost(
+    @Param('postId') postId: string,
+    @Body() updateDto: UpdatePostDto,
+  ): Promise<FacebookPost> {
+    return this.facebookService.editPost(postId, updateDto);
+  }
+
   @Put('pages/:pageId')
   async updatePage(
     @Param('pageId') pageId: string,
     @Body() updateDto: UpdatePageDto,
   ): Promise<FacebookPage> {
     return this.facebookService.editPage(pageId, updateDto);
+  }
+
+  @Delete('posts/:postId')
+  async deletePost(@Param('postId') postId: string): Promise<void> {
+    return this.facebookService.deletePost(postId);
   }
 }

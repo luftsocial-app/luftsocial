@@ -20,16 +20,6 @@ import { FileInterceptor } from '@nestjs/platform-express/multer';
 export class TikTokController {
   constructor(private readonly tiktokService: TikTokService) {}
 
-  @Get('auth')
-  async getAuthUrl(@CurrentUser() userId: string) {
-    return { url: await this.tiktokService.authorize(userId) };
-  }
-
-  @Get('callback')
-  async handleCallback(@Query('code') code: string) {
-    return this.tiktokService.handleCallback(code);
-  }
-
   // For URL-based uploads
   @Post(':accountId/videos/url')
   async uploadVideoFromUrl(
@@ -57,6 +47,16 @@ export class TikTokController {
       videoBuffer,
       createVideoDto,
     );
+  }
+
+  @Get('auth')
+  async getAuthUrl(@CurrentUser() userId: string) {
+    return { url: await this.tiktokService.authorize(userId) };
+  }
+
+  @Get('callback')
+  async handleCallback(@Query('code') code: string) {
+    return this.tiktokService.handleCallback(code);
   }
 
   @Get(':accountId/videos/:videoId/comments')

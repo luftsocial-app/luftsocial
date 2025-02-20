@@ -18,6 +18,18 @@ import { CreateLinkedInPostDto } from './helpers/create-post.dto';
 export class LinkedInController {
   constructor(private readonly linkedInService: LinkedInService) {}
 
+  @Post(':accountId/posts')
+  async createPost(
+    @Param('accountId') accountId: string,
+    @Body() createPostDto: CreateLinkedInPostDto,
+  ) {
+    return this.linkedInService.post(
+      accountId,
+      createPostDto.content,
+      createPostDto.mediaUrls,
+    );
+  }
+
   @Get('auth')
   async getAuthUrl(@CurrentUser() userId: string) {
     const url = await this.linkedInService.authorize(userId);
@@ -30,18 +42,6 @@ export class LinkedInController {
     @CurrentUser() userId: string,
   ) {
     return this.linkedInService.handleCallback(code, userId);
-  }
-
-  @Post(':accountId/posts')
-  async createPost(
-    @Param('accountId') accountId: string,
-    @Body() createPostDto: CreateLinkedInPostDto,
-  ) {
-    return this.linkedInService.post(
-      accountId,
-      createPostDto.content,
-      createPostDto.mediaUrls,
-    );
   }
 
   @Get(':accountId/posts/:postId/comments')

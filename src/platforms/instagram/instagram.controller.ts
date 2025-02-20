@@ -19,16 +19,6 @@ import { CreatePostDto, CreateStoryDto } from './helpers/create-content.dto';
 export class InstagramController {
   constructor(private readonly instagramService: InstagramService) {}
 
-  @Get('auth')
-  async getAuthUrl(@CurrentUser() userId: string) {
-    return { url: await this.instagramService.authorize(userId) };
-  }
-
-  @Get('callback')
-  async handleCallback(@Query('code') code: string) {
-    return this.instagramService.handleCallback(code);
-  }
-
   @Post(':accountId/media')
   async createPost(
     @Param('accountId') accountId: string,
@@ -51,6 +41,16 @@ export class InstagramController {
       createStoryDto.mediaUrl,
       createStoryDto.stickers,
     );
+  }
+
+  @Get('auth')
+  async getAuthUrl(@CurrentUser() userId: string) {
+    return { url: await this.instagramService.authorize(userId) };
+  }
+
+  @Get('callback')
+  async handleCallback(@Query('code') code: string) {
+    return this.instagramService.handleCallback(code);
   }
 
   @Get(':accountId/media/:mediaId/comments')
