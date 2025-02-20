@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { LINKEDIN_SCOPES } from 'src/enum/scopes.enum';
 
 @Injectable()
 export class LinkedInConfig {
@@ -17,10 +18,10 @@ export class LinkedInConfig {
     this.redirectUri = this.configService.get<string>('LINKEDIN_REDIRECT_URI');
     this.apiVersion = 'v2';
     this.scopes = [
-      'w_member_social',
-      'r_organization_social',
-      'r_organization_administration',
-      'w_organization_social',
+      LINKEDIN_SCOPES.W_MEMBER_SOCIAL,
+      LINKEDIN_SCOPES.R_ORGANIZATION_SOCIAL,
+      LINKEDIN_SCOPES.R_ORGANIZATION_ADMINSTRATION,
+      LINKEDIN_SCOPES.W_ORGANIZATION_SOCIAL,
     ];
   }
 

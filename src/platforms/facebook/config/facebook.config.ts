@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { FACEBOOK_SCOPES } from 'src/enum/scopes.enum';
 import { PlatformConfig } from 'src/platforms/platform-config.interface';
 
 @Injectable()
@@ -18,11 +19,11 @@ export class FacebookConfig implements PlatformConfig {
     this.redirectUri = this.configService.get<string>('FACEBOOK_REDIRECT_URI');
     this.apiVersion = 'v18.0';
     this.scopes = [
-      'pages_show_list',
-      'pages_read_engagement',
-      'pages_manage_posts',
-      'pages_manage_metadata',
-      'pages_read_user_content',
+      FACEBOOK_SCOPES.PAGES_SHOW_LIST,
+      FACEBOOK_SCOPES.PAGES_READ_ENGAGEMENT,
+      FACEBOOK_SCOPES.PAGES_MANAGE_POSTS,
+      FACEBOOK_SCOPES.PAGES_MANAGE_METADATA,
+      FACEBOOK_SCOPES.PAGES_READ_USER_CONTENT,
     ];
   }
 }

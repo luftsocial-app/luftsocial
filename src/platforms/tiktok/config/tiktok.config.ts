@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { TIKTOK_SCOPES } from 'src/enum/scopes.enum';
 
 @Injectable()
 export class TikTokConfig {
@@ -14,12 +15,12 @@ export class TikTokConfig {
     this.clientSecret = this.configService.get('TIKTOK_CLIENT_SECRET');
     this.redirectUri = this.configService.get('TIKTOK_REDIRECT_URI');
     this.scopes = [
-      'user.info.basic', // For reading user profile info
-      'user.info.profile', // For additional profile info like bio, verified status
-      'user.info.stats', // For user statistics (likes, followers, etc)
-      'video.list', // For reading user's public videos
-      'video.publish', // For directly posting content
-      'video.upload', // For creating drafts
+      TIKTOK_SCOPES.BASIC_INFO,
+      TIKTOK_SCOPES.PROFILE_INFO,
+      TIKTOK_SCOPES.USER_INFO_STATS,
+      TIKTOK_SCOPES.VIDEO_LIST,
+      TIKTOK_SCOPES.VIDEO_PUBLISH,
+      TIKTOK_SCOPES.VIDEO_UPLOAD,
     ];
   }
 

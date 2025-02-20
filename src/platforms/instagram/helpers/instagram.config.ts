@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { FACEBOOK_SCOPES, INSTAGRAM_SCOPES } from 'src/enum/scopes.enum';
 
 @Injectable()
 export class InstagramConfig {
@@ -17,12 +18,13 @@ export class InstagramConfig {
     this.redirectUri = this.configService.get<string>('INSTAGRAM_REDIRECT_URI');
     this.apiVersion = 'v18.0';
     this.scopes = [
-      'instagram_basic',
-      'instagram_content_publish',
-      'instagram_manage_comments',
-      'instagram_manage_insights',
-      'pages_show_list',
-      'pages_read_engagement',
+      INSTAGRAM_SCOPES.BASIC,
+      INSTAGRAM_SCOPES.CONTENT_PUBLISH,
+      INSTAGRAM_SCOPES.MANAGE_COMMENTS,
+      INSTAGRAM_SCOPES.MANAGE_INSIGHTS,
+      FACEBOOK_SCOPES.PAGES_READ_ENGAGEMENT,
+      FACEBOOK_SCOPES.PAGES_SHOW_LIST,
+      FACEBOOK_SCOPES.PAGES_MANAGE_POSTS,
     ];
   }
 
