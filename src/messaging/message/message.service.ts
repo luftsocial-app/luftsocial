@@ -1,0 +1,71 @@
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Message } from '../../entities/chats/message.entity';
+import { TenantService } from '../../database/tenant.service';
+import { MessageStatus } from '../../common/enums/messaging';
+
+@Injectable()
+export class MessageService {
+  constructor(
+    @InjectRepository(Message)
+    private readonly messageRepo: Repository<Message>,
+    private tenantService: TenantService,
+  ) {}
+
+  async createMessage(
+    conversationId: string,
+    content: string,
+  ): Promise<Message> {
+    const message = this.messageRepo.create({
+      conversationId,
+      content,
+      status: MessageStatus.SENT,
+      tenantId: this.tenantService.getTenantId(),
+    });
+    return this.messageRepo.save(message);
+  }
+
+  async updateMessageStatus(
+    messageId: string,
+    status: MessageStatus,
+  ): Promise<void> {
+    await this.messageRepo.update(
+      { id: messageId, tenantId: this.tenantService.getTenantId() },
+      { status },
+    );
+  }
+
+  async getMessages(conversationId: string, query: any): Promise<Message[]> {
+    return this.messageRepo.find({
+      where: {
+        conversationId,
+        tenantId: this.tenantService.getTenantId(),
+        ...query,
+      },
+    });
+  }
+
+  async getMessageHistory(
+    userId: string,
+  ): Promise<{ data: Message[]; status: number }> {
+    try {
+      const messageHistory = await this.messageRepo.find({
+        where: [{ sender: { id: userId } }],
+        order: { createdAt: 'ASC' },
+      });
+      if (messageHistory) {
+        return {
+          status: 1,
+          data: messageHistory,
+        };
+      }
+      return {
+        status: 0,
+        data: [],
+      };
+    } catch (err) {
+      throw new HttpException(err.message || err, HttpStatus.BAD_REQUEST);
+    }
+  }
+}

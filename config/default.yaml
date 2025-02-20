@@ -3,14 +3,11 @@ logger:
   pinoHttp:
     level: info
     transport:
-      target: pino-pretty
-      options:
-        colorize: true,   
-        translateTime: 'HH:MM:ss Z'
-        ignore: 'pid,hostname'
+      target: 'pino-pretty'
     redact:
       paths:
         - req.headers.authorization
+        - req.headers.auth
       censor: '***'
 port: 3000
 db:
@@ -19,6 +16,6 @@ db:
     username: postgres
     password: Akinolami6650
     host: localhost
-    port: 5433
-    database: loftSocial
-    synchronize: true
+    port: 5432
+    database: postgres
+    synchronize: false

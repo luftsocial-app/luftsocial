@@ -128,7 +128,7 @@ describe('InstagramService', () => {
 
     it('should throw exception when no Instagram accounts found', async () => {
       const code = 'test-code';
-      
+
       mockedAxios.get
         .mockResolvedValueOnce({
           data: {
@@ -401,11 +401,21 @@ describe('InstagramService', () => {
 
       mockInstagramRepo.checkRateLimit.mockResolvedValue(true);
 
-      const result = await service.withRateLimit(accountId, action, mockCallback);
+      const result = await service.withRateLimit(
+        accountId,
+        action,
+        mockCallback,
+      );
 
       expect(result).toBe('success');
-      expect(mockInstagramRepo.checkRateLimit).toHaveBeenCalledWith(accountId, action);
-      expect(mockInstagramRepo.recordRateLimitUsage).toHaveBeenCalledWith(accountId, action);
+      expect(mockInstagramRepo.checkRateLimit).toHaveBeenCalledWith(
+        accountId,
+        action,
+      );
+      expect(mockInstagramRepo.recordRateLimitUsage).toHaveBeenCalledWith(
+        accountId,
+        action,
+      );
     });
 
     it('should throw error when rate limit exceeded', async () => {

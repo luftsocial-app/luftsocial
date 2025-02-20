@@ -26,11 +26,7 @@ export class TikTokController {
   }
 
   @Get('callback')
-  async handleCallback(
-    @Query('code') code: string,
-    @Query('state') state: string,
-    @CurrentUser() userId: string,
-  ) {
+  async handleCallback(@Query('code') code: string) {
     return this.tiktokService.handleCallback(code);
   }
 

@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HealthController } from './health.controller';
 import {
-  HealthCheckService,
-  HttpHealthIndicator,
-  TypeOrmHealthIndicator,
+  // HealthCheckService,
+  // HttpHealthIndicator,
+  // TypeOrmHealthIndicator,
   TerminusModule,
 } from '@nestjs/terminus';
 import { LoggerModule } from 'nestjs-pino';
