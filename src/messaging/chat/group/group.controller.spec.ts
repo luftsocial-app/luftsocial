@@ -33,37 +33,49 @@ describe('GroupController', () => {
 
   describe('createGroup', () => {
     it('should successfully create a group', async () => {
-      const groupDto: GroupDto = { name: 'Test Group', description: 'Test Description' };
-      const userId = "1";
+      const groupDto: GroupDto = {
+        name: 'Test Group',
+        description: 'Test Description',
+      };
+      const userId = '1';
       const res: Partial<Response> = {
         status: jest.fn().mockReturnThis(),
         json: jest.fn(),
       };
 
       jest.spyOn(service, 'createGroup').mockResolvedValue({
-        data: { id: "1", ...groupDto, createdBy: userId },
+        data: { id: '1', ...groupDto, createdBy: userId },
         status: 1,
       });
 
-      await controller.createGroup(groupDto, res as Response, { user: { id: userId } });
+      await controller.createGroup(groupDto, res as Response, {
+        user: { id: userId },
+      });
       expect(res.status).toHaveBeenCalledWith(HttpStatus.OK);
       expect(res.json).toHaveBeenCalledWith({
         message: 'Group created successfully',
         status: 1,
-        data: { id: "1", ...groupDto, createdBy: userId },
+        data: { id: '1', ...groupDto, createdBy: userId },
       });
     });
 
     it('should fail to create a group', async () => {
-      const groupDto: GroupDto = { name: 'Test Group', description: 'Test Description' };
+      const groupDto: GroupDto = {
+        name: 'Test Group',
+        description: 'Test Description',
+      };
       const res: Partial<Response> = {
         status: jest.fn().mockReturnThis(),
         json: jest.fn(),
       };
 
-      jest.spyOn(service, 'createGroup').mockResolvedValue({ data: null, status: 0 });
+      jest
+        .spyOn(service, 'createGroup')
+        .mockResolvedValue({ data: null, status: 0 });
 
-      await controller.createGroup(groupDto, res as Response, { user: { id: "1" } });
+      await controller.createGroup(groupDto, res as Response, {
+        user: { id: '1' },
+      });
       expect(res.status).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST);
       expect(res.json).toHaveBeenCalledWith({
         message: 'Group creation failed. Please try again.',
@@ -75,13 +87,15 @@ describe('GroupController', () => {
 
   describe('joinGroup', () => {
     it('should successfully join a group', async () => {
-      const joinGroupDto: GroupMemberDto = { userId: "1", groupId: "1" };
+      const joinGroupDto: GroupMemberDto = { userId: '1', groupId: '1' };
       const res: Partial<Response> = {
         status: jest.fn().mockReturnThis(),
         json: jest.fn(),
       };
 
-      jest.spyOn(service, 'joinGroup').mockResolvedValue({ status: 1, data: {} });
+      jest
+        .spyOn(service, 'joinGroup')
+        .mockResolvedValue({ status: 1, data: {} });
 
       await controller.joinGroup(joinGroupDto, res as Response);
       expect(res.status).toHaveBeenCalledWith(HttpStatus.OK);
@@ -93,13 +107,15 @@ describe('GroupController', () => {
     });
 
     it('should fail to join a group because group not found', async () => {
-      const joinGroupDto: GroupMemberDto = { userId: "1", groupId: "1" };
+      const joinGroupDto: GroupMemberDto = { userId: '1', groupId: '1' };
       const res: Partial<Response> = {
         status: jest.fn().mockReturnThis(),
         json: jest.fn(),
       };
 
-      jest.spyOn(service, 'joinGroup').mockResolvedValue({ status: 2, data: null });
+      jest
+        .spyOn(service, 'joinGroup')
+        .mockResolvedValue({ status: 2, data: null });
 
       await controller.joinGroup(joinGroupDto, res as Response);
       expect(res.status).toHaveBeenCalledWith(HttpStatus.OK);

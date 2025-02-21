@@ -31,14 +31,14 @@ export class Message {
   conversationId: string;
 
   @Column()
-  conversation_id?: string
+  conversation_id?: string;
 
   @ManyToOne(() => User)
   @JoinColumn({ name: 'sender_id' })
   sender: User;
 
   @Column()
-  senderId?: string
+  senderId?: string;
 
   @Column({ name: 'content' })
   content: string;
@@ -92,23 +92,13 @@ export class Message {
     reactions?: { [userId: string]: string }; // { user1: '👍', user2: '❤️' }
   };
 
-  @ManyToOne(() => Group, group => group.messages, { nullable: true, onDelete: 'CASCADE' })
+  @ManyToOne(() => Group, (group) => group.messages, {
+    nullable: true,
+    onDelete: 'CASCADE',
+  })
   @JoinColumn({ name: 'groupId' })
   group: Group;
 
   @Column({ nullable: true })
   groupId?: string;
-
-  @ManyToOne(() => User, user => user.receivedMessages)
-  @JoinColumn({ name: 'receiverId' })
-  receiver: User;
-
-  @Column()
-  receiverId?: string;
-
-  @Column()
-  sentAt?: Date;
-
-  // @Column({ type: 'boolean', default: false })
-  // isRead: boolean;
 }

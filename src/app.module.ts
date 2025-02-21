@@ -14,7 +14,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 // import { UsersModule } from ""
 import { Group } from './entities/group.entity';
 import { GroupMember } from './entities/groupMembers.entity';
-import { GroupModule } from './messaging/chat/group/group.module'
+import { GroupModule } from './messaging/chat/group/group.module';
 import { GroupMemberModule } from './messaging/chat/group-member/group-member.module';
 // import { NotificationModule } from './notification/notification.module';
 
@@ -66,7 +66,7 @@ import { ChatModule } from './messaging/chat/chat.module';
         UserTenant,
         Group,
         GroupMember,
-        ChatModule
+        ChatModule,
       ],
     }),
     LoggerModule.forRoot({

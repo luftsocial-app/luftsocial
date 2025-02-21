@@ -19,7 +19,7 @@ import { MessageQueryDto } from '../dtos/conversation.dto';
 
 @Controller('messages')
 export class MessageController {
-  constructor(private readonly messageService: MessageService) { }
+  constructor(private readonly messageService: MessageService) {}
 
   @UseGuards(ChatGuard)
   @Get(':conversationId/messages')
@@ -59,8 +59,8 @@ export class MessageController {
       } else if (status === 2) {
         res.status(HttpStatus.OK).json({
           status: 2,
-          data
-        })
+          data,
+        });
       }
     } catch (err) {
       return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({

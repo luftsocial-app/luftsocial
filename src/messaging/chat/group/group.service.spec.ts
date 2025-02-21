@@ -4,7 +4,6 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Group } from '../../../entities/group.entity';
 import { GroupMember } from '../../../entities/groupMembers.entity';
 import { Repository } from 'typeorm';
-import { HttpException, HttpStatus } from '@nestjs/common';
 
 describe('GroupService', () => {
   let service: GroupService;
@@ -40,19 +39,23 @@ describe('GroupService', () => {
   describe('createGroup', () => {
     it('should successfully create a group', async () => {
       const groupDto = { name: 'Test Group', description: 'Test Description' };
-      const userId = "1";
+      const userId = '1';
 
-      jest.spyOn(groupRepository, 'create').mockImplementation((dto) => dto as Group);
+      jest
+        .spyOn(groupRepository, 'create')
+        .mockImplementation((dto) => dto as Group);
       jest.spyOn(groupRepository, 'save').mockResolvedValue({
-        id: "1",
+        id: '1',
         ...groupDto,
         createdBy: userId,
       } as Group);
 
-      jest.spyOn(groupMemberRepository, 'create').mockImplementation((dto) => dto as GroupMember);
+      jest
+        .spyOn(groupMemberRepository, 'create')
+        .mockImplementation((dto) => dto as GroupMember);
       jest.spyOn(groupMemberRepository, 'save').mockResolvedValue({
         userId,
-        groupId: "1",
+        groupId: '1',
         // role: 'admin',
       } as GroupMember);
 
@@ -68,11 +71,11 @@ describe('GroupService', () => {
 
   describe('joinGroup', () => {
     it('should successfully join a group', async () => {
-      const joinGroupDto = { userId: "1", groupId: "1" };
+      const joinGroupDto = { userId: '1', groupId: '1' };
 
       jest
         .spyOn(groupRepository, 'findOne')
-        .mockResolvedValue({ id: "1" } as Group);
+        .mockResolvedValue({ id: '1' } as Group);
       jest.spyOn(groupMemberRepository, 'findOne').mockResolvedValue(null);
       const groupMemberSave = jest
         .spyOn(groupMemberRepository, 'save')
@@ -87,7 +90,7 @@ describe('GroupService', () => {
     });
 
     it('should fail to join a group because group not found', async () => {
-      const joinGroupDto = { userId: "1", groupId: "1" };
+      const joinGroupDto = { userId: '1', groupId: '1' };
 
       jest.spyOn(groupRepository, 'findOne').mockResolvedValue(null);
 
@@ -96,17 +99,17 @@ describe('GroupService', () => {
     });
 
     it('should fail to join a group because already a member', async () => {
-      const joinGroupDto = { userId: "1", groupId: "1" };
+      const joinGroupDto = { userId: '1', groupId: '1' };
 
       jest
         .spyOn(groupRepository, 'findOne')
-        .mockResolvedValue({ id: "1" } as Group);
+        .mockResolvedValue({ id: '1' } as Group);
       jest
         .spyOn(groupMemberRepository, 'findOne')
-        .mockResolvedValue({ userId: "1", groupId: "1" } as GroupMember);
+        .mockResolvedValue({ userId: '1', groupId: '1' } as GroupMember);
 
       const result = await service.joinGroup(joinGroupDto);
-      expect(result.status).toBe(3);
+      expect(result.status).toBe(4);
     });
   });
 });

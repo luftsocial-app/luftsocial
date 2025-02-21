@@ -20,7 +20,6 @@
 
 //   constructor(private readonly notificationsService: NotificationsService) { }
 
-
 //   handleConnection(client: Socket) {
 //     const userId = client.handshake.query.userId as string;
 //     if (!userId) {
@@ -74,4 +73,3 @@
 //     client.broadcast.emit('receive_notification', data);
 //   }
 // }
-

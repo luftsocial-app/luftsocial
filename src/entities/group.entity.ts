@@ -1,4 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne, DeleteDateColumn, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  ManyToOne,
+  DeleteDateColumn,
+  JoinColumn,
+} from 'typeorm';
 import { GroupMember } from './groupMembers.entity';
 import { User } from './users/user.entity';
 import { Message } from './chats/message.entity';
@@ -6,37 +14,41 @@ import { Message } from './chats/message.entity';
 
 @Entity()
 export class Group {
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-    @Column()
-    name: string;
+  @Column()
+  name: string;
 
-    @Column({ nullable: true })
-    description: string;
+  @Column({ nullable: true })
+  description: string;
 
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-    createdAt: Date;
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  createdAt: Date;
 
-    //   @ManyToOne(() => Organization, (organization) => organization.groups)
-    //   organization: Organization;
+  //   @ManyToOne(() => Organization, (organization) => organization.groups)
+  //   organization: Organization;
 
-    @OneToMany(() => GroupMember, (groupMember) => groupMember.group)
-    members: GroupMember[];
+  @OneToMany(() => GroupMember, (groupMember) => groupMember.group)
+  members: GroupMember[];
 
-    @Column({ type: 'boolean', default: true })
-    status: boolean;
+  @Column({ type: 'boolean', default: true })
+  status: boolean;
 
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
-    updatedAt: Date;
+  @Column({
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+    onUpdate: 'CURRENT_TIMESTAMP',
+  })
+  updatedAt: Date;
 
-    @ManyToOne(() => User, (user) => user.createdGroups)
-    @JoinColumn({ name: 'createdBy' })
-    user: User;
+  @ManyToOne(() => User, (user) => user.createdGroups)
+  @JoinColumn({ name: 'createdBy' })
+  user: User;
 
-    @Column({ nullable: true })
-    createdBy: string;
+  @Column({ nullable: true })
+  createdBy: string;
 
-    @OneToMany(() => Message, (message) => message.group)
-    messages: Message[];
+  @OneToMany(() => Message, (message) => message.group)
+  messages: Message[];
 }

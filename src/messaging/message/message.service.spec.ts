@@ -76,7 +76,7 @@ describe('MessageService', () => {
       const result = await service.getMessageHistory(userId);
 
       expect(findSpy).toHaveBeenCalledWith({
-        where: [{ sender: { id: userId } }],
+        where: [{ senderId: userId }],
         order: { createdAt: 'ASC' },
       });
       expect(result).toEqual({
@@ -94,11 +94,11 @@ describe('MessageService', () => {
       const result = await service.getMessageHistory(userId);
 
       expect(findSpy).toHaveBeenCalledWith({
-        where: [{ sender: { id: userId } }],
+        where: [{ senderId: userId }],
         order: { createdAt: 'ASC' },
       });
       expect(result).toEqual({
-        status: 1,
+        status: 2,
         data: [],
       });
     });
@@ -117,7 +117,7 @@ describe('MessageService', () => {
       );
 
       expect(findSpy).toHaveBeenCalledWith({
-        where: [{ sender: { id: userId } }],
+        where: [{ senderId: userId }],
         order: { createdAt: 'ASC' },
       });
     });

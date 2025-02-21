@@ -21,7 +21,7 @@ import { GroupMember } from '../groupMembers.entity';
 import { Group } from '../group.entity';
 
 @Entity({ name: 'tbl_users' })
-export class User{
+export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -123,15 +123,6 @@ export class User{
   @OneToMany(() => Message, (message) => message.sender)
   sentMessages: Message[];
 
-  @OneToMany(() => Message, (message) => message.receiver)
-  receivedMessages: Message[];
-
-  @OneToMany(() => GroupMember, (groupMember) => groupMember.user)
-  groupMembers: GroupMember[];
-
   @OneToMany(() => Group, (group) => group.createdBy)
   createdGroups: Group[];
-
-  // @OneToMany(() => Notification, (notification) => notification.user)
-  // notifications: Notification[];
 }

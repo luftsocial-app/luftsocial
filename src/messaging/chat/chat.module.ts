@@ -6,9 +6,7 @@ import { Message } from '../../entities/chats/message.entity';
 import { TenantService } from '../../database/tenant.service';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([Conversation, Message]),
-  ],
+  imports: [TypeOrmModule.forFeature([Conversation, Message])],
   providers: [ChatService, TenantService],
   exports: [ChatService],
 })
