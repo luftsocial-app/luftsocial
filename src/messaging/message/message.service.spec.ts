@@ -2,29 +2,46 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { MessageService } from './message.service';
 import { Message } from '../../entities/chats/message.entity';
-import { HttpException } from '@nestjs/common';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { TenantService } from '../../database/tenant.service';
+import { Repository } from 'typeorm';
+import * as Chance from 'chance';
+
+const chance = new Chance();
 
 describe('MessageService', () => {
   let service: MessageService;
-
-  const mockMessageRepository = {
-    find: jest.fn(),
-  };
+  let messageRepository: Repository<Message>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MessageService,
-        TenantService,
+        {
+          provide: TenantService,
+          useValue: {
+            getCurrentTenantId: jest.fn().mockReturnValue('default'),
+          },
+        },
         {
           provide: getRepositoryToken(Message),
-          useValue: mockMessageRepository,
+          useValue: {
+            find: jest.fn(),
+            create: jest.fn(),
+            save: jest.fn(),
+          },
         },
       ],
     }).compile();
 
     service = module.get<MessageService>(MessageService);
+    messageRepository = module.get<Repository<Message>>(
+      getRepositoryToken(Message),
+    );
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   it('should be defined', () => {
@@ -32,56 +49,77 @@ describe('MessageService', () => {
   });
 
   describe('getMessageHistory', () => {
+    const mockMessages = [
+      {
+        id: chance.guid(),
+        content: chance.sentence(),
+        sender: { id: chance.guid() },
+        createdAt: chance.date(),
+        updatedAt: chance.date(),
+      },
+      {
+        id: chance.guid(),
+        content: chance.sentence(),
+        sender: { id: chance.guid() },
+        receiver: { id: chance.guid() },
+        createdAt: chance.date(),
+        updatedAt: chance.date(),
+      },
+    ] as Message[];
+
     it('should return message history successfully', async () => {
-      const mockMessages = [
-        {
-          id: '1',
-          content: 'Test message 1',
-          sender: { id: '1' },
-          createdAt: new Date(),
-        },
-        {
-          id: '2',
-          content: 'Test message 2',
-          sender: { id: '1' },
-          createdAt: new Date(),
-        },
-      ];
+      const userId = chance.guid();
+      const findSpy = jest
+        .spyOn(messageRepository, 'find')
+        .mockResolvedValue(mockMessages);
 
-      mockMessageRepository.find.mockResolvedValue(mockMessages);
+      const result = await service.getMessageHistory(userId);
 
-      const result = await service.getMessageHistory('1');
-
-      expect(result.status).toBe(1);
-      expect(result.data).toEqual(mockMessages);
-      expect(mockMessageRepository.find).toHaveBeenCalledWith({
-        where: [{ sender: { id: '1' } }],
+      expect(findSpy).toHaveBeenCalledWith({
+        where: [{ sender: { id: userId } }],
         order: { createdAt: 'ASC' },
+      });
+      expect(result).toEqual({
+        status: 1,
+        data: mockMessages,
       });
     });
 
-    it('should return status 1 when no messages found', async () => {
-      mockMessageRepository.find.mockResolvedValue([]);
+    it('should return empty array when no messages found', async () => {
+      const userId = chance.guid();
+      const findSpy = jest
+        .spyOn(messageRepository, 'find')
+        .mockResolvedValue([]);
 
-      const result = await service.getMessageHistory('1');
+      const result = await service.getMessageHistory(userId);
 
+      expect(findSpy).toHaveBeenCalledWith({
+        where: [{ sender: { id: userId } }],
+        order: { createdAt: 'ASC' },
+      });
       expect(result).toEqual({
         status: 1,
         data: [],
       });
-
-      expect(mockMessageRepository.find).toHaveBeenCalledWith({
-        where: [{ sender: { id: '1' } }],
-        order: { createdAt: 'ASC' },
-      });
     });
 
-    it('should throw HttpException on error', async () => {
-      mockMessageRepository.find.mockRejectedValue(new Error('Database error'));
+    it('should throw HttpException with INTERNAL_SERVER_ERROR on database error', async () => {
+      const userId = chance.guid();
+      const findSpy = jest
+        .spyOn(messageRepository, 'find')
+        .mockRejectedValue(new Error('Database connection failed'));
 
-      await expect(service.getMessageHistory('1')).rejects.toThrow(
-        HttpException,
+      await expect(service.getMessageHistory(userId)).rejects.toEqual(
+        new HttpException(
+          'Database connection failed',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        ),
       );
+
+      expect(findSpy).toHaveBeenCalledWith({
+        where: [{ sender: { id: userId } }],
+        order: { createdAt: 'ASC' },
+      });
     });
   });
 });
