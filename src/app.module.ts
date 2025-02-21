@@ -19,6 +19,9 @@ import { RolesGuard } from './guards/role-guard';
 import { Role } from './entities/roles/role.entity';
 import { Permissions } from './entities/roles/permissions.entity';
 import { Tenant } from './entities/users/tenant.entity';
+import { PlatformsModule } from './platforms/platforms.module';
+import { CrossPlatformModule } from './cross-platform/cross-platform.module';
+import { AuthModule } from './auth/auth.module';
 import { DatabaseModule } from './database/database.module';
 import { PostsModule } from './post-management/posts/posts.module';
 import { Post } from './entities/posts/post.entity';
@@ -73,6 +76,9 @@ import { Message } from './entities/chats/message.entity';
     DatabaseModule,
     PostsModule,
     MessageModule,
+    PlatformsModule,
+    CrossPlatformModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [
