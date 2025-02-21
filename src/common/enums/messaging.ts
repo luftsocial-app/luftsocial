@@ -48,9 +48,6 @@ import {
 
 // Enum for status in MessageDto
 
-
-
-
 class IBase {
   @IsString()
   @IsOptional()
