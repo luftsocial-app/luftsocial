@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Message } from '../../entities/chats/message.entity';
 import { TenantService } from '../../database/tenant.service';
 import { MessageStatus } from '../../common/enums/messaging';
+import { OperationStatus } from 'src/common/enums/operation-status.enum';
 
 @Injectable()
 export class MessageService {
@@ -11,7 +12,7 @@ export class MessageService {
     @InjectRepository(Message)
     private readonly messageRepo: Repository<Message>,
     private tenantService: TenantService,
-  ) {}
+  ) { }
 
   async createMessage(
     conversationId: string,
@@ -46,24 +47,25 @@ export class MessageService {
     });
   }
 
-  async getMessageHistory(
-    userId: string,
-  ): Promise<{ data: Message[]; status: number }> {
+  async getMessageHistory(userId: string): Promise<{ data: Message[]; status: number }> {
     try {
       const messageHistory = await this.messageRepo.find({
-        where: [{ sender: { id: userId } }],
-        order: { createdAt: 'ASC' },
+        where: [
+          { senderId: userId },
+          { receiverId: userId },
+        ],
+        order: { sentAt: 'ASC' },
       });
-      if (messageHistory) {
+      if (messageHistory.length > 0) {
         return {
-          status: 1,
+          status: OperationStatus.Success,
           data: messageHistory,
         };
       }
       return {
-        status: 0,
+        status: OperationStatus.NotFound,
         data: [],
-      };
+      }
     } catch (err) {
       throw new HttpException(err.message || err, HttpStatus.BAD_REQUEST);
     }

@@ -14,6 +14,8 @@ import {
   MessageStatus,
   Attachment,
 } from '../../common/enums/messaging';
+import { Conversation } from './conversation.entity';
+import { Group } from '../group.entity';
 import { User } from '../users/user.entity';
 
 @Entity('tbl_messages')
@@ -28,9 +30,15 @@ export class Message {
   @Column({ name: 'conversation_id' })
   conversationId: string;
 
+  @Column()
+  conversation_id?: string
+
   @ManyToOne(() => User)
   @JoinColumn({ name: 'sender_id' })
   sender: User;
+
+  @Column()
+  senderId?: string
 
   @Column({ name: 'content' })
   content: string;
@@ -47,13 +55,13 @@ export class Message {
   attachments?: Attachment[];
 
   @Column({ name: 'is_edited', default: false })
-  isEdited: boolean;
+  isEdited?: boolean;
 
   @Column({ name: 'is_deleted', default: false })
-  isDeleted: boolean;
+  isDeleted?: boolean;
 
   @Column({ name: 'is_pinned', type: 'boolean', default: false })
-  isPinned: boolean;
+  isPinned?: boolean;
 
   @Column({
     name: 'status',
@@ -64,10 +72,10 @@ export class Message {
   status: MessageStatus;
 
   @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  createdAt?: Date;
 
   @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
+  updatedAt?: Date;
 
   @DeleteDateColumn({ name: 'deleted_at' })
   deletedAt?: Date;
@@ -83,4 +91,24 @@ export class Message {
   metadata?: {
     reactions?: { [userId: string]: string }; // { user1: '👍', user2: '❤️' }
   };
+
+  @ManyToOne(() => Group, group => group.messages, { nullable: true, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'groupId' })
+  group: Group;
+
+  @Column({ nullable: true })
+  groupId?: string;
+
+  @ManyToOne(() => User, user => user.receivedMessages)
+  @JoinColumn({ name: 'receiverId' })
+  receiver: User;
+
+  @Column()
+  receiverId?: string;
+
+  @Column()
+  sentAt?: Date;
+
+  // @Column({ type: 'boolean', default: false })
+  // isRead: boolean;
 }

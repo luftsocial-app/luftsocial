@@ -11,6 +11,13 @@ import * as config from 'config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoggerMiddleware } from '../logger.middleware';
 import { ScheduleModule } from '@nestjs/schedule';
+// import { UsersModule } from ""
+import { Group } from './entities/group.entity';
+import { GroupMember } from './entities/groupMembers.entity';
+import { GroupModule } from './messaging/chat/group/group.module'
+import { GroupMemberModule } from './messaging/chat/group-member/group-member.module';
+// import { NotificationModule } from './notification/notification.module';
+
 import { TenantMiddleware } from './middleware/tenant.middleware';
 import { UsersModule } from './user-management/users/users.module';
 import { User } from './entities/users/user.entity';
@@ -31,6 +38,7 @@ import { Team } from './entities/users/team.entity';
 import { UserTenant } from './entities/users/user-tenant.entity';
 import { MessageModule } from './messaging/message/message.module';
 import { Message } from './entities/chats/message.entity';
+import { ChatModule } from './messaging/chat/chat.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -49,12 +57,16 @@ import { Message } from './entities/chats/message.entity';
         Role,
         MessageRead,
         Conversation,
+        // Notification,
         Message,
         ChatParticipants,
         Notification,
         Post,
         Team,
         UserTenant,
+        Group,
+        GroupMember,
+        ChatModule
       ],
     }),
     LoggerModule.forRoot({
@@ -66,6 +78,12 @@ import { Message } from './entities/chats/message.entity';
         limit: 5,
       },
     ]),
+
+    HealthModule,
+    GroupModule,
+    GroupMemberModule,
+    MessageModule,
+    // NotificationModule,
     ScheduleModule.forRoot(),
     UsersModule,
     HealthModule,

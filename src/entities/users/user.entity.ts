@@ -16,9 +16,12 @@ import { Role } from '../roles/role.entity';
 import { Permission } from '../../common/enums/roles';
 import { Team } from './team.entity';
 import { UserTenant } from './user-tenant.entity';
+import { Message } from '../../entities/chats/message.entity';
+import { GroupMember } from '../groupMembers.entity';
+import { Group } from '../group.entity';
 
 @Entity({ name: 'tbl_users' })
-export class User {
+export class User{
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -102,6 +105,33 @@ export class User {
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @DeleteDateColumn({ name: 'deleted_at' })
-  deletedAt?: Date;
+  @Column({ name: 'created_by', nullable: true })
+  createdBy: string;
+
+  @Column({ name: 'updated_by', nullable: true })
+  updatedBy: string;
+
+  @Column({ name: 'is_deleted', default: true })
+  isDeleted: boolean;
+
+  @Column({ name: 'deleted_at', nullable: true })
+  deletedAt: Date;
+
+  @Column({ name: 'deleted_by', nullable: true })
+  deletedBy: string;
+
+  @OneToMany(() => Message, (message) => message.sender)
+  sentMessages: Message[];
+
+  @OneToMany(() => Message, (message) => message.receiver)
+  receivedMessages: Message[];
+
+  @OneToMany(() => GroupMember, (groupMember) => groupMember.user)
+  groupMembers: GroupMember[];
+
+  @OneToMany(() => Group, (group) => group.createdBy)
+  createdGroups: Group[];
+
+  // @OneToMany(() => Notification, (notification) => notification.user)
+  // notifications: Notification[];
 }
