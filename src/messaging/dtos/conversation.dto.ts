@@ -1,47 +1,13 @@
 import {
-  IsEnum,
   IsOptional,
   IsUUID,
   IsInt,
   Min,
   IsBoolean,
   IsString,
-  IsArray,
-  IsObject,
 } from 'class-validator';
-import { IConversationSettings } from '../../common/interface/message.interface';
 import { Type } from 'class-transformer';
-import { ChatParticipants } from '../../entities/chats/chat-participants.entity';
-
-export class CreateConversationDto {
-  @IsString()
-  name: string;
-
-  @IsEnum(['direct', 'group', 'channel'])
-  type: 'direct' | 'group' | 'channel';
-
-  @IsBoolean()
-  @IsOptional()
-  isPrivate?: boolean; // Default is false
-
-  @IsString()
-  senderId: string; // User ID of the sender
-
-  @IsArray()
-  participantIds: ChatParticipants[]; // Array of user IDs
-
-  @IsObject()
-  @IsOptional()
-  metadata?: {
-    name?: string;
-    avatar?: string;
-    isEncrypted?: boolean;
-  };
-
-  @IsObject()
-  @IsOptional()
-  settings?: IConversationSettings;
-}
+import { ConversationType } from '../../entities/chats/conversation.entity';
 
 export class MessageQueryDto {
   @IsUUID()
@@ -80,4 +46,16 @@ export class MessageQueryDto {
   @IsOptional()
   @IsString()
   sortOrder?: 'ASC' | 'DESC'; // Sorting order
+}
+
+export interface CreateConversationDto {
+  name?: string;
+  type: ConversationType;
+  participantIds: string[];
+  isPrivate?: boolean;
+  metadata?: {
+    avatar?: string;
+    isEncrypted?: boolean;
+  };
+  settings?: any;
 }

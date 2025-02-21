@@ -12,18 +12,7 @@ import {
 } from '../../entities/chats/conversation.entity';
 import { Message } from '../../entities/chats/message.entity';
 import { User } from '../../entities/users/user.entity';
-
-interface CreateConversationDto {
-  name?: string;
-  type: ConversationType;
-  participantIds: string[];
-  isPrivate?: boolean;
-  metadata?: {
-    avatar?: string;
-    isEncrypted?: boolean;
-  };
-  settings?: any;
-}
+import { CreateConversationDto } from '../dtos/conversation.dto';
 
 @Injectable()
 export class ChatService {
