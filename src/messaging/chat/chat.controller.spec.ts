@@ -1,14 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ChatController } from './chat.controller';
 import { ChatService } from './chat.service';
-import { TenantService } from '../../database/tenant.service';
 
-jest.mock('../../database/tenant.service.ts', () => {
+jest.mock('./chat.service', () => {
   return {
-    TenantService: jest.fn().mockImplementation(() => {
+    ChatService: jest.fn().mockImplementation(() => {
       return {
-        getTenantId: jest.fn(),
-        setTenantId: jest.fn(),
+        createConversation: jest.fn(),
+        getConversations: jest.fn(),
+        getConversationsByUserId: jest.fn(),
+        createMessage: jest.fn(),
+        validateAccess: jest.fn(),
       };
     }),
   };
@@ -20,7 +22,7 @@ describe('ChatController', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ChatController],
-      providers: [ChatService, TenantService],
+      providers: [ChatService],
     }).compile();
 
     controller = module.get<ChatController>(ChatController);

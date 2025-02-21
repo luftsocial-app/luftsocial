@@ -14,7 +14,7 @@ import { MessageService } from './message.service';
 
 import { Request, Response } from 'express';
 import { ChatGuard } from '../../guards/chat.guard';
-import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
+import { Throttle } from '@nestjs/throttler';
 import { MessageQueryDto } from '../dtos/conversation.dto';
 
 @Controller('messages')
@@ -32,7 +32,7 @@ export class MessageController {
 
   @UseGuards(ChatGuard)
   @Post('conversations/:conversationId/messages')
-  @UseGuards(ThrottlerGuard)
+  // @UseGuards(ThrottlerGuard)
   @Throttle({ rate: { limit: 5, ttl: 10 } }) // 5 requests per 30 seconds
   async createMessage(
     @Param('conversationId') conversationId: string,

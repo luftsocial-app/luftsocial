@@ -9,7 +9,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { ConfigModule } from '@nestjs/config';
 import * as config from 'config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-// import { LoggerMiddleware } from '../logger.middleware';
+import { LoggerMiddleware } from '../logger.middleware';
 import { ScheduleModule } from '@nestjs/schedule';
 // import { UsersModule } from ""
 import { Group } from './entities/group.entity';
@@ -106,11 +106,10 @@ import { ChatModule } from './messaging/chat/chat.module';
       provide: APP_GUARD,
       useClass: ClerkAuthGuard,
     },
-    // ChatService,
   ],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(TenantMiddleware).forRoutes('*');
+    consumer.apply(LoggerMiddleware, TenantMiddleware).forRoutes('*');
   }
 }
