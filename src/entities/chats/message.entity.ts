@@ -7,7 +7,6 @@ import {
   DeleteDateColumn,
   ManyToOne,
   JoinColumn,
-  Index,
 } from 'typeorm';
 import {
   MessageType,
@@ -15,33 +14,33 @@ import {
   Attachment,
 } from '../../common/enums/messaging';
 import { Conversation } from './conversation.entity';
-import { Group } from '../group.entity';
 import { User } from '../users/user.entity';
 
-@Entity('tbl_messages')
+@Entity('messages')
 export class Message {
-  @PrimaryGeneratedColumn('uuid', { name: 'id' })
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Index()
-  @Column({ name: 'tenant_id' })
-  tenantId: string;
+  @Column('text')
+  content: string;
 
-  @Column({ name: 'conversation_id' })
-  conversationId: string;
+  @ManyToOne(() => Conversation, (conversation) => conversation.messages)
+  conversation: Conversation;
 
   @Column()
-  conversation_id?: string;
+  conversationId: string;
 
   @ManyToOne(() => User)
-  @JoinColumn({ name: 'sender_id' })
   sender: User;
 
   @Column()
-  senderId?: string;
+  senderId: string;
 
-  @Column({ name: 'content' })
-  content: string;
+  @Column({ name: 'tenant_id' })
+  tenantId: string;
+
+  @CreateDateColumn()
+  createdAt: Date;
 
   @Column({
     name: 'type',
@@ -71,9 +70,6 @@ export class Message {
   })
   status: MessageStatus;
 
-  @CreateDateColumn({ name: 'created_at' })
-  createdAt?: Date;
-
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt?: Date;
 
@@ -92,13 +88,21 @@ export class Message {
     reactions?: { [userId: string]: string }; // { user1: '👍', user2: '❤️' }
   };
 
-  @ManyToOne(() => Group, (group) => group.messages, {
-    nullable: true,
-    onDelete: 'CASCADE',
-  })
-  @JoinColumn({ name: 'groupId' })
-  group: Group;
+  @Column({ type: 'jsonb', default: {} })
+  readBy: {
+    [userId: string]: Date; // userId -> readTimestamp mapping
+  };
 
-  @Column({ nullable: true })
-  groupId?: string;
+  // Helper methods
+  markAsRead(userId: string) {
+    this.readBy[userId] = new Date();
+  }
+
+  isReadBy(userId: string): boolean {
+    return !!this.readBy[userId];
+  }
+
+  getReadCount(): number {
+    return Object.keys(this.readBy).length;
+  }
 }

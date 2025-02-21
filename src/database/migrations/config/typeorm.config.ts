@@ -9,7 +9,6 @@ import { Tenant } from '../../../entities/users/tenant.entity';
 import { Post } from '../../../entities/posts/post.entity';
 import { ChatParticipants } from '../../../entities/chats/chat-participants.entity';
 import { Conversation } from '../../../entities/chats/conversation.entity';
-import { MessageRead } from '../../../entities/chats/message-read.entity';
 import { UserRoleChange } from '../../../entities/roles/user-role-change.entity';
 import { Notification } from '../../../entities/notifications/notification.entity';
 import { Team } from '../../../entities/users/team.entity';
@@ -33,7 +32,6 @@ export default new DataSource({
     Permissions,
     Role,
     Message,
-    MessageRead,
     Conversation,
     ChatParticipants,
     Notification,

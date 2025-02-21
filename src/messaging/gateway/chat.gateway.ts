@@ -1,141 +1,153 @@
 import {
-  ConnectedSocket,
-  MessageBody,
-  SubscribeMessage,
   WebSocketGateway,
+  SubscribeMessage,
   WebSocketServer,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
 } from '@nestjs/websockets';
-import { TenantService } from '../../database/tenant.service';
+import { Server, Socket } from 'socket.io';
+import { UseGuards } from '@nestjs/common';
 import { ChatService } from '../chat/chat.service';
-import { MessageService } from '../message/message.service';
-import { MessageStatus } from '../../common/enums/messaging';
-import { Socket, Server } from 'socket.io';
-import { PinoLogger } from 'nestjs-pino';
+import { WsGuard } from '../../guards/ws.guard';
 
-@WebSocketGateway()
-export class ChatGateway {
+interface MessagePayload {
+  conversationId: string;
+  content: string;
+}
+
+@WebSocketGateway({
+  cors: {
+    origin: '*',
+  },
+})
+@UseGuards(WsGuard)
+export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  constructor(
-    private chatService: ChatService,
-    private messageService: MessageService,
-    private tenantService: TenantService,
-    private logger: PinoLogger,
-  ) {}
+  constructor(private readonly chatService: ChatService) {}
 
-  @SubscribeMessage('join_chat_room')
-  async handleJoinChatRoom(
-    @MessageBody() conversationId: string,
-    @ConnectedSocket() client: Socket,
-  ) {
-    const tenantId = this.tenantService.getTenantId();
-    client.join(`${tenantId}_${conversationId}`);
-  }
+  async handleConnection(client: Socket) {
+    const user = client.data.user;
+    client.join(`user_${user.id}`);
 
-  @SubscribeMessage('send_message')
-  async handleMessage(
-    @MessageBody() data: { conversationId: string; content: string },
-    @ConnectedSocket() client: Socket,
-  ) {
-    const tenantId = this.tenantService.getTenantId();
-    const message = await this.chatService.createMessage(
-      data.conversationId,
-      data.content,
+    // Join all user's conversation rooms
+    const conversations = await this.chatService.getConversationsByUserId(
+      user.id,
     );
-    this.logger.info({ client });
-    this.server
-      .to(`${tenantId}_${data.conversationId}`)
-      .emit('newMessage', message);
+    conversations.forEach((conv) => {
+      client.join(`conversation_${conv.id}`);
+    });
   }
 
-  @SubscribeMessage('updateMessageStatus')
-  async handleUpdateMessageStatus(
-    @MessageBody() data: { messageId: string; status: MessageStatus },
-  ) {
-    await this.messageService.updateMessageStatus(data.messageId, data.status);
-    this.server.emit('messageStatusUpdated', data);
+  handleDisconnect(client: Socket) {
+    const user = client.data.user;
+    if (user) {
+      client.leave(`user_${user.id}`);
+    }
+  }
+
+  @SubscribeMessage('sendMessage')
+  async handleMessage(client: Socket, payload: MessagePayload) {
+    const user = client.data.user;
+
+    // Validate access
+    const hasAccess = await this.chatService.validateAccess(
+      payload.conversationId,
+      user.id,
+      user.tenantId,
+    );
+
+    if (!hasAccess) {
+      return { error: 'Access denied to this conversation' };
+    }
+
+    // Save message
+    const message = await this.chatService.createMessage(
+      payload.conversationId,
+      payload.content,
+      user.id,
+    );
+
+    // Get conversation to ensure we have all participants
+    const conversation = await this.chatService.getConversation(
+      payload.conversationId,
+    );
+
+    // Emit to all participants in the conversation
+    this.server.to(`conversation_${conversation.id}`).emit('newMessage', {
+      id: message.id,
+      conversationId: conversation.id,
+      sender: user,
+      content: payload.content,
+      createdAt: message.createdAt,
+    });
+
+    return { success: true, messageId: message.id };
+  }
+
+  @SubscribeMessage('joinConversation')
+  async handleJoinConversation(client: Socket, conversationId: string) {
+    const user = client.data.user;
+
+    const hasAccess = await this.chatService.validateAccess(
+      conversationId,
+      user.id,
+      user.tenantId,
+    );
+
+    if (hasAccess) {
+      client.join(`conversation_${conversationId}`);
+      return { success: true };
+    }
+
+    return { error: 'Access denied to this conversation' };
+  }
+
+  @SubscribeMessage('leaveConversation')
+  async handleLeaveConversation(client: Socket, conversationId: string) {
+    client.leave(`conversation_${conversationId}`);
+    return { success: true };
+  }
+
+  @SubscribeMessage('typing')
+  async handleTyping(client: Socket, conversationId: string) {
+    const user = client.data.user;
+
+    this.server.to(`conversation_${conversationId}`).emit('userTyping', {
+      conversationId,
+      user: {
+        id: user.id,
+        name: user.username,
+      },
+    });
+  }
+
+  @SubscribeMessage('stopTyping')
+  async handleStopTyping(client: Socket, conversationId: string) {
+    const user = client.data.user;
+
+    this.server.to(`conversation_${conversationId}`).emit('userStoppedTyping', {
+      conversationId,
+      userId: user.id,
+    });
+  }
+
+  @SubscribeMessage('markAsRead')
+  async handleMarkAsRead(
+    client: Socket,
+    payload: { messageId: string; conversationId: string },
+  ): Promise<void> {
+    const user = client.data.user;
+    await this.chatService.markMessageAsRead(payload.messageId, user.id);
+
+    // Notify other participants
+    this.server
+      .to(`conversation_${payload.conversationId}`)
+      .emit('messageRead', {
+        messageId: payload.messageId,
+        userId: user.id,
+        readAt: new Date(),
+      });
   }
 }
-
-// import { Logger, UseFilters, UsePipes, ValidationPipe } from '@nestjs/common';
-// import {
-//   ConnectedSocket,
-//   MessageBody,
-//   OnGatewayConnection,
-//   OnGatewayDisconnect,
-//   SubscribeMessage,
-//   WebSocketGateway,
-//   WebSocketServer,
-// } from '@nestjs/websockets';
-// import { IsNotEmpty, IsString } from 'class-validator';
-// import { Socket, Server } from 'socket.io';
-// import { WebsocketsExceptionFilter } from './ws-exception.filter';
-
-// class ChatMessage {
-//   @IsNotEmpty()
-//   @IsString()
-//   nickname: string;
-//   @IsNotEmpty()
-//   @IsString()
-//   message: string;
-// }
-
-// @WebSocketGateway({
-//   cors: {
-//     origin: '*',
-//   },
-// })
-// // @UseFilters(new WebsocketsExceptionFilter())
-// export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
-//   @WebSocketServer()
-//   server: Server;
-
-//   private logger = new Logger('ChatGateway');
-
-//   @SubscribeMessage('text-chat')
-//   // @UsePipes(new ValidationPipe())
-//   handleMessage(
-//     @MessageBody() message: ChatMessage,
-//     @ConnectedSocket() _client: Socket,
-//   ) {
-
-//     console.log(essage);
-
-//     this.server.emit('text-chat', {
-//       ...message,
-//       time: new Date().toDateString(),
-//     });
-//   }
-
-//   // @SubscribeMessage('sendMessage')
-//   // async handleSendMessage(@MessageBody() messageDTO: MessageDTO, @ConnectedSocket() client: Socket): Promise<void> {
-//   //   const message = await this.chatService.saveMessage(messageDTO);
-
-//   //   // Emit the message to the receiver's socket
-//   //   this.server.to(messageDTO.receiverId).emit('message', message);
-//   // }
-
-//   // @SubscribeMessage('joinChat')
-//   // async handleJoinChat(@MessageBody() chatDTO: ChatDTO, @ConnectedSocket() client: Socket): Promise<void> {
-//   //   const chat = await this.chatService.findOrCreateChat(chatDTO);
-
-//   //   // Let both users join the chat room
-//   //   client.join(chat.user1);
-//   //   client.join(chat.user2);
-
-//   //   // Send back initial messages if needed
-//   //   const messages = await this.chatService.getMessagesByChatId(chat._id);
-//   //   client.emit('chatMessages', messages);
-//   // }
-
-//    // it will be handled when a client connects to the server
-//    handleConnection(socket: Socket) {
-//     this.logger.log(`Socket connected: ${socket.id}`);
-//   }
-
-//   // it will be handled when a client disconnects from the server
-//   handleDisconnect(socket: Socket) {
-//     this.logger.log(`Socket disconnected: ${socket.id}`);
-//   }
-// }

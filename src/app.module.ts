@@ -11,13 +11,6 @@ import * as config from 'config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoggerMiddleware } from '../logger.middleware';
 import { ScheduleModule } from '@nestjs/schedule';
-// import { UsersModule } from ""
-import { Group } from './entities/group.entity';
-import { GroupMember } from './entities/groupMembers.entity';
-import { GroupModule } from './messaging/chat/group/group.module';
-import { GroupMemberModule } from './messaging/chat/group-member/group-member.module';
-// import { NotificationModule } from './notification/notification.module';
-
 import { TenantMiddleware } from './middleware/tenant.middleware';
 import { UsersModule } from './user-management/users/users.module';
 import { User } from './entities/users/user.entity';
@@ -33,7 +26,6 @@ import { Conversation } from './entities/chats/conversation.entity';
 import { ChatParticipants } from './entities/chats/chat-participants.entity';
 import { UserRoleChange } from './entities/roles/user-role-change.entity';
 import { Notification } from './entities/notifications/notification.entity';
-import { MessageRead } from './entities/chats/message-read.entity';
 import { Team } from './entities/users/team.entity';
 import { UserTenant } from './entities/users/user-tenant.entity';
 import { MessageModule } from './messaging/message/message.module';
@@ -55,7 +47,6 @@ import { ChatModule } from './messaging/chat/chat.module';
         UserRoleChange,
         Permissions,
         Role,
-        MessageRead,
         Conversation,
         // Notification,
         Message,
@@ -64,8 +55,6 @@ import { ChatModule } from './messaging/chat/chat.module';
         Post,
         Team,
         UserTenant,
-        Group,
-        GroupMember,
         ChatModule,
       ],
     }),
@@ -80,8 +69,6 @@ import { ChatModule } from './messaging/chat/chat.module';
     ]),
 
     HealthModule,
-    GroupModule,
-    GroupMemberModule,
     MessageModule,
     // NotificationModule,
     ScheduleModule.forRoot(),

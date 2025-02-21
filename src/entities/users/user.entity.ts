@@ -7,18 +7,15 @@ import {
   ManyToMany,
   JoinTable,
   CreateDateColumn,
-  DeleteDateColumn,
   UpdateDateColumn,
-  JoinColumn,
 } from 'typeorm';
 import { Tenant } from './tenant.entity';
 import { Role } from '../roles/role.entity';
 import { Permission } from '../../common/enums/roles';
-import { Team } from './team.entity';
 import { UserTenant } from './user-tenant.entity';
 import { Message } from '../../entities/chats/message.entity';
-import { GroupMember } from '../groupMembers.entity';
-import { Group } from '../group.entity';
+import { Conversation } from '../chats/conversation.entity';
+import { Team } from './team.entity';
 
 @Entity({ name: 'tbl_users' })
 export class User {
@@ -54,10 +51,6 @@ export class User {
 
   @Column({ type: 'jsonb', default: [] })
   permissions: Permission[];
-
-  @OneToMany(() => Team, (team) => team.createdBy)
-  @JoinColumn({ name: 'user_created_groups' })
-  createdTeams: Team[];
 
   @ManyToMany(() => Role, (role) => role.id)
   @JoinTable({
@@ -123,6 +116,9 @@ export class User {
   @OneToMany(() => Message, (message) => message.sender)
   sentMessages: Message[];
 
-  @OneToMany(() => Group, (group) => group.createdBy)
-  createdGroups: Group[];
+  @ManyToMany(() => Conversation, (conversation) => conversation.participants)
+  conversations: Conversation[];
+
+  @ManyToMany(() => Conversation, (conversation) => conversation.admins)
+  adminOf: Conversation[];
 }

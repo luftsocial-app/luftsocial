@@ -1,3 +1,12 @@
+import {
+  IsString,
+  IsOptional,
+  IsBoolean,
+  IsEnum,
+  IsDate,
+  IsUrl,
+} from 'class-validator';
+
 export enum ResponseStatus {
   SUCCESS = 1,
   GROUP_NOT_FOUND = 2,
@@ -36,15 +45,6 @@ export enum StatusEnum {
   delivered = 'delivered',
   read = 'read',
 }
-import {
-  IsString,
-  IsOptional,
-  IsBoolean,
-  IsEnum,
-  IsNumber,
-  IsDate,
-  IsUrl,
-} from 'class-validator';
 
 // Enum for status in MessageDto
 

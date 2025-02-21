@@ -4,63 +4,89 @@ import {
   PrimaryGeneratedColumn,
   CreateDateColumn,
   OneToMany,
-  JoinColumn,
+  ManyToMany,
+  JoinTable,
+  UpdateDateColumn,
 } from 'typeorm';
 import { IConversationSettings } from '../../common/interface/message.interface';
 import { Message } from './message.entity';
-import { ChatParticipants } from './chat-participants.entity';
+import { User } from '../users/user.entity';
 
-@Entity('tbl_conversations')
+export enum ConversationType {
+  DIRECT = 'direct',
+  GROUP = 'group',
+}
+
+@Entity('conversations')
 export class Conversation {
-  @PrimaryGeneratedColumn('uuid', { name: 'id' })
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
-  senderId: string;
+  @Column({ nullable: true })
+  name?: string;
+
+  @Column({
+    type: 'enum',
+    enum: ConversationType,
+    default: ConversationType.DIRECT,
+  })
+  type: ConversationType;
+
+  @ManyToMany(() => User, (user) => user.conversations)
+  @JoinTable({
+    name: 'conversation_participants',
+    joinColumn: { name: 'conversation_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'user_id', referencedColumnName: 'id' },
+  })
+  participants: User[];
+
+  @ManyToMany(() => User, (user) => user.adminOf)
+  @JoinTable({
+    name: 'conversation_admins',
+    joinColumn: { name: 'conversation_id', referencedColumnName: 'id' },
+    inverseJoinColumn: { name: 'user_id', referencedColumnName: 'id' },
+  })
+  admins: User[];
+
+  @OneToMany(() => Message, (message) => message.conversation, {
+    cascade: true,
+  })
+  messages: Message[];
 
   @Column({ name: 'tenant_id' })
   tenantId: string;
 
-  @Column({ name: 'name', unique: true })
-  name: string;
-
-  @Column({
-    name: 'type',
-    type: 'enum',
-    enum: ['direct', 'group', 'channel'],
-  })
-  type: 'direct' | 'group' | 'channel';
-
-  @Column({ name: 'is_private', type: 'boolean', default: false })
-  isPrivate: boolean; // Only invited users can join if true
-
-  @OneToMany(
-    () => ChatParticipants,
-    (chatParticipants) => chatParticipants.conversation,
-  )
-  @JoinColumn({ name: 'participant_ids' })
-  participantIds: ChatParticipants[];
-
-  @OneToMany(() => Message, (message) => message.conversationId)
-  @JoinColumn({ name: 'message_id' })
-  messages: Message[];
+  @Column({ name: 'is_private', default: false })
+  isPrivate: boolean;
 
   @Column({ name: 'metadata', type: 'jsonb', default: {} })
   metadata: {
-    name?: string;
     avatar?: string;
     isEncrypted?: boolean;
   };
 
-  @Column({ name: 'is_archived', default: false })
-  isArchived: boolean;
-
-  @Column({ name: 'is_deleted', default: false })
-  isDeleted: boolean;
-
-  @CreateDateColumn({ name: 'created_at' })
+  @CreateDateColumn()
   createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @Column({ nullable: true })
+  lastMessageAt: Date;
 
   @Column({ name: 'settings', type: 'jsonb', default: {} })
   settings: IConversationSettings;
+
+  @Column({ type: 'jsonb', default: {} })
+  lastReadMessageIds: {
+    [userId: string]: {
+      messageId: string;
+      timestamp: Date;
+    };
+  };
+
+  @Column({ type: 'jsonb', default: {} })
+  unreadCounts: {
+    [userId: string]: number;
+  };
 }

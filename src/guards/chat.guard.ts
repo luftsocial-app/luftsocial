@@ -7,10 +7,19 @@ export class ChatGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const conversationId = request.params.conversationId;
-    const userId = request.user.id;
-    const tenantId = request.tenantId;
+    const user = request.user;
+    const conversationId = request.params.id;
 
-    return this.chatService.validateAccess(conversationId, userId, tenantId);
+    // If no conversation ID in params, allow (might be creating new conversation)
+    if (!conversationId) {
+      return true;
+    }
+
+    // Check if user has access to the conversation
+    return this.chatService.validateAccess(
+      conversationId,
+      user.id,
+      user.tenantId,
+    );
   }
 }
