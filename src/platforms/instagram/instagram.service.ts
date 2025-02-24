@@ -4,6 +4,7 @@ import {
   HttpException,
   HttpStatus,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
@@ -16,22 +17,20 @@ import {
   PlatformService,
   PostResponse,
   SocialAccountDetails,
-  TokenResponse,
 } from '../platform-service.interface';
-import {
-  AccountInsights,
-  InstagramTokenResponse,
-} from './helpers/instagram-account.interface';
+import { AccountInsights } from './helpers/instagram-account.interface';
 import { CreateStoryDto } from './helpers/create-content.dto';
 import {
   AccountMetrics,
   DateRange,
   PostMetrics,
 } from 'src/cross-platform/helpers/cross-platform.interface';
+import { InstagramAccount } from './entities/instagram-account.entity';
 
 @Injectable()
 export class InstagramService implements PlatformService {
   private readonly baseUrl: string = 'https://graph.facebook.com/v18.0';
+  private readonly logger = new Logger(InstagramService.name);
 
   constructor(
     private readonly configService: ConfigService,
@@ -39,42 +38,6 @@ export class InstagramService implements PlatformService {
     private readonly instagramRepo: InstagramRepository,
   ) {}
 
-  async authorize(userId: string): Promise<string> {
-    const state = await this.instagramRepo.createAuthState(userId);
-    return this.instagramConfig.getAuthUrl(state);
-  }
-
-  async handleCallback(code: string): Promise<InstagramTokenResponse> {
-    try {
-      // Exchange code for access token (through Facebook OAuth)
-      const tokenResponse = await this.exchangeCodeForToken(code);
-
-      // Get Instagram Business Account ID
-      const instagramAccounts = await this.getInstagramAccounts(
-        tokenResponse.access_token,
-      );
-
-      if (!instagramAccounts.length) {
-        throw new HttpException(
-          'No Instagram Business account found',
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
-      return {
-        accessToken: tokenResponse.access_token,
-        refreshToken: tokenResponse.refresh_token,
-        expiresIn: tokenResponse.expires_in,
-        tokenType: 'bearer',
-        scope: tokenResponse.scope.split(','),
-        metadata: {
-          instagramAccounts,
-        },
-      };
-    } catch {
-      throw new InstagramApiException('Failed to handle Instagram callback');
-    }
-  }
   async withRateLimit<T>(
     accountId: string,
     action: string,
@@ -100,39 +63,13 @@ export class InstagramService implements PlatformService {
     }
   }
 
-  async refreshToken(accountId: string): Promise<TokenResponse> {
-    const account = await this.instagramRepo.getAccountByUserId(accountId);
-    if (!account) {
-      throw new NotFoundException('Account not found');
-    }
-
+  async getAccountsByUserId(userId: string): Promise<InstagramAccount> {
     try {
-      const response = await axios.get(`${this.baseUrl}/refresh_access_token`, {
-        params: {
-          grant_type: 'ig_refresh_token',
-          access_token: account.socialAccount.accessToken,
-        },
-      });
-
-      const newToken = {
-        accessToken: response.data.access_token,
-        expiresIn: response.data.expires_in,
-      };
-
-      // Update the token in the database
-      await this.instagramRepo.updateToken(accountId, newToken);
-
-      return {
-        accessToken: newToken.accessToken,
-        refreshToken: null, // Instagram doesn't provide refresh tokens
-        expiresIn: newToken.expiresIn,
-        tokenType: 'bearer',
-        scope: ['basic', 'comments', 'relationships', 'media'], // Add appropriate Instagram scopes
-      };
-    } catch {
-      throw new HttpException(
-        'Failed to refresh Instagram token',
-        HttpStatus.BAD_REQUEST,
+      return await this.instagramRepo.getAccountByUserId(userId);
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch Facebook accounts for user ${userId}`,
+        error.stack,
       );
     }
   }
@@ -356,18 +293,6 @@ export class InstagramService implements PlatformService {
     } catch (error) {
       throw new InstagramApiException('Failed to fetch account metrics', error);
     }
-  }
-
-  private async exchangeCodeForToken(code: string): Promise<any> {
-    const response = await axios.get(`${this.baseUrl}/oauth/access_token`, {
-      params: {
-        client_id: this.instagramConfig.clientId,
-        client_secret: this.instagramConfig.clientSecret,
-        redirect_uri: this.instagramConfig.redirectUri,
-        code,
-      },
-    });
-    return response.data;
   }
 
   private async getInstagramAccounts(accessToken: string): Promise<any[]> {

@@ -3,7 +3,6 @@ import { SocialPlatform } from 'src/enum/social-platform.enum';
 import { FacebookService } from 'src/platforms/facebook/facebook.service';
 import { InstagramService } from 'src/platforms/instagram/instagram.service';
 import { LinkedInService } from 'src/platforms/linkedin/linkedin.service';
-import { TokenResponse } from 'src/platforms/platform-service.interface';
 import { TikTokService } from 'src/platforms/tiktok/tiktok.service';
 import { ConnectedPlatform } from './helpers/cross-platform.interface';
 
@@ -15,44 +14,6 @@ export class CrossPlatformService {
     private readonly linkedinService: LinkedInService,
     private readonly tiktokService: TikTokService,
   ) {}
-
-  async connectPlatform(
-    userId: string,
-    platform: SocialPlatform,
-  ): Promise<string> {
-    switch (platform) {
-      case SocialPlatform.FACEBOOK:
-        return this.facebookService.authorize(userId);
-      case SocialPlatform.INSTAGRAM:
-        return this.instagramService.authorize(userId);
-      case SocialPlatform.LINKEDIN:
-        return this.linkedinService.authorize(userId);
-      case SocialPlatform.TIKTOK:
-        return this.tiktokService.authorize(userId);
-      default:
-        throw new BadRequestException(`Unsupported platform: ${platform}`);
-    }
-  }
-
-  async handleCallback(
-    platform: SocialPlatform,
-    code: string,
-    state: string,
-    userId: string,
-  ): Promise<TokenResponse> {
-    switch (platform) {
-      case SocialPlatform.FACEBOOK:
-        return this.facebookService.handleCallback(code);
-      case SocialPlatform.INSTAGRAM:
-        return this.instagramService.handleCallback(code);
-      case SocialPlatform.LINKEDIN:
-        return this.linkedinService.handleCallback(code, userId);
-      case SocialPlatform.TIKTOK:
-        return this.tiktokService.handleCallback(code);
-      default:
-        throw new BadRequestException(`Unsupported platform: ${platform}`);
-    }
-  }
 
   async getConnectedPlatforms(userId: string): Promise<ConnectedPlatform[]> {
     const connectedPlatforms: ConnectedPlatform[] = [];
@@ -150,29 +111,6 @@ export class CrossPlatformService {
         break;
       case SocialPlatform.TIKTOK:
         await this.tiktokService.revokeAccess(accountId);
-        break;
-      default:
-        throw new BadRequestException(`Unsupported platform: ${platform}`);
-    }
-  }
-
-  async refreshTokens(
-    userId: string,
-    platform: SocialPlatform,
-    accountId: string,
-  ): Promise<void> {
-    switch (platform) {
-      case SocialPlatform.FACEBOOK:
-        await this.facebookService.refreshToken(accountId);
-        break;
-      case SocialPlatform.INSTAGRAM:
-        await this.instagramService.refreshToken(accountId);
-        break;
-      case SocialPlatform.LINKEDIN:
-        await this.linkedinService.refreshToken(accountId);
-        break;
-      case SocialPlatform.TIKTOK:
-        await this.tiktokService.refreshToken(accountId);
         break;
       default:
         throw new BadRequestException(`Unsupported platform: ${platform}`);

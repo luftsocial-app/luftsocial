@@ -11,7 +11,6 @@ import {
 import { InstagramErrorInterceptor } from './interceptors/instagram-error.interceptor';
 import { InstagramService } from './instagram.service';
 import { RateLimitInterceptor } from './interceptors/rate-limit.interceptor';
-import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { CreatePostDto, CreateStoryDto } from './helpers/create-content.dto';
 
 @Controller('platforms/instagram')
@@ -41,16 +40,6 @@ export class InstagramController {
       createStoryDto.mediaUrl,
       createStoryDto.stickers,
     );
-  }
-
-  @Get('auth')
-  async getAuthUrl(@CurrentUser() userId: string) {
-    return { url: await this.instagramService.authorize(userId) };
-  }
-
-  @Get('callback')
-  async handleCallback(@Query('code') code: string) {
-    return this.instagramService.handleCallback(code);
   }
 
   @Get(':accountId/media/:mediaId/comments')

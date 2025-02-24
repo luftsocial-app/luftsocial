@@ -35,6 +35,8 @@ import { UserTenant } from './entities/users/user-tenant.entity';
 import { ChatService } from './messaging/chat/chat.service';
 import { MessageModule } from './messaging/message/message.module';
 import { Message } from './entities/chats/message.entity';
+import { TokenCacheModule } from './cache/cache.module';
+import { PlatformAuthModule } from './platform-auth/platform-auth.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -79,6 +81,8 @@ import { Message } from './entities/chats/message.entity';
     PlatformsModule,
     CrossPlatformModule,
     AuthModule,
+    TokenCacheModule,
+    PlatformAuthModule,
   ],
   controllers: [AppController],
   providers: [

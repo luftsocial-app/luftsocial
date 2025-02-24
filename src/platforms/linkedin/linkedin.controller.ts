@@ -9,7 +9,6 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { LinkedInService } from './linkedin.service';
-import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { LinkedInErrorInterceptor } from './helpers/linkedin-error.interceptor';
 import { CreateLinkedInPostDto } from './helpers/create-post.dto';
 
@@ -28,20 +27,6 @@ export class LinkedInController {
       createPostDto.content,
       createPostDto.mediaUrls,
     );
-  }
-
-  @Get('auth')
-  async getAuthUrl(@CurrentUser() userId: string) {
-    const url = await this.linkedInService.authorize(userId);
-    return { url };
-  }
-
-  @Get('callback')
-  async handleCallback(
-    @Query('code') code: string,
-    @CurrentUser() userId: string,
-  ) {
-    return this.linkedInService.handleCallback(code, userId);
   }
 
   @Get(':accountId/posts/:postId/comments')

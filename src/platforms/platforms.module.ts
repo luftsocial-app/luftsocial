@@ -6,6 +6,7 @@ import { FacebookModule } from './facebook/facebook.module';
 import { TikTokModule } from './tiktok/titkot.module';
 import { PlatformsService } from './platforms.service';
 import { LinkedInModule } from './linkedin/linkedin.module';
+import { PlatformAuthModule } from 'src/platform-auth/platform-auth.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { LinkedInModule } from './linkedin/linkedin.module';
     LinkedInModule,
     TikTokModule,
     CrossPlatformModule,
+    PlatformAuthModule,
   ],
   providers: [PlatformsService],
   exports: [PlatformsService],

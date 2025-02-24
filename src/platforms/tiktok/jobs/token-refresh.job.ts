@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { TikTokRepository } from '../repositories/tiktok.repository';
-import { TikTokService } from '../tiktok.service';
+import { SocialPlatform } from 'src/enum/social-platform.enum';
+import { OAuth2Service } from 'src/platform-auth/platform-auth.service';
 
 @Injectable()
 export class TikTokTokenRefreshJob {
@@ -9,7 +10,7 @@ export class TikTokTokenRefreshJob {
 
   constructor(
     private readonly tiktokRepo: TikTokRepository,
-    private readonly tiktokService: TikTokService,
+    private readonly oauth2Service: OAuth2Service,
   ) {}
 
   @Cron(CronExpression.EVERY_HOUR)
@@ -17,11 +18,17 @@ export class TikTokTokenRefreshJob {
     this.logger.log('Starting TikTok token refresh job');
 
     try {
+      // Get TikTok accounts with expiring tokens
       const accounts = await this.tiktokRepo.getAccountsWithExpiringTokens();
 
       for (const account of accounts) {
         try {
-          await this.tiktokService.refreshToken(account.id);
+          // Use the new OAuth2Service to refresh the token
+          await this.oauth2Service.refreshToken(
+            SocialPlatform.TIKTOK,
+            account.id,
+          );
+
           this.logger.debug(`Refreshed token for account ${account.id}`);
         } catch (error) {
           this.logger.error(

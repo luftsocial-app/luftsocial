@@ -3,6 +3,7 @@ import {
   HttpException,
   HttpStatus,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
@@ -12,13 +13,11 @@ import {
   PlatformService,
   PostResponse,
   SocialAccountDetails,
-  TokenResponse,
 } from '../platform-service.interface';
 import { TikTokRepository } from './repositories/tiktok.repository';
 import {
   CreateVideoParams,
   TikTokPostVideoStatus,
-  TIktokTokenResponse,
   VideoUploadInit,
   VideoUploadResponse,
 } from './helpers/tiktok.interfaces';
@@ -28,10 +27,12 @@ import {
   DateRange,
   PostMetrics,
 } from 'src/cross-platform/helpers/cross-platform.interface';
+import { TikTokAccount } from './entities/tiktok-account.entity';
 
 @Injectable()
 export class TikTokService implements PlatformService {
   private readonly baseUrl: string;
+  private readonly logger = new Logger(TikTokService.name);
 
   constructor(
     private readonly configService: ConfigService,
@@ -41,66 +42,14 @@ export class TikTokService implements PlatformService {
     this.baseUrl = tiktokConfig.baseUrl;
   }
 
-  async authorize(userId: string): Promise<string> {
-    const state = await this.tiktokRepo.createAuthState(userId);
-    return this.tiktokConfig.getAuthUrl(state);
-  }
-
-  async handleCallback(code: string): Promise<TIktokTokenResponse> {
+  async getAccountsByUserId(userId: string): Promise<TikTokAccount> {
     try {
-      const tokenResponse = await this.exchangeCodeForToken(code);
-      const userInfo = await this.getUserInfo(tokenResponse.access_token);
-
-      return {
-        accessToken: tokenResponse.access_token,
-        refreshToken: tokenResponse.refresh_token,
-        expiresIn: tokenResponse.expires_in,
-        tokenType: 'Bearer',
-        scope: tokenResponse.scope.split(','),
-        metadata: {
-          userInfo,
-        },
-      };
+      return await this.tiktokRepo.getAccountById(userId);
     } catch (error) {
-      throw new TikTokApiException('Failed to handle TikTok callback', error);
-    }
-  }
-
-  async refreshToken(accountId: string): Promise<TokenResponse> {
-    const account = await this.tiktokRepo.getById(accountId);
-    if (!account) throw new NotFoundException('Account not found');
-
-    try {
-      const response = await axios.post(
-        `${this.baseUrl}/oauth2/token`,
-        {
-          grant_type: 'refresh_token',
-          refresh_token: account.socialAccount.refreshToken,
-          client_key: this.configService.get('TIKTOK_CLIENT_KEY'),
-          client_secret: this.configService.get('TIKTOK_CLIENT_SECRET'),
-        },
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-        },
+      this.logger.error(
+        `Failed to fetch Facebook accounts for user ${userId}`,
+        error.stack,
       );
-
-      await this.tiktokRepo.updateAccountTokens(accountId, {
-        accessToken: response.data.access_token,
-        refreshToken: response.data.refresh_token,
-        expiresAt: new Date(Date.now() + response.data.expires_in * 1000),
-      });
-
-      return {
-        accessToken: response.data.access_token,
-        refreshToken: response.data.refresh_token,
-        expiresIn: response.data.expires_in,
-        tokenType: 'bearer',
-        scope: response.data.scope.split(','),
-      };
-    } catch (error) {
-      throw TikTokApiException.fromError(error);
     }
   }
 

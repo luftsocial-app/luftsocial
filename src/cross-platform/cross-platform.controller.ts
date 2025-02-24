@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseEnumPipe,
   Post,
   Put,
   Query,
@@ -32,32 +33,6 @@ export class CrossPlatformController {
     private readonly schedulerService: SchedulerService,
   ) {}
 
-  // Platform Connection Endpoints
-  @Get('platforms/connect/:platform')
-  async getAuthUrl(
-    @Param('platform') platform: SocialPlatform,
-    @CurrentUser() userId: string,
-  ) {
-    return {
-      url: await this.crossPlatformService.connectPlatform(userId, platform),
-    };
-  }
-
-  @Get('platforms/callback/:platform')
-  async handleCallback(
-    @Param('platform') platform: SocialPlatform,
-    @Query('code') code: string,
-    @Query('state') state: string,
-    @CurrentUser() userId: string,
-  ) {
-    return this.crossPlatformService.handleCallback(
-      platform,
-      code,
-      state,
-      userId,
-    );
-  }
-
   @Get('platforms/connected')
   async getConnectedPlatforms(@CurrentUser() userId: string) {
     return this.crossPlatformService.getConnectedPlatforms(userId);
@@ -65,8 +40,10 @@ export class CrossPlatformController {
 
   @Delete('platforms/:platform/:accountId')
   async disconnectPlatform(
-    @Param('platform') platform: SocialPlatform,
-    @Param('accountId') accountId: string,
+    @Param('platform', new ParseEnumPipe(SocialPlatform))
+    platform: SocialPlatform,
+    @Param('accountId')
+    accountId: string,
     @CurrentUser() userId: string,
   ) {
     return this.crossPlatformService.disconnectPlatform(

@@ -28,4 +28,35 @@ export class PlatformsService {
         throw new Error(`Unsupported platform: ${platform}`);
     }
   }
+
+  async getConnectedAccountsForUser(
+    userId: string,
+  ): Promise<Record<SocialPlatform, any[]>> {
+    const [
+      facebookAccounts,
+      instagramAccounts,
+      linkedInAccounts,
+      tiktokAccounts,
+    ] = await Promise.all([
+      this.facebookService.getAccountsByUserId(userId),
+      this.instagramService.getAccountsByUserId(userId),
+      this.linkedinService.getAccountsByUserId(userId),
+      this.tiktokService.getAccountsByUserId(userId),
+    ]);
+
+    return {
+      [SocialPlatform.FACEBOOK]: Array.isArray(facebookAccounts)
+        ? facebookAccounts
+        : [],
+      [SocialPlatform.INSTAGRAM]: Array.isArray(instagramAccounts)
+        ? instagramAccounts
+        : [],
+      [SocialPlatform.LINKEDIN]: Array.isArray(linkedInAccounts)
+        ? linkedInAccounts
+        : [],
+      [SocialPlatform.TIKTOK]: Array.isArray(tiktokAccounts)
+        ? tiktokAccounts
+        : [],
+    };
+  }
 }

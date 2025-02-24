@@ -1,11 +1,3 @@
-export interface TokenResponse {
-  accessToken: string;
-  refreshToken?: string;
-  expiresIn: number;
-  tokenType: string;
-  scope: string[];
-}
-
 export interface PostResponse {
   platformPostId: string;
   postedAt: Date;
@@ -24,13 +16,6 @@ export interface CommentResponse {
 }
 
 export interface PlatformService {
-  authorize(userId: string): Promise<string>;
-  handleCallback(
-    code: string,
-    state: string,
-    userId: string,
-  ): Promise<TokenResponse>;
-  refreshToken(refreshToken: string): Promise<TokenResponse>;
   getPostMetrics(
     accountId: string,
     postId: string,
@@ -43,4 +28,29 @@ export interface SocialAccountDetails {
   type: string;
   avatarUrl?: string;
   platformSpecific?: any;
+}
+
+export interface PlatformOAuthConfig {
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+  tokenHost: string;
+  tokenPath: string;
+  authorizePath: string;
+  revokePath: string;
+  scopes: string[];
+  cacheOptions: {
+    tokenTTL: number;
+    refreshTokenTTL: number;
+  };
+}
+
+export interface TokenResponse {
+  accessToken: string;
+  refreshToken?: string;
+  expiresIn: number;
+  tokenType: string;
+  scope: string[];
+  userId?: string; // Facebook/Instagram
+  openId?: string; // TikTok
 }

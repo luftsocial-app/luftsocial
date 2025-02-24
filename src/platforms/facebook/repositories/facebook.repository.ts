@@ -73,7 +73,9 @@ export class FacebookRepository {
     relations: string[] = [],
   ): Promise<FacebookAccount> {
     return this.accountRepo.findOne({
-      where: { id },
+      where: {
+        id,
+      },
       relations,
     });
   }

@@ -11,6 +11,7 @@ import { LinkedInOrganization } from './entities/linkedin-organization.entity';
 import { LinkedInMetric, LinkedInPost } from './entities/linkedin-post.entity';
 import { AuthState } from '../facebook/entity/auth-state.entity';
 import { SocialAccount } from '../entity/social-account.entity';
+import { PlatformAuthModule } from 'src/platform-auth/platform-auth.module';
 
 @Module({
   controllers: [LinkedInController],
@@ -23,6 +24,7 @@ import { SocialAccount } from '../entity/social-account.entity';
       AuthState,
       SocialAccount,
     ]),
+    PlatformAuthModule,
   ],
   providers: [
     LinkedInService,

@@ -11,7 +11,6 @@ import {
 import { TikTokErrorInterceptor } from './helpers/tiktok-error.interceptor';
 import { RateLimitInterceptor } from './helpers/rate-limit.interceptor';
 import { TikTokService } from './tiktok.service';
-import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { CreateVideoDto } from './helpers/create-video.dto.ts';
 import { FileInterceptor } from '@nestjs/platform-express/multer';
 
@@ -47,16 +46,6 @@ export class TikTokController {
       videoBuffer,
       createVideoDto,
     );
-  }
-
-  @Get('auth')
-  async getAuthUrl(@CurrentUser() userId: string) {
-    return { url: await this.tiktokService.authorize(userId) };
-  }
-
-  @Get('callback')
-  async handleCallback(@Query('code') code: string) {
-    return this.tiktokService.handleCallback(code);
   }
 
   @Get(':accountId/videos/:videoId/comments')

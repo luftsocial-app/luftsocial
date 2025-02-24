@@ -14,6 +14,7 @@ import { FacebookPostMetric } from './entity/facebook-post-metric.entity';
 import { FacebookPageMetric } from './entity/facebook-page-metric.entity';
 import { AuthState } from './entity/auth-state.entity';
 import { SocialAccount } from '../entity/social-account.entity';
+import { PlatformAuthModule } from 'src/platform-auth/platform-auth.module';
 
 @Module({
   controllers: [FacebookController],
@@ -35,6 +36,7 @@ import { SocialAccount } from '../entity/social-account.entity';
       AuthState,
       SocialAccount,
     ]),
+    PlatformAuthModule,
   ],
   exports: [FacebookService],
 })

@@ -72,16 +72,6 @@ export class FacebookController {
     return this.facebookService.getComments(accountId, postId, pageToken);
   }
 
-  @Get('auth')
-  async getAuthUrl(@CurrentUser() userId: string) {
-    return { url: await this.facebookService.authorize(userId) };
-  }
-
-  @Get('callback')
-  async handleCallback(@Query('code') code: string) {
-    return this.facebookService.handleCallback(code);
-  }
-
   @Get('pages')
   async getPages(@CurrentUser() userId: string) {
     return this.facebookService.getUserPages(userId);

@@ -3,6 +3,7 @@ import {
   HttpException,
   HttpStatus,
   NotFoundException,
+  Logger,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
@@ -12,124 +13,34 @@ import {
   PlatformService,
   PostResponse,
   SocialAccountDetails,
-  TokenResponse,
 } from '../platform-service.interface';
 import { LinkedInApiException } from './helpers/linkedin-api.exception';
-import {
-  LinkedInOrganization,
-  LinkedInTokenResponse,
-} from './helpers/linkedin.interface';
+import { LinkedInOrganization } from './helpers/linkedin.interface';
 import {
   AccountMetrics,
   DateRange,
   PostMetrics,
 } from 'src/cross-platform/helpers/cross-platform.interface';
+import { LinkedInAccount } from './entities/linkedin-account.entity';
 
 @Injectable()
 export class LinkedInService implements PlatformService {
-  private readonly clientId: string;
-  private readonly clientSecret: string;
-  private readonly redirectUri: string;
   private readonly apiVersion: string = 'v2';
   private readonly baseUrl: string = 'https://api.linkedin.com';
+  private readonly logger = new Logger(LinkedInService.name);
 
   constructor(
     private readonly configService: ConfigService,
     private readonly linkedInRepo: LinkedInRepository,
-  ) {
-    this.clientId = this.configService.get<string>('LINKEDIN_CLIENT_ID');
-    this.clientSecret = this.configService.get<string>(
-      'LINKEDIN_CLIENT_SECRET',
-    );
-    this.redirectUri = this.configService.get<string>('LINKEDIN_REDIRECT_URI');
-  }
+  ) {}
 
-  async authorize(userId: string): Promise<string> {
-    const state = await this.linkedInRepo.createAuthState(userId);
-
-    const params = new URLSearchParams({
-      response_type: 'code',
-      client_id: this.clientId,
-      redirect_uri: this.redirectUri,
-      state: state,
-      scope:
-        'w_member_social r_organization_social r_organization_administration w_organization_social',
-    });
-
-    return `https://www.linkedin.com/oauth/v2/authorization?${params.toString()}`;
-  }
-
-  async handleCallback(
-    code: string,
-    userId: string,
-  ): Promise<LinkedInTokenResponse> {
+  async getAccountsByUserId(userId: string): Promise<LinkedInAccount> {
     try {
-      const tokenResponse = await this.getAccessToken(code);
-
-      const organizations = await this.getOrganizations(
-        tokenResponse.access_token,
-      );
-      const profile = await this.getUserProfile(tokenResponse.access_token);
-
-      // Store the connection
-      await this.linkedInRepo.updateAccountTokens(userId, {
-        accessToken: tokenResponse.access_token,
-        refreshToken: tokenResponse.refresh_token,
-        expiresAt: new Date(Date.now() + tokenResponse.expires_in * 1000),
-      });
-
-      return {
-        accessToken: tokenResponse.access_token,
-        refreshToken: tokenResponse.refresh_token,
-        expiresIn: tokenResponse.expires_in,
-        tokenType: 'bearer',
-        scope: tokenResponse.scope.split(' '),
-        metadata: {
-          profile,
-          organizations,
-        },
-      };
+      return await this.linkedInRepo.getById(userId);
     } catch (error) {
-      throw new LinkedInApiException(
-        'Failed to handle LinkedIn callback',
-        error,
-      );
-    }
-  }
-
-  async refreshToken(accountId: string): Promise<TokenResponse> {
-    const account = await this.linkedInRepo.getById(accountId);
-    if (!account) throw new NotFoundException('Account not found');
-
-    try {
-      const response = await axios.post(
-        'https://www.linkedin.com/oauth/v2/accessToken',
-        new URLSearchParams({
-          grant_type: 'refresh_token',
-          refresh_token: account.socialAccount.refreshToken,
-          client_id: this.configService.get('LINKEDIN_CLIENT_ID'),
-          client_secret: this.configService.get('LINKEDIN_CLIENT_SECRET'),
-        }),
-      );
-
-      await this.linkedInRepo.updateAccountTokens(accountId, {
-        accessToken: response.data.access_token,
-        refreshToken: response.data.refresh_token,
-        expiresAt: new Date(Date.now() + response.data.expires_in * 1000),
-      });
-
-      return {
-        accessToken: response.data.access_token,
-        refreshToken: response.data.refresh_token,
-        expiresIn: response.data.expires_in,
-        tokenType: 'bearer',
-        scope: response.data.scope.split(' '),
-      };
-    } catch (error) {
-      throw new HttpException(
-        'Failed to refresh LinkedIn token',
-        HttpStatus.BAD_REQUEST,
-        error,
+      this.logger.error(
+        `Failed to fetch Facebook accounts for user ${userId}`,
+        error.stack,
       );
     }
   }
@@ -412,22 +323,6 @@ export class LinkedInService implements PlatformService {
     } catch (error) {
       throw new LinkedInApiException('Failed to fetch account metrics', error);
     }
-  }
-  private async getAccessToken(code: string): Promise<any> {
-    const response = await axios.post(
-      'https://www.linkedin.com/oauth/v2/accessToken',
-      null,
-      {
-        params: {
-          grant_type: 'authorization_code',
-          code,
-          client_id: this.clientId,
-          client_secret: this.clientSecret,
-          redirect_uri: this.redirectUri,
-        },
-      },
-    );
-    return response.data;
   }
 
   private async getUserProfile(accessToken: string): Promise<any> {

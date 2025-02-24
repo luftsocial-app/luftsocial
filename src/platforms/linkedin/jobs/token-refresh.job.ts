@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { LinkedInRepository } from '../repositories/linkedin.repository';
-import { LinkedInService } from '../linkedin.service';
+import { OAuth2Service } from 'src/platform-auth/platform-auth.service';
+import { SocialPlatform } from 'src/enum/social-platform.enum';
 
 @Injectable()
 export class LinkedInTokenRefreshJob {
@@ -9,7 +10,7 @@ export class LinkedInTokenRefreshJob {
 
   constructor(
     private readonly linkedInRepo: LinkedInRepository,
-    private readonly linkedInService: LinkedInService,
+    private readonly oauth2Service: OAuth2Service,
   ) {}
 
   @Cron(CronExpression.EVERY_HOUR)
@@ -21,14 +22,10 @@ export class LinkedInTokenRefreshJob {
 
       for (const account of accounts) {
         try {
-          const newTokens = await this.linkedInService.refreshToken(account.id);
-
-          const tokens = {
-            accessToken: newTokens.accessToken,
-            refreshToken: newTokens.refreshToken,
-            expiresAt: new Date(Date.now() + newTokens.expiresIn * 1000),
-          };
-          await this.linkedInRepo.updateAccountTokens(account.id, tokens);
+          await this.oauth2Service.refreshToken(
+            SocialPlatform.LINKEDIN,
+            account.id,
+          );
 
           this.logger.debug(`Refreshed tokens for account ${account.id}`);
         } catch (error) {

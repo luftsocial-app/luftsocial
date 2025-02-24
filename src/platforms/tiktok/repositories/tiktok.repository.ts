@@ -1,4 +1,3 @@
-import * as crypto from 'crypto';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, LessThan, MoreThan, Repository } from 'typeorm';
@@ -12,16 +11,12 @@ import {
   TikTokVideoPrivacyLevel,
 } from '../helpers/tiktok.interfaces';
 import { SocialAccount } from 'src/platforms/entity/social-account.entity';
-import { AuthState } from 'src/platforms/facebook/entity/auth-state.entity';
-import { SocialPlatform } from 'src/enum/social-platform.enum';
 
 @Injectable()
 export class TikTokRepository {
   constructor(
     @InjectRepository(TikTokAccount)
     private readonly accountRepo: Repository<TikTokAccount>,
-    @InjectRepository(AuthState)
-    private readonly authStateRepo: Repository<AuthState>,
     @InjectRepository(SocialAccount)
     private readonly socialAccountRepo: Repository<SocialAccount>,
     @InjectRepository(TikTokVideo)
@@ -39,20 +34,6 @@ export class TikTokRepository {
   async createAccount(data: Partial<TikTokAccount>): Promise<TikTokAccount> {
     const account = this.accountRepo.create(data);
     return this.accountRepo.save(account);
-  }
-
-  async createAuthState(userId: string): Promise<string> {
-    const state = crypto.randomBytes(32).toString('hex');
-
-    const authState = this.authStateRepo.create({
-      state,
-      userId,
-      platform: SocialPlatform.INSTAGRAM,
-      expiresAt: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
-    });
-
-    await this.authStateRepo.save(authState);
-    return state;
   }
 
   async createVideo(data: {

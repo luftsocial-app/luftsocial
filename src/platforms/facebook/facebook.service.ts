@@ -22,7 +22,6 @@ import {
   CommentResponse,
   PlatformService,
   SocialAccountDetails,
-  TokenResponse,
 } from '../platform-service.interface';
 import {
   FacebookPageMetrics,
@@ -33,6 +32,7 @@ import {
   AccountMetrics,
   DateRange,
 } from 'src/cross-platform/helpers/cross-platform.interface';
+import { FacebookAccount } from './entity/facebook-account.entity';
 
 @Injectable()
 export class FacebookService implements PlatformService {
@@ -44,35 +44,6 @@ export class FacebookService implements PlatformService {
     private readonly configService: ConfigService,
     private readonly facebookRepo: FacebookRepository,
   ) {}
-
-  async authorize(userId: string): Promise<string> {
-    const state = await this.facebookRepo.createAuthState(userId);
-
-    const params = new URLSearchParams({
-      client_id: this.configService.get('FACEBOOK_CLIENT_ID'),
-      redirect_uri: this.configService.get('FACEBOOK_REDIRECT_URI'),
-      state,
-      scope: [
-        'pages_manage_posts',
-        'pages_read_engagement',
-        'pages_show_list',
-        'publish_to_groups',
-      ].join(','),
-    });
-
-    return `https://www.facebook.com/${this.apiVersion}/dialog/oauth?${params}`;
-  }
-
-  async refreshToken(refreshToken: string): Promise<TokenResponse> {
-    const tokens = await this.refreshLongLivedToken(refreshToken);
-    return {
-      accessToken: tokens.access_token,
-      refreshToken: tokens.refresh_token,
-      expiresIn: tokens.expires_in,
-      tokenType: 'bearer',
-      scope: tokens.scope.split(','),
-    };
-  }
 
   async getComments(
     accountId: string,
@@ -132,20 +103,6 @@ export class FacebookService implements PlatformService {
         error,
       );
     }
-  }
-
-  async handleCallback(code: string): Promise<any> {
-    const token = await this.exchangeCodeForToken(code);
-    const longLivedToken = await this.getLongLivedToken(token.access_token);
-    const userProfile = await this.getUserProfile(longLivedToken.access_token);
-    const pages = await this.getPages(longLivedToken.access_token);
-
-    return {
-      accessToken: longLivedToken.access_token,
-      expiresIn: longLivedToken.expires_in,
-      userData: userProfile,
-      pages,
-    };
   }
 
   async post(
@@ -246,7 +203,18 @@ export class FacebookService implements PlatformService {
     return response.data;
   }
 
-  private async getUserProfile(accessToken: string): Promise<any> {
+  async getAccountsByUserId(userId: string): Promise<FacebookAccount> {
+    try {
+      return await this.facebookRepo.getAccountById(userId);
+    } catch (error) {
+      this.logger.error(
+        `Failed to fetch Facebook accounts for user ${userId}`,
+        error.stack,
+      );
+    }
+  }
+
+  async getUserProfile(accessToken: string): Promise<any> {
     const response = await axios.get(`${this.baseUrl}/${this.apiVersion}/me`, {
       params: {
         access_token: accessToken,
@@ -256,7 +224,7 @@ export class FacebookService implements PlatformService {
     return response.data;
   }
 
-  private async getPages(accessToken: string): Promise<any[]> {
+  async getPages(accessToken: string): Promise<any[]> {
     const response = await axios.get(
       `${this.baseUrl}/${this.apiVersion}/me/accounts`,
       {
