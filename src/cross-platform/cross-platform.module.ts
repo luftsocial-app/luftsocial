@@ -16,9 +16,15 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AnalyticsRecord } from './entity/analytics.entity';
 import { PublishRecord } from './entity/publish.entity';
 import { ScheduledPost } from './entity/schedule.entity';
+import { MediaStorageModule } from 'src/media-storage/media-storage.module';
+import { MulterModule } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 
 @Module({
   imports: [
+    MulterModule.register({
+      storage: memoryStorage(),
+    }),
     FacebookModule,
     InstagramModule,
     LinkedInModule,
@@ -52,6 +58,7 @@ import { ScheduledPost } from './entity/schedule.entity';
     ContentPublisherService,
     AnalyticsService,
     SchedulerService,
+    MediaStorageModule,
   ],
   controllers: [CrossPlatformController],
   exports: [CrossPlatformService],

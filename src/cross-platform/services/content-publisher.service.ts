@@ -8,7 +8,6 @@ import { SocialPlatform } from 'src/enum/social-platform.enum';
 import { FacebookService } from 'src/platforms/facebook/facebook.service';
 import { InstagramService } from 'src/platforms/instagram/instagram.service';
 import { LinkedInService } from 'src/platforms/linkedin/linkedin.service';
-import { PostResponse } from 'src/platforms/platform-service.interface';
 import { TikTokService } from 'src/platforms/tiktok/tiktok.service';
 import { Repository } from 'typeorm';
 import { PublishRecord } from '../entity/publish.entity';
@@ -18,6 +17,9 @@ import {
   PublishResult,
   PublishStatus,
 } from '../helpers/cross-platform.interface';
+import { MediaStorageService } from 'src/media-storage/media-storage.service';
+import { MediaStorageItem } from 'src/media-storage/media-storage.dto';
+import { MediaItem } from 'src/platforms/facebook/helpers/post.dto';
 
 @Injectable()
 export class ContentPublisherService {
@@ -25,33 +27,77 @@ export class ContentPublisherService {
     @InjectRepository(PublishRecord)
     private readonly publishRepo: Repository<PublishRecord>,
     private readonly facebookService: FacebookService,
+    private readonly mediaStorageService: MediaStorageService,
     private readonly instagramService: InstagramService,
     private readonly linkedinService: LinkedInService,
     private readonly tiktokService: TikTokService,
   ) {}
 
-  async publishContent(params: PublishParams): Promise<PublishResult> {
-    // Create publishing record
+  async publishContentWithMedia(params: PublishParams): Promise<PublishResult> {
+    // Create publishing record first to get an ID
     const publishRecord = await this.publishRepo.save({
       userId: params.userId,
       content: params.content,
-      mediaUrls: params.mediaUrls,
       platforms: params.platforms,
       scheduleTime: params.scheduleTime,
       status: PublishStatus.PENDING,
-      results: [],
     });
 
-    const publishAttempts = await Promise.allSettled(
+    // Process and upload media
+    const mediaItems: MediaStorageItem[] = [];
+
+    // Convert files and mediaUrls to MediaItem format
+    const combinedMedia: MediaItem[] = [
+      ...(params.files?.map((file) => ({
+        file,
+        url: undefined,
+        description: undefined,
+      })) || []),
+      ...(params.mediaUrls?.map((url) => ({
+        url,
+        file: undefined,
+        description: undefined,
+      })) || []),
+    ];
+
+    // Upload media items
+    for (const mediaItem of combinedMedia) {
+      if (mediaItem.file) {
+        const uploadedFiles = await this.mediaStorageService.uploadPostMedia(
+          params.userId,
+          [mediaItem.file],
+          publishRecord.id,
+        );
+        mediaItems.push(...uploadedFiles);
+      } else if (mediaItem.url) {
+        const uploadedMedia = await this.mediaStorageService.uploadMediaFromUrl(
+          params.userId,
+          mediaItem.url,
+          publishRecord.id,
+        );
+        mediaItems.push(uploadedMedia);
+      }
+    }
+
+    // Update record with media
+    await this.publishRepo.update(publishRecord.id, {
+      mediaItems,
+    });
+
+    // Now post to platforms with uploaded media URLs
+    const mediaUrls = mediaItems.map((item) => item.url);
+
+    const results = await Promise.allSettled(
       params.platforms.map(async (platform) => {
         try {
           const result = await this.publishToPlatform({
             platform: platform.platform,
             accountId: platform.accountId,
             content: params.content,
-            mediaUrls: params.mediaUrls,
+            mediaUrls,
             scheduleTime: params.scheduleTime,
             platformSpecificParams: platform.platformSpecificParams,
+            media: combinedMedia, // Pass full media items for platform-specific handling
           });
 
           return {
@@ -60,90 +106,112 @@ export class ContentPublisherService {
             success: true,
             postId: result.platformPostId,
             postedAt: result.postedAt,
-          } as PublishPlatformResult;
+          };
         } catch (error) {
           return {
             platform: platform.platform,
             accountId: platform.accountId,
             success: false,
             error: error.message,
-          } as PublishPlatformResult;
+          };
         }
       }),
     );
 
-    // Transform results to the correct format
-    const results: PublishPlatformResult[] = publishAttempts.map((attempt) =>
-      attempt.status === 'fulfilled'
-        ? attempt.value
-        : {
-            platform: attempt.reason.platform,
-            accountId: attempt.reason.accountId,
-            success: false,
-            error: attempt.reason.message,
-          },
-    );
-
     // Update publish record with results
-    const status = this.determineOverallStatus(publishAttempts);
+    const status = this.determineOverallStatus(results);
     await this.publishRepo.update(publishRecord.id, {
       status,
-      results,
+      results: results.map((result) =>
+        result.status === 'fulfilled'
+          ? result.value
+          : {
+              platform: result.reason.platform,
+              accountId: result.reason.accountId,
+              success: false,
+              error: result.reason.message,
+            },
+      ),
     });
 
     return {
       publishId: publishRecord.id,
       status,
-      results,
+      mediaItems,
+      results: results.map((result) =>
+        result.status === 'fulfilled' ? result.value : result.reason,
+      ),
     };
   }
+
   private async publishToPlatform(params: {
     platform: SocialPlatform;
     accountId: string;
     content: string;
     mediaUrls?: string[];
     scheduleTime?: Date;
+    media?: MediaItem[];
     platformSpecificParams?: any;
-  }): Promise<PostResponse> {
+  }): Promise<{
+    platformPostId: string;
+    postedAt: Date;
+    platformSpecificData?: any;
+  }> {
     switch (params.platform) {
       case SocialPlatform.FACEBOOK:
-        return this.facebookService.post(
+        const fbResult = await this.facebookService.post(
           params.accountId,
           params.content,
-          params.mediaUrls,
-          // params.platformSpecificParams,
+          params.media,
         );
+        return {
+          platformPostId: fbResult.platformPostId,
+          postedAt: fbResult.postedAt,
+        };
 
       case SocialPlatform.INSTAGRAM:
-        if (!params.mediaUrls?.length) {
+        if (!params.media?.length) {
           throw new BadRequestException(
             'Instagram requires at least one media',
           );
         }
-        return this.instagramService.post(
+        const igResult = await this.instagramService.post(
           params.accountId,
           params.content,
-          params.mediaUrls,
-          // params.platformSpecificParams,
+          params.media,
         );
+        return {
+          platformPostId: igResult.platformPostId,
+          postedAt: igResult.postedAt,
+          platformSpecificData: igResult.additionalData,
+        };
 
       case SocialPlatform.LINKEDIN:
-        return this.linkedinService.post(
+        const liResult = await this.linkedinService.post(
           params.accountId,
           params.content,
-          params.mediaUrls,
-          // params.platformSpecificParams,
+          params.media,
         );
+        return {
+          platformPostId: liResult.platformPostId,
+          postedAt: liResult.postedAt,
+          platformSpecificData: liResult.additionalData,
+        };
 
       case SocialPlatform.TIKTOK:
-        if (!params.mediaUrls?.length) {
+        if (!params.media?.length) {
           throw new BadRequestException('TikTok requires a video');
         }
-        return this.tiktokService.uploadVideo(
+        const ttResult = await this.tiktokService.uploadVideo(
           params.accountId,
-          params.mediaUrls[0], // TikTok only accepts one video
+          params.media[0], // TikTok only accepts one video
           params.platformSpecificParams,
         );
+        return {
+          platformPostId: ttResult.platformPostId,
+          postedAt: ttResult.postedAt,
+          platformSpecificData: ttResult.additionalData,
+        };
 
       default:
         throw new BadRequestException(
@@ -151,15 +219,18 @@ export class ContentPublisherService {
         );
     }
   }
-
   private determineOverallStatus(
     results: PromiseSettledResult<PublishPlatformResult>[],
   ): PublishStatus {
     const allSuccessful = results.every((r) => r.status === 'fulfilled');
     const allFailed = results.every((r) => r.status === 'rejected');
 
-    if (allSuccessful) return PublishStatus.COMPLETED;
-    if (allFailed) return PublishStatus.FAILED;
+    if (allSuccessful) {
+      return PublishStatus.COMPLETED;
+    }
+    if (allFailed) {
+      return PublishStatus.FAILED;
+    }
     return PublishStatus.PARTIALLY_COMPLETED;
   }
 

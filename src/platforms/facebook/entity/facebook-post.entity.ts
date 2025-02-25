@@ -10,6 +10,7 @@ import {
 import { FacebookPage } from './facebook-page.entity';
 import { FacebookPostMetric } from './facebook-post-metric.entity';
 import { FacebookAccount } from './facebook-account.entity';
+import { MediaStorageItem } from 'src/media-storage/media-storage.dto';
 
 @Entity('facebook_posts')
 export class FacebookPost {
@@ -33,6 +34,9 @@ export class FacebookPost {
 
   @Column('simple-array', { nullable: true })
   mediaUrls: string[];
+
+  @Column('jsonb', { nullable: true })
+  mediaItems: MediaStorageItem[];
 
   @Column({ nullable: true })
   permalinkUrl: string;

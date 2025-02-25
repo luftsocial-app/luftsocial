@@ -1,4 +1,5 @@
 import { SocialPlatform } from 'src/enum/social-platform.enum';
+import { MediaStorageItem } from 'src/media-storage/media-storage.dto';
 
 export interface ConnectedPlatform {
   platform: SocialPlatform;
@@ -94,6 +95,7 @@ export interface PublishParams {
   userId: string;
   content: string;
   mediaUrls?: string[];
+  files?: Express.Multer.File[];
   platforms: {
     platform: SocialPlatform;
     accountId: string;
@@ -105,5 +107,6 @@ export interface PublishParams {
 export interface PublishResult {
   publishId: string;
   status: PublishStatus;
+  mediaItems: MediaStorageItem[];
   results: PublishPlatformResult[];
 }

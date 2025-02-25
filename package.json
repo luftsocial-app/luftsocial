@@ -43,6 +43,7 @@
     "@nestjs/typeorm": "^11.0.0",
     "@nestjs/websockets": "^11.0.9",
     "@types/multer": "^1.4.12",
+    "aws-sdk": "^2.1692.0",
     "cache-manager": "^6.4.0",
     "cache-manager-redis-store": "^3.0.1",
     "cache-manager-redis-yet": "^5.1.5",

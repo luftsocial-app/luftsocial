@@ -8,6 +8,8 @@ import {
   Post,
   Put,
   Query,
+  UploadedFiles,
+  UseInterceptors,
 } from '@nestjs/common';
 import { SocialPlatform } from 'src/enum/social-platform.enum';
 import { CrossPlatformService } from './cross-platform.service';
@@ -23,6 +25,7 @@ import {
   ScheduleFiltersDto,
   UpdateScheduleDto,
 } from './helpers/cross-platform.dto';
+import { FilesInterceptor } from '@nestjs/platform-express';
 
 @Controller('cross-platform')
 export class CrossPlatformController {
@@ -55,13 +58,18 @@ export class CrossPlatformController {
 
   // Content Publishing Endpoints
   @Post('publish')
+  @UseInterceptors(FilesInterceptor('files'))
   async publishContent(
+    @UploadedFiles() files: Express.Multer.File[],
     @Body() createPostDto: CreateCrossPlatformPostDto,
     @CurrentUser() userId: string,
   ) {
-    return this.contentPublisherService.publishContent({
+    return this.contentPublisherService.publishContentWithMedia({
       userId,
-      ...createPostDto,
+      content: createPostDto.content,
+      files: files || [],
+      mediaUrls: createPostDto.mediaUrls,
+      platforms: createPostDto.platforms,
     });
   }
 
@@ -75,13 +83,16 @@ export class CrossPlatformController {
 
   // Scheduling Endpoints
   @Post('schedule')
+  @UseInterceptors(FilesInterceptor('files'))
   async schedulePost(
+    @UploadedFiles() files: Express.Multer.File[],
     @Body() schedulePostDto: ScheduleCrossPlatformPostDto,
     @CurrentUser() userId: string,
   ) {
     return this.schedulerService.schedulePost({
       userId,
       content: schedulePostDto.content,
+      files: files || [],
       mediaUrls: schedulePostDto.mediaUrls,
       platforms: schedulePostDto.platforms,
       scheduledTime: new Date(schedulePostDto.scheduledTime),

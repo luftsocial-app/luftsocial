@@ -10,6 +10,7 @@ import {
   PublishPlatformResult,
   ScheduleStatus,
 } from '../helpers/cross-platform.interface';
+import { MediaStorageItem } from 'src/media-storage/media-storage.dto';
 
 @Entity('scheduled_posts')
 export class ScheduledPost {
@@ -24,6 +25,9 @@ export class ScheduledPost {
 
   @Column('simple-array', { nullable: true })
   mediaUrls: string[];
+
+  @Column('jsonb', { nullable: true })
+  mediaItems: MediaStorageItem[];
 
   @Column('jsonb')
   platforms: {

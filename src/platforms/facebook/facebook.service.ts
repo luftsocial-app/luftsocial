@@ -12,6 +12,7 @@ import { FacebookRepository } from './repositories/facebook.repository';
 import { FacebookPage } from './entity/facebook-page.entity';
 import {
   CreatePostDto,
+  MediaItem,
   SchedulePagePostDto,
   SchedulePostDto,
   UpdatePageDto,
@@ -33,6 +34,8 @@ import {
   DateRange,
 } from 'src/cross-platform/helpers/cross-platform.interface';
 import { FacebookAccount } from './entity/facebook-account.entity';
+import { MediaStorageItem } from 'src/media-storage/media-storage.dto';
+import { MediaStorageService } from 'src/media-storage/media-storage.service';
 
 @Injectable()
 export class FacebookService implements PlatformService {
@@ -43,6 +46,7 @@ export class FacebookService implements PlatformService {
   constructor(
     private readonly configService: ConfigService,
     private readonly facebookRepo: FacebookRepository,
+    private readonly mediaStorageService: MediaStorageService,
   ) {}
 
   async getComments(
@@ -105,27 +109,80 @@ export class FacebookService implements PlatformService {
     }
   }
 
+  private async uploadFacebookMediaItems(
+    media: MediaItem[],
+    facebookAccountId: string,
+    context: 'post' | 'scheduled',
+  ): Promise<MediaStorageItem[]> {
+    const mediaItems: MediaStorageItem[] = [];
+
+    if (!media?.length) {
+      return mediaItems;
+    }
+
+    for (const mediaItem of media) {
+      const timestamp = Date.now();
+      const prefix = `facebook-${context}-${timestamp}`;
+
+      if (mediaItem.file) {
+        // For uploaded files
+        const uploadedMedia = await this.mediaStorageService.uploadPostMedia(
+          facebookAccountId,
+          [mediaItem.file],
+          prefix,
+        );
+        mediaItems.push(...uploadedMedia);
+      } else if (mediaItem.url) {
+        // For media URLs
+        const uploadedMedia = await this.mediaStorageService.uploadMediaFromUrl(
+          facebookAccountId,
+          mediaItem.url,
+          prefix,
+        );
+        mediaItems.push(uploadedMedia);
+      }
+    }
+
+    return mediaItems;
+  }
+
   async post(
     accountId: string,
     content: string,
-    mediaUrls?: string[],
-  ): Promise<any> {
+    media?: MediaItem[],
+  ): Promise<{ platformPostId: string; postedAt: Date }> {
     const account = await this.facebookRepo.getAccountById(accountId);
-    if (!account) throw new Error('Account not found');
+    if (!account) {
+      throw new Error('Account not found');
+    }
 
+    // Store media in S3 first if there are any media items
+    const mediaItems = await this.uploadFacebookMediaItems(
+      media,
+      account.facebookUserId,
+      'post',
+    );
+
+    // Prepare post data
     const postData: any = { message: content };
 
-    if (mediaUrls?.length) {
-      if (mediaUrls.length === 1) {
-        postData.link = mediaUrls[0];
+    // Handle media attachments
+    if (mediaItems?.length) {
+      if (mediaItems.length === 1) {
+        // If only one media item, use its URL as a link
+        postData.link = mediaItems[0].url;
       } else {
+        // For multiple media items, upload to Facebook and attach
         const attachments = await Promise.all(
-          mediaUrls.map((url) => this.uploadMedia(account.accessToken, url)),
+          mediaItems.map((mediaItem) =>
+            this.uploadMedia(account.accessToken, mediaItem.url),
+          ),
         );
         postData.attached_media = attachments;
       }
     }
 
+    // Post to Facebook
     const response = await axios.post(
       `${this.baseUrl}/${this.apiVersion}/${account.facebookUserId}/feed`,
       postData,
@@ -254,19 +311,29 @@ export class FacebookService implements PlatformService {
   async createPagePost(
     pageId: string,
     createPostDto: CreatePostDto,
-  ): Promise<FacebookPost> {
+  ): Promise<any> {
     const page = await this.facebookRepo.getPageById(pageId);
-    if (!page) throw new NotFoundException('Page not found');
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
 
+    // Store media in S3 first if there are any media items
+    const mediaItems = await this.uploadFacebookMediaItems(
+      createPostDto.media,
+      page.facebookAccount.id,
+      'post',
+    );
+
+    // Use S3 URLs for Facebook post
+    const mediaUrls = mediaItems.map((item) => item.url);
+
+    // Post to Facebook
     const postData = await axios.post(
       `${this.baseUrl}/${this.apiVersion}/${page.pageId}/feed`,
       {
         message: createPostDto.content,
-        ...(createPostDto.media && {
-          attached_media: await this.processMedia(
-            page.accessToken,
-            createPostDto.media.map((m) => m.url),
-          ),
+        ...(mediaUrls.length && {
+          attached_media: await this.processMedia(page.accessToken, mediaUrls),
         }),
       },
       {
@@ -278,7 +345,8 @@ export class FacebookService implements PlatformService {
       page,
       postId: postData.data.id,
       content: createPostDto.content,
-      mediaUrls: createPostDto.media?.map((m) => m.url) || [],
+      mediaUrls,
+      mediaItems, // S3 media items
       isPublished: true,
       publishedAt: new Date(),
     });
@@ -288,47 +356,77 @@ export class FacebookService implements PlatformService {
     postId: string,
     scheduleDto: SchedulePostDto,
   ): Promise<FacebookPost> {
+    // Retrieve the post and associated page
     const post = await this.facebookRepo.getPostById(postId, ['page']);
-    if (!post) throw new NotFoundException('Post not found');
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
 
     const page = await this.facebookRepo.getPageById(post.page.id);
-    if (!page) throw new NotFoundException('Page not found');
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
 
+    // Upload media to S3 first
+    const mediaItems = await this.uploadFacebookMediaItems(
+      scheduleDto.media,
+      page.facebookAccount.id,
+      'scheduled',
+    );
+
+    // Prepare media for Facebook scheduling
+    const attachedMedia =
+      mediaItems.length > 0
+        ? await this.processMedia(
+            page.accessToken,
+            mediaItems.map((m) => m.url),
+          )
+        : undefined;
+
+    // Schedule the post on Facebook
     const postData = await axios.post(
       `${this.baseUrl}/${this.apiVersion}/${page.pageId}/feed`,
       {
         message: scheduleDto.content,
         published: false,
-        scheduled_publish_time:
+        scheduled_publish_time: Math.floor(
           new Date(scheduleDto.scheduledTime).getTime() / 1000,
-        ...(scheduleDto.media && {
-          attached_media: await this.processMedia(
-            page.accessToken,
-            scheduleDto.media.map((m) => m.url),
-          ),
-        }),
+        ),
+        ...(attachedMedia && { attached_media: attachedMedia }),
       },
       {
         params: { access_token: page.accessToken },
       },
     );
 
+    // Create post record in repository
     return this.facebookRepo.createPost({
       page,
       postId: postData.data.id,
       content: scheduleDto.content,
-      mediaUrls: scheduleDto.media?.map((m) => m.url) || [],
+      mediaUrls: mediaItems.map((m) => m.url),
       isPublished: false,
       scheduledTime: new Date(scheduleDto.scheduledTime),
     });
   }
 
-  async schedulePagePost(
-    scheduleDto: SchedulePagePostDto,
-  ): Promise<FacebookPost> {
+  async schedulePagePost(scheduleDto: SchedulePagePostDto): Promise<any> {
     const page = await this.facebookRepo.getPageById(scheduleDto.pageId);
-    if (!page) throw new NotFoundException('Page not found');
+    if (!page) {
+      throw new NotFoundException('Page not found');
+    }
 
+    // Store media in S3 first
+    const mediaItems = await this.uploadFacebookMediaItems(
+      scheduleDto.media,
+      page.facebookAccount.id,
+      'scheduled',
+    );
+
+    // Use S3 URLs for Facebook post
+    const mediaUrls = mediaItems.map((item) => item.url);
+
+    // Post to Facebook
     const postData = await axios.post(
       `${this.baseUrl}/${this.apiVersion}/${page.pageId}/feed`,
       {
@@ -337,11 +435,8 @@ export class FacebookService implements PlatformService {
         scheduled_publish_time:
           new Date(scheduleDto.scheduledTime).getTime() / 1000,
         privacy: scheduleDto.privacyLevel,
-        ...(scheduleDto.media && {
-          attached_media: await this.processMedia(
-            page.accessToken,
-            scheduleDto.media.map((m) => m.url),
-          ),
+        ...(mediaUrls.length && {
+          attached_media: await this.processMedia(page.accessToken, mediaUrls),
         }),
       },
       {
@@ -349,11 +444,13 @@ export class FacebookService implements PlatformService {
       },
     );
 
+    // Save the post with S3 media details
     return this.facebookRepo.createPost({
       page,
       postId: postData.data.id,
       content: scheduleDto.content,
-      mediaUrls: scheduleDto.media?.map((m) => m.url) || [],
+      mediaUrls,
+      mediaItems, // Store full media items
       isPublished: false,
       scheduledTime: new Date(scheduleDto.scheduledTime),
     });
@@ -361,7 +458,9 @@ export class FacebookService implements PlatformService {
 
   async getUserPages(userId: string): Promise<FacebookPage[]> {
     const account = await this.facebookRepo.getAccountById(userId);
-    if (!account) throw new NotFoundException('Account not found');
+    if (!account) {
+      throw new NotFoundException('Account not found');
+    }
 
     const existingPages = await this.facebookRepo.getAccountPages(account.id);
 
@@ -505,7 +604,9 @@ export class FacebookService implements PlatformService {
     dateRange: DateRange,
   ): Promise<AccountMetrics> {
     const page = await this.facebookRepo.getPageById(pageId);
-    if (!page) throw new NotFoundException('Account not found');
+    if (!page) {
+      throw new NotFoundException('Account not found');
+    }
 
     try {
       const response = await axios.get(`${this.baseUrl}/${pageId}/insights`, {
@@ -548,36 +649,50 @@ export class FacebookService implements PlatformService {
     postId: string,
     updateDto: UpdatePostDto,
   ): Promise<FacebookPost> {
+    // Retrieve the post with its associated page
     const post = await this.facebookRepo.getPostById(postId, ['page']);
     if (!post) throw new NotFoundException('Post not found');
 
     try {
+      // Upload media to S3 first
+      const mediaItems = await this.uploadFacebookMediaItems(
+        updateDto.media,
+        post.account.id,
+        'post',
+      );
+
+      // Prepare media for Facebook update
+      const attachedMedia =
+        mediaItems.length > 0
+          ? await this.processMedia(
+              post.page.accessToken,
+              mediaItems.map((m) => m.url),
+            )
+          : undefined;
+
+      // Update post on Facebook
       await axios.post(
         `${this.baseUrl}/${this.apiVersion}/${post.postId}`,
         {
           message: updateDto.content,
-          ...(updateDto.media && {
-            attached_media: await this.processMedia(
-              post.page.accessToken,
-              updateDto.media.map((m) => m.url),
-            ),
-          }),
+          ...(attachedMedia && { attached_media: attachedMedia }),
         },
         {
           params: { access_token: post.page.accessToken },
         },
       );
 
+      // Update post in repository
       return this.facebookRepo.updatePost(postId, {
         content: updateDto.content,
-        mediaUrls: updateDto.media?.map((m) => m.url) || post.mediaUrls,
+        mediaUrls: mediaItems.map((m) => m.url) || post.mediaUrls,
         updatedAt: new Date(),
       });
     } catch (error) {
       throw new HttpException(
         'Failed to update Facebook post',
         HttpStatus.BAD_REQUEST,
-        error,
+        { cause: error },
       );
     }
   }

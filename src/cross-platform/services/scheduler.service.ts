@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -13,6 +14,8 @@ import {
 } from '../helpers/cross-platform.interface';
 import { ContentPublisherService } from './content-publisher.service';
 import { ScheduledPost } from '../entity/schedule.entity';
+import { MediaStorageService } from 'src/media-storage/media-storage.service';
+import { MediaStorageItem } from 'src/media-storage/media-storage.dto';
 
 @Injectable()
 export class SchedulerService {
@@ -20,13 +23,12 @@ export class SchedulerService {
     @InjectRepository(ScheduledPost)
     private readonly scheduledPostRepo: Repository<ScheduledPost>,
     private readonly contentPublisherService: ContentPublisherService,
-    // private readonly logger: Logger = new Logger(SchedulerService.name),
+    private readonly mediaStorageService: MediaStorageService,
+    private readonly logger: Logger = new Logger(SchedulerService.name),
   ) {}
 
   @Cron(CronExpression.EVERY_MINUTE)
   async processScheduledPosts() {
-    // this.logger.log('Processing scheduled posts');
-
     try {
       const pendingPosts = await this.scheduledPostRepo.find({
         where: {
@@ -42,13 +44,16 @@ export class SchedulerService {
             status: ScheduleStatus.PROCESSING,
           });
 
-          // Publish content
-          const result = await this.contentPublisherService.publishContent({
-            userId: post.userId,
-            content: post.content,
-            mediaUrls: post.mediaUrls,
-            platforms: post.platforms,
-          });
+          const result =
+            await this.contentPublisherService.publishContentWithMedia({
+              userId: post.userId,
+              content: post.content,
+              mediaUrls:
+                post.mediaItems?.map((item) => item.url) ||
+                post.mediaUrls ||
+                [],
+              platforms: post.platforms,
+            });
 
           // Update status based on result
           await this.scheduledPostRepo.update(post.id, {
@@ -64,13 +69,15 @@ export class SchedulerService {
         }
       }
     } catch (error) {
-      throw new BadRequestException(error);
+      this.logger.error('Failed to process scheduled posts', error.stack);
+      // Don't throw here, just log the error to prevent the cron job from crashing
     }
   }
 
   async schedulePost(params: {
     userId: string;
     content: string;
+    files?: Express.Multer.File[];
     mediaUrls?: string[];
     platforms: {
       platform: SocialPlatform;
@@ -88,13 +95,42 @@ export class SchedulerService {
     const scheduledPost = await this.scheduledPostRepo.save({
       userId: params.userId,
       content: params.content,
-      mediaUrls: params.mediaUrls,
       platforms: params.platforms,
       scheduledTime: params.scheduledTime,
       status: ScheduleStatus.PENDING,
     });
 
-    return scheduledPost;
+    // Process and upload media
+    const mediaItems: MediaStorageItem[] = [];
+
+    // Upload local files if provided
+    if (params.files?.length) {
+      const uploadedFiles = await this.mediaStorageService.uploadPostMedia(
+        params.userId,
+        params.files,
+        scheduledPost.id,
+      );
+      mediaItems.push(...uploadedFiles);
+    }
+
+    // Upload external URLs if provided
+    if (params.mediaUrls?.length) {
+      for (const url of params.mediaUrls) {
+        const uploadedMedia = await this.mediaStorageService.uploadMediaFromUrl(
+          params.userId,
+          url,
+          scheduledPost.id,
+        );
+        mediaItems.push(uploadedMedia);
+      }
+    }
+
+    // Update record with media
+    await this.scheduledPostRepo.update(scheduledPost.id, {
+      mediaItems,
+    });
+
+    return this.scheduledPostRepo.findOne({ where: { id: scheduledPost.id } });
   }
 
   async getScheduledPosts(

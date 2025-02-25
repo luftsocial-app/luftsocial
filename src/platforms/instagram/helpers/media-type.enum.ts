@@ -4,4 +4,6 @@ export enum MediaType {
   CAROUSEL = 'CAROUSEL',
   REELS = 'REELS',
   STORIES = 'STORIES',
+  AUDIO = 'AUDIO',
+  FILE = 'FILE',
 }

@@ -37,6 +37,7 @@ import { MessageModule } from './messaging/message/message.module';
 import { Message } from './entities/chats/message.entity';
 import { TokenCacheModule } from './cache/cache.module';
 import { PlatformAuthModule } from './platform-auth/platform-auth.module';
+import { MediaStorageModule } from './media-storage/media-storage.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -83,6 +84,7 @@ import { PlatformAuthModule } from './platform-auth/platform-auth.module';
     AuthModule,
     TokenCacheModule,
     PlatformAuthModule,
+    MediaStorageModule,
   ],
   controllers: [AppController],
   providers: [

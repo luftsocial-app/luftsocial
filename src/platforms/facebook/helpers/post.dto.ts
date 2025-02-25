@@ -25,6 +25,9 @@ export class MediaItem {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @IsOptional()
+  file?: Express.Multer.File;
 }
 
 export class CreatePostDto {

@@ -9,10 +9,12 @@ import {
   Query,
   UseInterceptors,
   UseGuards,
+  UploadedFiles,
 } from '@nestjs/common';
 import { FacebookService } from './facebook.service';
 import {
   CreatePostDto,
+  MediaItem,
   SchedulePagePostDto,
   SchedulePostDto,
   UpdatePageDto,
@@ -23,6 +25,7 @@ import { FacebookPost } from './entity/facebook-post.entity';
 import { FacebookPage } from './entity/facebook-page.entity';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { ClerkAuthGuard } from 'src/guards/clerk-auth.guard';
+import { FilesInterceptor } from '@nestjs/platform-express/multer';
 
 @Controller('platforms/facebook')
 @UseInterceptors(RateLimitInterceptor)
@@ -31,11 +34,20 @@ export class FacebookController {
   constructor(private readonly facebookService: FacebookService) {}
 
   @Post(':accountId/posts')
+  @UseInterceptors(FilesInterceptor('media'))
   async createPost(
     @Param('accountId') accountId: string,
-    @Body() body: { content: string; mediaUrls?: string[] },
+    @Body('content') content: string,
+    @Body('mediaUrls') mediaUrls?: string[],
+    @UploadedFiles() files?: Express.Multer.File[],
   ) {
-    return this.facebookService.post(accountId, body.content, body.mediaUrls);
+    // Combine file uploads and URL-based media
+    const media: MediaItem[] = [
+      ...(files?.map((file) => ({ file, url: undefined })) || []),
+      ...(mediaUrls?.map((url) => ({ url, file: undefined })) || []),
+    ];
+
+    return this.facebookService.post(accountId, content, media);
   }
 
   @Post('pages/:pageId/posts')
