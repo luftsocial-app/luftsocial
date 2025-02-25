@@ -73,17 +73,22 @@ describe('PostsService', () => {
   });
 
   describe('delete', () => {
-    it('should delete a post', async () => {
-      mockPostRepository.delete.mockResolvedValue({ affected: 1 });
+    it('should throw NotFoundException when post not found', async () => {
+      mockPostRepository.delete = jest.fn().mockResolvedValue({ affected: 0 });
 
-      await service.delete('1');
-      expect(mockPostRepository.delete).toHaveBeenCalled();
+      await expect(service.delete('non-existing-id')).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
-    it('should throw NotFoundException when post not found for deletion', async () => {
-      mockPostRepository.delete.mockResolvedValue({ affected: 0 });
+    it('should delete a post successfully', async () => {
+      mockPostRepository.delete = jest.fn().mockResolvedValue({ affected: 1 });
 
-      await expect(service.delete('1')).rejects.toThrow(NotFoundException);
+      await service.delete('existing-id');
+      expect(mockPostRepository.delete).toHaveBeenCalledWith({
+        id: 'existing-id',
+        tenantId: '1',
+      });
     });
   });
 });

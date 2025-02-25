@@ -31,6 +31,8 @@ import { UserTenant } from './entities/users/user-tenant.entity';
 import { MessageModule } from './messaging/message/message.module';
 import { Message } from './entities/chats/message.entity';
 import { ChatModule } from './messaging/chat/chat.module';
+import { TenantModule } from './user-management/tenant/tenant.module';
+import { TaskModule } from './task/task.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -77,6 +79,8 @@ import { ChatModule } from './messaging/chat/chat.module';
     DatabaseModule,
     PostsModule,
     MessageModule,
+    TenantModule,
+    TaskModule,
   ],
   controllers: [AppController],
   providers: [

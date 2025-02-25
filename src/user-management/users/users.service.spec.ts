@@ -160,9 +160,7 @@ describe('UsersService', () => {
 
     it('should return null if user not found', async () => {
       userRepository.findOne.mockResolvedValueOnce(null);
-
       const result = await service.findUser('nonexistent');
-
       expect(result).toBeNull();
     });
   });

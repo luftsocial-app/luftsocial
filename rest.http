@@ -1,1 +1,41 @@
-GET http://localhost:3000/api/users(
+GET http://localhost:3000/api/tenants
+
+
+###
+
+POST http://localhost:3000/api/tenants
+content-type: application/json
+
+{
+    "name": "tenant2"
+}
+
+###
+GET http://localhost:3000/api/tasks
+x-tenant-id: 022058bf-df69-43a9-8250-ec0cece1e9e0
+
+
+###
+POST http://localhost:3000/api/tasks
+content-type: application/json
+x-tenant-id: 022058bf-df69-43a9-8250-ec0cece1e9e0
+
+
+{ 
+    "title": "Belongs to tenant 2", 
+    "done": false 
+}
+
+
+
+#  X-Tenant-ID:a73f2522-33e4-472a-83bb-8ee24904eee6 
+#  { "title": "Belongs to tenant 1", "done": false }'
+
+# X-Tenant-ID: 9d7f0271-f93f-42f6-8d8a-4807f510731a
+# { "title": "Belongs to tenant 2", "done": false }
+
+
+###
+###
+GET http://localhost:3000/api/posts
+x-tenant-id: 022058bf-df69-43a9-8250-ec0cece1e9e0

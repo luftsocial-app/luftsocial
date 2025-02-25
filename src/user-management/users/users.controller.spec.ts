@@ -15,6 +15,7 @@ describe('UsersController', () => {
     updateUserRole: jest.fn(),
     syncClerkUser: jest.fn(),
     findUser: jest.fn(),
+    createUser: jest.fn(),
   };
 
   beforeEach(async () => {

@@ -56,4 +56,6 @@ describe('PostsController', () => {
       await expect(controller.find(chance.guid())).rejects.toThrow();
     });
   });
+
+  // Additional tests for other methods...
 });
