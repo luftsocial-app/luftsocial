@@ -1,3 +1,5 @@
+import { IsOptional, IsString, IsUrl } from 'class-validator';
+
 export interface PostResponse {
   platformPostId: string;
   postedAt: Date;
@@ -53,4 +55,17 @@ export interface TokenResponse {
   scope: string[];
   userId?: string; // Facebook/Instagram
   openId?: string; // TikTok
+}
+
+export class MediaItem {
+  @IsOptional()
+  @IsUrl()
+  url?: string;
+
+  @IsOptional()
+  @IsString()
+  description?: string;
+
+  @IsOptional()
+  file?: Express.Multer.File;
 }

@@ -10,9 +10,10 @@ import {
 import { TikTokAccount } from './tiktok-account.entity';
 import { TikTokMetric } from './tiktok-metric.entity';
 import { TikTokVideoPrivacyLevel } from '../helpers/tiktok.interfaces';
+import { TenantEntity } from 'src/platforms/entity/tenant-entity';
 
 @Entity('tiktok_videos')
-export class TikTokVideo {
+export class TikTokVideo extends TenantEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 

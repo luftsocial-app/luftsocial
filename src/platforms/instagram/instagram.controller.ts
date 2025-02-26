@@ -7,11 +7,14 @@ import {
   Query,
   Param,
   UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
 import { InstagramErrorInterceptor } from './interceptors/instagram-error.interceptor';
 import { InstagramService } from './instagram.service';
 import { RateLimitInterceptor } from './interceptors/rate-limit.interceptor';
 import { CreatePostDto, CreateStoryDto } from './helpers/create-content.dto';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { MediaItem } from '../platform-service.interface';
 
 @Controller('platforms/instagram')
 @UseInterceptors(InstagramErrorInterceptor, RateLimitInterceptor)
@@ -19,14 +22,23 @@ export class InstagramController {
   constructor(private readonly instagramService: InstagramService) {}
 
   @Post(':accountId/media')
+  @UseInterceptors(FilesInterceptor('files'))
   async createPost(
     @Param('accountId') accountId: string,
     @Body() createPostDto: CreatePostDto,
+    @UploadedFiles() files?: Express.Multer.File[],
   ) {
+    // Combine file uploads and URL-based media
+    const media: MediaItem[] = [
+      ...(files?.map((file) => ({ file, url: undefined })) || []),
+      ...(createPostDto.mediaUrls?.map((url) => ({ url, file: undefined })) ||
+        []),
+    ];
+
     return this.instagramService.post(
       accountId,
-      createPostDto.caption,
-      createPostDto.mediaUrls,
+      createPostDto,
+      media,
     );
   }
 

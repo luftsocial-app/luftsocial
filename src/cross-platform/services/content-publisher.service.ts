@@ -19,7 +19,7 @@ import {
 } from '../helpers/cross-platform.interface';
 import { MediaStorageService } from 'src/media-storage/media-storage.service';
 import { MediaStorageItem } from 'src/media-storage/media-storage.dto';
-import { MediaItem } from 'src/platforms/facebook/helpers/post.dto';
+import { MediaItem } from 'src/platforms/platform-service.interface';
 
 @Injectable()
 export class ContentPublisherService {

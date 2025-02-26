@@ -3,7 +3,6 @@ import {
   IsArray,
   IsOptional,
   IsEnum,
-  IsUrl,
   IsDateString,
   MaxLength,
   ValidateNested,
@@ -11,23 +10,12 @@ import {
   IsObject,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { MediaItem } from 'src/platforms/platform-service.interface';
 
 export enum PrivacyLevel {
   PUBLIC = 'PUBLIC',
   FRIENDS = 'FRIENDS',
   ONLY_ME = 'ONLY_ME',
-}
-
-export class MediaItem {
-  @IsUrl()
-  url: string;
-
-  @IsOptional()
-  @IsString()
-  description?: string;
-
-  @IsOptional()
-  file?: Express.Multer.File;
 }
 
 export class CreatePostDto {

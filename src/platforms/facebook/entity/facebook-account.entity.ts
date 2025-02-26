@@ -10,9 +10,10 @@ import {
 } from 'typeorm';
 import { FacebookPage } from './facebook-page.entity';
 import { SocialAccount } from 'src/platforms/entity/social-account.entity';
+import { TenantEntity } from 'src/platforms/entity/tenant-entity';
 
 @Entity('facebook_accounts')
-export class FacebookAccount {
+export class FacebookAccount extends TenantEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -31,15 +32,6 @@ export class FacebookAccount {
 
   @Column({ nullable: true })
   profileUrl: string;
-
-  @Column()
-  accessToken: string;
-
-  @Column({ nullable: true })
-  longLivedToken: string;
-
-  @Column({ type: 'timestamp' })
-  tokenExpiresAt: Date;
 
   @Column('jsonb')
   permissions: string[];

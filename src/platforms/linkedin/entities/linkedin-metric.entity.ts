@@ -6,9 +6,10 @@ import {
   ManyToOne,
 } from 'typeorm';
 import { LinkedInPost } from './linkedin-post.entity';
+import { TenantEntity } from 'src/platforms/entity/tenant-entity';
 
 @Entity('linkedin_metrics')
-export class LinkedInMetric {
+export class LinkedInMetric extends TenantEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 

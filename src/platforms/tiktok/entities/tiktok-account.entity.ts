@@ -1,4 +1,3 @@
-import { SocialAccount } from 'src/platforms/entity/social-account.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -10,9 +9,11 @@ import {
   OneToOne,
 } from 'typeorm';
 import { TikTokVideo } from './tiktok-video.entity';
+import { TenantEntity } from 'src/platforms/entity/tenant-entity';
+import { SocialAccount } from 'src/platforms/entity/social-account.entity';
 
 @Entity('tiktok_accounts')
-export class TikTokAccount {
+export class TikTokAccount extends TenantEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 

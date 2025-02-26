@@ -3,20 +3,21 @@ import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan, LessThan, EntityManager } from 'typeorm';
 import * as crypto from 'crypto';
 import { InstagramAccount } from '../entities/instagram-account.entity';
-import { InstagramMedia } from '../entities/instagram-media.entity';
 import { InstagramMetric } from '../entities/instagram-metric.entity';
 import { SocialPlatform } from 'src/enum/social-platform.enum';
 import { AuthState } from 'src/platforms/facebook/entity/auth-state.entity';
 import { InstagramRateLimit } from '../entities/instagram-rate-limit.entity';
 import { SocialAccount } from 'src/platforms/entity/social-account.entity';
+import { TenantAwareRepository } from 'src/database/tenant-aware.repository';
+import { InstagramPost } from '../entities/instagram-post.entity';
 
 @Injectable()
-export class InstagramRepository {
+export class InstagramRepository extends TenantAwareRepository {
   constructor(
     @InjectRepository(InstagramAccount)
     private readonly accountRepo: Repository<InstagramAccount>,
-    @InjectRepository(InstagramMedia)
-    private readonly mediaRepo: Repository<InstagramMedia>,
+    @InjectRepository(InstagramPost)
+    private readonly mediaRepo: Repository<InstagramPost>,
     @InjectRepository(InstagramMetric)
     private readonly metricRepo: Repository<InstagramMetric>,
     @InjectRepository(AuthState)
@@ -27,11 +28,18 @@ export class InstagramRepository {
     private readonly socialAccountRepo: Repository<SocialAccount>,
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
-  ) {}
+  ) {
+    super(accountRepo);
+  }
+
+  async createPost(data: Partial<InstagramPost>): Promise<InstagramPost> {
+    const post = this.mediaRepo.create(data);
+    return this.mediaRepo.save(post);
+  }
 
   async getAccountByUserId(userId: string): Promise<InstagramAccount> {
     return this.accountRepo.findOne({
-      where: { instagramAccountId: userId },
+      where: { instagramAccountId: userId, tenantId: this.getTenantId() },
       relations: ['socialAccount'],
     });
   }
@@ -47,6 +55,7 @@ export class InstagramRepository {
       where: {
         media: { id: mediaId },
         collectedAt: MoreThan(timeAgo),
+        tenantId: this.getTenantId(),
       },
       order: { collectedAt: 'DESC' },
     });
@@ -69,7 +78,7 @@ export class InstagramRepository {
   async getTopPerformingMedia(
     accountId: string,
     limit: number = 10,
-  ): Promise<InstagramMedia[]> {
+  ): Promise<InstagramPost[]> {
     return this.mediaRepo
       .createQueryBuilder('media')
       .leftJoinAndSelect('media.metrics', 'metrics')
@@ -82,6 +91,7 @@ export class InstagramRepository {
   async getActiveAccounts(): Promise<InstagramAccount[]> {
     return this.accountRepo.find({
       where: {
+        tenantId: this.getTenantId(),
         socialAccount: {
           tokenExpiresAt: MoreThan(new Date()),
         },
@@ -93,12 +103,13 @@ export class InstagramRepository {
   async getRecentMedia(
     accountId: string,
     days: number = 30,
-  ): Promise<InstagramMedia[]> {
+  ): Promise<InstagramPost[]> {
     const timeAgo = new Date();
     timeAgo.setDate(timeAgo.getDate() - days);
 
     return this.mediaRepo.find({
       where: {
+        tenantId: this.getTenantId(),
         account: { id: accountId },
         postedAt: MoreThan(timeAgo),
       },
@@ -114,6 +125,7 @@ export class InstagramRepository {
     const existingMetric = await this.metricRepo.findOne({
       where: {
         media: { id: mediaId },
+        tenantId: this.getTenantId(),
         collectedAt: metrics.collectedAt,
       },
     });
@@ -146,7 +158,7 @@ export class InstagramRepository {
     });
 
     return this.accountRepo.findOne({
-      where: { id: accountId },
+      where: { id: accountId, tenantId: this.getTenantId() },
       relations: ['socialAccount'],
     });
   }
@@ -157,6 +169,7 @@ export class InstagramRepository {
 
     return this.accountRepo.find({
       where: {
+        tenantId: this.getTenantId(),
         socialAccount: {
           tokenExpiresAt: LessThan(expirationThreshold),
         },
@@ -195,16 +208,16 @@ export class InstagramRepository {
 
     await this.rateLimitRepo.save(rateLimit);
   }
-
-  async updateToken(
+  async updateAccountTokens(
     accountId: string,
-    tokenData: {
+    tokens: {
       accessToken: string;
-      expiresIn: number;
+      refreshToken?: string;
+      expiresAt: Date;
     },
   ): Promise<InstagramAccount> {
     const account = await this.accountRepo.findOne({
-      where: { id: accountId },
+      where: { id: accountId, tenantId: this.getTenantId() },
       relations: ['socialAccount'],
     });
 
@@ -214,20 +227,18 @@ export class InstagramRepository {
 
     // Update the social account token information
     await this.entityManager.update(SocialAccount, account.socialAccount.id, {
-      accessToken: tokenData.accessToken,
-      tokenExpiresAt: new Date(Date.now() + tokenData.expiresIn * 1000),
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      tokenExpiresAt: tokens.expiresAt,
       updatedAt: new Date(),
     });
 
-    return this.accountRepo.findOne({
-      where: { id: accountId },
-      relations: ['socialAccount'],
-    });
+    return this.getAccountByUserId(accountId);
   }
 
   async deleteAccount(accountId: string): Promise<void> {
     const account = await this.accountRepo.findOne({
-      where: { id: accountId },
+      where: { id: accountId, tenantId: this.getTenantId() },
       relations: ['socialAccount'],
     });
 
@@ -237,7 +248,7 @@ export class InstagramRepository {
 
     await this.entityManager.transaction(async (transactionalEntityManager) => {
       // Delete associated videos first
-      await transactionalEntityManager.delete(InstagramMedia, {
+      await transactionalEntityManager.delete(InstagramPost, {
         account: { id: accountId },
       });
 

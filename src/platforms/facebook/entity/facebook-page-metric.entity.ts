@@ -6,9 +6,10 @@ import {
   CreateDateColumn,
 } from 'typeorm';
 import { FacebookPage } from './facebook-page.entity';
+import { TenantEntity } from 'src/platforms/entity/tenant-entity';
 
 @Entity('facebook_page_metrics')
-export class FacebookPageMetric {
+export class FacebookPageMetric extends TenantEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 

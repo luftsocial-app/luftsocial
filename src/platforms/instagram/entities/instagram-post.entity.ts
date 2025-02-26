@@ -9,9 +9,11 @@ import {
 } from 'typeorm';
 import { InstagramAccount } from './instagram-account.entity';
 import { InstagramMetric } from './instagram-metric.entity';
+import { MediaStorageItem } from 'src/media-storage/media-storage.dto';
+import { TenantEntity } from 'src/platforms/entity/tenant-entity';
 
-@Entity('instagram_media')
-export class InstagramMedia {
+@Entity('instagram_post')
+export class InstagramPost extends TenantEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -19,22 +21,31 @@ export class InstagramMedia {
   account: InstagramAccount;
 
   @Column()
-  mediaId: string;
-
-  @Column()
-  mediaType: string;
+  postId: string;
 
   @Column({ type: 'text', nullable: true })
   caption: string;
 
-  @Column({ nullable: true })
-  mediaUrl: string;
+  @Column('jsonb')
+  hashtags: string[];
+
+  @Column('jsonb')
+  mentions: string[];
 
   @Column({ nullable: true })
   thumbnailUrl: string;
 
+  @Column('jsonb', { nullable: true })
+  mediaItems: MediaStorageItem[];
+
   @Column({ nullable: true })
   permalink: string;
+
+  @Column({ default: false })
+  isPublished: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  scheduledTime: Date;
 
   @Column({ type: 'timestamp' })
   postedAt: Date;

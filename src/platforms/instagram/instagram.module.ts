@@ -12,8 +12,8 @@ import { SocialAccount } from '../entity/social-account.entity';
 import { AuthState } from '../facebook/entity/auth-state.entity';
 import { InstagramConfig } from './helpers/instagram.config';
 import { InstagramRateLimit } from './entities/instagram-rate-limit.entity';
-import { InstagramMedia } from './entities/instagram-media.entity';
 import { RateLimitInterceptor } from './interceptors/rate-limit.interceptor';
+import { InstagramPost } from './entities/instagram-post.entity';
 
 @Module({
   imports: [
@@ -22,7 +22,7 @@ import { RateLimitInterceptor } from './interceptors/rate-limit.interceptor';
       InstagramAccount,
       InstagramRateLimit,
       InstagramMetric,
-      InstagramMedia,
+      InstagramPost,
       AuthState,
       SocialAccount,
     ]),

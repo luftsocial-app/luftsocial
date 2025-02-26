@@ -7,9 +7,10 @@ import {
 } from 'typeorm';
 import { FacebookPost } from './facebook-post.entity';
 import { FacebookAccount } from './facebook-account.entity';
+import { TenantEntity } from 'src/platforms/entity/tenant-entity';
 
 @Entity('facebook_post_metrics')
-export class FacebookPostMetric {
+export class FacebookPostMetric extends TenantEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 

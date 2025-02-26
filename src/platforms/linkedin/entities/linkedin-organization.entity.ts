@@ -9,9 +9,10 @@ import {
 } from 'typeorm';
 import { LinkedInAccount } from './linkedin-account.entity';
 import { LinkedInPost } from './linkedin-post.entity';
+import { TenantEntity } from 'src/platforms/entity/tenant-entity';
 
 @Entity('linkedin_organizations')
-export class LinkedInOrganization {
+export class LinkedInOrganization extends TenantEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 

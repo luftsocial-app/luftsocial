@@ -6,14 +6,15 @@ import {
   UpdateDateColumn,
   OneToOne,
 } from 'typeorm';
-import { SocialPlatform } from 'src/enum/social-platform.enum';
 import { TikTokAccount } from '../tiktok/entities/tiktok-account.entity';
 import { FacebookAccount } from '../facebook/entity/facebook-account.entity';
 import { InstagramAccount } from '../instagram/entities/instagram-account.entity';
 import { LinkedInAccount } from '../linkedin/entities/linkedin-account.entity';
+import { TenantEntity } from './tenant-entity';
+import { SocialPlatform } from 'src/enum/social-platform.enum';
 
 @Entity('social_accounts')
-export class SocialAccount {
+export class SocialAccount extends TenantEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 

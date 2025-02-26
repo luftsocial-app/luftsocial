@@ -14,18 +14,22 @@ import { InstagramConfig } from './helpers/instagram.config';
 import { MediaType } from './helpers/media-type.enum';
 import {
   CommentResponse,
+  MediaItem,
   PlatformService,
   PostResponse,
   SocialAccountDetails,
 } from '../platform-service.interface';
 import { AccountInsights } from './helpers/instagram-account.interface';
-import { CreateStoryDto } from './helpers/create-content.dto';
+import { CreatePostDto, CreateStoryDto } from './helpers/create-content.dto';
 import {
   AccountMetrics,
   DateRange,
   PostMetrics,
 } from 'src/cross-platform/helpers/cross-platform.interface';
 import { InstagramAccount } from './entities/instagram-account.entity';
+import { MediaStorageItem } from 'src/media-storage/media-storage.dto';
+import { MediaStorageService } from 'src/media-storage/media-storage.service';
+import { TenantService } from 'src/database/tenant.service';
 
 @Injectable()
 export class InstagramService implements PlatformService {
@@ -36,8 +40,46 @@ export class InstagramService implements PlatformService {
     private readonly configService: ConfigService,
     private readonly instagramConfig: InstagramConfig,
     private readonly instagramRepo: InstagramRepository,
+    private readonly mediaStorageService: MediaStorageService,
+    private readonly tenantService: TenantService,
   ) {}
 
+  private async uploadInstagramMediaItems(
+    media: MediaItem[],
+    instagramAccountId: string,
+    context: 'post' | 'scheduled',
+  ): Promise<MediaStorageItem[]> {
+    const mediaItems: MediaStorageItem[] = [];
+
+    if (!media?.length) {
+      return mediaItems;
+    }
+
+    for (const mediaItem of media) {
+      const timestamp = Date.now();
+      const prefix = `instagram-${context}-${timestamp}`;
+
+      if (mediaItem.file) {
+        // For uploaded files
+        const uploadedMedia = await this.mediaStorageService.uploadPostMedia(
+          instagramAccountId,
+          [mediaItem.file],
+          prefix,
+        );
+        mediaItems.push(...uploadedMedia);
+      } else if (mediaItem.url) {
+        // For media URLs
+        const uploadedMedia = await this.mediaStorageService.uploadMediaFromUrl(
+          instagramAccountId,
+          mediaItem.url,
+          prefix,
+        );
+        mediaItems.push(uploadedMedia);
+      }
+    }
+
+    return mediaItems;
+  }
   async withRateLimit<T>(
     accountId: string,
     action: string,
@@ -65,6 +107,9 @@ export class InstagramService implements PlatformService {
 
   async getAccountsByUserId(userId: string): Promise<InstagramAccount> {
     try {
+      const tenantId = this.tenantService.getTenantId();
+      this.instagramRepo.setTenantId(tenantId);
+
       return await this.instagramRepo.getAccountByUserId(userId);
     } catch (error) {
       this.logger.error(
@@ -75,6 +120,8 @@ export class InstagramService implements PlatformService {
   }
 
   async getUserAccounts(userId: string): Promise<SocialAccountDetails[]> {
+    const tenantId = this.tenantService.getTenantId();
+    this.instagramRepo.setTenantId(tenantId);
     const account = await this.instagramRepo.getAccountByUserId(userId);
     if (!account) {
       throw new NotFoundException('No Instagram accounts found for user');
@@ -83,7 +130,7 @@ export class InstagramService implements PlatformService {
     try {
       const response = await axios.get(`${this.baseUrl}/me/accounts`, {
         params: {
-          access_token: account.accessToken,
+          access_token: account.socialAccount.accessToken,
           fields: 'id,username,profile_picture_url,account_type',
         },
       });
@@ -102,20 +149,32 @@ export class InstagramService implements PlatformService {
     }
   }
 
+  // TODO: add caption, hastags and mentions to posting
   async post(
     accountId: string,
-    content: string,
-    mediaUrls?: string[],
+    content: CreatePostDto,
+    media?: MediaItem[],
   ): Promise<PostResponse> {
     try {
+      const tenantId = this.tenantService.getTenantId();
+      this.instagramRepo.setTenantId(tenantId);
+
       const account = await this.instagramRepo.getAccountByUserId(accountId);
       if (!account) {
         throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
       }
 
+      const { hashtags, mentions, caption } = content;
+      // Store media in S3 first if there are any media items
+      const mediaItems = await this.uploadInstagramMediaItems(
+        media,
+        account.instagramAccountId,
+        'post',
+      );
+
       const igAccountId = account.metadata.instagramAccounts[0].id;
 
-      if (!mediaUrls?.length) {
+      if (!mediaItems?.length) {
         throw new HttpException(
           'Instagram requires at least one media item',
           HttpStatus.BAD_REQUEST,
@@ -124,8 +183,12 @@ export class InstagramService implements PlatformService {
 
       // 1. Upload media
       const mediaObjects = await Promise.all(
-        mediaUrls.map((url) =>
-          this.uploadMedia(igAccountId, url, account.accessToken),
+        mediaItems.map((mediaItem) =>
+          this.uploadMedia(
+            igAccountId,
+            mediaItem.url,
+            account.socialAccount.accessToken,
+          ),
         ),
       );
 
@@ -135,7 +198,7 @@ export class InstagramService implements PlatformService {
         containerId = await this.createMediaContainer(
           igAccountId,
           mediaObjects.map((m) => m.id),
-          account.accessToken,
+          account.socialAccount.accessToken,
         );
       }
 
@@ -146,10 +209,21 @@ export class InstagramService implements PlatformService {
         {
           params: {
             creation_id: containerId || mediaObjects[0].id,
-            access_token: account.accessToken,
+            access_token: account.socialAccount.accessToken,
           },
         },
       );
+
+      await this.instagramRepo.createPost({
+        account: account,
+        caption: caption,
+        mentions: mentions,
+        hashtags: hashtags,
+        mediaItems: mediaItems,
+        postId: response.data.id,
+        isPublished: true,
+        postedAt: new Date(),
+      });
 
       return {
         platformPostId: response.data.id,
@@ -166,6 +240,9 @@ export class InstagramService implements PlatformService {
     pageToken?: string,
   ): Promise<CommentResponse> {
     try {
+      const tenantId = this.tenantService.getTenantId();
+      this.instagramRepo.setTenantId(tenantId);
+
       const account = await this.instagramRepo.getAccountByUserId(accountId);
       if (!account) {
         throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
@@ -173,7 +250,7 @@ export class InstagramService implements PlatformService {
 
       const response = await axios.get(`${this.baseUrl}/${postId}/comments`, {
         params: {
-          access_token: account.accessToken,
+          access_token: account.socialAccount.accessToken,
           fields: 'id,text,timestamp,username',
           after: pageToken,
         },
@@ -202,6 +279,9 @@ export class InstagramService implements PlatformService {
     postId: string,
   ): Promise<PostMetrics> {
     try {
+      const tenantId = this.tenantService.getTenantId();
+      this.instagramRepo.setTenantId(tenantId);
+
       const account = await this.instagramRepo.getAccountByUserId(accountId);
       if (!account) {
         throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
@@ -209,7 +289,7 @@ export class InstagramService implements PlatformService {
 
       const response = await axios.get(`${this.baseUrl}/${postId}/insights`, {
         params: {
-          access_token: account.accessToken,
+          access_token: account.socialAccount.accessToken,
           metric:
             'engagement,impressions,reach,saved,likes_count,comments_count,shares',
           period: 'lifetime',
@@ -249,8 +329,13 @@ export class InstagramService implements PlatformService {
     accountId: string,
     dateRange: DateRange,
   ): Promise<AccountMetrics> {
+    const tenantId = this.tenantService.getTenantId();
+    this.instagramRepo.setTenantId(tenantId);
+
     const account = await this.instagramRepo.getAccountByUserId(accountId);
-    if (!account) throw new NotFoundException('Account not found');
+    if (!account) {
+      throw new NotFoundException('Account not found');
+    }
 
     try {
       const response = await axios.get(`${this.baseUrl}/insights`, {
@@ -422,13 +507,16 @@ export class InstagramService implements PlatformService {
 
   async getAccountInsights(accountId: string): Promise<AccountInsights> {
     try {
+      const tenantId = this.tenantService.getTenantId();
+      this.instagramRepo.setTenantId(tenantId);
+
       const account = await this.instagramRepo.getAccountByUserId(accountId);
       if (!account) {
         throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
       }
 
       const igAccountId = account.instagramAccountId;
-      const accessToken = account.accessToken;
+      const { accessToken } = account.socialAccount;
 
       const response = await axios.get(
         `${this.baseUrl}/${igAccountId}/insights`,
@@ -470,13 +558,16 @@ export class InstagramService implements PlatformService {
     stickers?: CreateStoryDto['stickers'],
   ): Promise<PostResponse> {
     try {
+      const tenantId = this.tenantService.getTenantId();
+      this.instagramRepo.setTenantId(tenantId);
+
       const account = await this.instagramRepo.getAccountByUserId(accountId);
       if (!account) {
         throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
       }
 
       const igAccountId = account.instagramAccountId;
-      const accessToken = account.accessToken;
+      const { accessToken } = account.socialAccount;
 
       // 1. Upload media
       const mediaContainer = await this.uploadMedia(
@@ -517,8 +608,13 @@ export class InstagramService implements PlatformService {
   }
 
   async revokeAccess(accountId: string): Promise<void> {
+    const tenantId = this.tenantService.getTenantId();
+    this.instagramRepo.setTenantId(tenantId);
+
     const account = await this.instagramRepo.getAccountByUserId(accountId);
-    if (!account) throw new NotFoundException('Account not found');
+    if (!account) {
+      throw new NotFoundException('Account not found');
+    }
 
     try {
       await axios.post(`${this.baseUrl}/oauth/revoke/`, null, {

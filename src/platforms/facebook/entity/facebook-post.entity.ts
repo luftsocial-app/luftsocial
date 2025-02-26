@@ -11,9 +11,10 @@ import { FacebookPage } from './facebook-page.entity';
 import { FacebookPostMetric } from './facebook-post-metric.entity';
 import { FacebookAccount } from './facebook-account.entity';
 import { MediaStorageItem } from 'src/media-storage/media-storage.dto';
+import { TenantEntity } from 'src/platforms/entity/tenant-entity';
 
 @Entity('facebook_posts')
-export class FacebookPost {
+export class FacebookPost extends TenantEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -28,12 +29,6 @@ export class FacebookPost {
 
   @Column({ type: 'text' })
   content: string;
-
-  @Column({ nullable: true })
-  mediaType: string;
-
-  @Column('simple-array', { nullable: true })
-  mediaUrls: string[];
 
   @Column('jsonb', { nullable: true })
   mediaItems: MediaStorageItem[];

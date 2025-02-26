@@ -9,9 +9,11 @@ import { FacebookPageMetric } from '../entity/facebook-page-metric.entity';
 import * as crypto from 'crypto';
 import { AuthState } from '../entity/auth-state.entity';
 import { SocialPlatform } from 'src/enum/social-platform.enum';
+import { SocialAccount } from 'src/platforms/entity/social-account.entity';
+import { TenantAwareRepository } from 'src/database/tenant-aware.repository';
 
 @Injectable()
-export class FacebookRepository {
+export class FacebookRepository extends TenantAwareRepository {
   constructor(
     @InjectRepository(FacebookAccount)
     private readonly accountRepo: Repository<FacebookAccount>,
@@ -27,7 +29,9 @@ export class FacebookRepository {
     private readonly pageMetricRepo: Repository<FacebookPageMetric>,
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
-  ) {}
+  ) {
+    super(accountRepo);
+  }
 
   async createAccount(
     data: Partial<FacebookAccount>,
@@ -55,7 +59,9 @@ export class FacebookRepository {
     data: Partial<FacebookAccount>,
   ): Promise<FacebookAccount> {
     await this.accountRepo.update(id, data);
-    return this.accountRepo.findOne({ where: { id } });
+    return this.accountRepo.findOne({
+      where: { id, tenantId: this.getTenantId() },
+    });
   }
 
   async createPage(data: Partial<FacebookPage>): Promise<FacebookPage> {
@@ -68,15 +74,13 @@ export class FacebookRepository {
     return this.postRepo.save(post);
   }
 
-  async getAccountById(
-    id: string,
-    relations: string[] = [],
-  ): Promise<FacebookAccount> {
+  async getAccountById(id: string): Promise<FacebookAccount> {
     return this.accountRepo.findOne({
       where: {
         id,
+        tenantId: this.getTenantId(),
       },
-      relations,
+      relations: ['socialAccount'],
     });
   }
 
@@ -85,7 +89,10 @@ export class FacebookRepository {
     relations: string[] = [],
   ): Promise<FacebookPage> {
     return this.pageRepo.findOne({
-      where: { id },
+      where: {
+        id,
+        tenantId: this.getTenantId(),
+      },
       relations,
     });
   }
@@ -95,7 +102,7 @@ export class FacebookRepository {
     relations: string[] = [],
   ): Promise<FacebookPost> {
     return this.postRepo.findOne({
-      where: { id },
+      where: { id, tenantId: this.getTenantId() },
       relations,
     });
   }
@@ -107,6 +114,7 @@ export class FacebookRepository {
       where: {
         createdAt: MoreThan(cutoffTime),
         isPublished: true,
+        tenantId: this.getTenantId(),
       },
       relations: ['account'],
       order: {
@@ -117,8 +125,39 @@ export class FacebookRepository {
 
   async getAccountPages(accountId: string): Promise<FacebookPage[]> {
     return this.pageRepo.find({
-      where: { facebookAccount: { id: accountId } },
+      where: {
+        facebookAccount: { id: accountId },
+        tenantId: this.getTenantId(),
+      },
     });
+  }
+
+  async updateAccountTokens(
+    accountId: string,
+    tokens: {
+      accessToken: string;
+      refreshToken?: string;
+      expiresAt: Date;
+    },
+  ): Promise<FacebookAccount> {
+    const account = await this.accountRepo.findOne({
+      where: { id: accountId, tenantId: this.getTenantId() },
+      relations: ['socialAccount'],
+    });
+
+    if (!account?.socialAccount) {
+      throw new NotFoundException('Account not found');
+    }
+
+    // Update the social account token information
+    await this.entityManager.update(SocialAccount, account.socialAccount.id, {
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      tokenExpiresAt: tokens.expiresAt,
+      updatedAt: new Date(),
+    });
+
+    return this.getAccountById(accountId);
   }
 
   async getPagePosts(
@@ -126,7 +165,7 @@ export class FacebookRepository {
     limit: number = 10,
   ): Promise<FacebookPost[]> {
     return this.postRepo.find({
-      where: { page: { id: pageId } },
+      where: { page: { id: pageId }, tenantId: this.getTenantId() },
       order: { createdAt: 'DESC' },
       take: limit,
       relations: ['metrics'],
@@ -147,6 +186,7 @@ export class FacebookRepository {
     return this.postRepo.count({
       where: {
         page: { id: pageId },
+        tenantId: this.getTenantId(),
         createdAt: MoreThan(timeAgo),
       },
     });
@@ -163,14 +203,14 @@ export class FacebookRepository {
     });
 
     return this.pageRepo.findOne({
-      where: { id: pageId },
+      where: { id: pageId, tenantId: this.getTenantId() },
     });
   }
 
   // Update page metrics
   async updatePageMetrics(pageId: string, metrics: any): Promise<FacebookPage> {
     const page = await this.pageRepo.findOne({
-      where: { id: pageId },
+      where: { id: pageId, tenantId: this.getTenantId() },
     });
 
     if (!page) {
@@ -207,6 +247,7 @@ export class FacebookRepository {
           {
             where: {
               post: { id: data.postId },
+              tenantId: this.getTenantId(),
               collectedAt: data.metrics.collectedAt,
             },
           },
@@ -223,7 +264,7 @@ export class FacebookRepository {
           );
 
           return transactionalEntityManager.findOne(FacebookPostMetric, {
-            where: { id: existing.id },
+            where: { id: existing.id, tenantId: this.getTenantId() },
           });
         }
 
@@ -246,7 +287,7 @@ export class FacebookRepository {
   ): Promise<FacebookPost> {
     await this.postRepo.update(postId, updateData);
     return this.postRepo.findOne({
-      where: { id: postId },
+      where: { id: postId, tenantId: this.getTenantId() },
       relations: ['page'],
     });
   }
@@ -256,7 +297,9 @@ export class FacebookRepository {
     updateData: Partial<FacebookPage>,
   ): Promise<FacebookPage> {
     await this.pageRepo.update(pageId, updateData);
-    return this.pageRepo.findOne({ where: { id: pageId } });
+    return this.pageRepo.findOne({
+      where: { id: pageId, tenantId: this.getTenantId() },
+    });
   }
 
   // Get accounts with expiring tokens
@@ -265,9 +308,12 @@ export class FacebookRepository {
 
     return this.accountRepo.find({
       where: {
-        tokenExpiresAt: LessThan(expirationThreshold),
+        socialAccount: {
+          platform: SocialPlatform.FACEBOOK,
+          tokenExpiresAt: LessThan(expirationThreshold),
+        },
       },
-      relations: ['pages'],
+      relations: ['facebookAccount'],
     });
   }
 
@@ -277,7 +323,10 @@ export class FacebookRepository {
       relations: ['facebookAccount', 'posts', 'posts.metrics'],
       where: {
         facebookAccount: {
-          tokenExpiresAt: MoreThan(new Date()),
+          socialAccount: {
+            platform: SocialPlatform.FACEBOOK,
+            tokenExpiresAt: MoreThan(new Date()),
+          },
         },
       },
     });
@@ -296,6 +345,7 @@ export class FacebookRepository {
     const existingMetric = await this.pageMetricRepo.findOne({
       where: {
         page: { id: data.pageId },
+        tenantId: this.getTenantId(),
         collectedAt: data.collectedAt,
       },
     });
@@ -315,7 +365,7 @@ export class FacebookRepository {
 
   async deletePost(postId: string): Promise<void> {
     const post = await this.postRepo.findOne({
-      where: { id: postId },
+      where: { id: postId, tenantId: this.getTenantId() },
       relations: ['metrics'],
     });
 
@@ -331,7 +381,7 @@ export class FacebookRepository {
 
   async deleteAccount(accountId: string): Promise<void> {
     const account = await this.accountRepo.findOne({
-      where: { id: accountId },
+      where: { id: accountId, tenantId: this.getTenantId() },
       relations: ['socialAccount'],
     });
 

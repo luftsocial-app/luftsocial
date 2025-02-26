@@ -9,9 +9,10 @@ import {
 } from 'typeorm';
 import { FacebookAccount } from './facebook-account.entity';
 import { FacebookPost } from './facebook-post.entity';
+import { TenantEntity } from 'src/platforms/entity/tenant-entity';
 
 @Entity('facebook_pages')
-export class FacebookPage {
+export class FacebookPage extends TenantEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 

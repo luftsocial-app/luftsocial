@@ -8,11 +8,12 @@ import {
   OneToOne,
   JoinColumn,
 } from 'typeorm';
-import { InstagramMedia } from './instagram-media.entity';
 import { SocialAccount } from 'src/platforms/entity/social-account.entity';
+import { TenantEntity } from 'src/platforms/entity/tenant-entity';
+import { InstagramPost } from './instagram-post.entity';
 
 @Entity('instagram_accounts')
-export class InstagramAccount {
+export class InstagramAccount extends TenantEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -41,17 +42,14 @@ export class InstagramAccount {
   @Column({ type: 'int', default: 0 })
   mediaCount: number;
 
-  @OneToMany(() => InstagramMedia, (media) => media.account)
-  media: InstagramMedia[];
+  @OneToMany(() => InstagramPost, (media) => media.account)
+  media: InstagramPost[];
 
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
-
-  @Column()
-  accessToken: string;
 
   @Column('jsonb')
   metadata: {

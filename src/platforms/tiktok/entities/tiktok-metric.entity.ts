@@ -6,9 +6,10 @@ import {
   ManyToOne,
 } from 'typeorm';
 import { TikTokVideo } from './tiktok-video.entity';
+import { TenantEntity } from 'src/platforms/entity/tenant-entity';
 
 @Entity('tiktok_metrics')
-export class TikTokMetric {
+export class TikTokMetric extends TenantEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 

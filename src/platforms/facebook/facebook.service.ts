@@ -12,7 +12,6 @@ import { FacebookRepository } from './repositories/facebook.repository';
 import { FacebookPage } from './entity/facebook-page.entity';
 import {
   CreatePostDto,
-  MediaItem,
   SchedulePagePostDto,
   SchedulePostDto,
   UpdatePageDto,
@@ -21,7 +20,9 @@ import {
 import { FacebookPost } from './entity/facebook-post.entity';
 import {
   CommentResponse,
+  MediaItem,
   PlatformService,
+  PostResponse,
   SocialAccountDetails,
 } from '../platform-service.interface';
 import {
@@ -36,6 +37,7 @@ import {
 import { FacebookAccount } from './entity/facebook-account.entity';
 import { MediaStorageItem } from 'src/media-storage/media-storage.dto';
 import { MediaStorageService } from 'src/media-storage/media-storage.service';
+import { TenantService } from 'src/database/tenant.service';
 
 @Injectable()
 export class FacebookService implements PlatformService {
@@ -47,6 +49,7 @@ export class FacebookService implements PlatformService {
     private readonly configService: ConfigService,
     private readonly facebookRepo: FacebookRepository,
     private readonly mediaStorageService: MediaStorageService,
+    private readonly tenantService: TenantService,
   ) {}
 
   async getComments(
@@ -54,6 +57,9 @@ export class FacebookService implements PlatformService {
     postId: string,
     pageToken?: string,
   ): Promise<CommentResponse> {
+    const tenantId = this.tenantService.getTenantId();
+    this.facebookRepo.setTenantId(tenantId);
+
     const post = await this.facebookRepo.getPostById(postId);
     const response = await axios.get(
       `${this.baseUrl}/${this.apiVersion}/${post.postId}/comments`,
@@ -79,6 +85,9 @@ export class FacebookService implements PlatformService {
   }
 
   async getUserAccounts(userId: string): Promise<SocialAccountDetails[]> {
+    const tenantId = this.tenantService.getTenantId();
+    this.facebookRepo.setTenantId(tenantId);
+
     const account = await this.facebookRepo.getAccountById(userId);
     if (!account) {
       throw new NotFoundException('No Facebook accounts found for user');
@@ -86,7 +95,7 @@ export class FacebookService implements PlatformService {
     try {
       const response = await axios.get(`${this.baseUrl}/me/accounts`, {
         params: {
-          access_token: account.accessToken,
+          access_token: account.socialAccount.accessToken,
           fields: 'id,name,category,picture',
         },
       });
@@ -150,7 +159,10 @@ export class FacebookService implements PlatformService {
     accountId: string,
     content: string,
     media?: MediaItem[],
-  ): Promise<{ platformPostId: string; postedAt: Date }> {
+  ): Promise<PostResponse> {
+    const tenantId = this.tenantService.getTenantId();
+    this.facebookRepo.setTenantId(tenantId);
+
     const account = await this.facebookRepo.getAccountById(accountId);
     if (!account) {
       throw new Error('Account not found');
@@ -175,7 +187,7 @@ export class FacebookService implements PlatformService {
         // For multiple media items, upload to Facebook and attach
         const attachments = await Promise.all(
           mediaItems.map((mediaItem) =>
-            this.uploadMedia(account.accessToken, mediaItem.url),
+            this.uploadMedia(account.socialAccount.accessToken, mediaItem.url),
           ),
         );
         postData.attached_media = attachments;
@@ -187,9 +199,18 @@ export class FacebookService implements PlatformService {
       `${this.baseUrl}/${this.apiVersion}/${account.facebookUserId}/feed`,
       postData,
       {
-        params: { access_token: account.accessToken },
+        params: { access_token: account.socialAccount.accessToken },
       },
     );
+
+    await this.facebookRepo.createPost({
+      account: account,
+      postId: response.data.id,
+      content: postData.message,
+      mediaItems, // S3 media items
+      isPublished: true,
+      publishedAt: new Date(),
+    });
 
     return {
       platformPostId: response.data.id,
@@ -230,21 +251,6 @@ export class FacebookService implements PlatformService {
     };
   }
 
-  private async exchangeCodeForToken(code: string): Promise<any> {
-    const response = await axios.get(
-      `${this.baseUrl}/${this.apiVersion}/oauth/access_token`,
-      {
-        params: {
-          client_id: this.configService.get('FACEBOOK_CLIENT_ID'),
-          client_secret: this.configService.get('FACEBOOK_CLIENT_SECRET'),
-          redirect_uri: this.configService.get('FACEBOOK_REDIRECT_URI'),
-          code,
-        },
-      },
-    );
-    return response.data;
-  }
-
   private async getLongLivedToken(shortLivedToken: string): Promise<any> {
     const response = await axios.get(
       `${this.baseUrl}/${this.apiVersion}/oauth/access_token`,
@@ -262,6 +268,9 @@ export class FacebookService implements PlatformService {
 
   async getAccountsByUserId(userId: string): Promise<FacebookAccount> {
     try {
+      const tenantId = this.tenantService.getTenantId();
+      this.facebookRepo.setTenantId(tenantId);
+
       return await this.facebookRepo.getAccountById(userId);
     } catch (error) {
       this.logger.error(
@@ -312,6 +321,9 @@ export class FacebookService implements PlatformService {
     pageId: string,
     createPostDto: CreatePostDto,
   ): Promise<any> {
+    const tenantId = this.tenantService.getTenantId();
+    this.facebookRepo.setTenantId(tenantId);
+
     const page = await this.facebookRepo.getPageById(pageId);
     if (!page) {
       throw new NotFoundException('Page not found');
@@ -345,7 +357,6 @@ export class FacebookService implements PlatformService {
       page,
       postId: postData.data.id,
       content: createPostDto.content,
-      mediaUrls,
       mediaItems, // S3 media items
       isPublished: true,
       publishedAt: new Date(),
@@ -356,6 +367,8 @@ export class FacebookService implements PlatformService {
     postId: string,
     scheduleDto: SchedulePostDto,
   ): Promise<FacebookPost> {
+    const tenantId = this.tenantService.getTenantId();
+    this.facebookRepo.setTenantId(tenantId);
     // Retrieve the post and associated page
     const post = await this.facebookRepo.getPostById(postId, ['page']);
     if (!post) {
@@ -404,13 +417,16 @@ export class FacebookService implements PlatformService {
       page,
       postId: postData.data.id,
       content: scheduleDto.content,
-      mediaUrls: mediaItems.map((m) => m.url),
+      mediaItems: mediaItems,
       isPublished: false,
       scheduledTime: new Date(scheduleDto.scheduledTime),
     });
   }
 
   async schedulePagePost(scheduleDto: SchedulePagePostDto): Promise<any> {
+    const tenantId = this.tenantService.getTenantId();
+    this.facebookRepo.setTenantId(tenantId);
+
     const page = await this.facebookRepo.getPageById(scheduleDto.pageId);
     if (!page) {
       throw new NotFoundException('Page not found');
@@ -449,7 +465,6 @@ export class FacebookService implements PlatformService {
       page,
       postId: postData.data.id,
       content: scheduleDto.content,
-      mediaUrls,
       mediaItems, // Store full media items
       isPublished: false,
       scheduledTime: new Date(scheduleDto.scheduledTime),
@@ -457,6 +472,9 @@ export class FacebookService implements PlatformService {
   }
 
   async getUserPages(userId: string): Promise<FacebookPage[]> {
+    const tenantId = this.tenantService.getTenantId();
+    this.facebookRepo.setTenantId(tenantId);
+
     const account = await this.facebookRepo.getAccountById(userId);
     if (!account) {
       throw new NotFoundException('Account not found');
@@ -469,7 +487,7 @@ export class FacebookService implements PlatformService {
       `${this.baseUrl}/${this.apiVersion}/me/accounts`,
       {
         params: {
-          access_token: account.accessToken,
+          access_token: account.socialAccount.accessToken,
           fields: 'id,name,category,access_token,followers_count',
         },
       },
@@ -493,6 +511,9 @@ export class FacebookService implements PlatformService {
     limit: number = 10,
     cursor?: string,
   ): Promise<any> {
+    const tenantId = this.tenantService.getTenantId();
+    this.facebookRepo.setTenantId(tenantId);
+
     const page = await this.facebookRepo.getPageById(pageId);
     const response = await axios.get(
       `${this.baseUrl}/${this.apiVersion}/${page.pageId}/feed`,
@@ -513,6 +534,9 @@ export class FacebookService implements PlatformService {
   }
 
   async getPageInsights(pageId: string, period: string = '30d'): Promise<any> {
+    const tenantId = this.tenantService.getTenantId();
+    this.facebookRepo.setTenantId(tenantId);
+
     const page = await this.facebookRepo.getPageById(pageId);
     const response = await axios.get(
       `${this.baseUrl}/${this.apiVersion}/${page.pageId}/insights`,
@@ -570,6 +594,8 @@ export class FacebookService implements PlatformService {
 
   async getPostMetrics(accountId: string, postId: string): Promise<any> {
     try {
+      const tenantId = this.tenantService.getTenantId();
+      this.facebookRepo.setTenantId(tenantId);
       const account = await this.facebookRepo.getAccountById(accountId);
       if (!account) {
         throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
@@ -603,6 +629,9 @@ export class FacebookService implements PlatformService {
     pageId: string,
     dateRange: DateRange,
   ): Promise<AccountMetrics> {
+    const tenantId = this.tenantService.getTenantId();
+    this.facebookRepo.setTenantId(tenantId);
+
     const page = await this.facebookRepo.getPageById(pageId);
     if (!page) {
       throw new NotFoundException('Account not found');
@@ -649,6 +678,8 @@ export class FacebookService implements PlatformService {
     postId: string,
     updateDto: UpdatePostDto,
   ): Promise<FacebookPost> {
+    const tenantId = this.tenantService.getTenantId();
+    this.facebookRepo.setTenantId(tenantId);
     // Retrieve the post with its associated page
     const post = await this.facebookRepo.getPostById(postId, ['page']);
     if (!post) throw new NotFoundException('Post not found');
@@ -685,7 +716,7 @@ export class FacebookService implements PlatformService {
       // Update post in repository
       return this.facebookRepo.updatePost(postId, {
         content: updateDto.content,
-        mediaUrls: mediaItems.map((m) => m.url) || post.mediaUrls,
+        mediaItems: mediaItems,
         updatedAt: new Date(),
       });
     } catch (error) {
@@ -701,6 +732,9 @@ export class FacebookService implements PlatformService {
     pageId: string,
     updateDto: UpdatePageDto,
   ): Promise<FacebookPage> {
+    const tenantId = this.tenantService.getTenantId();
+    this.facebookRepo.setTenantId(tenantId);
+
     const page = await this.facebookRepo.getPageById(pageId);
     if (!page) throw new NotFoundException('Page not found');
 
@@ -743,6 +777,9 @@ export class FacebookService implements PlatformService {
   }
 
   async revokeAccess(accountId: string): Promise<void> {
+    const tenantId = this.tenantService.getTenantId();
+    this.facebookRepo.setTenantId(tenantId);
+
     const account = await this.facebookRepo.getAccountById(accountId);
     if (!account) throw new NotFoundException('Account not found');
 
@@ -766,6 +803,9 @@ export class FacebookService implements PlatformService {
   }
 
   async deletePost(postId: string): Promise<void> {
+    const tenantId = this.tenantService.getTenantId();
+    this.facebookRepo.setTenantId(tenantId);
+
     const post = await this.facebookRepo.getPostById(postId);
     await axios.delete(`${this.baseUrl}/${this.apiVersion}/${post.postId}`, {
       params: { access_token: post.page.accessToken },

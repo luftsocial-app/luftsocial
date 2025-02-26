@@ -14,7 +14,6 @@ import {
 import { FacebookService } from './facebook.service';
 import {
   CreatePostDto,
-  MediaItem,
   SchedulePagePostDto,
   SchedulePostDto,
   UpdatePageDto,
@@ -26,6 +25,7 @@ import { FacebookPage } from './entity/facebook-page.entity';
 import { CurrentUser } from 'src/auth/decorators/current-user.decorator';
 import { ClerkAuthGuard } from 'src/guards/clerk-auth.guard';
 import { FilesInterceptor } from '@nestjs/platform-express/multer';
+import { MediaItem } from '../platform-service.interface';
 
 @Controller('platforms/facebook')
 @UseInterceptors(RateLimitInterceptor)
@@ -34,7 +34,7 @@ export class FacebookController {
   constructor(private readonly facebookService: FacebookService) {}
 
   @Post(':accountId/posts')
-  @UseInterceptors(FilesInterceptor('media'))
+  @UseInterceptors(FilesInterceptor('files'))
   async createPost(
     @Param('accountId') accountId: string,
     @Body('content') content: string,
@@ -51,27 +51,55 @@ export class FacebookController {
   }
 
   @Post('pages/:pageId/posts')
+  @UseInterceptors(FilesInterceptor('files'))
   async createPostForPage(
     @Param('pageId') pageId: string,
     @Body() createPostDto: CreatePostDto,
+    @UploadedFiles() files: Express.Multer.File[],
   ) {
+    // Associate uploaded files with media in DTO
+    if (files?.length) {
+      createPostDto.media = createPostDto.media || [];
+      files.forEach((file) => {
+        createPostDto.media.push({ file });
+      });
+    }
+
     return this.facebookService.createPagePost(pageId, createPostDto);
   }
 
-  @Post('posts/:postId/schedule')
+  @Post(':accountId/posts/schedule')
+  @UseInterceptors(FilesInterceptor('files'))
   async schedulePost(
-    @Param('pageId') pageId: string,
+    @Param('accountId') accountId: string,
     @Body() schedulePostDto: SchedulePostDto,
+    @UploadedFiles() files?: Express.Multer.File[],
   ) {
-    return this.facebookService.schedulePost(pageId, schedulePostDto);
+    if (files?.length) {
+      schedulePostDto.media = schedulePostDto.media || [];
+      files.forEach((file) => {
+        schedulePostDto.media.push({ file });
+      });
+    }
+
+    return this.facebookService.schedulePost(accountId, schedulePostDto);
   }
 
   @Post('pages/:pageId/schedule')
+  @UseInterceptors(FilesInterceptor('files'))
   async schedulePagePost(
     @Param('pageId') pageId: string,
     @Body() scheduleDto: SchedulePagePostDto,
-  ): Promise<FacebookPost> {
-    scheduleDto.pageId = pageId;
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    // Associate uploaded files with media in DTO
+    if (files?.length) {
+      scheduleDto.media = scheduleDto.media || [];
+      files.forEach((file) => {
+        scheduleDto.media.push({ file });
+      });
+    }
+
     return this.facebookService.schedulePagePost(scheduleDto);
   }
 
@@ -115,10 +143,19 @@ export class FacebookController {
   }
 
   @Put('posts/:postId')
+  @UseInterceptors(FilesInterceptor('files'))
   async updatePost(
     @Param('postId') postId: string,
     @Body() updateDto: UpdatePostDto,
+    @UploadedFiles() files: Express.Multer.File[],
   ): Promise<FacebookPost> {
+    // Associate uploaded files with media in DTO
+    if (files?.length) {
+      updateDto.media = updateDto.media || [];
+      files.forEach((file) => {
+        updateDto.media.push({ file });
+      });
+    }
     return this.facebookService.editPost(postId, updateDto);
   }
 

@@ -5,15 +5,16 @@ import {
   CreateDateColumn,
   ManyToOne,
 } from 'typeorm';
-import { InstagramMedia } from './instagram-media.entity';
+import { TenantEntity } from 'src/platforms/entity/tenant-entity';
+import { InstagramPost } from './instagram-post.entity';
 
 @Entity('instagram_metrics')
-export class InstagramMetric {
+export class InstagramMetric extends TenantEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => InstagramMedia, (media) => media.metrics)
-  media: InstagramMedia;
+  @ManyToOne(() => InstagramPost, (media) => media.metrics)
+  media: InstagramPost;
 
   @Column({ type: 'int', default: 0 })
   likesCount: number;
