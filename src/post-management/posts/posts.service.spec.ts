@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { PostsService } from './posts.service';
 import { Post } from '../../entities/posts/post.entity';
-import { TenantService } from '../../database/tenant.service';
 import { NotFoundException } from '@nestjs/common';
 
 describe('PostsService', () => {
@@ -17,21 +16,13 @@ describe('PostsService', () => {
     delete: jest.fn(),
   };
 
-  const mockTenantService = {
-    getTenantId: jest.fn().mockReturnValue('1'),
-  };
-
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PostsService,
         {
-          provide: getRepositoryToken(Post),
+          provide: 'TENANT_AWARE_REPOSITORY_Post',
           useValue: mockPostRepository,
-        },
-        {
-          provide: TenantService,
-          useValue: mockTenantService,
         },
       ],
     }).compile();
@@ -85,10 +76,7 @@ describe('PostsService', () => {
       mockPostRepository.delete = jest.fn().mockResolvedValue({ affected: 1 });
 
       await service.delete('existing-id');
-      expect(mockPostRepository.delete).toHaveBeenCalledWith({
-        id: 'existing-id',
-        tenantId: '1',
-      });
+      expect(mockPostRepository.delete).toHaveBeenCalledWith('existing-id');
     });
   });
 });

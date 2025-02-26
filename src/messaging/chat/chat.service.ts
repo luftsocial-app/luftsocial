@@ -2,10 +2,10 @@ import {
   Injectable,
   ConflictException,
   NotFoundException,
+  Inject,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
-import { TenantService } from '../../database/tenant.service';
 import {
   Conversation,
   ConversationType,
@@ -13,17 +13,17 @@ import {
 import { Message } from '../../entities/chats/message.entity';
 import { User } from '../../entities/users/user.entity';
 import { CreateConversationDto } from '../dtos/conversation.dto';
+import { TenantAwareRepository } from '../../tenant-aware-repo/tenant-aware.repos';
 
 @Injectable()
 export class ChatService {
   constructor(
-    private tenantService: TenantService,
-    @InjectRepository(Conversation)
-    private conversationRepository: Repository<Conversation>,
-    @InjectRepository(Message)
-    private readonly messageRepo: Repository<Message>,
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
+    @Inject(`TENANT_AWARE_REPOSITORY_${Conversation.name}`)
+    private conversationRepository: TenantAwareRepository<Conversation>,
+    @Inject(`TENANT_AWARE_REPOSITORY_${Message.name}`)
+    private readonly messageRepo: TenantAwareRepository<Message>,
+    @Inject(`TENANT_AWARE_REPOSITORY_${User.name}`)
+    private userRepository: TenantAwareRepository<User>,
   ) {}
 
   async createConversation(data: CreateConversationDto): Promise<Conversation> {
@@ -38,7 +38,7 @@ export class ChatService {
       isPrivate: data.isPrivate,
       metadata: data.metadata,
       settings: data.settings,
-      tenantId: this.tenantService.getTenantId(),
+      tenantId: 'tenantId',
     });
 
     return await this.conversationRepository.save(conversation);
@@ -46,7 +46,7 @@ export class ChatService {
 
   async getConversations(): Promise<Conversation[]> {
     return this.conversationRepository.find({
-      where: { tenantId: this.tenantService.getTenantId() },
+      where: { tenantId: 'tenantId' },
       relations: ['participants', 'messages'],
     });
   }
@@ -57,7 +57,7 @@ export class ChatService {
       .innerJoin('conversation.participants', 'participant')
       .where('participant.id = :userId', { userId })
       .andWhere('conversation.tenantId = :tenantId', {
-        tenantId: this.tenantService.getTenantId(),
+        tenantId: 'tenantId',
       })
       .leftJoinAndSelect('conversation.messages', 'messages')
       .leftJoinAndSelect('conversation.participants', 'allParticipants')
@@ -68,21 +68,21 @@ export class ChatService {
     conversationId: string,
     content: string,
     senderId: string,
+    tenantId: string,
   ): Promise<Message> {
     const message = this.messageRepo.create({
       conversationId,
       content,
       senderId,
-      tenantId: this.tenantService.getTenantId(),
+      tenantId,
     });
 
     const savedMessage = await this.messageRepo.save(message);
 
     // Update conversation's lastMessageAt
-    await this.conversationRepository.update(
-      { id: conversationId },
-      { lastMessageAt: new Date() },
-    );
+    await this.conversationRepository.update(conversationId, {
+      lastMessageAt: new Date(),
+    });
 
     return savedMessage;
   }
@@ -120,7 +120,7 @@ export class ChatService {
         userIds: [userId1, userId2],
       })
       .andWhere('conversation.tenantId = :tenantId', {
-        tenantId: this.tenantService.getTenantId(),
+        tenantId: 'tenantId',
       })
       .groupBy('conversation.id')
       .having('COUNT(DISTINCT participant.id) = 2')
@@ -141,7 +141,7 @@ export class ChatService {
     const newConversation = this.conversationRepository.create({
       type: ConversationType.DIRECT,
       participants: users,
-      tenantId: this.tenantService.getTenantId(),
+      tenantId: 'tenantId',
     });
 
     return this.conversationRepository.save(newConversation);
@@ -166,7 +166,7 @@ export class ChatService {
       type: ConversationType.GROUP,
       participants,
       admins: [creator],
-      tenantId: this.tenantService.getTenantId(),
+      tenantId: 'tenantId',
     });
 
     return this.conversationRepository.save(conversation);
@@ -176,7 +176,7 @@ export class ChatService {
     const conversation = await this.conversationRepository.findOne({
       where: {
         id: conversationId,
-        tenantId: this.tenantService.getTenantId(),
+        tenantId: 'tenantId',
       },
       relations: ['participants', 'messages', 'admins'],
     });

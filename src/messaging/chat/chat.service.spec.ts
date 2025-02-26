@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { Repository, In } from 'typeorm';
-import { getRepositoryToken } from '@nestjs/typeorm';
 import { ChatService } from './chat.service';
 import {
   Conversation,
@@ -8,7 +7,6 @@ import {
 } from '../../entities/chats/conversation.entity';
 import { Message } from '../../entities/chats/message.entity';
 import { User } from '../../entities/users/user.entity';
-import { TenantService } from '../../database/tenant.service';
 import { NotFoundException, ConflictException } from '@nestjs/common';
 import * as Chance from 'chance';
 
@@ -27,7 +25,7 @@ describe('ChatService', () => {
       providers: [
         ChatService,
         {
-          provide: getRepositoryToken(Conversation),
+          provide: 'TENANT_AWARE_REPOSITORY_Conversation',
           useValue: {
             create: jest.fn(),
             save: jest.fn(),
@@ -48,7 +46,7 @@ describe('ChatService', () => {
           },
         },
         {
-          provide: getRepositoryToken(Message),
+          provide: 'TENANT_AWARE_REPOSITORY_Message',
           useValue: {
             create: jest.fn(),
             save: jest.fn(),
@@ -56,29 +54,19 @@ describe('ChatService', () => {
           },
         },
         {
-          provide: getRepositoryToken(User),
+          provide: 'TENANT_AWARE_REPOSITORY_User',
           useValue: {
             findBy: jest.fn(),
             findOneBy: jest.fn(),
-          },
-        },
-        {
-          provide: TenantService,
-          useValue: {
-            getTenantId: jest.fn().mockReturnValue(mockTenantId),
           },
         },
       ],
     }).compile();
 
     service = module.get<ChatService>(ChatService);
-    conversationRepository = module.get<Repository<Conversation>>(
-      getRepositoryToken(Conversation),
-    );
-    messageRepository = module.get<Repository<Message>>(
-      getRepositoryToken(Message),
-    );
-    userRepository = module.get<Repository<User>>(getRepositoryToken(User));
+    conversationRepository = module.get('TENANT_AWARE_REPOSITORY_Conversation');
+    messageRepository = module.get('TENANT_AWARE_REPOSITORY_Message');
+    userRepository = module.get('TENANT_AWARE_REPOSITORY_User');
   });
 
   it('should be defined', () => {
@@ -228,6 +216,7 @@ describe('ChatService', () => {
         conversationId,
         content,
         senderId,
+        '',
       );
 
       expect(result).toEqual(newMessage);
@@ -235,7 +224,7 @@ describe('ChatService', () => {
         conversationId,
         content,
         senderId,
-        tenantId: mockTenantId,
+        tenantId: '',
       });
       expect(conversationRepository.update).toHaveBeenCalled();
     });

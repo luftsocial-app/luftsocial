@@ -67,6 +67,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       payload.conversationId,
       payload.content,
       user.id,
+      '', // tenantId
     );
 
     // Get conversation to ensure we have all participants

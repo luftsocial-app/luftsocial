@@ -5,8 +5,8 @@ import { Repository } from 'typeorm';
 import { Role } from '../../entities/roles/role.entity';
 import { User } from '../../entities/users/user.entity';
 import { UsersService } from './users.service';
-import { TenantService } from '../../database/tenant.service';
 import { UserRole } from '../../common/enums/roles';
+import { TenantAwareRepository } from '../../tenant-aware-repo/tenant-aware.repos';
 
 describe('UsersService', () => {
   let service: UsersService;
@@ -50,23 +50,19 @@ describe('UsersService', () => {
       providers: [
         UsersService,
         {
-          provide: TenantService,
-          useValue: mockTenantService,
-        },
-        {
-          provide: getRepositoryToken(User),
+          provide: 'TENANT_AWARE_REPOSITORY_User',
           useValue: mockUserRepo,
         },
         {
-          provide: getRepositoryToken(Role),
+          provide: 'TENANT_AWARE_REPOSITORY_Role',
           useValue: mockRoleRepo,
         },
       ],
     }).compile();
 
     service = module.get<UsersService>(UsersService);
-    userRepository = module.get(getRepositoryToken(User));
-    roleRepository = module.get(getRepositoryToken(Role));
+    userRepository = module.get('TENANT_AWARE_REPOSITORY_User');
+    roleRepository = module.get('TENANT_AWARE_REPOSITORY_Role');
   });
 
   describe('syncClerkUser', () => {
@@ -84,7 +80,7 @@ describe('UsersService', () => {
 
       expect(userRepository.findOne).toHaveBeenCalledWith({
         relations: ['roles'],
-        where: { clerkId: 'clerk123', activeTenantId: 'tenant123' },
+        where: { clerkId: 'clerk123', activeTenantId: 'tenantId' },
       });
       expect(roleRepository.findOne).toHaveBeenCalledWith({
         where: { name: UserRole.MEMBER },
@@ -153,7 +149,7 @@ describe('UsersService', () => {
 
       expect(userRepository.findOne).toHaveBeenCalledWith({
         relations: ['roles'],
-        where: { clerkId: 'clerk123', activeTenantId: 'tenant123' },
+        where: { clerkId: 'clerk123', activeTenantId: 'tenantId' },
       });
       expect(result).toEqual(mockUser);
     });

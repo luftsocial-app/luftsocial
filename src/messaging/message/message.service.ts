@@ -1,17 +1,16 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Message } from '../../entities/chats/message.entity';
-import { TenantService } from '../../database/tenant.service';
 import { MessageStatus } from '../../common/enums/messaging';
 import { OperationStatus } from '../../common/enums/operation-status.enum';
+import { TenantAwareRepository } from '../../tenant-aware-repo/tenant-aware.repos';
 
 @Injectable()
 export class MessageService {
   constructor(
-    @InjectRepository(Message)
-    private readonly messageRepo: Repository<Message>,
-    private tenantService: TenantService,
+    @Inject(`TENANT_AWARE_REPOSITORY_${Message.name}`)
+    private readonly messageRepo: TenantAwareRepository<Message>,
   ) {}
 
   async createMessage(
@@ -22,7 +21,6 @@ export class MessageService {
       conversationId,
       content,
       status: MessageStatus.SENT,
-      tenantId: this.tenantService.getTenantId(),
     });
     return this.messageRepo.save(message);
   }
@@ -31,17 +29,13 @@ export class MessageService {
     messageId: string,
     status: MessageStatus,
   ): Promise<void> {
-    await this.messageRepo.update(
-      { id: messageId, tenantId: this.tenantService.getTenantId() },
-      { status },
-    );
+    await this.messageRepo.update(messageId, { status });
   }
 
   async getMessages(conversationId: string, query: any): Promise<Message[]> {
     return this.messageRepo.find({
       where: {
         conversationId,
-        tenantId: this.tenantService.getTenantId(),
         ...query,
       },
     });

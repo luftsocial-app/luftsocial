@@ -3,6 +3,7 @@ import { ChatController } from './chat.controller';
 import { ChatService } from './chat.service';
 import { ConversationType } from '../../entities/chats/conversation.entity';
 import * as Chance from 'chance';
+import { User } from '@clerk/express';
 
 const chance = new Chance();
 
@@ -14,7 +15,7 @@ describe('ChatController', () => {
     id: chance.guid(),
     username: chance.name(),
     email: chance.email(),
-  };
+  } as unknown as User;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -62,6 +63,7 @@ describe('ChatController', () => {
       const result = await controller.createOrGetDirectChat(
         { user: mockUser },
         otherUserId,
+        mockUser,
       );
 
       expect(result).toEqual(expectedChat);
@@ -214,6 +216,7 @@ describe('ChatController', () => {
         { user: mockUser },
         conversationId,
         { content },
+        mockUser,
       );
 
       expect(result).toEqual(expectedMessage);
@@ -221,6 +224,7 @@ describe('ChatController', () => {
         conversationId,
         content,
         mockUser.id,
+        '',
       );
     });
   });

@@ -19,7 +19,6 @@ import { RolesGuard } from './guards/role-guard';
 import { Role } from './entities/roles/role.entity';
 import { Permissions } from './entities/roles/permissions.entity';
 import { Tenant } from './entities/users/tenant.entity';
-import { DatabaseModule } from './database/database.module';
 import { PostsModule } from './post-management/posts/posts.module';
 import { Post } from './entities/posts/post.entity';
 import { Conversation } from './entities/chats/conversation.entity';
@@ -33,6 +32,7 @@ import { Message } from './entities/chats/message.entity';
 import { ChatModule } from './messaging/chat/chat.module';
 import { TenantModule } from './user-management/tenant/tenant.module';
 import { TaskModule } from './task/task.module';
+import { TenantAwareRepoModule } from './tenant-aware-repo/tenant-aware-repo.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -76,11 +76,11 @@ import { TaskModule } from './task/task.module';
     ScheduleModule.forRoot(),
     UsersModule,
     HealthModule,
-    DatabaseModule,
     PostsModule,
     MessageModule,
     TenantModule,
     TaskModule,
+    TenantAwareRepoModule,
   ],
   controllers: [AppController],
   providers: [

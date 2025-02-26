@@ -3,7 +3,6 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { MessageService } from './message.service';
 import { Message } from '../../entities/chats/message.entity';
 import { HttpException, HttpStatus } from '@nestjs/common';
-import { TenantService } from '../../database/tenant.service';
 import { Repository } from 'typeorm';
 import * as Chance from 'chance';
 
@@ -18,13 +17,7 @@ describe('MessageService', () => {
       providers: [
         MessageService,
         {
-          provide: TenantService,
-          useValue: {
-            getCurrentTenantId: jest.fn().mockReturnValue('default'),
-          },
-        },
-        {
-          provide: getRepositoryToken(Message),
+          provide: 'TENANT_AWARE_REPOSITORY_Message',
           useValue: {
             find: jest.fn(),
             create: jest.fn(),
@@ -35,9 +28,7 @@ describe('MessageService', () => {
     }).compile();
 
     service = module.get<MessageService>(MessageService);
-    messageRepository = module.get<Repository<Message>>(
-      getRepositoryToken(Message),
-    );
+    messageRepository = module.get('TENANT_AWARE_REPOSITORY_Message');
   });
 
   afterEach(() => {

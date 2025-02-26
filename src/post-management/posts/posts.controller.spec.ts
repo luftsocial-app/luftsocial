@@ -43,7 +43,7 @@ describe('PostsController', () => {
       }));
 
       mockPostsService.find.mockResolvedValue(mockPosts);
-      const result = await controller.find(chance.guid());
+      const result = await controller.find();
 
       expect(result).toEqual(mockPosts);
       expect(mockPostsService.find).toHaveBeenCalled();
@@ -53,7 +53,7 @@ describe('PostsController', () => {
       const mockError = new Error(chance.sentence());
       mockPostsService.find.mockRejectedValue(mockError);
 
-      await expect(controller.find(chance.guid())).rejects.toThrow();
+      await expect(controller.find()).rejects.toThrow();
     });
   });
 

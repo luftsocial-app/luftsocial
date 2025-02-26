@@ -1,25 +1,21 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
+import { Injectable, BadRequestException, Inject } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { User } from '../../entities/users/user.entity';
 import { Role } from '../../entities/roles/role.entity';
-import { TenantService } from '../../database/tenant.service';
 import { clerkClient, User as clerkUser } from '@clerk/express';
 import { UserRole } from '../../common/enums/roles';
 
 @Injectable()
 export class UsersService {
   constructor(
-    @InjectRepository(User)
+    @Inject(`TENANT_AWARE_REPOSITORY_${User.name}`)
     private readonly userRepo: Repository<User>,
-    @InjectRepository(Role)
+    @Inject(`TENANT_AWARE_REPOSITORY_${Role.name}`)
     private readonly roleRepo: Repository<Role>,
-    private readonly tenantService: TenantService,
   ) {}
 
   async getUsers(): Promise<clerkUser[]> {
     const users = await clerkClient.users.getUserList();
-    console.log({ users: users.data });
     return users.data;
   }
 
@@ -27,7 +23,7 @@ export class UsersService {
     return this.userRepo.findOne({
       where: {
         clerkId,
-        activeTenantId: this.tenantService.getTenantId(),
+        activeTenantId: 'tenantId',
       },
       relations: ['roles'],
     });

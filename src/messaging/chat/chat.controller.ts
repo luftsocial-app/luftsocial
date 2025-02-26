@@ -9,6 +9,10 @@ import {
 } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { ChatGuard } from '../../guards/chat.guard';
+import { CurrentUser } from '../../decorators/current-user.decorator';
+import { User } from '@clerk/express';
+
+//TODO: implement tenantId resolution in the whole code
 
 interface CreateGroupChatDto {
   name: string;
@@ -28,6 +32,7 @@ export class ChatController {
   async createOrGetDirectChat(
     @Request() req,
     @Param('userId') otherUserId: string,
+    @CurrentUser() user: User,
   ) {
     return this.chatService.createOrGetDirectChat(req.user.id, otherUserId);
   }
@@ -72,11 +77,13 @@ export class ChatController {
     @Request() req,
     @Param('id') conversationId: string,
     @Body() body: { content: string },
+    @CurrentUser() user: User,
   ) {
     return this.chatService.createMessage(
       conversationId,
       body.content,
       req.user.id,
+      '',
     );
   }
 }
