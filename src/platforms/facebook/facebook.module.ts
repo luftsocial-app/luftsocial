@@ -14,6 +14,8 @@ import { FacebookPostMetric } from './entity/facebook-post-metric.entity';
 import { FacebookPageMetric } from './entity/facebook-page-metric.entity';
 import { AuthState } from './entity/auth-state.entity';
 import { SocialAccount } from '../entity/social-account.entity';
+import { MediaStorageModule } from 'src/media-storage/media-storage.module';
+import { DatabaseModule } from 'src/database/database.module';
 import { PlatformAuthModule } from 'src/platform-auth/platform-auth.module';
 
 @Module({
@@ -37,6 +39,8 @@ import { PlatformAuthModule } from 'src/platform-auth/platform-auth.module';
       SocialAccount,
     ]),
     PlatformAuthModule,
+    DatabaseModule,
+    MediaStorageModule,
   ],
   exports: [FacebookService],
 })

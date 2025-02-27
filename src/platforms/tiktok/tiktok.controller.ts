@@ -13,39 +13,28 @@ import { RateLimitInterceptor } from './helpers/rate-limit.interceptor';
 import { TikTokService } from './tiktok.service';
 import { CreateVideoDto } from './helpers/create-video.dto.ts';
 import { FileInterceptor } from '@nestjs/platform-express/multer';
+import { MediaItem } from '../platform-service.interface';
 
 @Controller('platforms/tiktok')
 @UseInterceptors(TikTokErrorInterceptor, RateLimitInterceptor)
 export class TikTokController {
   constructor(private readonly tiktokService: TikTokService) {}
 
-  // For URL-based uploads
-  @Post(':accountId/videos/url')
-  async uploadVideoFromUrl(
-    @Param('accountId') accountId: string,
-    @Body() createVideoDto: CreateVideoDto,
-  ) {
-    return this.tiktokService.uploadVideo(
-      accountId,
-      createVideoDto.videoUrl,
-      createVideoDto,
-    );
-  }
-
-  // For file-based uploads
-  @Post(':accountId/videos/file')
+  @Post(':accountId/videos')
   @UseInterceptors(FileInterceptor('video'))
   async uploadVideoFile(
     @Param('accountId') accountId: string,
     @UploadedFile() file: Express.Multer.File,
     @Body() createVideoDto: CreateVideoDto,
   ) {
-    const videoBuffer = Buffer.from(file.buffer);
-    return this.tiktokService.uploadLocalVideo(
-      accountId,
-      videoBuffer,
-      createVideoDto,
-    );
+    const { videoUrl } = createVideoDto;
+    // Combine file uploads and URL-based media
+    const media: MediaItem[] = [
+      ...(file ? [{ file, url: undefined }] : []),
+      ...(videoUrl ? [{ file: undefined, url: videoUrl }] : []),
+    ];
+
+    return this.tiktokService.post(accountId, createVideoDto, media);
   }
 
   @Get(':accountId/videos/:videoId/comments')

@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { LinkedInOrganization } from './linkedin-organization.entity';
 import { TenantEntity } from 'src/platforms/entity/tenant-entity';
+import { MediaStorageItem } from 'src/media-storage/media-storage.dto';
 
 @Entity('linkedin_posts')
 export class LinkedInPost extends TenantEntity {
@@ -27,8 +28,8 @@ export class LinkedInPost extends TenantEntity {
   @Column({ nullable: true })
   shareUrl: string;
 
-  @Column('simple-array', { nullable: true })
-  mediaUrls: string[];
+  @Column('jsonb', { nullable: true })
+  mediaItems: MediaStorageItem[];
 
   @Column({ nullable: true })
   thumbnailUrl: string;

@@ -177,40 +177,37 @@ export class ContentPublisherService {
         }
         const igResult = await this.instagramService.post(
           params.accountId,
-          params.content,
+          params.platformSpecificParams,
           params.media,
         );
         return {
           platformPostId: igResult.platformPostId,
           postedAt: igResult.postedAt,
-          platformSpecificData: igResult.additionalData,
         };
 
       case SocialPlatform.LINKEDIN:
         const liResult = await this.linkedinService.post(
           params.accountId,
-          params.content,
+          params.platformSpecificParams,
           params.media,
         );
         return {
           platformPostId: liResult.platformPostId,
           postedAt: liResult.postedAt,
-          platformSpecificData: liResult.additionalData,
         };
 
       case SocialPlatform.TIKTOK:
         if (!params.media?.length) {
           throw new BadRequestException('TikTok requires a video');
         }
-        const ttResult = await this.tiktokService.uploadVideo(
+        const ttResult = await this.tiktokService.post(
           params.accountId,
-          params.media[0], // TikTok only accepts one video
           params.platformSpecificParams,
+          params.media, // TikTok only accepts one video
         );
         return {
           platformPostId: ttResult.platformPostId,
           postedAt: ttResult.postedAt,
-          platformSpecificData: ttResult.additionalData,
         };
 
       default:

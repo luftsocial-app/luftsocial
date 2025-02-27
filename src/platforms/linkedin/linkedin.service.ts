@@ -10,6 +10,7 @@ import axios from 'axios';
 import { LinkedInRepository } from './repositories/linkedin.repository';
 import {
   CommentResponse,
+  MediaItem,
   PlatformService,
   PostResponse,
   SocialAccountDetails,
@@ -22,6 +23,10 @@ import {
   PostMetrics,
 } from 'src/cross-platform/helpers/cross-platform.interface';
 import { LinkedInAccount } from './entities/linkedin-account.entity';
+import { TenantService } from 'src/database/tenant.service';
+import { CreateLinkedInPostDto } from './helpers/create-post.dto';
+import { MediaStorageItem } from 'src/media-storage/media-storage.dto';
+import { MediaStorageService } from 'src/media-storage/media-storage.service';
 
 @Injectable()
 export class LinkedInService implements PlatformService {
@@ -32,10 +37,52 @@ export class LinkedInService implements PlatformService {
   constructor(
     private readonly configService: ConfigService,
     private readonly linkedInRepo: LinkedInRepository,
+    private readonly tenantService: TenantService,
+    private readonly mediaStorageService: MediaStorageService,
   ) {}
+
+  private async uploadLinkedInMediaItemsToStorage(
+    media: MediaItem[],
+    linkedInAccountId: string,
+    context: 'post' | 'scheduled',
+  ): Promise<MediaStorageItem[]> {
+    const mediaItems: MediaStorageItem[] = [];
+
+    if (!media?.length) {
+      return mediaItems;
+    }
+
+    for (const mediaItem of media) {
+      const timestamp = Date.now();
+      const prefix = `linkedin-${context}-${timestamp}`;
+
+      if (mediaItem.file) {
+        // For uploaded files
+        const uploadedMedia = await this.mediaStorageService.uploadPostMedia(
+          linkedInAccountId,
+          [mediaItem.file],
+          prefix,
+        );
+        mediaItems.push(...uploadedMedia);
+      } else if (mediaItem.url) {
+        // For media URLs
+        const uploadedMedia = await this.mediaStorageService.uploadMediaFromUrl(
+          linkedInAccountId,
+          mediaItem.url,
+          prefix,
+        );
+        mediaItems.push(uploadedMedia);
+      }
+    }
+
+    return mediaItems;
+  }
 
   async getAccountsByUserId(userId: string): Promise<LinkedInAccount> {
     try {
+      const tenantId = this.tenantService.getTenantId();
+      this.linkedInRepo.setTenantId(tenantId);
+
       return await this.linkedInRepo.getById(userId);
     } catch (error) {
       this.logger.error(
@@ -46,6 +93,9 @@ export class LinkedInService implements PlatformService {
   }
 
   async getUserAccounts(userId: string): Promise<SocialAccountDetails[]> {
+    const tenantId = this.tenantService.getTenantId();
+    this.linkedInRepo.setTenantId(tenantId);
+
     const account = await this.linkedInRepo.getById(userId);
     if (!account) {
       throw new NotFoundException('No Linkedin accounts found for user');
@@ -91,10 +141,13 @@ export class LinkedInService implements PlatformService {
 
   async post(
     accountId: string,
-    content: string,
-    mediaUrls?: string[],
+    creatPostDto: CreateLinkedInPostDto,
+    media?: MediaItem[],
   ): Promise<PostResponse> {
     try {
+      const tenantId = this.tenantService.getTenantId();
+      this.linkedInRepo.setTenantId(tenantId);
+
       const account = await this.linkedInRepo.getById(accountId);
       if (!account) {
         throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
@@ -104,8 +157,8 @@ export class LinkedInService implements PlatformService {
 
       const postData: any = {
         author,
-        commentary: content,
-        visibility: 'PUBLIC',
+        commentary: creatPostDto.content,
+        visibility: creatPostDto.visibility,
         distribution: {
           feedDistribution: 'MAIN_FEED',
           targetEntities: [],
@@ -113,11 +166,18 @@ export class LinkedInService implements PlatformService {
         },
       };
 
+      // Store media in S3 first if there are any media items
+      const mediaItems = await this.uploadLinkedInMediaItemsToStorage(
+        media,
+        account.linkedinUserId,
+        'post',
+      );
+
       // Handle media if provided
-      if (mediaUrls?.length) {
+      if (mediaItems?.length) {
         const mediaAssets = await Promise.all(
-          mediaUrls.map((url) =>
-            this.uploadMedia(account.socialAccount.accessToken, url),
+          mediaItems.map((mediaItem) =>
+            this.uploadMedia(account.socialAccount.accessToken, mediaItem.url),
           ),
         );
 
@@ -141,6 +201,14 @@ export class LinkedInService implements PlatformService {
         },
       );
 
+      await this.linkedInRepo.createPost({
+        postId: response.data.id,
+        content: creatPostDto.content,
+        mediaItems,
+        isPublished: true,
+        publishedAt: new Date(),
+      });
+
       return {
         platformPostId: response.data.id,
         postedAt: new Date(),
@@ -156,6 +224,9 @@ export class LinkedInService implements PlatformService {
     pageToken?: string,
   ): Promise<CommentResponse> {
     try {
+      const tenantId = this.tenantService.getTenantId();
+      this.linkedInRepo.setTenantId(tenantId);
+
       const account = await this.linkedInRepo.getById(accountId);
       if (!account) {
         throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
@@ -199,6 +270,9 @@ export class LinkedInService implements PlatformService {
     postId: string,
   ): Promise<PostMetrics> {
     try {
+      const tenantId = this.tenantService.getTenantId();
+      this.linkedInRepo.setTenantId(tenantId);
+
       const account = await this.linkedInRepo.getById(accountId);
       if (!account) {
         throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
@@ -247,6 +321,9 @@ export class LinkedInService implements PlatformService {
     accountId: string,
     dateRange: DateRange,
   ): Promise<AccountMetrics> {
+    const tenantId = this.tenantService.getTenantId();
+    this.linkedInRepo.setTenantId(tenantId);
+
     const account = await this.linkedInRepo.getById(accountId);
     if (!account) throw new NotFoundException('Account not found');
     if (!account.organizations || account.organizations.length === 0) {
@@ -345,7 +422,6 @@ export class LinkedInService implements PlatformService {
     );
     return response.data.elements;
   }
-
   private async uploadMedia(
     accessToken: string,
     mediaUrl: string,
@@ -399,6 +475,9 @@ export class LinkedInService implements PlatformService {
   async getUserOrganizations(
     accountId: string,
   ): Promise<LinkedInOrganization[]> {
+    const tenantId = this.tenantService.getTenantId();
+    this.linkedInRepo.setTenantId(tenantId);
+
     const account = await this.linkedInRepo.getById(accountId);
     if (!account) throw new NotFoundException('Account not found');
 
@@ -436,6 +515,9 @@ export class LinkedInService implements PlatformService {
   }
 
   async revokeAccess(accountId: string): Promise<void> {
+    const tenantId = this.tenantService.getTenantId();
+    this.linkedInRepo.setTenantId(tenantId);
+
     const account = await this.linkedInRepo.getById(accountId);
     if (!account) throw new NotFoundException('Account not found');
 

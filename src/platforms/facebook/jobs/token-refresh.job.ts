@@ -31,10 +31,13 @@ export class FacebookTokenRefreshJob {
 
           // Update account with new tokens
           await this.facebookRepo.updateAccount(account.id, {
-            longLivedToken: refreshedTokens.accessToken,
-            tokenExpiresAt: new Date(
-              Date.now() + refreshedTokens.expiresIn * 1000,
-            ),
+            socialAccount: {
+              ...account.socialAccount,
+              refreshToken: refreshedTokens.accessToken,
+              tokenExpiresAt: new Date(
+                Date.now() + refreshedTokens.expiresIn * 1000,
+              ),
+            },
           });
 
           // Refresh page tokens

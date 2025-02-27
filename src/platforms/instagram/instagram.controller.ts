@@ -35,11 +35,7 @@ export class InstagramController {
         []),
     ];
 
-    return this.instagramService.post(
-      accountId,
-      createPostDto,
-      media,
-    );
+    return this.instagramService.post(accountId, createPostDto, media);
   }
 
   @Post(':accountId/stories')

@@ -36,7 +36,6 @@ export class PlatformAuthController {
     platform: SocialPlatform,
     @Query('code') code: string,
     @Query('state') state: string,
-    @CurrentUser() userId: string,
   ): Promise<TokenResponse> {
     return this.oauth2Service.handleCallback(platform, code, state);
   }

@@ -28,6 +28,7 @@ import { memoryStorage } from 'multer';
     FacebookModule,
     InstagramModule,
     LinkedInModule,
+    MediaStorageModule,
     TikTokModule,
     TypeOrmModule.forFeature([PublishRecord, AnalyticsRecord, ScheduledPost]),
   ],

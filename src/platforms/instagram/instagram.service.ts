@@ -10,7 +10,6 @@ import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
 import { InstagramRepository } from './repositories/instagram.repository';
 import { InstagramApiException } from './helpers/instagram-api.exception';
-import { InstagramConfig } from './helpers/instagram.config';
 import { MediaType } from './helpers/media-type.enum';
 import {
   CommentResponse,
@@ -38,7 +37,6 @@ export class InstagramService implements PlatformService {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly instagramConfig: InstagramConfig,
     private readonly instagramRepo: InstagramRepository,
     private readonly mediaStorageService: MediaStorageService,
     private readonly tenantService: TenantService,

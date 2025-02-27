@@ -10,6 +10,7 @@ import axios from 'axios';
 import { TikTokApiException } from './helpers/tiktok-api.exception';
 import {
   CommentResponse,
+  MediaItem,
   PlatformService,
   PostResponse,
   SocialAccountDetails,
@@ -28,6 +29,9 @@ import {
   PostMetrics,
 } from 'src/cross-platform/helpers/cross-platform.interface';
 import { TikTokAccount } from './entities/tiktok-account.entity';
+import { TenantService } from 'src/database/tenant.service';
+import { MediaStorageItem } from 'src/media-storage/media-storage.dto';
+import { MediaStorageService } from 'src/media-storage/media-storage.service';
 
 @Injectable()
 export class TikTokService implements PlatformService {
@@ -38,12 +42,53 @@ export class TikTokService implements PlatformService {
     private readonly configService: ConfigService,
     private readonly tiktokRepo: TikTokRepository,
     private readonly tiktokConfig: TikTokConfig,
+    private readonly tenantService: TenantService,
+    private readonly mediaStorageService: MediaStorageService,
   ) {
     this.baseUrl = tiktokConfig.baseUrl;
   }
 
+  private async uploadTitTokMediaItemsToStorage(
+    media: MediaItem[],
+    titkotAccountId: string,
+    context: 'post' | 'scheduled',
+  ): Promise<MediaStorageItem[]> {
+    const mediaItems: MediaStorageItem[] = [];
+
+    if (!media?.length) {
+      return mediaItems;
+    }
+
+    for (const mediaItem of media) {
+      const timestamp = Date.now();
+      const prefix = `tiktok-${context}-${timestamp}`;
+
+      if (mediaItem.file) {
+        // For uploaded files
+        const uploadedMedia = await this.mediaStorageService.uploadPostMedia(
+          titkotAccountId,
+          [mediaItem.file],
+          prefix,
+        );
+        mediaItems.push(...uploadedMedia);
+      } else if (mediaItem.url) {
+        // For media URLs
+        const uploadedMedia = await this.mediaStorageService.uploadMediaFromUrl(
+          titkotAccountId,
+          mediaItem.url,
+          prefix,
+        );
+        mediaItems.push(uploadedMedia);
+      }
+    }
+
+    return mediaItems;
+  }
+
   async getAccountsByUserId(userId: string): Promise<TikTokAccount> {
     try {
+      const tenantId = this.tenantService.getTenantId();
+      this.tiktokRepo.setTenantId(tenantId);
       return await this.tiktokRepo.getAccountById(userId);
     } catch (error) {
       this.logger.error(
@@ -54,6 +99,8 @@ export class TikTokService implements PlatformService {
   }
 
   async getUserAccounts(userId: string): Promise<SocialAccountDetails[]> {
+    const tenantId = this.tenantService.getTenantId();
+    this.tiktokRepo.setTenantId(tenantId);
     const account = await this.tiktokRepo.getAccountById(userId);
     if (!account) {
       throw new NotFoundException('No Tiktok accounts found for user');
@@ -89,6 +136,8 @@ export class TikTokService implements PlatformService {
     pageToken?: string,
   ): Promise<CommentResponse> {
     try {
+      const tenantId = this.tenantService.getTenantId();
+      this.tiktokRepo.setTenantId(tenantId);
       const account = await this.tiktokRepo.getById(accountId);
       if (!account) {
         throw new NotFoundException('Account not found');
@@ -143,6 +192,9 @@ export class TikTokService implements PlatformService {
     videoId: string,
   ): Promise<PostMetrics> {
     try {
+      const tenantId = this.tenantService.getTenantId();
+      this.tiktokRepo.setTenantId(tenantId);
+
       const account = await this.tiktokRepo.getById(accountId);
       if (!account) {
         throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
@@ -201,29 +253,6 @@ export class TikTokService implements PlatformService {
     }
   }
 
-  private async exchangeCodeForToken(code: string): Promise<any> {
-    try {
-      const response = await axios.post(
-        `${this.baseUrl}/oauth2/token`,
-        {
-          grant_type: 'authorization_code',
-          code,
-          client_key: this.tiktokConfig.clientKey,
-          client_secret: this.tiktokConfig.clientSecret,
-        },
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-        },
-      );
-
-      return response.data;
-    } catch (error) {
-      throw new TikTokApiException('Failed to exchange code for token', error);
-    }
-  }
-
   private async getUserInfo(accessToken: string): Promise<any> {
     try {
       const response = await axios.get(`${this.baseUrl}/user/info/`, {
@@ -252,6 +281,9 @@ export class TikTokService implements PlatformService {
     params: CreateVideoParams,
     uploadInfo: VideoUploadInit,
   ): Promise<VideoUploadResponse> {
+    const tenantId = this.tenantService.getTenantId();
+    this.tiktokRepo.setTenantId(tenantId);
+
     const account = await this.tiktokRepo.getById(accountId);
     if (!account) throw new NotFoundException('Account not found');
 
@@ -325,6 +357,9 @@ export class TikTokService implements PlatformService {
     videoSize: number,
     chunkSize: number,
   ): Promise<any> {
+    const tenantId = this.tenantService.getTenantId();
+    this.tiktokRepo.setTenantId(tenantId);
+
     const account = await this.tiktokRepo.getById(accountId);
     if (!account) {
       throw new NotFoundException('Account not found');
@@ -374,15 +409,25 @@ export class TikTokService implements PlatformService {
     }
   }
 
-  async uploadVideo(
+  async post(
     accountId: string,
-    videoUrl: string,
     params: CreateVideoParams,
+    media: MediaItem[],
   ): Promise<PostResponse> {
+    const tenantId = this.tenantService.getTenantId();
+    this.tiktokRepo.setTenantId(tenantId);
+
     const account = await this.tiktokRepo.getById(accountId);
     if (!account) {
       throw new NotFoundException('Account not found');
     }
+
+    // Store media in S3 first if there are any media items
+    const mediaItems = await this.uploadTitTokMediaItemsToStorage(
+      media,
+      account.tiktokUserId,
+      'post',
+    );
 
     try {
       // First initialize the upload
@@ -391,11 +436,19 @@ export class TikTokService implements PlatformService {
         params,
         {
           source: 'PULL_FROM_URL',
-          videoUrl,
+          videoUrl: mediaItems[0].url,
         },
       );
 
-      // For PULL_FROM_URL, we just need to monitor the status
+      // Monitor upload status
+      const status = await this.checkUploadStatus(
+        accountId,
+        uploadResponse.publishId,
+      );
+      if (status === 'FAILED') {
+        throw new TikTokApiException('Video upload failed');
+      }
+
       return {
         platformPostId: uploadResponse.publishId,
         postedAt: new Date(),
@@ -410,6 +463,9 @@ export class TikTokService implements PlatformService {
     videoBuffer: Buffer,
     params: CreateVideoParams,
   ): Promise<PostResponse> {
+    const tenantId = this.tenantService.getTenantId();
+    this.tiktokRepo.setTenantId(tenantId);
+
     const account = await this.tiktokRepo.getById(accountId);
     if (!account) {
       throw new NotFoundException('Account not found');
@@ -497,6 +553,9 @@ export class TikTokService implements PlatformService {
     accountId: string,
     publishId: string,
   ): Promise<string> {
+    const tenantId = this.tenantService.getTenantId();
+    this.tiktokRepo.setTenantId(tenantId);
+
     const account = await this.tiktokRepo.getById(accountId);
     if (!account) throw new NotFoundException('Account not found');
 
@@ -530,6 +589,9 @@ export class TikTokService implements PlatformService {
   }
 
   async getVideoStatus(accountId: string, publishId: string): Promise<any> {
+    const tenantId = this.tenantService.getTenantId();
+    this.tiktokRepo.setTenantId(tenantId);
+
     const account = await this.tiktokRepo.getById(accountId);
     if (!account) throw new NotFoundException('Account not found');
 
@@ -577,6 +639,8 @@ export class TikTokService implements PlatformService {
           },
         });
       }
+      const tenantId = this.tenantService.getTenantId();
+      this.tiktokRepo.setTenantId(tenantId);
 
       await this.tiktokRepo.updateUploadSession(sessionId, 'COMPLETED');
     } catch (error) {
@@ -594,6 +658,9 @@ export class TikTokService implements PlatformService {
   }
 
   async getAccountAnalytics(accountId: string): Promise<any> {
+    const tenantId = this.tenantService.getTenantId();
+    this.tiktokRepo.setTenantId(tenantId);
+
     const account = await this.tiktokRepo.getById(accountId);
     if (!account) {
       throw new NotFoundException('Account not found');
@@ -627,6 +694,9 @@ export class TikTokService implements PlatformService {
     videoId: string,
     days: number = 7,
   ): Promise<any> {
+    const tenantId = this.tenantService.getTenantId();
+    this.tiktokRepo.setTenantId(tenantId);
+
     const account = await this.tiktokRepo.getById(accountId);
     if (!account) {
       throw new NotFoundException('Account not found');
@@ -673,6 +743,9 @@ export class TikTokService implements PlatformService {
     accountId: string,
     dateRange: DateRange,
   ): Promise<AccountMetrics> {
+    const tenantId = this.tenantService.getTenantId();
+    this.tiktokRepo.setTenantId(tenantId);
+
     const account = await this.tiktokRepo.getById(accountId);
     if (!account) throw new NotFoundException('Account not found');
 
@@ -725,6 +798,9 @@ export class TikTokService implements PlatformService {
   }
 
   async revokeAccess(accountId: string): Promise<void> {
+    const tenantId = this.tenantService.getTenantId();
+    this.tiktokRepo.setTenantId(tenantId);
+
     const account = await this.tiktokRepo.getById(accountId);
     if (!account) throw new NotFoundException('Account not found');
 

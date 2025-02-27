@@ -32,7 +32,7 @@ export class InstagramMetricsCollectionJob {
               async () => {
                 const metrics = await this.instagramService.getPostMetrics(
                   account.id,
-                  item.mediaId,
+                  item.postId,
                 );
 
                 await this.instagramRepo.upsertMediaMetrics(item.id, metrics);

@@ -7,10 +7,13 @@ import {
   Query,
   Param,
   UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
 import { LinkedInService } from './linkedin.service';
 import { LinkedInErrorInterceptor } from './helpers/linkedin-error.interceptor';
 import { CreateLinkedInPostDto } from './helpers/create-post.dto';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { MediaItem } from '../platform-service.interface';
 
 @Controller('platforms/linkedin')
 @UseInterceptors(LinkedInErrorInterceptor)
@@ -18,15 +21,20 @@ export class LinkedInController {
   constructor(private readonly linkedInService: LinkedInService) {}
 
   @Post(':accountId/posts')
+  @UseInterceptors(FilesInterceptor('files'))
   async createPost(
     @Param('accountId') accountId: string,
     @Body() createPostDto: CreateLinkedInPostDto,
+    @UploadedFiles() files?: Express.Multer.File[],
   ) {
-    return this.linkedInService.post(
-      accountId,
-      createPostDto.content,
-      createPostDto.mediaUrls,
-    );
+    // Combine file uploads and URL-based media
+    const media: MediaItem[] = [
+      ...(files?.map((file) => ({ file, url: undefined })) || []),
+      ...(createPostDto.mediaUrls?.map((url) => ({ url, file: undefined })) ||
+        []),
+    ];
+
+    return this.linkedInService.post(accountId, createPostDto, media);
   }
 
   @Get(':accountId/posts/:postId/comments')

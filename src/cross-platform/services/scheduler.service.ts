@@ -19,12 +19,12 @@ import { MediaStorageItem } from 'src/media-storage/media-storage.dto';
 
 @Injectable()
 export class SchedulerService {
+  private readonly logger: Logger = new Logger(SchedulerService.name);
   constructor(
     @InjectRepository(ScheduledPost)
     private readonly scheduledPostRepo: Repository<ScheduledPost>,
     private readonly contentPublisherService: ContentPublisherService,
     private readonly mediaStorageService: MediaStorageService,
-    private readonly logger: Logger = new Logger(SchedulerService.name),
   ) {}
 
   @Cron(CronExpression.EVERY_MINUTE)

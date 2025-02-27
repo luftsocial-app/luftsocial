@@ -14,10 +14,14 @@ import { InstagramConfig } from './helpers/instagram.config';
 import { InstagramRateLimit } from './entities/instagram-rate-limit.entity';
 import { RateLimitInterceptor } from './interceptors/rate-limit.interceptor';
 import { InstagramPost } from './entities/instagram-post.entity';
+import { MediaStorageModule } from 'src/media-storage/media-storage.module';
+import { DatabaseModule } from 'src/database/database.module';
 
 @Module({
   imports: [
     ConfigModule,
+    MediaStorageModule,
+    DatabaseModule,
     TypeOrmModule.forFeature([
       InstagramAccount,
       InstagramRateLimit,
