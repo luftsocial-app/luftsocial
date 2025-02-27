@@ -3,7 +3,7 @@ import { MessageController } from './message.controller';
 import { MessageService } from './message.service';
 import { HttpStatus } from '@nestjs/common';
 import * as Chance from 'chance';
-import { Message } from '../../entities/chats/message.entity';
+import { Message } from '../../database/entities/chats/message.entity';
 import { ChatService } from '../chat/chat.service';
 
 const chance = new Chance();

@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Post } from '../../entities/posts/post.entity';
+import { Post } from '../../database/entities/posts/post.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { TenantService } from '../../database/tenant.service';
@@ -10,7 +10,7 @@ export class PostsService {
     @InjectRepository(Post)
     private readonly postRepository: Repository<Post>,
     private readonly tenantService: TenantService,
-  ) {}
+  ) { }
 
   async findOne(id: string): Promise<Post> {
     const post = await this.postRepository.findOne({

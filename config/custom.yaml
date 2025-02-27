@@ -15,3 +15,5 @@ database:
     host: DB_HOST
     port: DB_PORT
     database: DB_NAME
+stripe-secret-key: STRIPE_SECRET
+stripe-api-version: STRIPE_API_VERSION

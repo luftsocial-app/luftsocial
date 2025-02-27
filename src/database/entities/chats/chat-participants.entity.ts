@@ -5,7 +5,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { GroupRole } from '../../common/enums/roles';
+import { GroupRole } from '../../../common/enums/roles';
 import { Conversation } from './conversation.entity';
 import { User } from '../users/user.entity';
 

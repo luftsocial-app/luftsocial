@@ -5,9 +5,9 @@ import { ChatService } from './chat.service';
 import {
   Conversation,
   ConversationType,
-} from '../../entities/chats/conversation.entity';
-import { Message } from '../../entities/chats/message.entity';
-import { User } from '../../entities/users/user.entity';
+} from '../../database/entities/chats/conversation.entity';
+import { Message } from '../../database/entities/chats/message.entity';
+import { User } from '../../database/entities/users/user.entity';
 import { TenantService } from '../../database/tenant.service';
 import { NotFoundException, ConflictException } from '@nestjs/common';
 import * as Chance from 'chance';

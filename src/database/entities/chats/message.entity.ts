@@ -12,7 +12,7 @@ import {
   MessageType,
   MessageStatus,
   Attachment,
-} from '../../common/enums/messaging';
+} from '../../../common/enums/messaging';
 import { Conversation } from './conversation.entity';
 import { User } from '../users/user.entity';
 

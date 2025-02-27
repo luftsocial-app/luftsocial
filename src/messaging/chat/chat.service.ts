@@ -9,9 +9,9 @@ import { TenantService } from '../../database/tenant.service';
 import {
   Conversation,
   ConversationType,
-} from '../../entities/chats/conversation.entity';
-import { Message } from '../../entities/chats/message.entity';
-import { User } from '../../entities/users/user.entity';
+} from '../../database/entities/chats/conversation.entity';
+import { Message } from '../../database/entities/chats/message.entity';
+import { User } from '../../database/entities/users/user.entity';
 import { CreateConversationDto } from '../dtos/conversation.dto';
 
 @Injectable()
@@ -24,7 +24,7 @@ export class ChatService {
     private readonly messageRepo: Repository<Message>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
-  ) {}
+  ) { }
 
   async createConversation(data: CreateConversationDto): Promise<Conversation> {
     const participants = await this.userRepository.findBy({

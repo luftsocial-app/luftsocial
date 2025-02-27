@@ -7,7 +7,7 @@ import {
   IsString,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ConversationType } from '../../entities/chats/conversation.entity';
+import { ConversationType } from '../../database/entities/chats/conversation.entity';
 
 export class MessageQueryDto {
   @IsUUID()

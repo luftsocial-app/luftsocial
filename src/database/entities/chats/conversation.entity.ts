@@ -8,7 +8,7 @@ import {
   JoinTable,
   UpdateDateColumn,
 } from 'typeorm';
-import { IConversationSettings } from '../../common/interface/message.interface';
+import { IConversationSettings } from '../../../common/interface/message.interface';
 import { Message } from './message.entity';
 import { User } from '../users/user.entity';
 

@@ -1,8 +1,8 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '../../entities/users/user.entity';
-import { Role } from '../../entities/roles/role.entity';
+import { User } from '../../database/entities/users/user.entity';
+import { Role } from '../../database/entities/roles/role.entity';
 import { TenantService } from '../../database/tenant.service';
 import { clerkClient, User as clerkUser } from '@clerk/express';
 import { UserRole } from '../../common/enums/roles';
@@ -15,7 +15,7 @@ export class UsersService {
     @InjectRepository(Role)
     private readonly roleRepo: Repository<Role>,
     private readonly tenantService: TenantService,
-  ) {}
+  ) { }
 
   async getUsers(): Promise<clerkUser[]> {
     const users = await clerkClient.users.getUserList();

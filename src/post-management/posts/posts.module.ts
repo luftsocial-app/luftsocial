@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { Post } from '../../entities/posts/post.entity';
+import { Post } from '../../database/entities/posts/post.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PostsService } from './posts.service';
 import { PostsController } from './posts.controller';
@@ -11,4 +11,4 @@ import { DatabaseModule } from '../../database/database.module';
   controllers: [PostsController],
   exports: [PostsService],
 })
-export class PostsModule {}
+export class PostsModule { }

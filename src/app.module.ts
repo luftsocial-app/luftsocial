@@ -13,26 +13,27 @@ import { LoggerMiddleware } from '../logger.middleware';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TenantMiddleware } from './middleware/tenant.middleware';
 import { UsersModule } from './user-management/users/users.module';
-import { User } from './entities/users/user.entity';
+import { User } from './database/entities/users/user.entity';
 import { ClerkAuthGuard } from './guards/clerk-auth.guard';
 import { RolesGuard } from './guards/role-guard';
-import { Role } from './entities/roles/role.entity';
-import { Permissions } from './entities/roles/permissions.entity';
-import { Tenant } from './entities/users/tenant.entity';
+import { Role } from './database/entities/roles/role.entity';
+import { Permissions } from './database/entities/roles/permissions.entity';
+import { Tenant } from './database/entities/users/tenant.entity';
 import { DatabaseModule } from './database/database.module';
 import { PostsModule } from './post-management/posts/posts.module';
-import { Post } from './entities/posts/post.entity';
-import { Conversation } from './entities/chats/conversation.entity';
-import { ChatParticipants } from './entities/chats/chat-participants.entity';
-import { UserRoleChange } from './entities/roles/user-role-change.entity';
-import { Notification } from './entities/notifications/notification.entity';
-import { Team } from './entities/users/team.entity';
-import { UserTenant } from './entities/users/user-tenant.entity';
+import { Post } from './database/entities/posts/post.entity';
+import { Conversation } from './database/entities/chats/conversation.entity';
+import { ChatParticipants } from './database/entities/chats/chat-participants.entity';
+import { UserRoleChange } from './database/entities/roles/user-role-change.entity';
+import { Notification } from './database/entities/notifications/notification.entity';
+import { Team } from './database/entities/users/team.entity';
+import { UserTenant } from './database/entities/users/user-tenant.entity';
 import { MessageModule } from './messaging/message/message.module';
-import { Message } from './entities/chats/message.entity';
+import { Message } from './database/entities/chats/message.entity';
 import { ChatModule } from './messaging/chat/chat.module';
 import { TenantModule } from './user-management/tenant/tenant.module';
 import { TaskModule } from './task/task.module';
+import { SubscriptionModule } from './subscription/subscription.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -81,6 +82,7 @@ import { TaskModule } from './task/task.module';
     MessageModule,
     TenantModule,
     TaskModule,
+    SubscriptionModule,
   ],
   controllers: [AppController],
   providers: [

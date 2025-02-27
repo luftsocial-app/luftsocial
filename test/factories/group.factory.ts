@@ -1,4 +1,4 @@
-import { Group } from '../../src/entities/group.entity';
+import { Group } from '../../src/database/entities/group.entity';
 import { DatabaseHelper } from '../helpers/database.helper';
 
 export class GroupFactory {

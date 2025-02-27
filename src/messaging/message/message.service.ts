@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Message } from '../../entities/chats/message.entity';
+import { Message } from '../../database/entities/chats/message.entity';
 import { TenantService } from '../../database/tenant.service';
 import { MessageStatus } from '../../common/enums/messaging';
 import { OperationStatus } from '../../common/enums/operation-status.enum';
@@ -12,7 +12,7 @@ export class MessageService {
     @InjectRepository(Message)
     private readonly messageRepo: Repository<Message>,
     private tenantService: TenantService,
-  ) {}
+  ) { }
 
   async createMessage(
     conversationId: string,

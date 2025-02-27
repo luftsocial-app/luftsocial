@@ -2,8 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { Role } from '../../entities/roles/role.entity';
-import { User } from '../../entities/users/user.entity';
+import { Role } from '../../database/entities/roles/role.entity';
+import { User } from '../../database/entities/users/user.entity';
 import { UsersService } from './users.service';
 import { TenantService } from '../../database/tenant.service';
 import { UserRole } from '../../common/enums/roles';

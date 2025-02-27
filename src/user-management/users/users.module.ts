@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UsersService } from './users.service';
 import { UsersController } from './users.controller';
-import { User } from '../../entities/users/user.entity';
-import { Role } from '../../entities/roles/role.entity';
+import { User } from '../../database/entities/users/user.entity';
+import { Role } from '../../database/entities/roles/role.entity';
 import { DatabaseModule } from '../../database/database.module';
 
 @Module({
@@ -12,4 +12,4 @@ import { DatabaseModule } from '../../database/database.module';
   controllers: [UsersController],
   exports: [UsersService],
 })
-export class UsersModule {}
+export class UsersModule { }

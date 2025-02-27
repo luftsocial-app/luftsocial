@@ -19,3 +19,5 @@ db:
     port: 5432
     database: postgres
     synchronize: false
+stripe-secret-key: "STRIPE_SECRET"
+stripe-api-version: "STRIPE_API_VERSION"

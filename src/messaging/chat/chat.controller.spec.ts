@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ChatController } from './chat.controller';
 import { ChatService } from './chat.service';
-import { ConversationType } from '../../entities/chats/conversation.entity';
+import { ConversationType } from '../../database/entities/chats/conversation.entity';
 import * as Chance from 'chance';
 
 const chance = new Chance();

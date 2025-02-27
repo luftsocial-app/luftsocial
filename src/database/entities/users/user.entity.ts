@@ -11,9 +11,9 @@ import {
 } from 'typeorm';
 import { Tenant } from './tenant.entity';
 import { Role } from '../roles/role.entity';
-import { Permission } from '../../common/enums/roles';
+import { Permission } from '../../../common/enums/roles';
 import { UserTenant } from './user-tenant.entity';
-import { Message } from '../../entities/chats/message.entity';
+import { Message } from '../chats/message.entity';
 import { Conversation } from '../chats/conversation.entity';
 import { Team } from './team.entity';
 
@@ -75,6 +75,9 @@ export class User {
   @Column({ nullable: true })
   customStatus?: string;
 
+  @Column()
+  public stripeCustomerId: string;
+
   // User belongs to multiple tenants
   @OneToMany(() => UserTenant, (userTenant) => userTenant.user, {
     cascade: true,
@@ -121,4 +124,6 @@ export class User {
 
   @ManyToMany(() => Conversation, (conversation) => conversation.admins)
   adminOf: Conversation[];
+
+
 }
