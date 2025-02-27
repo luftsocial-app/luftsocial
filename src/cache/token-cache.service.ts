@@ -18,7 +18,11 @@ export class TokenCacheService {
   }
 
   async deleteToken(key: string): Promise<void> {
-    await this.cacheManager.del(key);
+    try {
+      await this.cacheManager.del(key);
+    } catch (error) {
+      throw new Error(`Cache delete error: ${error.message}`);
+    }
   }
 
   generateKey(

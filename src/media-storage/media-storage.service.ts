@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { S3 } from 'aws-sdk'; // Changed import statement
-import _ from 'lodash';
+import { S3 } from 'aws-sdk';
+import * as merge from 'lodash/merge';
 import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -8,7 +8,7 @@ import {
   PreSignedUrlResult,
   UploadResult,
 } from './media-storage.dto';
-import { MediaType } from 'src/common/enums/media-type.enum';
+import { MediaType } from '../common/enums/media-type.enum';
 
 @Injectable()
 export class MediaStorageService {
@@ -38,7 +38,7 @@ export class MediaStorageService {
       queueSize: 10,
     };
 
-    const mergedOptions = _.merge(defaultOptions, options);
+    const mergedOptions = merge(defaultOptions, options);
     const sendData = await this.s3
       .upload(
         {

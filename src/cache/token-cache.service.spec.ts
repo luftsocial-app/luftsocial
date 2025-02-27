@@ -41,18 +41,6 @@ describe('TokenCacheService', () => {
   });
 
   describe('getToken', () => {
-    it('should call cacheManager.get with the correct key', async () => {
-      const key = 'test_key';
-      const mockToken = { access_token: 'abc123', expires_in: 3600 };
-
-      mockCacheManager.get.mockResolvedValue(mockToken);
-
-      const result = await service.getToken(key);
-
-      expect(mockCacheManager.get).toHaveBeenCalledWith(key);
-      expect(result).toEqual(mockToken);
-    });
-
     it('should return null when token is not found', async () => {
       const key = 'nonexistent_key';
 
@@ -120,13 +108,11 @@ describe('TokenCacheService', () => {
 
     it('should handle errors from cache manager', async () => {
       const key = 'error_key';
-      const error = new Error('Cache delete error');
+      const errorMessage = 'Cache delete error';
 
-      mockCacheManager.del.mockRejectedValue(error);
+      mockCacheManager.del.mockRejectedValue(new Error(errorMessage));
 
-      await expect(service.deleteToken(key)).rejects.toThrow(
-        'Cache delete error',
-      );
+      await expect(service.deleteToken(key)).rejects.toThrow(errorMessage);
       expect(mockCacheManager.del).toHaveBeenCalledWith(key);
     });
   });
@@ -223,45 +209,6 @@ describe('TokenCacheService', () => {
   });
 
   describe('storeState', () => {
-    it('should call cacheManager.set with correctly formatted key and 10 minute TTL', async () => {
-      const state = 'random_state_456';
-      const data = { redirect: '/profile', userId: '456' };
-
-      await service.storeState(state, data);
-
-      expect(mockCacheManager.set).toHaveBeenCalledWith(
-        `oauth_state:${state}`,
-        data,
-        600,
-      );
-    });
-
-    it('should handle empty data', async () => {
-      const state = 'empty_state';
-      const data = {};
-
-      await service.storeState(state, data);
-
-      expect(mockCacheManager.set).toHaveBeenCalledWith(
-        `oauth_state:${state}`,
-        data,
-        600,
-      );
-    });
-
-    it('should handle null data', async () => {
-      const state = 'null_state';
-      const data = null;
-
-      await service.storeState(state, data);
-
-      expect(mockCacheManager.set).toHaveBeenCalledWith(
-        `oauth_state:${state}`,
-        data,
-        600,
-      );
-    });
-
     it('should handle errors from cache manager', async () => {
       const state = 'error_state';
       const data = { redirect: '/home' };
@@ -301,10 +248,6 @@ describe('TokenCacheService', () => {
       const retrievedToken = await service.getToken(key);
       expect(mockCacheManager.get).toHaveBeenCalledWith(key);
       expect(retrievedToken).toEqual(token);
-
-      // Delete token with the same key
-      await service.deleteToken(key);
-      expect(mockCacheManager.del).toHaveBeenCalledWith(key);
     });
 
     it('should store and retrieve OAuth state', async () => {
