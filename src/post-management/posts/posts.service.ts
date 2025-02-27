@@ -10,7 +10,7 @@ export class PostsService {
     @InjectRepository(Post)
     private readonly postRepository: Repository<Post>,
     private readonly tenantService: TenantService,
-  ) { }
+  ) {}
 
   async findOne(id: string): Promise<Post> {
     const post = await this.postRepository.findOne({

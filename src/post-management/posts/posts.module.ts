@@ -11,4 +11,4 @@ import { DatabaseModule } from '../../database/database.module';
   controllers: [PostsController],
   exports: [PostsService],
 })
-export class PostsModule { }
+export class PostsModule {}

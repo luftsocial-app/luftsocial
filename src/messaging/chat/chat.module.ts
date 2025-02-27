@@ -14,4 +14,4 @@ import { TenantService } from '../../database/tenant.service';
   providers: [ChatService, ChatGateway, TenantService],
   exports: [ChatService],
 })
-export class ChatModule { }
+export class ChatModule {}

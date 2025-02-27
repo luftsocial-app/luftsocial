@@ -10,4 +10,4 @@ import { DatabaseModule } from '../../database/database.module';
   providers: [MessageService],
   controllers: [MessageController],
 })
-export class MessageModule { }
+export class MessageModule {}

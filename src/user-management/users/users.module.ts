@@ -12,4 +12,4 @@ import { DatabaseModule } from '../../database/database.module';
   controllers: [UsersController],
   exports: [UsersService],
 })
-export class UsersModule { }
+export class UsersModule {}

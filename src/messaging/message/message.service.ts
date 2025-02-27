@@ -12,7 +12,7 @@ export class MessageService {
     @InjectRepository(Message)
     private readonly messageRepo: Repository<Message>,
     private tenantService: TenantService,
-  ) { }
+  ) {}
 
   async createMessage(
     conversationId: string,

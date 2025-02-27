@@ -19,4 +19,4 @@ import { ConfigService } from '@nestjs/config';
   ],
   exports: [StripeService],
 })
-export class StripeModule { }
+export class StripeModule {}

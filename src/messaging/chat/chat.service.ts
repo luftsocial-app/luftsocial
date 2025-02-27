@@ -24,7 +24,7 @@ export class ChatService {
     private readonly messageRepo: Repository<Message>,
     @InjectRepository(User)
     private userRepository: Repository<User>,
-  ) { }
+  ) {}
 
   async createConversation(data: CreateConversationDto): Promise<Conversation> {
     const participants = await this.userRepository.findBy({

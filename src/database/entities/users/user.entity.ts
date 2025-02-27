@@ -124,6 +124,4 @@ export class User {
 
   @ManyToMany(() => Conversation, (conversation) => conversation.admins)
   adminOf: Conversation[];
-
-
 }
