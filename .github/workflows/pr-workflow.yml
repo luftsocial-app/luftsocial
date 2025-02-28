@@ -1,0 +1,63 @@
+name: PR - Build / Test
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Run Tests
+        id: npmtest
+        run: |
+          mkdir -p ${{ github.workspace }}/results
+          npm test
+        env:
+          CI: true
+          JEST_JUNIT_OUTPUT_DIR: ${{ github.workspace }}/results
+          JEST_JUNIT_OUTPUT_NAME: test-results.xml
+
+      - name: Create test summary
+        uses: test-summary/action@v2.4
+        with:
+          paths: ${{ github.workspace }}/results/*.xml
+          output: ${{ github.workspace }}/results/summary.md
+          show: "all"
+        if: always()
+
+      - name: Upload summary.md as Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: summary-md-artifact
+          path: ${{ github.workspace }}/results/summary.md
+
+      - name: List test results directory
+        run: |
+          ls -la ${{ github.workspace }}
+          ls -la ${{ github.workspace }}/results
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nestjs-app
+          path: dist/
+          if-no-files-found: error
