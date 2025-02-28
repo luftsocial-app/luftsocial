@@ -37,7 +37,7 @@ jobs:
       - name: Echo stuffs
         run: |
           cat ${{ github.workspace }}/results/test-results.xml
-          cat ${{steps.npmtest.env.JEST_JUNIT_OUTPUT_DIR}}/${{steps.npmtest.env.JEST_JUNIT_OUTPUT_NAME}}
+      
           
 
       - name: Create test summary
