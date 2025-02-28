@@ -34,16 +34,6 @@ jobs:
           JEST_JUNIT_OUTPUT_DIR: ${{ github.workspace }}/results
           JEST_JUNIT_OUTPUT_NAME: test-results.xml
 
-
-      - name: Publish Test Results
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        if: always()
-        with:
-          files: |
-            test-results/**/*.xml
-            test-results/**/*.trx
-            test-results/**/*.json
-
       - name: Echo stuffs
         run: |
           mkdir results
