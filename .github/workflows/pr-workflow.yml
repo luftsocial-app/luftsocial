@@ -35,11 +35,7 @@ jobs:
           CI: true
           JEST_JUNIT_OUTPUT_DIR: ${{ github.workspace }}/results
           JEST_JUNIT_OUTPUT_NAME: test-results.xml
-
-      - name: List test results directory
-        run: |
-          ls -la ${{ github.workspace }}
-          ls -la ${{ github.workspace }}/results
+    
 
 
       - name: Create test summary
@@ -50,6 +46,12 @@ jobs:
           show: "all"
         if: always()
 
+      - name: List test results directory
+        run: |
+          ls -la ${{ github.workspace }}
+          ls -la ${{ github.workspace }}/results
+          cat ${{ github.workspace }}/results/summary.md
+          open ${{ github.workspace }}/results/summary.md
 
 
       - name: Upload build artifact
