@@ -34,16 +34,11 @@ jobs:
           JEST_JUNIT_OUTPUT_DIR: ${{ github.workspace }}/results
           JEST_JUNIT_OUTPUT_NAME: test-results.xml
 
-      - name: Echo stuffs
+      - name: List test results directory
         run: |
-          mkdir results
-          echo ${{ github.workspace }}
-          echo $GITHUB_WORKSPACE
-          echo ${{ github.workspace }}
-          echo ${{ github.workspace }}/results
-          cat ${{ github.workspace }}/results/test-results.xml
-          cat ${{steps.npmtest.env.JEST_JUNIT_OUTPUT_DIR}}/${{steps.npmtest.env.JEST_JUNIT_OUTPUT_NAME}}
-          echo env
+          ls -la ${{ github.workspace }}
+          ls -la ${{ github.workspace }}/results
+
 
       - name: Create test summary
         uses: test-summary/action@v2.4
