@@ -28,32 +28,46 @@ jobs:
 
       - name: Run Tests
         id: npmtest
-        run: npm test
+        run: npm test | echo >> test_results.txt
         env:
           CI: true
           JEST_JUNIT_OUTPUT_DIR: ${{ github.workspace }}/results
           JEST_JUNIT_OUTPUT_NAME: test-results.xml
 
-      - name: Echo stuffs
+      - name: Add Test Results To Job Summary
         run: |
-          cat ${{ github.workspace }}/results/test-results.xml
-      
-          
+          echo "TEST RESULTS:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY # this is a blank line
+          if grep -q "FAIL" test_results.txt; then
+            echo "❌ Tests failed" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "✅ Tests passed" >> $GITHUB_STEP_SUMMARY
+          fi
+        if: always()
+
+      - name: Publish Test Results
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
+        with:
+          files: |
+            test-results/**/*.xml
+            test-results/**/*.trx
+            test-results/**/*.json
+
 
       - name: Create test summary
         uses: test-summary/action@v2.4
         with:
           paths: ${{ github.workspace }}/results/*.xml
           output: ${{ github.workspace }}/results/summary.md
-          show: 'all'
+          show: "all"
         if: always()
 
-      - name: Add Test Results To Job Summary
+      - name: Echo stuffs
         run: |
-          echo "TEST RESULTS:" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY # this is a blank line
-          cat "${{ github.workspace }}/results/summary.md" >> $GITHUB_STEP_SUMMARY
-        if: always()
+          cat ${{ github.workspace }}/results/test-results.xml
+          cat ${{steps.npmtest.env.JEST_JUNIT_OUTPUT_DIR}}/${{steps.npmtest.env.JEST_JUNIT_OUTPUT_NAME}}
+          env
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
