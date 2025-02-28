@@ -28,7 +28,9 @@ jobs:
 
       - name: Run Tests
         id: npmtest
-        run: npm test
+        run: |
+          mkdir -p ${{ github.workspace }}/results
+          npm test
         env:
           CI: true
           JEST_JUNIT_OUTPUT_DIR: ${{ github.workspace }}/results
