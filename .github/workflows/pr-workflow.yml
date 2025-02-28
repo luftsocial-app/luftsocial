@@ -35,8 +35,6 @@ jobs:
           CI: true
           JEST_JUNIT_OUTPUT_DIR: ${{ github.workspace }}/results
           JEST_JUNIT_OUTPUT_NAME: test-results.xml
-    
-
 
       - name: Create test summary
         uses: test-summary/action@v2.4
@@ -47,7 +45,7 @@ jobs:
         if: always()
 
       - name: Upload summary.md as Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: summary-md-artifact
           path: ${{ github.workspace }}/results/summary.md
@@ -56,7 +54,6 @@ jobs:
         run: |
           ls -la ${{ github.workspace }}
           ls -la ${{ github.workspace }}/results
-
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
