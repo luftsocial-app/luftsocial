@@ -34,7 +34,7 @@ import { ChatModule } from './messaging/chat/chat.module';
 import { TenantModule } from './user-management/tenant/tenant.module';
 import { TaskModule } from './task/task.module';
 import { MediaStorageModule } from './media-storage/media-storage.module';
-import { TokenCacheModule } from './cache/cache.module';
+import { CacheModule } from './cache/cache.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -84,7 +84,7 @@ import { TokenCacheModule } from './cache/cache.module';
     TenantModule,
     TaskModule,
     MediaStorageModule,
-    TokenCacheModule,
+    CacheModule,
   ],
   controllers: [AppController],
   providers: [

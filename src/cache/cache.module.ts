@@ -1,23 +1,37 @@
 import { Module } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { CacheModule as NestCacheModule } from '@nestjs/cache-manager';
-import { redisStore } from 'cache-manager-redis-yet';
+import { Cacheable } from 'cacheable';
+import KeyvRedis from '@keyv/redis';
+import * as config from 'config';
 import { TokenCacheService } from './token-cache.service';
 
+function createRedisUrl(redisConfig: any): string {
+  const { host, port, username, password } = redisConfig;
+
+  const auth =
+    username && password
+      ? `${encodeURIComponent(username)}:${encodeURIComponent(password)}@`
+      : '';
+
+  return `redis://${auth}${host}:${port}`;
+}
+
 @Module({
-  imports: [
-    NestCacheModule.registerAsync({
-      isGlobal: true,
-      useFactory: async (configService: ConfigService) => ({
-        store: await redisStore({
-          url: `redis://${configService.get('REDIS_HOST')}:${configService.get('REDIS_PORT')}`,
-          ttl: 300, // 5 minutes default
-        }),
-      }),
-      inject: [ConfigService],
-    }),
+  providers: [
+    {
+      provide: 'CACHE_INSTANCE',
+      useFactory: () => {
+        const redisConfig = config.get('cache.redis');
+        const redisUrl = createRedisUrl(redisConfig);
+        const defaultTtl = config.get<number>('cache.defaults.ttl');
+        const secondary = new KeyvRedis(redisUrl);
+        return new Cacheable({
+          secondary,
+          ttl: defaultTtl ? `${defaultTtl}s` : '4h',
+        });
+      },
+    },
+    TokenCacheService,
   ],
-  providers: [TokenCacheService],
-  exports: [NestCacheModule, TokenCacheService],
+  exports: ['CACHE_INSTANCE', TokenCacheService],
 })
-export class TokenCacheModule {}
+export class CacheModule {}
