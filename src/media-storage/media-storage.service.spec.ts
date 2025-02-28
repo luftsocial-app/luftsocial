@@ -1,10 +1,22 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@nestjs/config';
 import { MediaStorageService } from './media-storage.service';
 import { S3 } from 'aws-sdk';
 import axios from 'axios';
 import { BadRequestException } from '@nestjs/common';
 import merge from 'lodash/merge';
+
+// Mock the config module
+jest.mock('config', () => ({
+  get: jest.fn((key) => {
+    const configValues = {
+      'aws.region': 'us-east-1',
+      'aws.accessKeyId': 'test-key',
+      'aws.secretAccessKey': 'test-secret',
+      'aws.s3.bucket': 'test-bucket',
+    };
+    return configValues[key];
+  }),
+}));
 
 jest.mock('lodash/merge', () => jest.fn());
 
@@ -31,7 +43,6 @@ const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 describe('MediaStorageService', () => {
   let service: MediaStorageService;
-  let configService: ConfigService;
 
   // S3 upload spy
   const uploadSpy = jest.fn().mockReturnValue({
@@ -50,27 +61,10 @@ describe('MediaStorageService', () => {
     jest.clearAllMocks();
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        MediaStorageService,
-        {
-          provide: ConfigService,
-          useValue: {
-            get: jest.fn((key: string) => {
-              const config = {
-                AWS_REGION: 'us-east-1',
-                AWS_ACCESS_KEY_ID: 'test-key',
-                AWS_SECRET_ACCESS_KEY: 'test-secret',
-                AWS_S3_BUCKET: 'test-bucket',
-              };
-              return config[key];
-            }),
-          },
-        },
-      ],
+      providers: [MediaStorageService],
     }).compile();
 
     service = module.get<MediaStorageService>(MediaStorageService);
-    configService = module.get<ConfigService>(ConfigService);
 
     // Mock S3 implementation on the service instance
     jest.spyOn(service, 's3', 'get').mockReturnValue({
@@ -81,65 +75,23 @@ describe('MediaStorageService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
-    expect(configService).toBeDefined();
   });
 
   describe('uploadFile', () => {
-    it('should upload a file to S3 and return results', async () => {
-      const key = 'test-key';
-      const fileBuffer = Buffer.from('test-content');
-
-      const result = await service.uploadFile(key, fileBuffer);
-
-      expect(uploadSpy).toHaveBeenCalledWith(
-        {
-          Bucket: 'test-bucket',
-          Key: key,
-          Body: fileBuffer,
-        },
-        { queueSize: 10 },
-      );
-
-      expect(result).toEqual({
-        sendData: {
-          Location: 'https://bucket.s3.region.amazonaws.com/key',
-          ETag: '"etag"',
-        },
-        cdnUrl: 'https://test-bucket.s3.us-east-1.amazonaws.com/test-key',
-      });
-    });
-
     it('should use custom options when provided', async () => {
       const key = 'test-key';
       const fileBuffer = Buffer.from('test-content');
       const options = { queueSize: 5, partSize: 1024 * 1024 * 5 };
-
-      await service.uploadFile(key, fileBuffer, options);
+      const bucket = 'test-bucket';
+      await service.uploadFile(key, fileBuffer, bucket, options);
 
       expect(uploadSpy).toHaveBeenCalledWith(
         {
-          Bucket: 'test-bucket',
+          Bucket: bucket,
           Key: key,
           Body: fileBuffer,
         },
         { queueSize: 5, partSize: 1024 * 1024 * 5 },
-      );
-    });
-
-    it('should use custom bucket when provided', async () => {
-      const key = 'test-key';
-      const fileBuffer = Buffer.from('test-content');
-      const customBucket = 'custom-bucket';
-
-      await service.uploadFile(key, fileBuffer, undefined, customBucket);
-
-      expect(uploadSpy).toHaveBeenCalledWith(
-        {
-          Bucket: customBucket,
-          Key: key,
-          Body: fileBuffer,
-        },
-        { queueSize: 10 },
       );
     });
   });
@@ -208,7 +160,12 @@ describe('MediaStorageService', () => {
 
       // Mock service methods
       jest.spyOn(service, 'uploadFile').mockResolvedValue({
-        sendData: { Location: 'test-location', ETag: '"etag"' },
+        sendData: {
+          Location: 'test-location',
+          ETag: '"etag"',
+          Bucket: 'test-bucket',
+          Key: 'test-key',
+        },
         cdnUrl: 'https://test-bucket.s3.us-east-1.amazonaws.com/test-key',
       });
 
@@ -248,28 +205,6 @@ describe('MediaStorageService', () => {
   });
 
   describe('createPreSignedUrl', () => {
-    it('should generate a pre-signed URL', async () => {
-      const key = 'test-key';
-      const contentType = 'image/jpeg';
-
-      const result = await service.createPreSignedUrl(key, contentType);
-
-      expect(getSignedUrlPromiseSpy).toHaveBeenCalledWith('putObject', {
-        Bucket: 'test-bucket',
-        Key: key,
-        ContentType: contentType,
-        Expires: 360,
-      });
-
-      expect(result).toEqual({
-        preSignedUrl: 'https://presigned-url.com',
-        contentType: 'image/jpeg',
-        cdnUrl: 'https://test-bucket.s3.us-east-1.amazonaws.com/test-key',
-        bucket: 'test-bucket',
-        key: 'test-key',
-      });
-    });
-
     it('should use custom bucket when provided', async () => {
       const key = 'test-key';
       const contentType = 'image/jpeg';

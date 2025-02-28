@@ -2,7 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { S3 } from 'aws-sdk';
 import * as merge from 'lodash/merge';
 import axios from 'axios';
-import { ConfigService } from '@nestjs/config';
+import * as config from 'config';
 import {
   MediaStorageItem,
   PreSignedUrlResult,
@@ -18,12 +18,12 @@ export class MediaStorageService {
     return this._s3;
   }
 
-  constructor(private readonly configService: ConfigService) {
+  constructor() {
     this._s3 = new S3({
-      region: this.configService.get('AWS_REGION'),
+      region: config.get('AWS_REGION'),
       credentials: {
-        accessKeyId: this.configService.get('AWS_ACCESS_KEY_ID'),
-        secretAccessKey: this.configService.get('AWS_SECRET_ACCESS_KEY'),
+        accessKeyId: config.get('AWS_ACCESS_KEY_ID'),
+        secretAccessKey: config.get('AWS_SECRET_ACCESS_KEY'),
       },
     });
   }
@@ -31,8 +31,8 @@ export class MediaStorageService {
   async uploadFile(
     key: string,
     fileBuffer: Buffer,
+    bucket: string = config.get('AWS_S3_BUCKET'),
     options?: S3.ManagedUpload.ManagedUploadOptions,
-    bucket = this.configService.get('AWS_S3_BUCKET'),
   ): Promise<UploadResult> {
     const defaultOptions: S3.ManagedUpload.ManagedUploadOptions = {
       queueSize: 10,
@@ -52,7 +52,7 @@ export class MediaStorageService {
 
     return {
       sendData,
-      cdnUrl: `https://${bucket}.s3.${this.configService.get('AWS_REGION')}.amazonaws.com/${key}`,
+      cdnUrl: `https://${bucket}.s3.${config.get('AWS_REGION')}.amazonaws.com/${key}`,
     };
   }
 
@@ -174,7 +174,7 @@ export class MediaStorageService {
   async createPreSignedUrl(
     key: string,
     contentType: string,
-    bucket = this.configService.get('AWS_S3_BUCKET'),
+    bucket: string = config.get('AWS_S3_BUCKET'),
   ): Promise<PreSignedUrlResult> {
     const preSignedUrl = await this.s3.getSignedUrlPromise('putObject', {
       Bucket: bucket,
@@ -186,7 +186,7 @@ export class MediaStorageService {
     return {
       preSignedUrl,
       contentType,
-      cdnUrl: `https://${bucket}.s3.${this.configService.get('AWS_REGION')}.amazonaws.com/${key}`,
+      cdnUrl: `https://${bucket}.s3.${config.get('AWS_REGION')}.amazonaws.com/${key}`,
       bucket,
       key,
     };
