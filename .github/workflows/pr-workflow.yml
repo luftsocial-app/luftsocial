@@ -44,6 +44,16 @@ jobs:
             test-results/**/*.trx
             test-results/**/*.json
 
+      - name: Echo stuffs
+        run: |
+          mkdir results
+          echo ${{ github.workspace }}
+          echo $GITHUB_WORKSPACE
+          echo ${{ github.workspace }}
+          echo ${{ github.workspace }}/results
+          cat ${{ github.workspace }}/results/test-results.xml
+          cat ${{steps.npmtest.env.JEST_JUNIT_OUTPUT_DIR}}/${{steps.npmtest.env.JEST_JUNIT_OUTPUT_NAME}}
+          echo env
 
       - name: Create test summary
         uses: test-summary/action@v2.4
@@ -53,13 +63,7 @@ jobs:
           show: "all"
         if: always()
 
-      - name: Echo stuffs
-        run: |
-          echo ${{ github.workspace }}
-          echo ${{ github.workspace }}/results
-          cat ${{ github.workspace }}/results/test-results.xml
-          cat ${{steps.npmtest.env.JEST_JUNIT_OUTPUT_DIR}}/${{steps.npmtest.env.JEST_JUNIT_OUTPUT_NAME}}
-          echo env
+
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
