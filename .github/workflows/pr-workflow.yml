@@ -46,12 +46,16 @@ jobs:
           show: "all"
         if: always()
 
+      - name: Upload summary.md as Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: summary-md-artifact
+          path: ${{ github.workspace }}/results/summary.md
+
       - name: List test results directory
         run: |
           ls -la ${{ github.workspace }}
           ls -la ${{ github.workspace }}/results
-          cat ${{ github.workspace }}/results/summary.md
-          open ${{ github.workspace }}/results/summary.md
 
 
       - name: Upload build artifact
