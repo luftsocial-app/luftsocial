@@ -28,7 +28,7 @@ jobs:
 
       - name: Run Tests
         id: npmtest
-        run: npm test | echo >> test_results.txt
+        run: npm test -- --no-color > test-results.txt 2>&1
         env:
           CI: true
           JEST_JUNIT_OUTPUT_DIR: ${{ github.workspace }}/results
