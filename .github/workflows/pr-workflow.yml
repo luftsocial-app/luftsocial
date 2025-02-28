@@ -27,11 +27,18 @@ jobs:
         run: npm run build
 
       - name: Run Tests
+        id: npmtest
         run: npm test
         env:
           CI: true
           JEST_JUNIT_OUTPUT_DIR: ${{ github.workspace }}/results
           JEST_JUNIT_OUTPUT_NAME: test-results.xml
+
+      - name: Echo stuffs
+        run: |
+          cat ${{ github.workspace }}/results/test-results.xml
+          cat ${{steps.npmtest.env.JEST_JUNIT_OUTPUT_DIR}}/${{steps.npmtest.env.JEST_JUNIT_OUTPUT_NAME}}
+          
 
       - name: Create test summary
         uses: test-summary/action@v2.4
