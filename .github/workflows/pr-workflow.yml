@@ -28,22 +28,12 @@ jobs:
 
       - name: Run Tests
         id: npmtest
-        run: npm test -- --no-color > test-results.txt 2>&1
+        run: npm test
         env:
           CI: true
           JEST_JUNIT_OUTPUT_DIR: ${{ github.workspace }}/results
           JEST_JUNIT_OUTPUT_NAME: test-results.xml
 
-      - name: Add Test Results To Job Summary
-        run: |
-          echo "TEST RESULTS:" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY # this is a blank line
-          if grep -q "FAIL" test_results.txt; then
-            echo "❌ Tests failed" >> $GITHUB_STEP_SUMMARY
-          else
-            echo "✅ Tests passed" >> $GITHUB_STEP_SUMMARY
-          fi
-        if: always()
 
       - name: Publish Test Results
         uses: EnricoMi/publish-unit-test-result-action@v2
@@ -65,9 +55,11 @@ jobs:
 
       - name: Echo stuffs
         run: |
+          echo ${{ github.workspace }}
+          echo ${{ github.workspace }}/results
           cat ${{ github.workspace }}/results/test-results.xml
           cat ${{steps.npmtest.env.JEST_JUNIT_OUTPUT_DIR}}/${{steps.npmtest.env.JEST_JUNIT_OUTPUT_NAME}}
-          env
+          echo env
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
