@@ -10,11 +10,13 @@ logger:
 port: 3000
 database:
   options:
-    user: DB_USER
-    password: DB_PASS
-    host: DB_HOST
-    port: DB_PORT
-    database: DB_NAME
+    type: postgres
+    username: postgres
+    password: Akinolami6650
+    host: localhost
+    port: 5432
+    database: postgres
+    synchronize: false
 cache:
   redis:
     host: localhost
@@ -35,3 +37,9 @@ aws:
   secretAccessKey: ${AWS_SECRET_ACCESS_KEY}
   s3:
     bucket: ${AWS_S3_BUCKET}
+platforms:
+  facebook:
+    clientId: ${FACEBOOK_CLIENT_ID}
+    clientSecret: ${FACEBOOK_CLIENT_SECRET}
+    redirectUri: ${FACEBOOK_REDIRECT_URI}
+    apiVersion: v18.0
