@@ -1,7 +1,6 @@
-import { OneToOne } from 'typeorm';
-import { Tenant } from '../../entities/users/tenant.entity';
+import { Column } from 'typeorm';
 
 export abstract class TenantEntity {
-  @OneToOne(() => Tenant, (tenant) => tenant.id)
-  tenantId: Tenant;
+  @Column({ nullable: false })
+  tenantId: string;
 }

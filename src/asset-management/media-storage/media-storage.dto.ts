@@ -15,7 +15,6 @@ export class PreSignedUrlResult {
 }
 
 export interface MediaStorageItem {
-  id: string;
   url: string;
   key: string;
   type: MediaType;

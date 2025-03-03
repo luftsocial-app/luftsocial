@@ -10,8 +10,8 @@ import {
 import { FacebookPage } from './facebook-page.entity';
 import { FacebookPostMetric } from './facebook-post-metric.entity';
 import { FacebookAccount } from './facebook-account.entity';
-import { MediaStorageItem } from '../../../media-storage/media-storage.dto';
 import { TenantEntity } from '../../entity/tenant-entity';
+import { MediaStorageItem } from '../../../asset-management/media-storage/media-storage.dto';
 
 @Entity('facebook_posts')
 export class FacebookPost extends TenantEntity {
