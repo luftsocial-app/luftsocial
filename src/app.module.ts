@@ -33,6 +33,8 @@ import { Message } from './entities/chats/message.entity';
 import { ChatModule } from './messaging/chat/chat.module';
 import { TenantModule } from './user-management/tenant/tenant.module';
 import { TaskModule } from './task/task.module';
+import { MediaStorageModule } from './media-storage/media-storage.module';
+import { CacheModule } from './cache/cache.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -81,6 +83,8 @@ import { TaskModule } from './task/task.module';
     MessageModule,
     TenantModule,
     TaskModule,
+    MediaStorageModule,
+    CacheModule,
   ],
   controllers: [AppController],
   providers: [
