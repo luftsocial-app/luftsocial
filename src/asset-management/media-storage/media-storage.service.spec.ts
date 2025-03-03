@@ -4,7 +4,6 @@ import { S3 } from 'aws-sdk';
 import axios from 'axios';
 import { BadRequestException } from '@nestjs/common';
 
-
 // Mock the config module
 jest.mock('config', () => ({
   get: jest.fn((key) => {
