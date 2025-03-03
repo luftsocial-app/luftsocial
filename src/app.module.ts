@@ -33,13 +33,15 @@ import { Message } from './entities/chats/message.entity';
 import { ChatModule } from './messaging/chat/chat.module';
 import { TenantModule } from './user-management/tenant/tenant.module';
 import { TaskModule } from './task/task.module';
-import { MediaStorageModule } from './media-storage/media-storage.module';
+import { MediaStorageModule } from './asset-management/media-storage/media-storage.module';
 import { CacheModule } from './cache/cache.module';
+import { PlatformsModule } from './platforms/platforms.module';
+import { FacebookModule } from './platforms/facebook/facebook.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
-      // ignoreEnvFile: true,
-      // ignoreEnvVars: true,
+      ignoreEnvFile: true,
+      ignoreEnvVars: true,
       isGlobal: true,
       load: [config.util.toObject],
     }),
@@ -52,7 +54,6 @@ import { CacheModule } from './cache/cache.module';
         Permissions,
         Role,
         Conversation,
-        // Notification,
         Message,
         ChatParticipants,
         Notification,
@@ -74,7 +75,6 @@ import { CacheModule } from './cache/cache.module';
 
     HealthModule,
     MessageModule,
-    // NotificationModule,
     ScheduleModule.forRoot(),
     UsersModule,
     HealthModule,
@@ -85,6 +85,8 @@ import { CacheModule } from './cache/cache.module';
     TaskModule,
     MediaStorageModule,
     CacheModule,
+    FacebookModule,
+    PlatformsModule,
   ],
   controllers: [AppController],
   providers: [

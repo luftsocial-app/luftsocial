@@ -3,7 +3,6 @@ import { MediaStorageService } from './media-storage.service';
 import { S3 } from 'aws-sdk';
 import axios from 'axios';
 import { BadRequestException } from '@nestjs/common';
-import merge from 'lodash/merge';
 
 // Mock the config module
 jest.mock('config', () => ({
