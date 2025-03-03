@@ -260,7 +260,7 @@ describe('FacebookPageMetricsJob', () => {
 
       expect(facebookRepo.upsertPageMetrics).toHaveBeenCalledTimes(1);
       expect(facebookRepo.upsertPageMetrics).toHaveBeenCalledWith({
-        pageId: 'page1',
+        pageId: '1',
         ...mockMetrics,
       });
 
@@ -355,7 +355,7 @@ describe('FacebookPageMetricsJob', () => {
 
       const mockPages = [
         {
-          id: 'page1',
+          id: '1',
           pageId: 'fb_page_id_1',
           name: 'Test Page 1',
           category: 'Business',
@@ -372,7 +372,7 @@ describe('FacebookPageMetricsJob', () => {
           tenantId: 'tenant1',
         },
         {
-          id: 'page2',
+          id: '2',
           pageId: 'fb_page_id_2',
           name: 'Test Page 2',
           category: 'Entertainment',
@@ -389,7 +389,7 @@ describe('FacebookPageMetricsJob', () => {
           tenantId: 'tenant1',
         },
         {
-          id: 'page3',
+          id: '3',
           pageId: 'fb_page_id_3',
           name: 'Test Page 3',
           category: 'News',

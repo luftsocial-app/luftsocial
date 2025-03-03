@@ -6,8 +6,8 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import axios from 'axios';
+import * as config from 'config';
 import { FacebookRepository } from './repositories/facebook.repository';
 import { FacebookPage } from './entity/facebook-page.entity';
 import {
@@ -38,6 +38,7 @@ import { FacebookAccount } from './entity/facebook-account.entity';
 import { MediaStorageItem } from '../../media-storage/media-storage.dto';
 import { MediaStorageService } from '../../media-storage/media-storage.service';
 import { TenantService } from '../../database/tenant.service';
+import { FACEBOOK_SCOPES } from '../../common/enums/scopes.enum';
 
 @Injectable()
 export class FacebookService implements PlatformService {
@@ -46,7 +47,6 @@ export class FacebookService implements PlatformService {
   private readonly baseUrl = 'https://graph.facebook.com';
 
   constructor(
-    private readonly configService: ConfigService,
     private readonly facebookRepo: FacebookRepository,
     private readonly mediaStorageService: MediaStorageService,
     private readonly tenantService: TenantService,
@@ -224,8 +224,8 @@ export class FacebookService implements PlatformService {
       {
         params: {
           grant_type: 'fb_exchange_token',
-          client_id: this.configService.get('FACEBOOK_CLIENT_ID'),
-          client_secret: this.configService.get('FACEBOOK_CLIENT_SECRET'),
+          client_id: config.get('platforms.facebook.clientId'),
+          client_secret: config.get('platforms.facebook.clientSecret'),
           fb_exchange_token: token,
         },
       },
@@ -257,8 +257,8 @@ export class FacebookService implements PlatformService {
       {
         params: {
           grant_type: 'fb_exchange_token',
-          client_id: this.configService.get('FACEBOOK_CLIENT_ID'),
-          client_secret: this.configService.get('FACEBOOK_CLIENT_SECRET'),
+          client_id: config.get('platforms.facebook.clientId'),
+          client_secret: config.get('platforms.facebook.clientSecret'),
           fb_exchange_token: shortLivedToken,
         },
       },
@@ -544,12 +544,12 @@ export class FacebookService implements PlatformService {
         params: {
           access_token: page.accessToken,
           metric: [
-            'page_impressions',
-            'page_engaged_users',
-            'page_fan_adds',
-            'page_views_total',
-            'page_post_engagements',
-            'page_followers',
+            FACEBOOK_SCOPES.PAGE_IMPRESSIONS,
+            FACEBOOK_SCOPES.PAGE_ENGAGED_USERS,
+            FACEBOOK_SCOPES.PAGE_FAN_ADDS,
+            FACEBOOK_SCOPES.PAGE_VIEWS_TOTAL,
+            FACEBOOK_SCOPES.PAGE_POST_ENGAGEMENTS,
+            FACEBOOK_SCOPES.PAGE_FOLLOWERS,
           ].join(','),
           period,
         },
@@ -608,12 +608,12 @@ export class FacebookService implements PlatformService {
           params: {
             access_token: post.page.accessToken,
             metric: [
-              'post_impressions',
-              'post_engaged_users',
-              'post_reactions_by_type_total',
-              'post_clicks',
-              'post_video_views',
-              'post_video_view_time',
+              FACEBOOK_SCOPES.POST_IMPRESSIONS,
+              FACEBOOK_SCOPES.POST_ENGAGED_USERS,
+              FACEBOOK_SCOPES.POST_REACTIONS_BY_TYPE_TOTAL,
+              FACEBOOK_SCOPES.POST_CLICKS,
+              FACEBOOK_SCOPES.POST_VIDEO_VIEWS,
+              FACEBOOK_SCOPES.POST_VIDEO_VIEW_TIME,
             ].join(','),
           },
         },
@@ -642,11 +642,11 @@ export class FacebookService implements PlatformService {
         params: {
           access_token: page.accessToken,
           metric: [
-            'page_impressions',
-            'page_engaged_users',
-            'page_fan_adds',
-            'page_followers_adds',
-            'page_views_total',
+            FACEBOOK_SCOPES.PAGE_IMPRESSIONS,
+            FACEBOOK_SCOPES.PAGE_ENGAGED_USERS,
+            FACEBOOK_SCOPES.PAGE_FAN_ADDS,
+            FACEBOOK_SCOPES.PAGE_VIEWS_TOTAL,
+            FACEBOOK_SCOPES.PAGE_FOLLOWERS_ADDS,
           ].join(','),
           period: 'day',
           since: dateRange.startDate,
@@ -786,8 +786,8 @@ export class FacebookService implements PlatformService {
     try {
       await axios.post(`${this.baseUrl}/oauth/revoke/`, null, {
         params: {
-          client_key: this.configService.get('FACEBOOK_CLIENT_KEY'),
-          client_secret: this.configService.get('FACEBOOK_CLIENT_SECRET'),
+          client_key: config.get('platforms.facebook.clientId'),
+          client_secret: config.get('platforms.facebook.clientSecret'),
           token: account.socialAccount.accessToken,
         },
       });

@@ -1,21 +1,23 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository, EntityManager, MoreThan, LessThan } from 'typeorm';
-import { SocialAccount } from '../../../platforms/entity/social-account.entity';
-import { SocialPlatform } from '../../../enum/social-platform.enum';
 import { NotFoundException } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { FacebookRepository } from './facebook.repository';
 import { FacebookAccount } from '../entity/facebook-account.entity';
-import { AuthState } from '../entity/auth-state.entity';
 import { FacebookPage } from '../entity/facebook-page.entity';
 import { FacebookPost } from '../entity/facebook-post.entity';
 import { FacebookPostMetric } from '../entity/facebook-post-metric.entity';
 import { FacebookPageMetric } from '../entity/facebook-page-metric.entity';
+import { AuthState } from '../entity/auth-state.entity';
+import { SocialPlatform } from '../../../common/enums/social-platform.enum';
+import { SocialAccount } from '../../entity/social-account.entity';
 
-// Mock crypto to control randomBytes output
+// Mock crypto module
 jest.mock('crypto', () => ({
-  randomBytes: jest.fn(),
+  randomBytes: jest.fn().mockReturnValue({
+    toString: jest.fn().mockReturnValue('mocked-random-state'),
+  }),
 }));
 
 describe('FacebookRepository', () => {
@@ -28,37 +30,120 @@ describe('FacebookRepository', () => {
   let pageMetricRepo: Repository<FacebookPageMetric>;
   let entityManager: EntityManager;
 
-  // Common test data
-  const testTenantId = 'test-tenant-id';
-  const testUserId = 'test-user-id';
-  const testAccountId = 'test-account-id';
-  const testPageId = 'test-page-id';
-  const testPostId = 'test-post-id';
+  const mockTenantId = 'test-tenant-id';
 
-  // Setup mock data and repositories
-  const mockAccount = {
-    id: testAccountId,
-    tenantId: testTenantId,
+  // Mock data
+  const mockAccountData: Partial<FacebookAccount> = {
+    id: 'fb-account-id',
+    name: 'Test Account',
+    accessToken: 'test-access-token',
+    userId: 'test-user-id',
     socialAccount: {
       id: 'social-account-id',
-      accessToken: 'old-token',
-      refreshToken: 'old-refresh-token',
-      tokenExpiresAt: new Date(),
-    },
+      accessToken: 'test-access-token',
+      refreshToken: 'test-refresh-token',
+      tokenExpiresAt: new Date(Date.now() + 3600000),
+      platform: SocialPlatform.FACEBOOK,
+    } as SocialAccount,
   };
 
-  const mockPage = {
-    id: testPageId,
-    tenantId: testTenantId,
-    facebookAccount: mockAccount,
-    accessToken: 'page-token',
+  const mockPageData: Partial<FacebookPage> = {
+    id: 'fb-page-id',
+    name: 'Test Page',
+    accessToken: 'test-page-token',
+    pageId: 'external-page-id',
+    facebookAccount: mockAccountData as FacebookAccount,
   };
 
-  const mockPost = {
-    id: testPostId,
-    tenantId: testTenantId,
-    page: mockPage,
+  const mockPostData: Partial<FacebookPost> = {
+    id: 'fb-post-id',
+    postId: 'external-post-id',
+    message: 'Test post message',
+    page: mockPageData as FacebookPage,
+    account: mockAccountData as FacebookAccount,
+    isPublished: true,
     metrics: [],
+  };
+
+  const mockMetricData: Partial<FacebookPostMetric> = {
+    id: 'fb-metric-id',
+    post: mockPostData as FacebookPost,
+    likes: 10,
+    comments: 5,
+    shares: 2,
+    reach: 1000,
+    impressions: 1500,
+    collectedAt: new Date(),
+  };
+
+  const mockPageMetricData: Partial<FacebookPageMetric> = {
+    id: 'fb-page-metric-id',
+    page: mockPageData as FacebookPage,
+    impressions: 5000,
+    engagedUsers: 200,
+    newFans: 20,
+    pageViews: 500,
+    engagements: 300,
+    followers: 1000,
+    collectedAt: new Date(),
+  };
+
+  // Mocks for each repository
+  const mockAccountRepo = {
+    create: jest.fn(),
+    save: jest.fn(),
+    update: jest.fn(),
+    findOne: jest.fn(),
+    find: jest.fn(),
+    count: jest.fn(),
+  };
+
+  const mockAuthStateRepo = {
+    create: jest.fn(),
+    save: jest.fn(),
+  };
+
+  const mockPageRepo = {
+    create: jest.fn(),
+    save: jest.fn(),
+    update: jest.fn(),
+    findOne: jest.fn(),
+    find: jest.fn(),
+  };
+
+  const mockPostRepo = {
+    create: jest.fn(),
+    save: jest.fn(),
+    update: jest.fn(),
+    findOne: jest.fn(),
+    find: jest.fn(),
+    count: jest.fn(),
+  };
+
+  const mockMetricRepo = {
+    create: jest.fn(),
+    save: jest.fn(),
+    update: jest.fn(),
+    findOne: jest.fn(),
+    find: jest.fn(),
+  };
+
+  const mockPageMetricRepo = {
+    create: jest.fn(),
+    save: jest.fn(),
+    update: jest.fn(),
+    findOne: jest.fn(),
+    find: jest.fn(),
+  };
+
+  const mockEntityManager = {
+    update: jest.fn(),
+    transaction: jest.fn(),
+    findOne: jest.fn(),
+    create: jest.fn(),
+    save: jest.fn(),
+    delete: jest.fn(),
+    remove: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -67,70 +152,31 @@ describe('FacebookRepository', () => {
         FacebookRepository,
         {
           provide: getRepositoryToken(FacebookAccount),
-          useFactory: jest.fn(() => ({
-            create: jest.fn(),
-            save: jest.fn(),
-            findOne: jest.fn(),
-            find: jest.fn(),
-            update: jest.fn(),
-          })),
+          useValue: mockAccountRepo,
         },
         {
           provide: getRepositoryToken(AuthState),
-          useFactory: jest.fn(() => ({
-            create: jest.fn(),
-            save: jest.fn(),
-          })),
+          useValue: mockAuthStateRepo,
         },
         {
           provide: getRepositoryToken(FacebookPage),
-          useFactory: jest.fn(() => ({
-            create: jest.fn(),
-            save: jest.fn(),
-            findOne: jest.fn(),
-            find: jest.fn(),
-            update: jest.fn(),
-          })),
+          useValue: mockPageRepo,
         },
         {
           provide: getRepositoryToken(FacebookPost),
-          useFactory: jest.fn(() => ({
-            create: jest.fn(),
-            save: jest.fn(),
-            findOne: jest.fn(),
-            find: jest.fn(),
-            update: jest.fn(),
-            count: jest.fn(),
-          })),
+          useValue: mockPostRepo,
         },
         {
           provide: getRepositoryToken(FacebookPostMetric),
-          useFactory: jest.fn(() => ({
-            create: jest.fn(),
-            save: jest.fn(),
-            findOne: jest.fn(),
-          })),
+          useValue: mockMetricRepo,
         },
         {
           provide: getRepositoryToken(FacebookPageMetric),
-          useFactory: jest.fn(() => ({
-            create: jest.fn(),
-            save: jest.fn(),
-            findOne: jest.fn(),
-            update: jest.fn(),
-          })),
+          useValue: mockPageMetricRepo,
         },
         {
           provide: EntityManager,
-          useFactory: jest.fn(() => ({
-            update: jest.fn(),
-            findOne: jest.fn(),
-            transaction: jest.fn(),
-            create: jest.fn(),
-            save: jest.fn(),
-            remove: jest.fn(),
-            delete: jest.fn(),
-          })),
+          useValue: mockEntityManager,
         },
       ],
     }).compile();
@@ -156,250 +202,320 @@ describe('FacebookRepository', () => {
     );
     entityManager = module.get<EntityManager>(EntityManager);
 
-    // Set tenant ID for all tests
-    jest.spyOn(repository as any, 'getTenantId').mockReturnValue(testTenantId);
-  });
+    // Mock the getTenantId method
+    jest.spyOn(repository as any, 'getTenantId').mockReturnValue(mockTenantId);
 
-  afterEach(() => {
+    // Reset all mocks before each test
     jest.clearAllMocks();
   });
 
+  // Test suite for createAccount method
   describe('createAccount', () => {
-    it('should create and save a Facebook account', async () => {
-      const accountData = { name: 'Test Account', tenantId: testTenantId };
-      const createdAccount = { ...accountData, id: testAccountId };
+    it('should create a new Facebook account', async () => {
+      // Arrange
+      mockAccountRepo.create.mockReturnValue(mockAccountData);
+      mockAccountRepo.save.mockResolvedValue(mockAccountData);
 
-      jest.spyOn(accountRepo, 'create').mockReturnValue(createdAccount as any);
-      jest.spyOn(accountRepo, 'save').mockResolvedValue(createdAccount as any);
+      // Act
+      const result = await repository.createAccount(mockAccountData);
 
-      const result = await repository.createAccount(accountData);
-
-      expect(accountRepo.create).toHaveBeenCalledWith(accountData);
-      expect(accountRepo.save).toHaveBeenCalledWith(createdAccount);
-      expect(result).toEqual(createdAccount);
+      // Assert
+      expect(mockAccountRepo.create).toHaveBeenCalledWith(mockAccountData);
+      expect(mockAccountRepo.save).toHaveBeenCalledWith(mockAccountData);
+      expect(result).toEqual(mockAccountData);
     });
   });
 
+  // Test suite for createAuthState method
   describe('createAuthState', () => {
-    it('should create and save an auth state with a random string', async () => {
-      const randomString = '123456789abcdef';
+    it('should create an auth state for a user', async () => {
+      // Arrange
+      const userId = 'test-user-id';
+      const expectedState = 'mocked-random-state';
 
-      (crypto.randomBytes as jest.Mock).mockReturnValue({
-        toString: () => randomString,
-      });
+      mockAuthStateRepo.create.mockImplementation((data) => data);
+      mockAuthStateRepo.save.mockResolvedValue({ state: expectedState });
 
-      jest
-        .spyOn(authStateRepo, 'create')
-        .mockImplementation((data) => data as any);
-      jest.spyOn(authStateRepo, 'save').mockResolvedValue({} as any);
+      // Act
+      const result = await repository.createAuthState(userId);
 
-      const result = await repository.createAuthState(testUserId);
-
+      // Assert
       expect(crypto.randomBytes).toHaveBeenCalledWith(32);
-      expect(authStateRepo.create).toHaveBeenCalledWith({
-        state: randomString,
-        userId: testUserId,
+      expect(mockAuthStateRepo.create).toHaveBeenCalledWith({
+        state: expectedState,
+        userId,
         platform: SocialPlatform.FACEBOOK,
         expiresAt: expect.any(Date),
       });
-      expect(authStateRepo.save).toHaveBeenCalled();
-      expect(result).toEqual(randomString);
+      expect(mockAuthStateRepo.save).toHaveBeenCalled();
+      expect(result).toEqual(expectedState);
     });
   });
 
+  // Test suite for updateAccount method
   describe('updateAccount', () => {
-    it('should update an account and return the updated entity', async () => {
-      const updateData = { name: 'Updated Name' };
-      const updatedAccount = { ...mockAccount, ...updateData };
+    it('should update an existing Facebook account', async () => {
+      // Arrange
+      const id = 'fb-account-id';
+      const updateData = { name: 'Updated Account Name' };
+      const updatedAccount = { ...mockAccountData, ...updateData };
 
-      jest.spyOn(accountRepo, 'update').mockResolvedValue(undefined);
-      jest
-        .spyOn(accountRepo, 'findOne')
-        .mockResolvedValue(updatedAccount as any);
+      mockAccountRepo.update.mockResolvedValue({ affected: 1 });
+      mockAccountRepo.findOne.mockResolvedValue(updatedAccount);
 
-      const result = await repository.updateAccount(testAccountId, updateData);
+      // Act
+      const result = await repository.updateAccount(id, updateData);
 
-      expect(accountRepo.update).toHaveBeenCalledWith(
-        testAccountId,
-        updateData,
-      );
-      expect(accountRepo.findOne).toHaveBeenCalledWith({
-        where: { id: testAccountId, tenantId: testTenantId },
+      // Assert
+      expect(mockAccountRepo.update).toHaveBeenCalledWith(id, updateData);
+      expect(mockAccountRepo.findOne).toHaveBeenCalledWith({
+        where: { id, tenantId: mockTenantId },
       });
       expect(result).toEqual(updatedAccount);
     });
   });
 
+  // Test suite for createPage method
   describe('createPage', () => {
-    it('should create and save a Facebook page', async () => {
-      const pageData = { name: 'Test Page', tenantId: testTenantId };
-      const createdPage = { ...pageData, id: testPageId };
+    it('should create a new Facebook page', async () => {
+      // Arrange
+      mockPageRepo.create.mockReturnValue(mockPageData);
+      mockPageRepo.save.mockResolvedValue(mockPageData);
 
-      jest.spyOn(pageRepo, 'create').mockReturnValue(createdPage as any);
-      jest.spyOn(pageRepo, 'save').mockResolvedValue(createdPage as any);
+      // Act
+      const result = await repository.createPage(mockPageData);
 
-      const result = await repository.createPage(pageData);
-
-      expect(pageRepo.create).toHaveBeenCalledWith(pageData);
-      expect(pageRepo.save).toHaveBeenCalledWith(createdPage);
-      expect(result).toEqual(createdPage);
+      // Assert
+      expect(mockPageRepo.create).toHaveBeenCalledWith(mockPageData);
+      expect(mockPageRepo.save).toHaveBeenCalledWith(mockPageData);
+      expect(result).toEqual(mockPageData);
     });
   });
 
+  // Test suite for createPost method
   describe('createPost', () => {
-    it('should create and save a Facebook post', async () => {
-      const postData = { message: 'Test Post', tenantId: testTenantId };
-      const createdPost = { ...postData, id: testPostId };
+    it('should create a new Facebook post', async () => {
+      // Arrange
+      mockPostRepo.create.mockReturnValue(mockPostData);
+      mockPostRepo.save.mockResolvedValue(mockPostData);
 
-      jest.spyOn(postRepo, 'create').mockReturnValue(createdPost as any);
-      jest.spyOn(postRepo, 'save').mockResolvedValue(createdPost as any);
+      // Act
+      const result = await repository.createPost(mockPostData);
 
-      const result = await repository.createPost(postData);
-
-      expect(postRepo.create).toHaveBeenCalledWith(postData);
-      expect(postRepo.save).toHaveBeenCalledWith(createdPost);
-      expect(result).toEqual(createdPost);
+      // Assert
+      expect(mockPostRepo.create).toHaveBeenCalledWith(mockPostData);
+      expect(mockPostRepo.save).toHaveBeenCalledWith(mockPostData);
+      expect(result).toEqual(mockPostData);
     });
   });
 
+  // Test suite for getAccountById method
   describe('getAccountById', () => {
-    it('should find and return an account by ID', async () => {
-      jest.spyOn(accountRepo, 'findOne').mockResolvedValue(mockAccount as any);
+    it('should return a Facebook account by ID', async () => {
+      // Arrange
+      mockAccountRepo.findOne.mockResolvedValue(mockAccountData);
 
-      const relations = ['socialAccount'];
-      const result = await repository.getAccountById(testAccountId);
+      // Act
+      const result = await repository.getAccountById('fb-account-id');
 
-      expect(accountRepo.findOne).toHaveBeenCalledWith({
-        where: { id: testAccountId, tenantId: testTenantId },
-        relations: relations,
+      // Assert
+      expect(mockAccountRepo.findOne).toHaveBeenCalledWith({
+        where: {
+          id: 'fb-account-id',
+          tenantId: mockTenantId,
+        },
+        relations: ['socialAccount'],
       });
-      expect(result).toEqual(mockAccount);
+      expect(result).toEqual(mockAccountData);
     });
 
-    it('should return null if account not found', async () => {
-      jest.spyOn(accountRepo, 'findOne').mockResolvedValue(null);
+    it('should return null when account does not exist', async () => {
+      // Arrange
+      mockAccountRepo.findOne.mockResolvedValue(null);
 
+      // Act
       const result = await repository.getAccountById('non-existent-id');
 
-      expect(accountRepo.findOne).toHaveBeenCalled();
+      // Assert
       expect(result).toBeNull();
     });
   });
 
+  // Test suite for getPageById method
   describe('getPageById', () => {
-    it('should find and return a page by ID', async () => {
-      jest.spyOn(pageRepo, 'findOne').mockResolvedValue(mockPage as any);
+    it('should return a Facebook page by ID', async () => {
+      // Arrange
+      mockPageRepo.findOne.mockResolvedValue(mockPageData);
 
-      const relations = ['facebookAccount'];
-      const result = await repository.getPageById(testPageId, relations);
+      // Act
+      const result = await repository.getPageById('fb-page-id');
 
-      expect(pageRepo.findOne).toHaveBeenCalledWith({
-        where: { id: testPageId, tenantId: testTenantId },
-        relations: relations,
+      // Assert
+      expect(mockPageRepo.findOne).toHaveBeenCalledWith({
+        where: {
+          id: 'fb-page-id',
+          tenantId: mockTenantId,
+        },
+        relations: [],
       });
-      expect(result).toEqual(mockPage);
+      expect(result).toEqual(mockPageData);
+    });
+
+    it('should include specified relations when fetching a page', async () => {
+      // Arrange
+      mockPageRepo.findOne.mockResolvedValue(mockPageData);
+      const relations = ['facebookAccount', 'posts'];
+
+      // Act
+      const result = await repository.getPageById('fb-page-id', relations);
+
+      // Assert
+      expect(mockPageRepo.findOne).toHaveBeenCalledWith({
+        where: {
+          id: 'fb-page-id',
+          tenantId: mockTenantId,
+        },
+        relations,
+      });
+      expect(result).toEqual(mockPageData);
     });
   });
 
+  // Test suite for getPostById method
   describe('getPostById', () => {
-    it('should find and return a post by ID', async () => {
-      jest.spyOn(postRepo, 'findOne').mockResolvedValue(mockPost as any);
+    it('should return a Facebook post by ID', async () => {
+      // Arrange
+      mockPostRepo.findOne.mockResolvedValue(mockPostData);
 
-      const relations = ['metrics'];
-      const result = await repository.getPostById(testPostId, relations);
+      // Act
+      const result = await repository.getPostById('fb-post-id');
 
-      expect(postRepo.findOne).toHaveBeenCalledWith({
-        where: { id: testPostId, tenantId: testTenantId },
-        relations: relations,
+      // Assert
+      expect(mockPostRepo.findOne).toHaveBeenCalledWith({
+        where: { id: 'fb-post-id', tenantId: mockTenantId },
+        relations: [],
       });
-      expect(result).toEqual(mockPost);
+      expect(result).toEqual(mockPostData);
+    });
+
+    it('should include specified relations when fetching a post', async () => {
+      // Arrange
+      mockPostRepo.findOne.mockResolvedValue(mockPostData);
+      const relations = ['page', 'metrics'];
+
+      // Act
+      const result = await repository.getPostById('fb-post-id', relations);
+
+      // Assert
+      expect(mockPostRepo.findOne).toHaveBeenCalledWith({
+        where: { id: 'fb-post-id', tenantId: mockTenantId },
+        relations,
+      });
+      expect(result).toEqual(mockPostData);
     });
   });
 
+  // Test suite for getRecentPosts method
   describe('getRecentPosts', () => {
-    it('should find and return recent posts with default timeframe', async () => {
-      const mockPosts = [mockPost];
-      jest.spyOn(postRepo, 'find').mockResolvedValue(mockPosts as any);
+    it('should return recent posts within the specified timeframe', async () => {
+      // Arrange
+      const recentPosts = [
+        mockPostData,
+        { ...mockPostData, id: 'fb-post-id-2' },
+      ];
+      mockPostRepo.find.mockResolvedValue(recentPosts);
 
-      const result = await repository.getRecentPosts();
+      // Act
+      const result = await repository.getRecentPosts(24);
 
-      expect(postRepo.find).toHaveBeenCalledWith({
+      // Assert
+      expect(mockPostRepo.find).toHaveBeenCalledWith({
         where: {
           createdAt: MoreThan(expect.any(Date)),
           isPublished: true,
-          tenantId: testTenantId,
+          tenantId: mockTenantId,
         },
         relations: ['account'],
-        order: { createdAt: 'DESC' },
+        order: {
+          createdAt: 'DESC',
+        },
       });
-      expect(result).toEqual(mockPosts);
+      expect(result).toEqual(recentPosts);
     });
 
-    it('should find and return recent posts with custom timeframe', async () => {
-      const mockPosts = [mockPost];
-      jest.spyOn(postRepo, 'find').mockResolvedValue(mockPosts as any);
+    it('should use default timeframe of 24 hours if not specified', async () => {
+      // Arrange
+      mockPostRepo.find.mockResolvedValue([mockPostData]);
 
-      const timeframe = 48; // 48 hours
-      const result = await repository.getRecentPosts(timeframe);
+      // Act
+      await repository.getRecentPosts();
 
-      expect(postRepo.find).toHaveBeenCalledWith({
-        where: {
-          createdAt: MoreThan(expect.any(Date)),
-          isPublished: true,
-          tenantId: testTenantId,
-        },
-        relations: ['account'],
-        order: { createdAt: 'DESC' },
-      });
-      expect(result).toEqual(mockPosts);
+      // Assert
+      expect(mockPostRepo.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            createdAt: MoreThan(expect.any(Date)),
+          }),
+        }),
+      );
     });
   });
 
+  // Test suite for getAccountPages method
   describe('getAccountPages', () => {
-    it('should find and return pages for an account', async () => {
-      const mockPages = [mockPage];
-      jest.spyOn(pageRepo, 'find').mockResolvedValue(mockPages as any);
+    it('should return pages associated with a Facebook account', async () => {
+      // Arrange
+      const pages = [mockPageData, { ...mockPageData, id: 'fb-page-id-2' }];
+      mockPageRepo.find.mockResolvedValue(pages);
 
-      const result = await repository.getAccountPages(testAccountId);
+      // Act
+      const result = await repository.getAccountPages('fb-account-id');
 
-      expect(pageRepo.find).toHaveBeenCalledWith({
+      // Assert
+      expect(mockPageRepo.find).toHaveBeenCalledWith({
         where: {
-          facebookAccount: { id: testAccountId },
-          tenantId: testTenantId,
+          facebookAccount: { id: 'fb-account-id' },
+          tenantId: mockTenantId,
         },
       });
-      expect(result).toEqual(mockPages);
+      expect(result).toEqual(pages);
     });
   });
 
+  // Test suite for updateAccountTokens method
   describe('updateAccountTokens', () => {
-    it('should update the tokens for a social account', async () => {
+    it('should update account tokens successfully', async () => {
+      // Arrange
+      const accountId = 'fb-account-id';
       const tokens = {
         accessToken: 'new-access-token',
         refreshToken: 'new-refresh-token',
-        expiresAt: new Date(),
+        expiresAt: new Date(Date.now() + 3600000),
       };
 
-      jest.spyOn(accountRepo, 'findOne').mockResolvedValue(mockAccount as any);
-      jest
-        .spyOn(entityManager, 'update')
-        .mockResolvedValue({ affected: 1 } as any);
-      jest
-        .spyOn(repository, 'getAccountById')
-        .mockResolvedValue(mockAccount as any);
+      mockAccountRepo.findOne.mockResolvedValue(mockAccountData);
+      mockEntityManager.update.mockResolvedValue({ affected: 1 });
+      mockAccountRepo.findOne
+        .mockResolvedValueOnce(mockAccountData)
+        .mockResolvedValueOnce({
+          ...mockAccountData,
+          socialAccount: {
+            ...mockAccountData.socialAccount,
+            accessToken: tokens.accessToken,
+          },
+        });
 
-      const result = await repository.updateAccountTokens(
-        testAccountId,
-        tokens,
-      );
+      // Act
+      const result = await repository.updateAccountTokens(accountId, tokens);
 
-      expect(accountRepo.findOne).toHaveBeenCalledWith({
-        where: { id: testAccountId, tenantId: testTenantId },
+      // Assert
+      expect(mockAccountRepo.findOne).toHaveBeenCalledWith({
+        where: { id: accountId, tenantId: mockTenantId },
         relations: ['socialAccount'],
       });
-      expect(entityManager.update).toHaveBeenCalledWith(
+      expect(mockEntityManager.update).toHaveBeenCalledWith(
         SocialAccount,
-        mockAccount.socialAccount.id,
+        mockAccountData.socialAccount.id,
         {
           accessToken: tokens.accessToken,
           refreshToken: tokens.refreshToken,
@@ -407,398 +523,397 @@ describe('FacebookRepository', () => {
           updatedAt: expect.any(Date),
         },
       );
-      expect(repository.getAccountById).toHaveBeenCalledWith(testAccountId);
-      expect(result).toEqual(mockAccount);
+      expect(result).toEqual(expect.objectContaining({ id: accountId }));
     });
 
-    it('should throw NotFoundException if account is not found', async () => {
-      jest.spyOn(accountRepo, 'findOne').mockResolvedValue(null);
-
+    it('should throw NotFoundException when account not found', async () => {
+      // Arrange
+      const accountId = 'non-existent-id';
       const tokens = {
-        accessToken: 'new-token',
-        expiresAt: new Date(),
+        accessToken: 'new-access-token',
+        refreshToken: 'new-refresh-token',
+        expiresAt: new Date(Date.now() + 3600000),
       };
 
+      mockAccountRepo.findOne.mockResolvedValue(null);
+
+      // Act & Assert
       await expect(
-        repository.updateAccountTokens(testAccountId, tokens),
+        repository.updateAccountTokens(accountId, tokens),
       ).rejects.toThrow(NotFoundException);
+      expect(mockEntityManager.update).not.toHaveBeenCalled();
     });
 
-    it('should throw NotFoundException if social account is not found', async () => {
-      jest
-        .spyOn(accountRepo, 'findOne')
-        .mockResolvedValue({ ...mockAccount, socialAccount: null } as any);
-
+    it('should throw NotFoundException when social account is missing', async () => {
+      // Arrange
+      const accountId = 'fb-account-id';
       const tokens = {
-        accessToken: 'new-token',
-        expiresAt: new Date(),
+        accessToken: 'new-access-token',
+        refreshToken: 'new-refresh-token',
+        expiresAt: new Date(Date.now() + 3600000),
       };
 
+      const accountWithoutSocialAccount = {
+        ...mockAccountData,
+        socialAccount: null,
+      };
+      mockAccountRepo.findOne.mockResolvedValue(accountWithoutSocialAccount);
+
+      // Act & Assert
       await expect(
-        repository.updateAccountTokens(testAccountId, tokens),
+        repository.updateAccountTokens(accountId, tokens),
       ).rejects.toThrow(NotFoundException);
+      expect(mockEntityManager.update).not.toHaveBeenCalled();
     });
   });
 
+  // Test suite for getPagePosts method
   describe('getPagePosts', () => {
-    it('should find and return posts for a page with default limit', async () => {
-      const mockPosts = [mockPost];
-      jest.spyOn(postRepo, 'find').mockResolvedValue(mockPosts as any);
+    it('should return posts for a specific page', async () => {
+      // Arrange
+      const pageId = 'fb-page-id';
+      const posts = [mockPostData, { ...mockPostData, id: 'fb-post-id-2' }];
+      mockPostRepo.find.mockResolvedValue(posts);
 
-      const result = await repository.getPagePosts(testPageId);
+      // Act
+      const result = await repository.getPagePosts(pageId);
 
-      expect(postRepo.find).toHaveBeenCalledWith({
-        where: { page: { id: testPageId }, tenantId: testTenantId },
+      // Assert
+      expect(mockPostRepo.find).toHaveBeenCalledWith({
+        where: { page: { id: pageId }, tenantId: mockTenantId },
         order: { createdAt: 'DESC' },
         take: 10,
         relations: ['metrics'],
       });
-      expect(result).toEqual(mockPosts);
+      expect(result).toEqual(posts);
     });
 
-    it('should find and return posts for a page with custom limit', async () => {
-      const mockPosts = [mockPost];
-      jest.spyOn(postRepo, 'find').mockResolvedValue(mockPosts as any);
-
+    it('should respect the limit parameter', async () => {
+      // Arrange
+      const pageId = 'fb-page-id';
       const limit = 5;
-      const result = await repository.getPagePosts(testPageId, limit);
+      mockPostRepo.find.mockResolvedValue([mockPostData]);
 
-      expect(postRepo.find).toHaveBeenCalledWith({
-        where: { page: { id: testPageId }, tenantId: testTenantId },
+      // Act
+      await repository.getPagePosts(pageId, limit);
+
+      // Assert
+      expect(mockPostRepo.find).toHaveBeenCalledWith({
+        where: { page: { id: pageId }, tenantId: mockTenantId },
         order: { createdAt: 'DESC' },
         take: limit,
         relations: ['metrics'],
       });
-      expect(result).toEqual(mockPosts);
     });
   });
 
+  // Test suite for getRecentPostCount method
   describe('getRecentPostCount', () => {
-    it('should count recent posts from the past hour', async () => {
-      jest.spyOn(postRepo, 'count').mockResolvedValue(5);
+    it('should return count of recent posts for hourly timeframe', async () => {
+      // Arrange
+      const pageId = 'fb-page-id';
+      const timeframe = 'hour';
+      const expectedCount = 5;
+      mockPostRepo.count.mockResolvedValue(expectedCount);
 
-      const result = await repository.getRecentPostCount(testPageId, 'hour');
+      // Act
+      const result = await repository.getRecentPostCount(pageId, timeframe);
 
-      expect(postRepo.count).toHaveBeenCalledWith({
+      // Assert
+      expect(mockPostRepo.count).toHaveBeenCalledWith({
         where: {
-          page: { id: testPageId },
-          tenantId: testTenantId,
+          page: { id: pageId },
+          tenantId: mockTenantId,
           createdAt: MoreThan(expect.any(Date)),
         },
       });
-      expect(result).toBe(5);
+      expect(result).toBe(expectedCount);
     });
 
-    it('should count recent posts from the past day', async () => {
-      jest.spyOn(postRepo, 'count').mockResolvedValue(10);
+    it('should return count of recent posts for daily timeframe', async () => {
+      // Arrange
+      const pageId = 'fb-page-id';
+      const timeframe = 'day';
+      const expectedCount = 10;
+      mockPostRepo.count.mockResolvedValue(expectedCount);
 
-      const result = await repository.getRecentPostCount(testPageId, 'day');
+      // Act
+      const result = await repository.getRecentPostCount(pageId, timeframe);
 
-      expect(postRepo.count).toHaveBeenCalledWith({
+      // Assert
+      expect(mockPostRepo.count).toHaveBeenCalledWith({
         where: {
-          page: { id: testPageId },
-          tenantId: testTenantId,
+          page: { id: pageId },
+          tenantId: mockTenantId,
           createdAt: MoreThan(expect.any(Date)),
         },
       });
-      expect(result).toBe(10);
+      expect(result).toBe(expectedCount);
     });
   });
 
+  // Test suite for updatePageToken method
   describe('updatePageToken', () => {
-    it('should update a page token', async () => {
+    it('should update page token successfully', async () => {
+      // Arrange
+      const pageId = 'fb-page-id';
       const newToken = 'new-page-token';
+      const updatedPage = { ...mockPageData, accessToken: newToken };
 
-      jest.spyOn(pageRepo, 'update').mockResolvedValue({ affected: 1 } as any);
-      jest.spyOn(pageRepo, 'findOne').mockResolvedValue(mockPage as any);
+      mockPageRepo.update.mockResolvedValue({ affected: 1 });
+      mockPageRepo.findOne.mockResolvedValue(updatedPage);
 
-      const result = await repository.updatePageToken(testPageId, newToken);
+      // Act
+      const result = await repository.updatePageToken(pageId, newToken);
 
-      expect(pageRepo.update).toHaveBeenCalledWith(testPageId, {
+      // Assert
+      expect(mockPageRepo.update).toHaveBeenCalledWith(pageId, {
         accessToken: newToken,
         updatedAt: expect.any(Date),
       });
-      expect(pageRepo.findOne).toHaveBeenCalledWith({
-        where: { id: testPageId, tenantId: testTenantId },
+      expect(mockPageRepo.findOne).toHaveBeenCalledWith({
+        where: { id: pageId, tenantId: mockTenantId },
       });
-      expect(result).toEqual(mockPage);
+      expect(result).toEqual(updatedPage);
     });
   });
 
+  // Test suite for updatePageMetrics method
   describe('updatePageMetrics', () => {
-    it('should update page metrics and create a metrics snapshot', async () => {
+    it('should update page metrics successfully', async () => {
+      // Arrange
+      const pageId = 'fb-page-id';
       const metrics = {
         followers: 1000,
-        fans: 950,
-        engagement: 200,
+        fans: 900,
+        engagement: 500,
         impressions: 5000,
-        reach: 3000,
-        demographics: { age: { '18-24': 30, '25-34': 45 } },
+        reach: 4000,
+        demographics: { age: { '18-24': 30, '25-34': 40 } },
       };
 
-      const updatedPage = { ...mockPage, followerCount: metrics.followers };
+      const page = { ...mockPageData, followerCount: 500 };
+      const updatedPage = { ...page, followerCount: metrics.followers };
 
-      jest.spyOn(pageRepo, 'findOne').mockResolvedValue(mockPage as any);
-      jest.spyOn(pageRepo, 'save').mockResolvedValue(updatedPage as any);
-      jest.spyOn(pageMetricRepo, 'save').mockResolvedValue({} as any);
-
-      expect(pageRepo.findOne).toHaveBeenCalledWith({
-        where: { id: testPageId, tenantId: testTenantId },
+      mockPageRepo.findOne.mockResolvedValue(page);
+      mockPageRepo.save.mockResolvedValue(updatedPage);
+      mockPageMetricRepo.save.mockResolvedValue({
+        id: 'new-metric-id',
+        page: { id: pageId },
+        ...metrics,
       });
-      expect(pageRepo.save).toHaveBeenCalledWith(
+
+      // Act
+      const result = await repository.updatePageMetrics(pageId, metrics);
+
+      // Assert
+      expect(mockPageRepo.findOne).toHaveBeenCalledWith({
+        where: { id: pageId, tenantId: mockTenantId },
+      });
+      expect(mockPageRepo.save).toHaveBeenCalledWith(
         expect.objectContaining({
           followerCount: metrics.followers,
         }),
       );
+      expect(mockPageMetricRepo.save).toHaveBeenCalledWith({
+        page: { id: pageId },
+        followerCount: metrics.followers,
+        fanCount: metrics.fans,
+        engagement: metrics.engagement,
+        impressions: metrics.impressions,
+        reach: metrics.reach,
+        demographics: metrics.demographics,
+        collectedAt: expect.any(Date),
+      });
+      expect(result).toEqual(updatedPage);
+    });
+
+    it('should throw an error when page is not found', async () => {
+      // Arrange
+      const pageId = 'non-existent-id';
+      const metrics = { followers: 1000 };
+
+      mockPageRepo.findOne.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(
+        repository.updatePageMetrics(pageId, metrics),
+      ).rejects.toThrow('Page not found');
+      expect(mockPageRepo.save).not.toHaveBeenCalled();
+      expect(mockPageMetricRepo.save).not.toHaveBeenCalled();
     });
   });
 
-  describe('deletePost', () => {
-    it('should delete a post and its metrics', async () => {
-      const mockPostWithMetrics = {
-        ...mockPost,
-        metrics: [{ id: 'metric-1' }, { id: 'metric-2' }],
-      };
-
-      jest
-        .spyOn(postRepo, 'findOne')
-        .mockResolvedValue(mockPostWithMetrics as any);
-      jest
-        .spyOn(entityManager, 'transaction')
-        .mockImplementation(async (cb) => {
-          return await cb(entityManager);
-        });
-      jest.spyOn(entityManager, 'remove').mockResolvedValue({} as any);
-
-      await repository.deletePost(testPostId);
-
-      expect(postRepo.findOne).toHaveBeenCalledWith({
-        where: { id: testPostId, tenantId: testTenantId },
-        relations: ['metrics'],
-      });
-      expect(entityManager.remove).toHaveBeenCalledWith(
-        mockPostWithMetrics.metrics,
-      );
-      expect(entityManager.remove).toHaveBeenCalledWith(mockPostWithMetrics);
-    });
-
-    it('should throw NotFoundException if post is not found', async () => {
-      jest.spyOn(postRepo, 'findOne').mockResolvedValue(null);
-
-      await expect(repository.deletePost('non-existent-id')).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-  });
-
-  describe('deleteAccount', () => {
-    it('should delete an account and all related entities', async () => {
-      jest.spyOn(accountRepo, 'findOne').mockResolvedValue(mockAccount as any);
-      jest
-        .spyOn(entityManager, 'transaction')
-        .mockImplementation(async (cb) => {
-          return await cb(entityManager);
-        });
-      jest
-        .spyOn(entityManager, 'delete')
-        .mockResolvedValue({ affected: 1 } as any);
-      jest.spyOn(entityManager, 'remove').mockResolvedValue({} as any);
-
-      await repository.deleteAccount(testAccountId);
-
-      expect(accountRepo.findOne).toHaveBeenCalledWith({
-        where: { id: testAccountId, tenantId: testTenantId },
-        relations: ['socialAccount'],
-      });
-      // Delete associated pages
-      expect(entityManager.delete).toHaveBeenCalledWith(FacebookPage, {
-        account: { id: testAccountId },
-      });
-      // Delete associated posts
-      expect(entityManager.delete).toHaveBeenCalledWith(FacebookPost, {
-        account: { id: testAccountId },
-      });
-      // Delete social account
-      expect(entityManager.remove).toHaveBeenCalledWith(
-        mockAccount.socialAccount,
-      );
-      // Delete the account itself
-      expect(entityManager.remove).toHaveBeenCalledWith(mockAccount);
-    });
-
-    it('should throw NotFoundException if account is not found', async () => {
-      jest.spyOn(accountRepo, 'findOne').mockResolvedValue(null);
-
-      await expect(repository.deleteAccount('non-existent-id')).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-
-    it('should handle when social account is not present', async () => {
-      const accountWithoutSocial = { ...mockAccount, socialAccount: null };
-
-      jest
-        .spyOn(accountRepo, 'findOne')
-        .mockResolvedValue(accountWithoutSocial as any);
-      jest
-        .spyOn(entityManager, 'transaction')
-        .mockImplementation(async (cb) => {
-          return await cb(entityManager);
-        });
-      jest
-        .spyOn(entityManager, 'delete')
-        .mockResolvedValue({ affected: 1 } as any);
-      jest.spyOn(entityManager, 'remove').mockResolvedValue({} as any);
-
-      await repository.deleteAccount(testAccountId);
-
-      // Should not attempt to remove a non-existent social account
-      expect(entityManager.remove).not.toHaveBeenCalledWith(null);
-      // Should still delete the account
-      expect(entityManager.remove).toHaveBeenCalledWith(accountWithoutSocial);
-    });
-  });
-
+  // Test suite for upsertPostMetrics method
   describe('upsertPostMetrics', () => {
-    it('should update existing post metrics', async () => {
-      const mockMetrics = {
-        likes: 100,
-        comments: 50,
-        shares: 25,
+    it('should update existing metrics', async () => {
+      // Arrange
+      const postId = 'fb-post-id';
+      const metrics = {
+        likes: 20,
+        comments: 10,
+        shares: 5,
         collectedAt: new Date(),
       };
 
-      const existingMetric = { id: 'metric-id', ...mockMetrics };
-      const updatedMetric = { ...existingMetric, likes: 150 };
+      const existingMetric = {
+        id: 'existing-metric-id',
+        post: { id: postId },
+        ...metrics,
+      };
 
-      jest
-        .spyOn(entityManager, 'transaction')
-        .mockImplementation(async (cb) => {
-          return await cb(entityManager);
-        });
-
-      jest
-        .spyOn(entityManager, 'findOne')
-        .mockResolvedValueOnce(existingMetric as any);
-      jest
-        .spyOn(entityManager, 'update')
-        .mockResolvedValue({ affected: 1 } as any);
-      jest
-        .spyOn(entityManager, 'findOne')
-        .mockResolvedValueOnce(updatedMetric as any);
-
-      const result = await repository.upsertPostMetrics({
-        postId: testPostId,
-        metrics: mockMetrics,
+      mockEntityManager.transaction.mockImplementation(async (callback) => {
+        return callback(mockEntityManager);
       });
 
-      expect(entityManager.findOne).toHaveBeenCalledWith(FacebookPostMetric, {
-        where: {
-          post: { id: testPostId },
-          tenantId: testTenantId,
-          collectedAt: mockMetrics.collectedAt,
+      mockEntityManager.findOne
+        .mockResolvedValueOnce(existingMetric)
+        .mockResolvedValueOnce({ ...existingMetric, likes: metrics.likes });
+
+      // Act
+      const result = await repository.upsertPostMetrics({ postId, metrics });
+
+      // Assert
+      expect(mockEntityManager.transaction).toHaveBeenCalled();
+      expect(mockEntityManager.findOne).toHaveBeenCalledWith(
+        FacebookPostMetric,
+        {
+          where: {
+            post: { id: postId },
+            tenantId: mockTenantId,
+            collectedAt: metrics.collectedAt,
+          },
         },
-      });
-      expect(entityManager.update).toHaveBeenCalledWith(
+      );
+      expect(mockEntityManager.update).toHaveBeenCalledWith(
         FacebookPostMetric,
         existingMetric.id,
-        expect.objectContaining({
-          ...mockMetrics,
+        {
+          ...metrics,
           updatedAt: expect.any(Date),
+        },
+      );
+      expect(result).toEqual(
+        expect.objectContaining({
+          id: existingMetric.id,
         }),
       );
-      expect(result).toEqual(updatedMetric);
     });
 
-    it('should create new post metrics if not existing', async () => {
-      const mockMetrics = {
-        likes: 100,
-        comments: 50,
-        shares: 25,
+    it('should create new metrics when they do not exist', async () => {
+      // Arrange
+      const postId = 'fb-post-id';
+      const metrics = {
+        likes: 20,
+        comments: 10,
+        shares: 5,
         collectedAt: new Date(),
       };
 
-      const newMetric = { id: 'new-metric-id', ...mockMetrics };
+      const newMetric = {
+        id: 'new-metric-id',
+        post: { id: postId },
+        ...metrics,
+      };
 
-      jest
-        .spyOn(entityManager, 'transaction')
-        .mockImplementation(async (cb) => {
-          return await cb(entityManager);
-        });
-
-      jest.spyOn(entityManager, 'findOne').mockResolvedValueOnce(null);
-      jest.spyOn(entityManager, 'create').mockReturnValue(newMetric as any);
-      jest.spyOn(entityManager, 'save').mockResolvedValue(newMetric as any);
-
-      const result = await repository.upsertPostMetrics({
-        postId: testPostId,
-        metrics: mockMetrics,
+      mockEntityManager.transaction.mockImplementation(async (callback) => {
+        return callback(mockEntityManager);
       });
 
-      expect(entityManager.findOne).toHaveBeenCalledWith(FacebookPostMetric, {
-        where: {
-          post: { id: testPostId },
-          tenantId: testTenantId,
-          collectedAt: mockMetrics.collectedAt,
+      mockEntityManager.findOne.mockResolvedValue(null);
+      mockEntityManager.create.mockReturnValue(newMetric);
+      mockEntityManager.save.mockResolvedValue(newMetric);
+
+      // Act
+      const result = await repository.upsertPostMetrics({ postId, metrics });
+
+      // Assert
+      expect(mockEntityManager.transaction).toHaveBeenCalled();
+      expect(mockEntityManager.findOne).toHaveBeenCalledWith(
+        FacebookPostMetric,
+        {
+          where: {
+            post: { id: postId },
+            tenantId: mockTenantId,
+            collectedAt: metrics.collectedAt,
+          },
         },
-      });
-      expect(entityManager.create).toHaveBeenCalledWith(FacebookPostMetric, {
-        post: { id: testPostId },
-        ...mockMetrics,
-      });
-      expect(entityManager.save).toHaveBeenCalledWith(newMetric);
+      );
+      expect(mockEntityManager.create).toHaveBeenCalledWith(
+        FacebookPostMetric,
+        {
+          post: { id: postId },
+          ...metrics,
+        },
+      );
+      expect(mockEntityManager.save).toHaveBeenCalledWith(newMetric);
       expect(result).toEqual(newMetric);
     });
   });
 
+  // Test suite for updatePost method
   describe('updatePost', () => {
-    it('should update a post and return the updated entity', async () => {
-      const updateData = { message: 'Updated message' };
-      const updatedPost = { ...mockPost, ...updateData };
+    it('should update a post successfully', async () => {
+      // Arrange
+      const postId = 'fb-post-id';
+      const updateData = { message: 'Updated post message' };
+      const updatedPost = { ...mockPostData, ...updateData };
 
-      jest.spyOn(postRepo, 'update').mockResolvedValue({ affected: 1 } as any);
-      jest.spyOn(postRepo, 'findOne').mockResolvedValue(updatedPost as any);
+      mockPostRepo.update.mockResolvedValue({ affected: 1 });
+      mockPostRepo.findOne.mockResolvedValue(updatedPost);
 
-      const result = await repository.updatePost(testPostId, updateData);
+      // Act
+      const result = await repository.updatePost(postId, updateData);
 
-      expect(postRepo.update).toHaveBeenCalledWith(testPostId, updateData);
-      expect(postRepo.findOne).toHaveBeenCalledWith({
-        where: { id: testPostId, tenantId: testTenantId },
+      // Assert
+      expect(mockPostRepo.update).toHaveBeenCalledWith(postId, updateData);
+      expect(mockPostRepo.findOne).toHaveBeenCalledWith({
+        where: { id: postId, tenantId: mockTenantId },
         relations: ['page'],
       });
       expect(result).toEqual(updatedPost);
     });
   });
 
+  // Test suite for updatePage method
   describe('updatePage', () => {
-    it('should update a page and return the updated entity', async () => {
+    it('should update a page successfully', async () => {
+      // Arrange
+      const pageId = 'fb-page-id';
       const updateData = { name: 'Updated Page Name' };
-      const updatedPage = { ...mockPage, ...updateData };
+      const updatedPage = { ...mockPageData, ...updateData };
 
-      jest.spyOn(pageRepo, 'update').mockResolvedValue({ affected: 1 } as any);
-      jest.spyOn(pageRepo, 'findOne').mockResolvedValue(updatedPage as any);
+      mockPageRepo.update.mockResolvedValue({ affected: 1 });
+      mockPageRepo.findOne.mockResolvedValue(updatedPage);
 
-      const result = await repository.updatePage(testPageId, updateData);
+      // Act
+      const result = await repository.updatePage(pageId, updateData);
 
-      expect(pageRepo.update).toHaveBeenCalledWith(testPageId, updateData);
-      expect(pageRepo.findOne).toHaveBeenCalledWith({
-        where: { id: testPageId, tenantId: testTenantId },
+      // Assert
+      expect(mockPageRepo.update).toHaveBeenCalledWith(pageId, updateData);
+      expect(mockPageRepo.findOne).toHaveBeenCalledWith({
+        where: { id: pageId, tenantId: mockTenantId },
       });
       expect(result).toEqual(updatedPage);
     });
   });
 
+  // Test suite for getAccountsWithExpiringTokens method
   describe('getAccountsWithExpiringTokens', () => {
-    it('should find accounts with tokens expiring within 24 hours', async () => {
-      const expiringAccounts = [mockAccount];
+    it('should return accounts with tokens expiring in the next 24 hours', async () => {
+      // Arrange
+      const expiringAccounts = [
+        mockAccountData,
+        { ...mockAccountData, id: 'fb-account-id-2' },
+      ];
 
-      jest
-        .spyOn(accountRepo, 'find')
-        .mockResolvedValue(expiringAccounts as any);
+      mockAccountRepo.find.mockResolvedValue(expiringAccounts);
 
+      // Act
       const result = await repository.getAccountsWithExpiringTokens();
 
-      expect(accountRepo.find).toHaveBeenCalledWith({
+      // Assert
+      expect(mockAccountRepo.find).toHaveBeenCalledWith({
         where: {
           socialAccount: {
             platform: SocialPlatform.FACEBOOK,
@@ -811,15 +926,22 @@ describe('FacebookRepository', () => {
     });
   });
 
+  // Test suite for getActivePages method
   describe('getActivePages', () => {
-    it('should find active pages with valid tokens', async () => {
-      const activePages = [mockPage];
+    it('should return active pages with valid tokens', async () => {
+      // Arrange
+      const activePages = [
+        mockPageData,
+        { ...mockPageData, id: 'fb-page-id-2' },
+      ];
 
-      jest.spyOn(pageRepo, 'find').mockResolvedValue(activePages as any);
+      mockPageRepo.find.mockResolvedValue(activePages);
 
+      // Act
       const result = await repository.getActivePages();
 
-      expect(pageRepo.find).toHaveBeenCalledWith({
+      // Assert
+      expect(mockPageRepo.find).toHaveBeenCalledWith({
         relations: ['facebookAccount', 'posts', 'posts.metrics'],
         where: {
           facebookAccount: {
@@ -834,46 +956,389 @@ describe('FacebookRepository', () => {
     });
   });
 
+  // Test suite for upsertPageMetrics method
   describe('upsertPageMetrics', () => {
     it('should update existing page metrics', async () => {
-      const mockMetrics = {
-        pageId: testPageId,
+      // Arrange
+      const pageId = 'fb-page-id';
+      const metricData = {
+        pageId,
         impressions: 5000,
-        engagedUsers: 1000,
-        newFans: 200,
-        pageViews: 3000,
-        engagements: 1500,
-        followers: 2000,
+        engagedUsers: 200,
+        newFans: 20,
+        pageViews: 500,
+        engagements: 300,
+        followers: 1000,
         collectedAt: new Date(),
       };
 
-      const existingMetric = { id: 'page-metric-id', ...mockMetrics };
+      const existingMetric = {
+        id: 'existing-metric-id',
+        page: { id: pageId },
+        ...metricData,
+      };
       const updatedMetric = { ...existingMetric, impressions: 6000 };
 
-      jest
-        .spyOn(pageMetricRepo, 'findOne')
-        .mockResolvedValue(existingMetric as any);
-      jest
-        .spyOn(pageMetricRepo, 'update')
-        .mockResolvedValue({ affected: 1 } as any);
-      jest
-        .spyOn(pageMetricRepo, 'findOne')
-        .mockResolvedValueOnce(updatedMetric as any);
+      mockPageMetricRepo.findOne.mockResolvedValue(existingMetric);
+      mockPageMetricRepo.update.mockResolvedValue({ affected: 1 });
+      mockPageMetricRepo.findOne
+        .mockResolvedValueOnce(existingMetric)
+        .mockResolvedValueOnce(updatedMetric);
 
-      const result = await repository.upsertPageMetrics(mockMetrics);
+      // Act
+      const result = await repository.upsertPageMetrics(metricData);
 
-      expect(pageMetricRepo.findOne).toHaveBeenCalledWith({
+      // Assert
+      expect(mockPageMetricRepo.findOne).toHaveBeenCalledWith({
         where: {
-          page: { id: testPageId },
-          tenantId: testTenantId,
-          collectedAt: mockMetrics.collectedAt,
+          page: { id: pageId },
+          tenantId: mockTenantId,
+          collectedAt: metricData.collectedAt,
         },
       });
-      expect(pageMetricRepo.update).toHaveBeenCalledWith(
+      expect(mockPageMetricRepo.update).toHaveBeenCalledWith(
         existingMetric.id,
-        mockMetrics,
+        metricData,
       );
-      expect(result).toEqual(updatedMetric);
+      expect(result).toEqual(
+        expect.objectContaining({
+          id: existingMetric.id,
+        }),
+      );
+    });
+
+    it('should create new page metrics when they do not exist', async () => {
+      // Arrange
+      const pageId = 'fb-page-id';
+      const metricData = {
+        pageId,
+        impressions: 5000,
+        engagedUsers: 200,
+        newFans: 20,
+        pageViews: 500,
+        engagements: 300,
+        followers: 1000,
+        collectedAt: new Date(),
+      };
+
+      const newMetric = {
+        id: 'new-metric-id',
+        page: { id: pageId },
+        ...metricData,
+      };
+
+      mockPageMetricRepo.findOne.mockResolvedValue(null);
+      mockPageMetricRepo.create.mockReturnValue(newMetric);
+      mockPageMetricRepo.save.mockResolvedValue(newMetric);
+
+      // Act
+      const result = await repository.upsertPageMetrics(metricData);
+
+      // Assert
+      expect(mockPageMetricRepo.findOne).toHaveBeenCalledWith({
+        where: {
+          page: { id: pageId },
+          tenantId: mockTenantId,
+          collectedAt: metricData.collectedAt,
+        },
+      });
+      expect(mockPageMetricRepo.create).toHaveBeenCalledWith({
+        page: { id: pageId },
+        ...metricData,
+      });
+      expect(mockPageMetricRepo.save).toHaveBeenCalledWith(newMetric);
+      expect(result).toEqual(newMetric);
+    });
+  });
+
+  // Test suite for deletePost method
+  describe('deletePost', () => {
+    it('should delete a post and its metrics successfully', async () => {
+      // Arrange
+      const postId = 'fb-post-id';
+      const post = {
+        ...mockPostData,
+        metrics: [mockMetricData as FacebookPostMetric],
+      };
+
+      mockPostRepo.findOne.mockResolvedValue(post);
+      mockEntityManager.transaction.mockImplementation(async (callback) => {
+        return callback(mockEntityManager);
+      });
+
+      // Act
+      await repository.deletePost(postId);
+
+      // Assert
+      expect(mockPostRepo.findOne).toHaveBeenCalledWith({
+        where: { id: postId, tenantId: mockTenantId },
+        relations: ['metrics'],
+      });
+      expect(mockEntityManager.transaction).toHaveBeenCalled();
+      expect(mockEntityManager.remove).toHaveBeenCalledWith(post.metrics);
+      expect(mockEntityManager.remove).toHaveBeenCalledWith(post);
+    });
+
+    it('should throw NotFoundException when post is not found', async () => {
+      // Arrange
+      const postId = 'non-existent-id';
+      mockPostRepo.findOne.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(repository.deletePost(postId)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockEntityManager.transaction).not.toHaveBeenCalled();
+    });
+  });
+
+  // Test suite for deleteAccount method
+  describe('deleteAccount', () => {
+    it('should delete an account and all associated data', async () => {
+      // Arrange
+      const accountId = 'fb-account-id';
+      mockAccountRepo.findOne.mockResolvedValue(mockAccountData);
+      mockEntityManager.transaction.mockImplementation(async (callback) => {
+        return callback(mockEntityManager);
+      });
+
+      // Act
+      await repository.deleteAccount(accountId);
+
+      // Assert
+      expect(mockAccountRepo.findOne).toHaveBeenCalledWith({
+        where: { id: accountId, tenantId: mockTenantId },
+        relations: ['socialAccount'],
+      });
+      expect(mockEntityManager.transaction).toHaveBeenCalled();
+
+      // Check that pages and posts are deleted first
+      expect(mockEntityManager.delete).toHaveBeenCalledWith(FacebookPage, {
+        account: { id: accountId },
+      });
+      expect(mockEntityManager.delete).toHaveBeenCalledWith(FacebookPost, {
+        account: { id: accountId },
+      });
+
+      // Check that social account is removed
+      expect(mockEntityManager.remove).toHaveBeenCalledWith(
+        mockAccountData.socialAccount,
+      );
+
+      // Check that the Facebook account is removed
+      expect(mockEntityManager.remove).toHaveBeenCalledWith(mockAccountData);
+    });
+
+    it('should throw NotFoundException when account is not found', async () => {
+      // Arrange
+      const accountId = 'non-existent-id';
+      mockAccountRepo.findOne.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(repository.deleteAccount(accountId)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockEntityManager.transaction).not.toHaveBeenCalled();
+    });
+
+    it('should handle case when social account is null', async () => {
+      // Arrange
+      const accountId = 'fb-account-id';
+      const accountWithoutSocialAccount = {
+        ...mockAccountData,
+        socialAccount: null,
+      };
+      mockAccountRepo.findOne.mockResolvedValue(accountWithoutSocialAccount);
+      mockEntityManager.transaction.mockImplementation(async (callback) => {
+        return callback(mockEntityManager);
+      });
+
+      // Act
+      await repository.deleteAccount(accountId);
+
+      // Assert
+      expect(mockEntityManager.transaction).toHaveBeenCalled();
+      expect(mockEntityManager.remove).not.toHaveBeenCalledWith(null);
+      expect(mockEntityManager.remove).toHaveBeenCalledWith(
+        accountWithoutSocialAccount,
+      );
+    });
+  });
+
+  // Additional tests for edge cases and error handling
+
+  // Test for handling transaction failures
+  describe('transaction error handling', () => {
+    it('should propagate errors from EntityManager transactions', async () => {
+      // Arrange
+      const postId = 'fb-post-id';
+      const error = new Error('Transaction failed');
+
+      mockPostRepo.findOne.mockResolvedValue(mockPostData);
+      mockEntityManager.transaction.mockRejectedValue(error);
+
+      // Act & Assert
+      await expect(
+        repository.upsertPostMetrics({
+          postId,
+          metrics: { likes: 10, collectedAt: new Date() },
+        }),
+      ).rejects.toThrow('Transaction failed');
+    });
+  });
+
+  // Test for handling save failures
+  describe('save operation error handling', () => {
+    it('should propagate errors from save operations', async () => {
+      // Arrange
+      const error = new Error('Database error during save');
+      mockAccountRepo.create.mockReturnValue(mockAccountData);
+      mockAccountRepo.save.mockRejectedValue(error);
+
+      // Act & Assert
+      await expect(repository.createAccount(mockAccountData)).rejects.toThrow(
+        'Database error during save',
+      );
+    });
+  });
+
+  // Test for handling update failures
+  describe('update operation error handling', () => {
+    it('should propagate errors from update operations', async () => {
+      // Arrange
+      const id = 'fb-account-id';
+      const updateData = { name: 'Updated Account Name' };
+      const error = new Error('Database error during update');
+
+      mockAccountRepo.update.mockRejectedValue(error);
+
+      // Act & Assert
+      await expect(repository.updateAccount(id, updateData)).rejects.toThrow(
+        'Database error during update',
+      );
+    });
+  });
+
+  // Test tenant ID isolation
+  describe('tenant isolation', () => {
+    it('should always include tenant ID in queries', async () => {
+      // Arrange
+      const differentTenantId = 'different-tenant-id';
+      jest
+        .spyOn(repository as any, 'getTenantId')
+        .mockReturnValue(differentTenantId);
+
+      mockAccountRepo.findOne.mockResolvedValue(null);
+
+      // Act
+      await repository.getAccountById('fb-account-id');
+
+      // Assert
+      expect(mockAccountRepo.findOne).toHaveBeenCalledWith({
+        where: {
+          id: 'fb-account-id',
+          tenantId: differentTenantId,
+        },
+        relations: ['socialAccount'],
+      });
+    });
+  });
+
+  // Test for handling extremely large datasets
+  describe('performance with large datasets', () => {
+    it('should handle retrieving many pages', async () => {
+      // Arrange
+      const accountId = 'fb-account-id';
+      const largePageSet = Array(100)
+        .fill(null)
+        .map((_, i) => ({
+          ...mockPageData,
+          id: `fb-page-id-${i}`,
+        }));
+
+      mockPageRepo.find.mockResolvedValue(largePageSet);
+
+      // Act
+      const result = await repository.getAccountPages(accountId);
+
+      // Assert
+      expect(mockPageRepo.find).toHaveBeenCalledWith({
+        where: {
+          facebookAccount: { id: accountId },
+          tenantId: mockTenantId,
+        },
+      });
+      expect(result).toHaveLength(100);
+      expect(result[99].id).toBe('fb-page-id-99');
+    });
+  });
+
+  // Test for null handling in metrics
+  describe('metrics null handling', () => {
+    it('should handle null values in metrics data', async () => {
+      // Arrange
+      const pageId = 'fb-page-id';
+      const metricsWithNulls = {
+        followers: 1000,
+        fans: null,
+        engagement: undefined,
+        impressions: 5000,
+        reach: 4000,
+        demographics: null,
+      };
+
+      const page = { ...mockPageData };
+
+      mockPageRepo.findOne.mockResolvedValue(page);
+      mockPageRepo.save.mockResolvedValue({
+        ...page,
+        followerCount: metricsWithNulls.followers,
+      });
+      mockPageMetricRepo.save.mockImplementation((data) => data);
+
+      // Act
+      await repository.updatePageMetrics(pageId, metricsWithNulls);
+
+      // Assert
+      expect(mockPageMetricRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          followerCount: 1000,
+          fanCount: null,
+          engagement: undefined,
+          impressions: 5000,
+          reach: 4000,
+          demographics: null,
+        }),
+      );
+    });
+  });
+
+  // Test for date handling
+  describe('date handling', () => {
+    it('should correctly handle date objects in queries', async () => {
+      // Arrange
+      const now = new Date();
+      jest.spyOn(global, 'Date').mockImplementation(() => now);
+
+      mockPostRepo.find.mockResolvedValue([mockPostData]);
+
+      // Act
+      await repository.getRecentPosts(12);
+
+      // Assert
+      const expectedCutoff = new Date(now);
+      expectedCutoff.setHours(expectedCutoff.getHours() - 12);
+
+      expect(mockPostRepo.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            createdAt: MoreThan(expectedCutoff),
+          }),
+        }),
+      );
+
+      // Restore the Date implementation
+      jest.restoreAllMocks();
     });
   });
 });
