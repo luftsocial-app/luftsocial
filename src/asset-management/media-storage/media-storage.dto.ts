@@ -1,5 +1,5 @@
 import { S3 } from 'aws-sdk';
-import { MediaType } from '../common/enums/media-type.enum';
+import { MediaType } from '../../common/enums/media-type.enum';
 
 export class UploadResult {
   sendData: S3.ManagedUpload.SendData;
@@ -15,6 +15,7 @@ export class PreSignedUrlResult {
 }
 
 export interface MediaStorageItem {
+  id: string;
   url: string;
   key: string;
   type: MediaType;

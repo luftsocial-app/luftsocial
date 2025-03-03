@@ -10,36 +10,32 @@ logger:
 port: 3000
 database:
   options:
-    type: postgres
-    username: postgres
-    password: Akinolami6650
-    host: localhost
-    port: 5432
-    database: postgres
-    synchronize: false
+    username: DB_USER
+    password: DB_PASS
+    host: DB_HOST
+    port: DB_PORT
+    database: DB_NAME
 cache:
   redis:
-    host: localhost
-    port: 6379
-    username: redisuser 
-    password: redispassword  
-    # database: 0  # Optional - specific Redis database number
-    # tls: false  # Optional - set to true for SSL/TLS connections  
+    host: REDIS_HOST
+    port: REDIS_PORT
+    username: REDIS_USER
+    password: REDIS_PASS
   defaults:
-    ttl: 14400  # Default TTL in seconds (4 hours)  
+    ttl: CACHE_TTL
   ttl:
-    oauth_state: 600  # 10 minutes for OAuth states
-    access_token: 3600  # 1 hour for access tokens
-    refresh_token: 604800  # 7 days for refresh tokens
+    oauth_state: OAUTH_STATE_TTL
+    access_token: OAUTH_ACCESS_TOKEN_TTL
+    refresh_token: OAUTH_REFRESH_TOKEN_TTL
 aws:
-  region: ${AWS_REGION}
-  accessKeyId: ${AWS_ACCESS_KEY_ID}
-  secretAccessKey: ${AWS_SECRET_ACCESS_KEY}
+  region: AWS_REGION
+  accessKeyId: AWS_ACCESS_KEY_ID
+  secretAccessKey: AWS_SECRET_ACCESS_KEY
   s3:
-    bucket: ${AWS_S3_BUCKET}
+    bucket: AWS_S3_BUCKET
 platforms:
   facebook:
-    clientId: ${FACEBOOK_CLIENT_ID}
-    clientSecret: ${FACEBOOK_CLIENT_SECRET}
-    redirectUri: ${FACEBOOK_REDIRECT_URI}
-    apiVersion: v18.0
+    clientId: FACEBOOK_CLIENT_ID
+    clientSecret: FACEBOOK_CLIENT_SECRET
+    redirectUri: FACEBOOK_REDIRECT_URI
+    apiVersion: FACEBOOK_API_VERSION

@@ -13,6 +13,9 @@ import { AuthState } from '../entity/auth-state.entity';
 import { SocialPlatform } from '../../../common/enums/social-platform.enum';
 import { SocialAccount } from '../../entity/social-account.entity';
 
+
+//TODO: FIX TESTS
+
 // Mock crypto module
 jest.mock('crypto', () => ({
   randomBytes: jest.fn().mockReturnValue({

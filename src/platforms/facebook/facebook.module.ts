@@ -13,7 +13,7 @@ import { FacebookPostMetric } from './entity/facebook-post-metric.entity';
 import { FacebookPageMetric } from './entity/facebook-page-metric.entity';
 import { AuthState } from './entity/auth-state.entity';
 import { SocialAccount } from '../entity/social-account.entity';
-import { MediaStorageModule } from '../../media-storage/media-storage.module';
+import { MediaStorageModule } from '../../asset-management/media-storage/media-storage.module';
 import { DatabaseModule } from '../../database/database.module';
 
 @Module({

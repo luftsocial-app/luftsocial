@@ -35,8 +35,8 @@ import {
   DateRange,
 } from '../../common/interface/platform-metrics.interface';
 import { FacebookAccount } from './entity/facebook-account.entity';
-import { MediaStorageItem } from '../../media-storage/media-storage.dto';
-import { MediaStorageService } from '../../media-storage/media-storage.service';
+import { MediaStorageItem } from '../../asset-management/media-storage/media-storage.dto';
+import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
 import { TenantService } from '../../database/tenant.service';
 import { FACEBOOK_SCOPES } from '../../common/enums/scopes.enum';
 

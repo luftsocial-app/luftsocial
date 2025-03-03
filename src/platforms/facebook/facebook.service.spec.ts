@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { FacebookService } from './facebook.service';
 import { FacebookRepository } from './repositories/facebook.repository';
-import { MediaStorageService } from '../../media-storage/media-storage.service';
 import { TenantService } from '../../database/tenant.service';
 import {
   BadRequestException,
@@ -15,13 +14,15 @@ import { FacebookPost } from './entity/facebook-post.entity';
 import {
   CreatePostDto,
   SchedulePagePostDto,
-  SchedulePostDto,
   UpdatePageDto,
   UpdatePostDto,
 } from './helpers/post.dto';
 import { MediaItem } from '../platform-service.interface';
 import { FacebookApiException } from './helpers/facebook-api.exception';
 import axios from 'axios';
+import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
+import { MediaType } from '../../common/enums/media-type.enum';
+import { MediaStorageItem } from '../../asset-management/media-storage/media-storage.dto';
 
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
@@ -66,7 +67,7 @@ describe('FacebookService', () => {
     id: mockAccountId,
     facebookUserId: 'fb_user_123',
     socialAccount: mockSocialAccount,
-  } as FacebookAccount;
+  } as unknown as FacebookAccount;
 
   const mockPage = {
     id: mockPageId,
@@ -324,8 +325,8 @@ describe('FacebookService', () => {
       mediaStorageService.uploadMediaFromUrl.mockResolvedValue({
         id: 'media123',
         url: mockUploadedMediaUrl,
-        type: 'image',
-      });
+        type: MediaType.IMAGE,
+      }) as unknown as MediaStorageItem[];
 
       mockedAxios.post.mockResolvedValue({
         data: { id: mockFacebookPostId },
@@ -382,9 +383,9 @@ describe('FacebookService', () => {
         {
           id: 'media123',
           url: mockUploadedMediaUrl,
-          type: 'image',
+          type: MediaType.IMAGE,
         },
-      ]);
+      ]) as unknown as MediaStorageItem[];
 
       // Mock processMedia method
       jest

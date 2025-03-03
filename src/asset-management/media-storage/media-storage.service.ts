@@ -8,7 +8,7 @@ import {
   PreSignedUrlResult,
   UploadResult,
 } from './media-storage.dto';
-import { MediaType } from '../common/enums/media-type.enum';
+import { MediaType } from '../../common/enums/media-type.enum';
 
 @Injectable()
 export class MediaStorageService {
