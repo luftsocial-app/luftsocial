@@ -20,10 +20,10 @@ export class MediaStorageService {
 
   constructor() {
     this._s3 = new S3({
-      region: config.get('AWS_REGION'),
+      region: config.get('aws.region'),
       credentials: {
-        accessKeyId: config.get('AWS_ACCESS_KEY_ID'),
-        secretAccessKey: config.get('AWS_SECRET_ACCESS_KEY'),
+        accessKeyId: config.get('aws.accessKeyId'),
+        secretAccessKey: config.get('aws.secretAccessKey'),
       },
     });
   }
@@ -31,7 +31,7 @@ export class MediaStorageService {
   async uploadFile(
     key: string,
     fileBuffer: Buffer,
-    bucket: string = config.get('AWS_S3_BUCKET'),
+    bucket: string = config.get('aws.s3.bucket'),
     options?: S3.ManagedUpload.ManagedUploadOptions,
   ): Promise<UploadResult> {
     const defaultOptions: S3.ManagedUpload.ManagedUploadOptions = {
@@ -52,7 +52,7 @@ export class MediaStorageService {
 
     return {
       sendData,
-      cdnUrl: `https://${bucket}.s3.${config.get('AWS_REGION')}.amazonaws.com/${key}`,
+      cdnUrl: `https://${bucket}.s3.${config.get('aws.region')}.amazonaws.com/${key}`,
     };
   }
 
@@ -174,7 +174,7 @@ export class MediaStorageService {
   async createPreSignedUrl(
     key: string,
     contentType: string,
-    bucket: string = config.get('AWS_S3_BUCKET'),
+    bucket: string = config.get('aws.s3.bucket'),
   ): Promise<PreSignedUrlResult> {
     const preSignedUrl = await this.s3.getSignedUrlPromise('putObject', {
       Bucket: bucket,
@@ -186,7 +186,7 @@ export class MediaStorageService {
     return {
       preSignedUrl,
       contentType,
-      cdnUrl: `https://${bucket}.s3.${config.get('AWS_REGION')}.amazonaws.com/${key}`,
+      cdnUrl: `https://${bucket}.s3.${config.get('aws.region')}.amazonaws.com/${key}`,
       bucket,
       key,
     };

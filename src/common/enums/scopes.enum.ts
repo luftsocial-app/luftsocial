@@ -4,6 +4,21 @@ export enum FACEBOOK_SCOPES {
   PAGES_MANAGE_POSTS = 'pages_manage_posts',
   PAGES_MANAGE_METADATA = 'pages_manage_metadata',
   PAGES_READ_USER_CONTENT = 'pages_read_user_content',
+  // Page Metrics
+  PAGE_IMPRESSIONS = 'page_impressions',
+  PAGE_ENGAGED_USERS = 'page_engaged_users',
+  PAGE_FAN_ADDS = 'page_fan_adds',
+  PAGE_VIEWS_TOTAL = 'page_views_total',
+  PAGE_POST_ENGAGEMENTS = 'page_post_engagements',
+  PAGE_FOLLOWERS = 'page_followers',
+  PAGE_FOLLOWERS_ADDS = 'page_followers_adds',
+  // Post Metrics
+  POST_IMPRESSIONS = 'post_impressions',
+  POST_ENGAGED_USERS = 'post_engaged_users',
+  POST_REACTIONS_BY_TYPE_TOTAL = 'post_reactions_by_type_total',
+  POST_CLICKS = 'post_clicks',
+  POST_VIDEO_VIEWS = 'post_video_views',
+  POST_VIDEO_VIEW_TIME = 'post_video_view_time',
 }
 
 export enum INSTAGRAM_SCOPES {

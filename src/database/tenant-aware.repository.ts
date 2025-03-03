@@ -11,6 +11,10 @@ export class TenantAwareRepository {
     this.tenantId = tenantId;
   }
 
+  getTenantId(): string {
+    return this.tenantId;
+  }
+
   private withTenant(criteria: any = {}) {
     return this.tenantId ? { ...criteria, tenantId: this.tenantId } : criteria;
   }

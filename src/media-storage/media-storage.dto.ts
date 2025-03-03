@@ -1,5 +1,5 @@
 import { S3 } from 'aws-sdk';
-import { MediaType } from 'src/common/enums/media-type.enum';
+import { MediaType } from '../common/enums/media-type.enum';
 
 export class UploadResult {
   sendData: S3.ManagedUpload.SendData;
