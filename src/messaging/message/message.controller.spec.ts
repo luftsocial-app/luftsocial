@@ -5,6 +5,8 @@ import { HttpStatus } from '@nestjs/common';
 import * as Chance from 'chance';
 import { Message } from '../../entities/chats/message.entity';
 import { ChatService } from '../chat/chat.service';
+import { NotFoundException, ForbiddenException } from '@nestjs/common';
+import { OperationStatus } from '../../common/enums/operation-status.enum';
 
 const chance = new Chance();
 
@@ -26,6 +28,7 @@ describe('MessageController', () => {
           provide: MessageService,
           useValue: {
             getMessageHistory: jest.fn(),
+            updateMessage: jest.fn(),
           },
         },
       ],
@@ -150,6 +153,113 @@ describe('MessageController', () => {
       expect(mockRes.json).toHaveBeenCalledWith({
         message: 'An error occurred while fetching message history.',
         error: mockError.message,
+      });
+    });
+  });
+
+  describe('updateMessage', () => {
+    const mockReq = { user: { id: 'user123' } };
+    const mockRes = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn(),
+    };
+    const messageId = chance.guid();
+    const updateDto = { content: 'Updated content' };
+
+    it('should update a message successfully', async () => {
+      const updatedMessage = {
+        id: messageId,
+        content: updateDto.content,
+        senderId: mockReq.user.id,
+        isEdited: true,
+        metadata: {
+          editHistory: [{ content: 'Original content', editedAt: new Date() }],
+        },
+      };
+
+      jest
+        .spyOn(messageService, 'updateMessage')
+        .mockResolvedValue(updatedMessage as any);
+
+      await controller.updateMessage(
+        mockReq,
+        messageId,
+        updateDto,
+        mockRes as any,
+      );
+
+      expect(messageService.updateMessage).toHaveBeenCalledWith(
+        messageId,
+        updateDto,
+        mockReq.user.id,
+      );
+      expect(mockRes.status).toHaveBeenCalledWith(HttpStatus.OK);
+      expect(mockRes.json).toHaveBeenCalledWith({
+        message: 'Message updated successfully',
+        data: updatedMessage,
+        status: OperationStatus.Success,
+      });
+    });
+
+    it('should handle not found error', async () => {
+      jest
+        .spyOn(messageService, 'updateMessage')
+        .mockRejectedValue(new NotFoundException('Message not found'));
+
+      await controller.updateMessage(
+        mockReq,
+        messageId,
+        updateDto,
+        mockRes as any,
+      );
+
+      expect(mockRes.status).toHaveBeenCalledWith(HttpStatus.NOT_FOUND);
+      expect(mockRes.json).toHaveBeenCalledWith({
+        message: 'Message not found',
+        status: OperationStatus.NotFound,
+      });
+    });
+
+    it('should handle forbidden error', async () => {
+      jest
+        .spyOn(messageService, 'updateMessage')
+        .mockRejectedValue(
+          new ForbiddenException('You can only edit your own messages'),
+        );
+
+      await controller.updateMessage(
+        mockReq,
+        messageId,
+        updateDto,
+        mockRes as any,
+      );
+
+      expect(mockRes.status).toHaveBeenCalledWith(HttpStatus.FORBIDDEN);
+      expect(mockRes.json).toHaveBeenCalledWith({
+        message: 'You can only edit your own messages',
+        status: OperationStatus.Unauthorized,
+      });
+    });
+
+    it('should handle general errors', async () => {
+      jest
+        .spyOn(messageService, 'updateMessage')
+        .mockRejectedValue(new Error('Unexpected error'));
+
+      await controller.updateMessage(
+        mockReq,
+        messageId,
+        updateDto,
+        mockRes as any,
+      );
+
+      expect(mockRes.status).toHaveBeenCalledWith(
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+      expect(mockRes.json).toHaveBeenCalledWith({
+        message: 'Failed to update message',
+        error: 'Unexpected error',
+        status: OperationStatus.Failed,
       });
     });
   });
