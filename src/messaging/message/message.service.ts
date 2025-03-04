@@ -1,4 +1,10 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Message } from '../../entities/chats/message.entity';
@@ -68,5 +74,32 @@ export class MessageService {
     } catch (err) {
       throw new HttpException(err.message || err, HttpStatus.BAD_REQUEST);
     }
+  }
+
+  async updateMessage(
+    messageId: string,
+    updateData: { content: string },
+    userId: string,
+  ): Promise<Message> {
+    const message = await this.messageRepo.findOne({
+      where: {
+        id: messageId,
+        tenantId: this.tenantService.getTenantId(),
+      },
+    });
+
+    if (!message) {
+      throw new NotFoundException(`Message with ID ${messageId} not found`);
+    }
+
+    if (message.senderId !== userId) {
+      throw new ForbiddenException('You can only edit your own messages');
+    }
+
+    message.addEditHistory(message.content);
+
+    message.content = updateData.content;
+
+    return this.messageRepo.save(message);
   }
 }

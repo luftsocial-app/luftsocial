@@ -83,9 +83,22 @@ export class Message {
   @JoinColumn({ name: 'parent_message_id' })
   parentMessage?: Message; // For threads
 
+  /**
+   * Message metadata containing reactions and edit history
+   * @property reactions - Map of user IDs to emoji reactions (e.g. { "user1": "👍", "user2": "❤️" })
+   * @property editHistory - Array of previous message versions with timestamps
+   */
   @Column({ name: 'metadata', type: 'jsonb', default: {} })
   metadata?: {
-    reactions?: { [userId: string]: string }; // { user1: '👍', user2: '❤️' }
+    /** Map of user IDs to their emoji reactions */
+    reactions?: { [userId: string]: string };
+    /** Array tracking edit history with content and timestamps */
+    editHistory?: Array<{
+      /** Previous message content */
+      content: string;
+      /** When this version was edited */
+      editedAt: Date;
+    }>;
   };
 
   @Column({ type: 'jsonb', default: {} })
@@ -104,5 +117,26 @@ export class Message {
 
   getReadCount(): number {
     return Object.keys(this.readBy).length;
+  }
+
+  /**
+   * Adds an entry to the edit history of this message
+   * @param oldContent - The previous content of the message before editing
+   */
+  addEditHistory(oldContent: string): void {
+    if (!this.metadata) {
+      this.metadata = {};
+    }
+
+    if (!this.metadata.editHistory) {
+      this.metadata.editHistory = [];
+    }
+
+    this.metadata.editHistory.push({
+      content: oldContent,
+      editedAt: new Date(),
+    });
+
+    this.isEdited = true;
   }
 }
