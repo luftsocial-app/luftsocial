@@ -39,3 +39,8 @@ platforms:
     clientSecret: FACEBOOK_CLIENT_SECRET
     redirectUri: FACEBOOK_REDIRECT_URI
     apiVersion: FACEBOOK_API_VERSION
+  instagram:
+    clientId: INSTAGRAM_CLIENT_ID
+    clientSecret: INSTAGRAM_CLIENT_SECRET
+    redirectUri: INSTAGRAM_REDIRECT_URI
+    apiVersion: INSTAGRAM_API_VERSION
