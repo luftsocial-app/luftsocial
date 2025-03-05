@@ -177,18 +177,18 @@ describe('MessageController', () => {
         },
       };
 
-      jest
+      const updateMessageSpy = jest
         .spyOn(messageService, 'updateMessage')
         .mockResolvedValue(updatedMessage as any);
 
       await controller.updateMessage(
-        mockReq,
+        mockReq.user,
         messageId,
         updateDto,
         mockRes as any,
       );
 
-      expect(messageService.updateMessage).toHaveBeenCalledWith(
+      expect(updateMessageSpy).toHaveBeenCalledWith(
         messageId,
         updateDto,
         mockReq.user.id,
