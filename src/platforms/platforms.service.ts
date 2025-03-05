@@ -24,7 +24,7 @@ export class PlatformsService {
   async getConnectedAccountsForUser(
     userId: string,
   ): Promise<Record<SocialPlatform, any[]>> {
-    const [facebookAccounts] = await Promise.all([
+    const [facebookAccounts, instagramAccounts] = await Promise.all([
       this.facebookService.getAccountsByUserId(userId),
       this.instagramService.getAccountsByUserId(userId),
     ]);
@@ -33,8 +33,8 @@ export class PlatformsService {
       [SocialPlatform.FACEBOOK]: Array.isArray(facebookAccounts)
         ? facebookAccounts
         : [],
-      [SocialPlatform.INSTAGRAM]: Array.isArray(facebookAccounts)
-        ? facebookAccounts
+      [SocialPlatform.INSTAGRAM]: Array.isArray(instagramAccounts)
+        ? instagramAccounts
         : [],
     };
   }

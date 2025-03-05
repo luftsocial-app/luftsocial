@@ -4,12 +4,12 @@ import { Repository, MoreThan, LessThan, EntityManager } from 'typeorm';
 import * as crypto from 'crypto';
 import { InstagramAccount } from '../entities/instagram-account.entity';
 import { InstagramMetric } from '../entities/instagram-metric.entity';
-import { AuthState } from 'src/platforms/facebook/entity/auth-state.entity';
 import { InstagramRateLimit } from '../entities/instagram-rate-limit.entity';
-import { SocialAccount } from 'src/platforms/entity/social-account.entity';
-import { TenantAwareRepository } from 'src/database/tenant-aware.repository';
 import { InstagramPost } from '../entities/instagram-post.entity';
 import { SocialPlatform } from '../../../common/enums/social-platform.enum';
+import { SocialAccount } from '../../entity/social-account.entity';
+import { AuthState } from '../../facebook/entity/auth-state.entity';
+import { TenantAwareRepository } from '../../../database/tenant-aware.repository';
 
 @Injectable()
 export class InstagramRepository extends TenantAwareRepository {

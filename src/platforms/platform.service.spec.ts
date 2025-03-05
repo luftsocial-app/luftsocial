@@ -2,22 +2,27 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PlatformsService } from './platforms.service';
 import { FacebookService } from './facebook/facebook.service';
 import { SocialPlatform } from '../common/enums/social-platform.enum';
+import { InstagramService } from './instagram/instagram.service';
 
 describe('PlatformsService', () => {
   let service: PlatformsService;
   let facebookService: jest.Mocked<FacebookService>;
+  let instagramService: jest.Mocked<InstagramService>;
 
   // Mock data
   const mockUserId = 'user123';
   const mockFacebookAccount = {
     id: 'fb-account-123',
     facebookUserId: 'fb-user-123',
-    // Add other properties as needed
   };
 
   beforeEach(async () => {
     // Create mock implementations
     const mockFacebookServiceFactory = () => ({
+      getAccountsByUserId: jest.fn(),
+    });
+
+    const mockInstagramServiceFactory = () => ({
       getAccountsByUserId: jest.fn(),
     });
 
@@ -28,6 +33,10 @@ describe('PlatformsService', () => {
           provide: FacebookService,
           useFactory: mockFacebookServiceFactory,
         },
+        {
+          provide: InstagramService,
+          useFactory: mockInstagramServiceFactory,
+        },
       ],
     }).compile();
 
@@ -35,6 +44,9 @@ describe('PlatformsService', () => {
     facebookService = module.get(
       FacebookService,
     ) as jest.Mocked<FacebookService>;
+    instagramService = module.get(
+      InstagramService,
+    ) as jest.Mocked<InstagramService>;
 
     // Reset mocks before each test
     jest.clearAllMocks();
@@ -50,8 +62,12 @@ describe('PlatformsService', () => {
       expect(result).toBe(facebookService);
     });
 
+    it('should return Instagram service for INSTAGRAM platform', () => {
+      const result = service.getServiceForPlatform(SocialPlatform.INSTAGRAM);
+      expect(result).toBe(instagramService);
+    });
+
     it('should throw error for unsupported platform', () => {
-      // Using 'TWITTER' as an example of unsupported platform
       expect(() => {
         service.getServiceForPlatform('TWITTER' as SocialPlatform);
       }).toThrow('Unsupported platform: TWITTER');
@@ -59,19 +75,20 @@ describe('PlatformsService', () => {
   });
 
   describe('getConnectedAccountsForUser', () => {
-    it('should handle when no Facebook accounts are found', async () => {
+    it('should handle when no accounts are found', async () => {
       // Setup
       facebookService.getAccountsByUserId.mockResolvedValue(null);
+      instagramService.getAccountsByUserId.mockResolvedValue(null);
 
       // Execute
       const result = await service.getConnectedAccountsForUser(mockUserId);
 
       // Assert
-      expect(facebookService.getAccountsByUserId).toHaveBeenCalledWith(
-        mockUserId,
-      );
+      expect(facebookService.getAccountsByUserId).toHaveBeenCalledWith(mockUserId);
+      expect(instagramService.getAccountsByUserId).toHaveBeenCalledWith(mockUserId);
       expect(result).toEqual({
         [SocialPlatform.FACEBOOK]: [],
+        [SocialPlatform.INSTAGRAM]: [],
       });
     });
 
@@ -92,6 +109,7 @@ describe('PlatformsService', () => {
       );
       expect(result).toEqual({
         [SocialPlatform.FACEBOOK]: accountsArray,
+        [SocialPlatform.INSTAGRAM]: [],
       });
     });
 

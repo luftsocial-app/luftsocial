@@ -1,23 +1,37 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { InstagramController } from './instagram.controller';
 import { InstagramService } from './instagram.service';
+import { InstagramErrorInterceptor } from './interceptors/instagram-error.interceptor';
+import { RateLimitInterceptor } from './interceptors/rate-limit.interceptor';
 import { CreatePostDto, CreateStoryDto } from './helpers/create-content.dto';
+import { MediaItem } from '../platform-service.interface';
+import { InstagramRepository } from './repositories/instagram.repository';
 
 describe('InstagramController', () => {
   let controller: InstagramController;
-  let instagramService: InstagramService;
+  let instagramService: jest.Mocked<InstagramService>;
 
-  const mockInstagramService = {
-    authorize: jest.fn(),
-    handleCallback: jest.fn(),
-    post: jest.fn(),
-    createStory: jest.fn(),
-    getComments: jest.fn(),
-    getMetrics: jest.fn(),
-    getAccountInsights: jest.fn(),
-  };
+  const mockAccountId = 'test-account-123';
+  const mockMediaId = 'test-media-456';
+  const mockPageToken = 'next-page-token';
 
   beforeEach(async () => {
+    // Create mock implementation of InstagramService
+    const mockInstagramService = {
+      post: jest.fn(),
+      createStory: jest.fn(),
+      getComments: jest.fn(),
+      getPostMetrics: jest.fn(),
+      getAccountInsights: jest.fn(),
+    };
+
+    // Create mocks for interceptors' dependencies
+    const mockInstagramRepository = {
+      checkRateLimit: jest.fn().mockResolvedValue(true),
+      recordRateLimitUsage: jest.fn(),
+      setTenantId: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [InstagramController],
       providers: [
@@ -25,11 +39,19 @@ describe('InstagramController', () => {
           provide: InstagramService,
           useValue: mockInstagramService,
         },
+        {
+          provide: InstagramRepository,
+          useValue: mockInstagramRepository,
+        },
+        InstagramErrorInterceptor,
+        RateLimitInterceptor,
       ],
     }).compile();
 
     controller = module.get<InstagramController>(InstagramController);
-    instagramService = module.get<InstagramService>(InstagramService);
+    instagramService = module.get(
+      InstagramService,
+    ) as jest.Mocked<InstagramService>;
   });
 
   afterEach(() => {
@@ -37,132 +59,371 @@ describe('InstagramController', () => {
   });
 
   describe('createPost', () => {
-    it('should create a post successfully', async () => {
-      const accountId = 'test-account-id';
+    it('should create a post with both uploaded files and media URLs', async () => {
+      // Arrange
       const createPostDto: CreatePostDto = {
-        caption: 'Test caption',
-        mediaUrls: ['https://example.com/image.jpg'],
+        caption: 'Test post caption',
+        hashtags: ['test', 'instagram'],
+        mentions: ['user1', 'user2'],
+        mediaUrls: ['https://example.com/image1.jpg'],
       };
+
+      const mockFiles = [
+        {
+          fieldname: 'files',
+          originalname: 'test-image.jpg',
+          encoding: '7bit',
+          mimetype: 'image/jpeg',
+          buffer: Buffer.from('test image data'),
+          size: 1234,
+        },
+      ] as Express.Multer.File[];
+
+      const expectedMedia: MediaItem[] = [
+        { file: mockFiles[0], url: undefined },
+        { url: 'https://example.com/image1.jpg', file: undefined },
+      ];
+
       const expectedResponse = {
-        platformPostId: 'ig-media-id',
+        platformPostId: 'instagram-post-123',
         postedAt: new Date(),
       };
 
-      mockInstagramService.post.mockResolvedValue(expectedResponse);
+      instagramService.post.mockResolvedValue(expectedResponse);
 
-      const result = await controller.createPost(accountId, createPostDto);
-
-      expect(result).toEqual(expectedResponse);
-      expect(mockInstagramService.post).toHaveBeenCalledWith(
-        accountId,
-        createPostDto.caption,
-        createPostDto.mediaUrls,
+      // Act
+      const result = await controller.createPost(
+        mockAccountId,
+        createPostDto,
+        mockFiles,
       );
+
+      // Assert
+      expect(instagramService.post).toHaveBeenCalledWith(
+        mockAccountId,
+        createPostDto,
+        expectedMedia,
+      );
+      expect(result).toBe(expectedResponse);
+    });
+
+    it('should create a post with only file uploads and no media URLs', async () => {
+      // Arrange
+      const createPostDto: CreatePostDto = {
+        caption: 'Test post with files only',
+        hashtags: ['test'],
+        mentions: [],
+      };
+
+      const mockFiles = [
+        {
+          fieldname: 'files',
+          originalname: 'test-image1.jpg',
+          encoding: '7bit',
+          mimetype: 'image/jpeg',
+          buffer: Buffer.from('test image data 1'),
+          size: 1234,
+        },
+        {
+          fieldname: 'files',
+          originalname: 'test-image2.jpg',
+          encoding: '7bit',
+          mimetype: 'image/jpeg',
+          buffer: Buffer.from('test image data 2'),
+          size: 5678,
+        },
+      ] as Express.Multer.File[];
+
+      const expectedMedia: MediaItem[] = [
+        { file: mockFiles[0], url: undefined },
+        { file: mockFiles[1], url: undefined },
+      ];
+
+      const expectedResponse = {
+        platformPostId: 'instagram-post-456',
+        postedAt: new Date(),
+      };
+
+      instagramService.post.mockResolvedValue(expectedResponse);
+
+      // Act
+      const result = await controller.createPost(
+        mockAccountId,
+        createPostDto,
+        mockFiles,
+      );
+
+      // Assert
+      expect(instagramService.post).toHaveBeenCalledWith(
+        mockAccountId,
+        createPostDto,
+        expectedMedia,
+      );
+      expect(result).toBe(expectedResponse);
+    });
+
+    it('should create a post with only media URLs and no file uploads', async () => {
+      // Arrange
+      const createPostDto: CreatePostDto = {
+        caption: 'Test post with URLs only',
+        hashtags: ['test', 'urls'],
+        mentions: ['user1'],
+        mediaUrls: [
+          'https://example.com/image1.jpg',
+          'https://example.com/image2.jpg',
+        ],
+      };
+
+      const expectedMedia: MediaItem[] = [
+        { url: 'https://example.com/image1.jpg', file: undefined },
+        { url: 'https://example.com/image2.jpg', file: undefined },
+      ];
+
+      const expectedResponse = {
+        platformPostId: 'instagram-post-789',
+        postedAt: new Date(),
+      };
+
+      instagramService.post.mockResolvedValue(expectedResponse);
+
+      // Act
+      const result = await controller.createPost(
+        mockAccountId,
+        createPostDto,
+        undefined,
+      );
+
+      // Assert
+      expect(instagramService.post).toHaveBeenCalledWith(
+        mockAccountId,
+        createPostDto,
+        expectedMedia,
+      );
+      expect(result).toBe(expectedResponse);
+    });
+
+    it('should create a post with no media (empty arrays)', async () => {
+      // Arrange
+      const createPostDto: CreatePostDto = {
+        caption: 'Test post with no media',
+        hashtags: [],
+        mentions: [],
+      };
+
+      const expectedMedia: MediaItem[] = [];
+
+      const expectedResponse = {
+        platformPostId: 'instagram-post-999',
+        postedAt: new Date(),
+      };
+
+      instagramService.post.mockResolvedValue(expectedResponse);
+
+      // Act
+      const result = await controller.createPost(
+        mockAccountId,
+        createPostDto,
+        [],
+      );
+
+      // Assert
+      expect(instagramService.post).toHaveBeenCalledWith(
+        mockAccountId,
+        createPostDto,
+        expectedMedia,
+      );
+      expect(result).toBe(expectedResponse);
     });
   });
 
   describe('createStory', () => {
-    it('should create a story successfully', async () => {
-      const accountId = 'test-account-id';
+    it('should create a story with media URL and stickers', async () => {
+      // Arrange
       const createStoryDto: CreateStoryDto = {
-        mediaUrl: 'https://example.com/story.jpg',
+        mediaUrl: 'https://example.com/story-image.jpg',
+        stickers: {
+          poll: {
+            question: 'Do you like this?',
+            options: ['Yes', 'No'],
+          },
+        },
       };
+
       const expectedResponse = {
-        platformPostId: 'ig-story-id',
+        platformPostId: 'instagram-story-123',
         postedAt: new Date(),
       };
 
-      mockInstagramService.createStory.mockResolvedValue(expectedResponse);
+      instagramService.createStory.mockResolvedValue(expectedResponse);
 
-      const result = await controller.createStory(accountId, createStoryDto);
+      // Act
+      const result = await controller.createStory(
+        mockAccountId,
+        createStoryDto,
+      );
 
-      expect(result).toEqual(expectedResponse);
-      expect(mockInstagramService.createStory).toHaveBeenCalledWith(
-        accountId,
+      // Assert
+      expect(instagramService.createStory).toHaveBeenCalledWith(
+        mockAccountId,
         createStoryDto.mediaUrl,
         createStoryDto.stickers,
       );
+      expect(result).toBe(expectedResponse);
+    });
+
+    it('should create a story without stickers', async () => {
+      // Arrange
+      const createStoryDto: CreateStoryDto = {
+        mediaUrl: 'https://example.com/story-image.jpg',
+      };
+
+      const expectedResponse = {
+        platformPostId: 'instagram-story-456',
+        postedAt: new Date(),
+      };
+
+      instagramService.createStory.mockResolvedValue(expectedResponse);
+
+      // Act
+      const result = await controller.createStory(
+        mockAccountId,
+        createStoryDto,
+      );
+
+      // Assert
+      expect(instagramService.createStory).toHaveBeenCalledWith(
+        mockAccountId,
+        createStoryDto.mediaUrl,
+        undefined,
+      );
+      expect(result).toBe(expectedResponse);
     });
   });
 
   describe('getComments', () => {
-    it('should get comments for a media', async () => {
-      const accountId = 'test-account-id';
-      const mediaId = 'test-media-id';
-      const pageToken = 'next-page-token';
+    it('should get comments with page token', async () => {
+      // Arrange
       const expectedResponse = {
         items: [
           {
             id: 'comment-1',
             content: 'Great post!',
-            authorId: 'user1',
+            authorId: 'user-123',
+            authorName: 'User One',
+            createdAt: new Date(),
+          },
+          {
+            id: 'comment-2',
+            content: 'Awesome!',
+            authorId: 'user-456',
+            authorName: 'User Two',
+            createdAt: new Date(),
+          },
+        ],
+        nextPageToken: 'next-page-token-abc',
+      };
+
+      instagramService.getComments.mockResolvedValue(expectedResponse);
+
+      // Act
+      const result = await controller.getComments(
+        mockAccountId,
+        mockMediaId,
+        mockPageToken,
+      );
+
+      // Assert
+      expect(instagramService.getComments).toHaveBeenCalledWith(
+        mockAccountId,
+        mockMediaId,
+        mockPageToken,
+      );
+      expect(result).toBe(expectedResponse);
+    });
+
+    it('should get comments without page token', async () => {
+      // Arrange
+      const expectedResponse = {
+        items: [
+          {
+            id: 'comment-1',
+            content: 'Great post!',
+            authorId: 'user-123',
             authorName: 'User One',
             createdAt: new Date(),
           },
         ],
-        nextPageToken: 'next-token',
+        nextPageToken: null,
       };
 
-      mockInstagramService.getComments.mockResolvedValue(expectedResponse);
+      instagramService.getComments.mockResolvedValue(expectedResponse);
 
-      const result = await controller.getComments(
-        accountId,
-        mediaId,
-        pageToken,
-      );
+      // Act
+      const result = await controller.getComments(mockAccountId, mockMediaId);
 
-      expect(result).toEqual(expectedResponse);
-      expect(mockInstagramService.getComments).toHaveBeenCalledWith(
-        accountId,
-        mediaId,
-        pageToken,
+      // Assert
+      expect(instagramService.getComments).toHaveBeenCalledWith(
+        mockAccountId,
+        mockMediaId,
+        undefined,
       );
+      expect(result).toBe(expectedResponse);
     });
   });
 
   describe('getMetrics', () => {
-    it('should get metrics for a media', async () => {
-      const accountId = 'test-account-id';
-      const mediaId = 'test-media-id';
-      const expectedMetrics = {
-        engagement: 100,
-        impressions: 1000,
-        reach: 800,
-        saved: 50,
+    it('should get metrics for a media post', async () => {
+      // Arrange
+      const expectedResponse = {
+        engagement: 500,
+        impressions: 10000,
+        reach: 8000,
+        reactions: 300,
+        comments: 45,
+        shares: 25,
+        saves: 50,
+        platformSpecific: {
+          saved: 50,
+          storyReplies: 0,
+          storyTaps: 0,
+          storyExits: 0,
+        },
       };
 
-      mockInstagramService.getMetrics.mockResolvedValue(expectedMetrics);
+      instagramService.getPostMetrics.mockResolvedValue(expectedResponse);
 
-      const result = await controller.getMetrics(accountId, mediaId);
+      // Act
+      const result = await controller.getMetrics(mockAccountId, mockMediaId);
 
-      expect(result).toEqual(expectedMetrics);
-      expect(mockInstagramService.getMetrics).toHaveBeenCalledWith(
-        accountId,
-        mediaId,
+      // Assert
+      expect(instagramService.getPostMetrics).toHaveBeenCalledWith(
+        mockAccountId,
+        mockMediaId,
       );
+      expect(result).toBe(expectedResponse);
     });
   });
 
   describe('getAccountInsights', () => {
-    it('should get account insights', async () => {
-      const accountId = 'test-account-id';
-      const expectedInsights = {
-        followerCount: 1000,
-        impressions: 5000,
-        profileViews: 300,
-        reach: 4000,
+    it('should get insights for an account', async () => {
+      // Arrange
+      const expectedResponse = {
+        followerCount: 5000,
+        impressions: 25000,
+        profileViews: 1500,
+        reach: 20000,
       };
 
-      mockInstagramService.getAccountInsights.mockResolvedValue(
-        expectedInsights,
-      );
+      instagramService.getAccountInsights.mockResolvedValue(expectedResponse);
 
-      const result = await controller.getAccountInsights(accountId);
+      // Act
+      const result = await controller.getAccountInsights(mockAccountId);
 
-      expect(result).toEqual(expectedInsights);
-      expect(mockInstagramService.getAccountInsights).toHaveBeenCalledWith(
-        accountId,
+      // Assert
+      expect(instagramService.getAccountInsights).toHaveBeenCalledWith(
+        mockAccountId,
       );
+      expect(result).toBe(expectedResponse);
     });
   });
 });
