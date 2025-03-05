@@ -8,12 +8,19 @@ import {
   Query,
   Body,
   Post,
+  Patch,
+  NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { MessageService } from './message.service';
 
 import { Request, Response } from 'express';
 import { Throttle } from '@nestjs/throttler';
 import { MessageQueryDto } from '../dtos/conversation.dto';
+import { UpdateMessageDto } from '../dtos/message.dto';
+import { OperationStatus } from '../../common/enums/operation-status.enum';
+import { ApiOperation, ApiParam, ApiResponse } from '@nestjs/swagger';
+import { CurrentUser } from '../../decorators/current-user.decorator';
 
 @Controller('messages')
 export class MessageController {
@@ -62,6 +69,61 @@ export class MessageController {
       return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
         message: 'An error occurred while fetching message history.',
         error: err.message,
+      });
+    }
+  }
+
+  @ApiOperation({
+    summary: 'Update a message',
+    description: 'Updates the content of an existing message',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'ID of the message to update',
+  })
+  @ApiResponse({ status: 200, description: 'Message updated successfully' })
+  @ApiResponse({ status: 404, description: 'Message not found' })
+  @ApiResponse({
+    status: 403,
+    description: 'User not authorized to update this message',
+  })
+  @Patch(':id')
+  async updateMessage(
+    @CurrentUser() user: any,
+    @Param('id') messageId: string,
+    @Body() updateMessageDto: UpdateMessageDto,
+    @Res() res: Response,
+  ) {
+    try {
+      const userId = user.id;
+      const updatedMessage = await this.messageService.updateMessage(
+        messageId,
+        updateMessageDto,
+        userId,
+      );
+
+      return res.status(HttpStatus.OK).json({
+        message: 'Message updated successfully',
+        data: updatedMessage,
+        status: OperationStatus.Success,
+      });
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        return res.status(HttpStatus.NOT_FOUND).json({
+          message: error.message,
+          status: OperationStatus.NotFound,
+        });
+      } else if (error instanceof ForbiddenException) {
+        return res.status(HttpStatus.FORBIDDEN).json({
+          message: error.message,
+          status: OperationStatus.Unauthorized,
+        });
+      }
+
+      return res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+        message: 'Failed to update message',
+        error: error.message,
+        status: OperationStatus.Failed,
       });
     }
   }

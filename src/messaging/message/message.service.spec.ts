@@ -2,7 +2,12 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { MessageService } from './message.service';
 import { Message } from '../../entities/chats/message.entity';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import {
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+  NotFoundException,
+} from '@nestjs/common';
 import { TenantService } from '../../database/tenant.service';
 import { Repository } from 'typeorm';
 import * as Chance from 'chance';
@@ -20,7 +25,7 @@ describe('MessageService', () => {
         {
           provide: TenantService,
           useValue: {
-            getCurrentTenantId: jest.fn().mockReturnValue('default'),
+            getTenantId: jest.fn().mockReturnValue('default'),
           },
         },
         {
@@ -29,6 +34,7 @@ describe('MessageService', () => {
             find: jest.fn(),
             create: jest.fn(),
             save: jest.fn(),
+            findOne: jest.fn(),
           },
         },
       ],
@@ -120,6 +126,103 @@ describe('MessageService', () => {
         where: [{ senderId: userId }],
         order: { createdAt: 'ASC' },
       });
+    });
+  });
+
+  describe('updateMessage', () => {
+    it('should update a message successfully', async () => {
+      const messageId = chance.guid();
+      const userId = chance.guid();
+      const tenantId = 'default';
+      const originalContent = chance.sentence();
+      const newContent = chance.sentence();
+
+      const originalMessage = {
+        id: messageId,
+        content: originalContent,
+        senderId: userId,
+        tenantId,
+        metadata: {
+          editHistory: [],
+        },
+        isEdited: false,
+        addEditHistory: jest.fn(function (content) {
+          this.metadata.editHistory.push({
+            content,
+            editedAt: expect.any(Date),
+          });
+          this.isEdited = true;
+        }),
+      };
+
+      jest
+        .spyOn(messageRepository, 'findOne')
+        .mockResolvedValue(originalMessage as any);
+      jest.spyOn(messageRepository, 'save').mockResolvedValue({
+        id: messageId,
+        content: newContent,
+        senderId: userId,
+        tenantId,
+        metadata: {
+          editHistory: [
+            { content: originalContent, editedAt: expect.any(Date) },
+          ],
+        },
+        isEdited: true,
+      } as any);
+
+      const result = await service.updateMessage(
+        messageId,
+        { content: newContent },
+        userId,
+      );
+
+      expect(messageRepository.findOne).toHaveBeenCalledWith({
+        where: { id: messageId, tenantId: 'default' },
+      });
+      expect(originalMessage.addEditHistory).toHaveBeenCalledWith(
+        originalContent,
+      );
+      expect(messageRepository.save).toHaveBeenCalledWith(originalMessage);
+      expect(result.content).toBe(newContent);
+      expect(result.isEdited).toBe(true);
+      expect(result.metadata.editHistory).toBeTruthy();
+    });
+
+    it('should throw NotFoundException when message not found', async () => {
+      jest.spyOn(messageRepository, 'findOne').mockResolvedValue(null);
+
+      await expect(
+        service.updateMessage(
+          chance.guid(),
+          { content: chance.sentence() },
+          chance.guid(),
+        ),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw ForbiddenException when user is not the sender', async () => {
+      const messageId = chance.guid();
+      const originalUserId = chance.guid();
+      const differentUserId = chance.guid();
+
+      const originalMessage = {
+        id: messageId,
+        senderId: originalUserId,
+        tenantId: 'default',
+      };
+
+      jest
+        .spyOn(messageRepository, 'findOne')
+        .mockResolvedValue(originalMessage as any);
+
+      await expect(
+        service.updateMessage(
+          messageId,
+          { content: chance.sentence() },
+          differentUserId,
+        ),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 });
