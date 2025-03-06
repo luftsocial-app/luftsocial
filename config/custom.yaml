@@ -44,3 +44,13 @@ platforms:
     clientSecret: INSTAGRAM_CLIENT_SECRET
     redirectUri: INSTAGRAM_REDIRECT_URI
     apiVersion: INSTAGRAM_API_VERSION
+  linkedin:
+    clientId: LINKEDIN_CLIENT_ID
+    clientSecret: LINKEDIN_CLIENT_SECRET
+    redirectUri: LINKEDIN_REDIRECT_URI
+    apiVersion: LINKEDIN_API_VERSION
+  tiktok:
+    clientId: TIKTOK_CLIENT_ID
+    clientSecret: TIKTOK_CLIENT_SECRET
+    redirectUri: TIKTOK_REDIRECT_URI
+    apiVersion: TIKTOK_API_VERSION

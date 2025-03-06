@@ -5,7 +5,7 @@ import {
   NotFoundException,
   Logger,
 } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import * as config from 'config';
 import axios from 'axios';
 import { InstagramRepository } from './repositories/instagram.repository';
 import { InstagramApiException } from './helpers/instagram-api.exception';
@@ -35,7 +35,6 @@ export class InstagramService implements PlatformService {
   private readonly logger = new Logger(InstagramService.name);
 
   constructor(
-    private readonly configService: ConfigService,
     private readonly instagramRepo: InstagramRepository,
     private readonly mediaStorageService: MediaStorageService,
     private readonly tenantService: TenantService,
@@ -616,8 +615,8 @@ export class InstagramService implements PlatformService {
     try {
       await axios.post(`${this.baseUrl}/oauth/revoke/`, null, {
         params: {
-          client_key: this.configService.get('INSTAGRAM_CLIENT_KEY'),
-          client_secret: this.configService.get('INSTAGRAM_CLIENT_SECRET'),
+          client_key: config.get('platforms.instagram.clientId'),
+          client_secret: config.get('platforms.instagram.clientSecret'),
           token: account.socialAccount.accessToken,
         },
       });

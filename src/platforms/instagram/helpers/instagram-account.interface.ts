@@ -1,5 +1,5 @@
 import { MediaType } from '../../../common/enums/media-type.enum';
-import { TokenResponse } from 'src/platforms/platform-service.interface';
+import { TokenResponse } from '../../../platforms/platform-service.interface';
 
 export interface InstagramAccount {
   id: string;

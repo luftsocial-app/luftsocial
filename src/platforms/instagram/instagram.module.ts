@@ -16,12 +16,14 @@ import { RateLimitInterceptor } from './interceptors/rate-limit.interceptor';
 import { InstagramPost } from './entities/instagram-post.entity';
 import { DatabaseModule } from '../../database/database.module';
 import { MediaStorageModule } from '../../asset-management/media-storage/media-storage.module';
+import { PlatformAuthModule } from '../../platform-auth/platform-auth.module';
 
 @Module({
   imports: [
     ConfigModule,
     MediaStorageModule,
     DatabaseModule,
+    PlatformAuthModule,
     TypeOrmModule.forFeature([
       InstagramAccount,
       InstagramRateLimit,
