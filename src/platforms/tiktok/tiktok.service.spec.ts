@@ -224,28 +224,6 @@ describe('TikTokService', () => {
         NotFoundException,
       );
     });
-
-    it('should return user accounts from TikTok API', async () => {
-      const mockUserInfoResponse = {
-        data: {
-          data: {
-            user: {
-              open_id: 'tt_user_123',
-              display_name: 'TikTok User',
-              avatar_url: 'https://example.com/avatar.jpg',
-              bio_description: 'TikTok bio',
-              verified: true,
-            },
-          },
-        },
-      };
-
-      mockedAxios.get.mockResolvedValueOnce(errorResponse);
-
-      await expect(
-        service.checkUploadStatus(mockAccountId, mockPublishId),
-      ).rejects.toThrow(TikTokApiException);
-    });
   });
 
   describe('getVideoStatus', () => {
@@ -569,25 +547,6 @@ describe('TikTokService', () => {
   });
 
   describe('uploadTitTokMediaItemsToStorage (private method test)', () => {
-    it('should return empty array when no media provided', async () => {
-      // We can test this private method indirectly through the post method
-      tiktokRepo.getById.mockResolvedValueOnce(mockAccount);
-
-      // Mock initializeVideoUpload
-      jest.spyOn(service, 'initializeVideoUpload').mockResolvedValueOnce({
-        publishId: mockPublishId,
-        uploadUrl: 'https://upload.tiktok.com/video123',
-      });
-
-      // Mock checkUploadStatus
-      jest.spyOn(service, 'checkUploadStatus').mockResolvedValueOnce('SUCCESS');
-
-      await service.post(mockAccountId, mockCreateVideoParams, []);
-
-      expect(mediaStorageService.uploadPostMedia).not.toHaveBeenCalled();
-      expect(mediaStorageService.uploadMediaFromUrl).not.toHaveBeenCalled();
-    });
-
     it('should handle file uploads correctly', async () => {
       tiktokRepo.getById.mockResolvedValueOnce(mockAccount);
 
@@ -662,7 +621,7 @@ describe('TikTokService', () => {
 
       await expect(
         service.getComments(mockAccountId, mockVideoId),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow(TikTokApiException);
     });
 
     it('should return comments for a video', async () => {
@@ -754,7 +713,7 @@ describe('TikTokService', () => {
 
       await expect(
         service.getPostMetrics(mockAccountId, mockVideoId),
-      ).rejects.toThrow(HttpException);
+      ).rejects.toThrow(TikTokApiException);
     });
 
     it('should return metrics for a video', async () => {

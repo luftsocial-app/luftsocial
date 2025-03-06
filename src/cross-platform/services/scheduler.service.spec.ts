@@ -12,7 +12,6 @@ import {
   ScheduleStatus,
 } from '../helpers/cross-platform.interface';
 
-
 describe('SchedulerService', () => {
   let service: SchedulerService;
   let scheduledPostRepo: jest.Mocked<Repository<ScheduledPost>>;

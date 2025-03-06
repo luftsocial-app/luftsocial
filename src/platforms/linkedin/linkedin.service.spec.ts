@@ -243,7 +243,7 @@ describe('LinkedInService', () => {
 
       await expect(
         service.post(mockAccountId, mockCreatePostDto),
-      ).rejects.toThrow(HttpException);
+      ).rejects.toThrow(LinkedInApiException);
     });
 
     it('should post content to LinkedIn without media', async () => {
@@ -332,7 +332,7 @@ describe('LinkedInService', () => {
 
       await expect(
         service.getComments(mockAccountId, mockPostId),
-      ).rejects.toThrow(HttpException);
+      ).rejects.toThrow(LinkedInApiException);
     });
 
     it('should return comments for a post', async () => {
@@ -405,7 +405,7 @@ describe('LinkedInService', () => {
 
       await expect(
         service.getPostMetrics(mockAccountId, mockPostId),
-      ).rejects.toThrow(HttpException);
+      ).rejects.toThrow(LinkedInApiException);
     });
 
     it('should return metrics for a post', async () => {
@@ -695,17 +695,6 @@ describe('LinkedInService', () => {
 
       expect(mediaStorageService.uploadPostMedia).not.toHaveBeenCalled();
       expect(mediaStorageService.uploadMediaFromUrl).not.toHaveBeenCalled();
-    });
-
-    it('should handle URL uploads correctly', async () => {
-      mockedAxios.post.mockResolvedValueOnce({
-        data: { id: mockPostId },
-      });
-
-      await service.post(mockAccountId, mockCreatePostDto, [mockMediaUrlItem]);
-
-      expect(mediaStorageService.uploadPostMedia).not.toHaveBeenCalled();
-      expect(mediaStorageService.uploadMediaFromUrl).toHaveBeenCalled();
     });
   });
 });

@@ -477,8 +477,8 @@ describe('InstagramService', () => {
         null,
         expect.objectContaining({
           params: expect.objectContaining({
-            client_key: 'test-client-key',
-            client_secret: 'test-client-secret',
+            client_key: 'INSTAGRAM_CLIENT_ID',
+            client_secret: 'INSTAGRAM_CLIENT_SECRET',
             token: mockAccessToken,
           }),
         }),
