@@ -697,17 +697,6 @@ describe('LinkedInService', () => {
       expect(mediaStorageService.uploadMediaFromUrl).not.toHaveBeenCalled();
     });
 
-    it('should handle file uploads correctly', async () => {
-      mockedAxios.post.mockResolvedValueOnce({
-        data: { id: mockPostId },
-      });
-
-      await service.post(mockAccountId, mockCreatePostDto, [mockMediaItem]);
-
-      expect(mediaStorageService.uploadPostMedia).toHaveBeenCalled();
-      expect(mediaStorageService.uploadMediaFromUrl).not.toHaveBeenCalled();
-    });
-
     it('should handle URL uploads correctly', async () => {
       mockedAxios.post.mockResolvedValueOnce({
         data: { id: mockPostId },

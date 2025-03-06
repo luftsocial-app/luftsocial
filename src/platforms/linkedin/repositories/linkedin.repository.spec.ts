@@ -59,16 +59,18 @@ describe('LinkedInRepository', () => {
   };
 
   const mockMetric = {
-    id: 'metric-id',
-    tenantId: TENANT_ID,
-    post: mockPost,
+    id: 'metric-id-1',
     impressions: 100,
+    uniqueImpressions: 80,
+    clicks: 30,
     likes: 50,
     comments: 20,
     shares: 10,
-    engagementRate: 0.1,
-    industryData: { tech: 40, finance: 30 },
+    engagementRate: 0.0375,
+    industryData: { tech: 40, finance: 30 }, 
     collectedAt: new Date(),
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
   beforeEach(async () => {
@@ -241,8 +243,15 @@ describe('LinkedInRepository', () => {
       const timeframe = '30';
       const mockMetrics = [mockMetric, { ...mockMetric, id: 'metric-id-2' }];
 
-      const queryBuilder = metricRepo.createQueryBuilder();
-      queryBuilder.getMany.mockResolvedValue(mockMetrics);
+      // Mock the query builder chain
+      const queryBuilder = {
+        leftJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue(mockMetrics),
+      };
+
+      metricRepo.createQueryBuilder.mockReturnValue(queryBuilder);
 
       // Act
       const result = await repository.getOrganizationMetrics(orgId, timeframe);
@@ -260,8 +269,8 @@ describe('LinkedInRepository', () => {
       );
       expect(result).toEqual({
         totalImpressions: 200,
-        totalEngagements: 160,
-        avgEngagementRate: 0.05, // (0.1 + 0.1) / 2 → Simplified to match expected aggregation
+        totalEngagements: 160, // (50 + 20 + 10) * 2 = 160
+        avgEngagementRate: 0.0375, // Assuming both metrics have the same engagementRate
         industries: { tech: 40, finance: 30 },
       });
     });

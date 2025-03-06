@@ -76,24 +76,48 @@ export class LinkedInRepository extends TenantAwareRepository {
   }
 
   private aggregateMetrics(metrics: LinkedInMetric[]): any {
-    return metrics.reduce(
-      (acc, metric) => ({
-        totalImpressions: acc.totalImpressions + metric.impressions,
-        totalEngagements:
-          acc.totalEngagements +
-          (metric.likes + metric.comments + metric.shares),
-        avgEngagementRate: (acc.avgEngagementRate + metric.engagementRate) / 2,
-        industries: { ...acc.industries, ...metric.industryData },
-      }),
+    if (!metrics || !metrics.length) {
+      return {
+        totalImpressions: 0,
+        totalEngagements: 0, // Will be calculated from likes + comments + shares
+        avgEngagementRate: 0,
+        industries: {},
+      };
+    }
+
+    const aggregated = metrics.reduce(
+      (acc, metric) => {
+        // Calculate engagements as sum of likes, comments, and shares
+        const engagements = metric.likes + metric.comments + metric.shares;
+
+        const industries = metric.industryData || {};
+
+        return {
+          totalImpressions: acc.totalImpressions + metric.impressions,
+          totalEngagements: acc.totalEngagements + engagements,
+          totalEngagementRate: acc.totalEngagementRate + metric.engagementRate,
+          industries: {
+            ...acc.industries,
+            ...industries,
+          },
+        };
+      },
       {
         totalImpressions: 0,
         totalEngagements: 0,
-        avgEngagementRate: 0,
+        totalEngagementRate: 0,
         industries: {},
       },
     );
-  }
 
+    // Calculate average engagement rate
+    return {
+      totalImpressions: aggregated.totalImpressions,
+      totalEngagements: aggregated.totalEngagements,
+      avgEngagementRate: aggregated.totalEngagementRate / metrics.length,
+      industries: aggregated.industries,
+    };
+  }
   async getAccountsNearingExpiration(): Promise<LinkedInAccount[]> {
     const expirationThreshold = new Date();
     expirationThreshold.setHours(expirationThreshold.getHours() + 24); // 24 hours from now

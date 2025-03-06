@@ -425,9 +425,17 @@ describe('SchedulerService', () => {
   describe('getScheduledPosts', () => {
     beforeEach(() => {
       // Mock query builder response
-      const mockQueryBuilder =
-        scheduledPostRepo.createQueryBuilder as jest.Mock;
-      mockQueryBuilder().getMany.mockResolvedValue([mockScheduledPost]);
+      const mockQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue([mockScheduledPost]),
+      };
+
+      // Make createQueryBuilder return this mock
+      scheduledPostRepo.createQueryBuilder = jest
+        .fn()
+        .mockReturnValue(mockQueryBuilder);
     });
 
     it('should return scheduled posts for a user without filters', async () => {
@@ -435,13 +443,16 @@ describe('SchedulerService', () => {
 
       // Verify query builder was called correctly
       expect(scheduledPostRepo.createQueryBuilder).toHaveBeenCalledWith('post');
-      expect(scheduledPostRepo.createQueryBuilder().where).toHaveBeenCalledWith(
-        'post.userId = :userId',
-        { userId: mockUserId },
+
+      // Now you can test the query builder methods
+      const queryBuilder = scheduledPostRepo.createQueryBuilder();
+      expect(queryBuilder.where).toHaveBeenCalledWith('post.userId = :userId', {
+        userId: mockUserId,
+      });
+      expect(queryBuilder.orderBy).toHaveBeenCalledWith(
+        'post.scheduledTime',
+        'ASC',
       );
-      expect(
-        scheduledPostRepo.createQueryBuilder().orderBy,
-      ).toHaveBeenCalledWith('post.scheduledTime', 'ASC');
 
       expect(result).toEqual([mockScheduledPost]);
     });
@@ -451,11 +462,11 @@ describe('SchedulerService', () => {
         status: ScheduleStatus.PENDING,
       });
 
-      expect(
-        scheduledPostRepo.createQueryBuilder().andWhere,
-      ).toHaveBeenCalledWith('post.status = :status', {
-        status: ScheduleStatus.PENDING,
-      });
+      const queryBuilder = scheduledPostRepo.createQueryBuilder();
+      expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+        'post.status = :status',
+        { status: ScheduleStatus.PENDING },
+      );
     });
 
     it('should apply date range filters when provided', async () => {
@@ -464,13 +475,16 @@ describe('SchedulerService', () => {
 
       await service.getScheduledPosts(mockUserId, { startDate, endDate });
 
-      expect(
-        scheduledPostRepo.createQueryBuilder().andWhere,
-      ).toHaveBeenCalledWith('post.scheduledTime >= :startDate', { startDate });
+      const queryBuilder = scheduledPostRepo.createQueryBuilder();
+      expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+        'post.scheduledTime >= :startDate',
+        { startDate },
+      );
 
-      expect(
-        scheduledPostRepo.createQueryBuilder().andWhere,
-      ).toHaveBeenCalledWith('post.scheduledTime <= :endDate', { endDate });
+      expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+        'post.scheduledTime <= :endDate',
+        { endDate },
+      );
     });
 
     it('should apply platform filter when provided', async () => {
@@ -478,11 +492,11 @@ describe('SchedulerService', () => {
         platform: SocialPlatform.FACEBOOK,
       });
 
-      expect(
-        scheduledPostRepo.createQueryBuilder().andWhere,
-      ).toHaveBeenCalledWith('post.platforms @> :platform', {
-        platform: JSON.stringify([{ platform: SocialPlatform.FACEBOOK }]),
-      });
+      const queryBuilder = scheduledPostRepo.createQueryBuilder();
+      expect(queryBuilder.andWhere).toHaveBeenCalledWith(
+        'post.platforms @> :platform',
+        { platform: JSON.stringify([{ platform: SocialPlatform.FACEBOOK }]) },
+      );
     });
 
     it('should apply all filters when provided', async () => {

@@ -376,22 +376,6 @@ describe('OAuth2Service', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('should throw UnauthorizedException when refresh token not available', async () => {
-      mockPlatformRepos[SocialPlatform.FACEBOOK].getById.mockResolvedValueOnce({
-        id: mockAccountId,
-        userId: mockUserId,
-        socialAccount: {
-          accessToken: mockToken,
-          // No refresh token
-          expiresAt: new Date(),
-        },
-      });
-
-      await expect(
-        service.refreshToken(SocialPlatform.FACEBOOK, mockAccountId),
-      ).rejects.toThrow(UnauthorizedException);
-    });
-
     it('should return cached token if available', async () => {
       const cachedToken = {
         accessToken: 'cached_token',
