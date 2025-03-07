@@ -1,22 +1,18 @@
-import {
-  Entity,
-  Column,
-  PrimaryGeneratedColumn,
-  CreateDateColumn,
-  OneToMany,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Entity, Column, OneToMany, Index } from 'typeorm';
 import { MessageEntity } from '../../messages/entities/message.entity';
 import { ParticipantEntity } from './participant.entity';
 import { ConversationType } from '../../shared/enums/conversation-type.enum';
 import { IConversationSettings } from '../../shared/interfaces/conversation-settings.interface';
+import { CommonEntity } from '../../shared/entities/common.entity';
 
 @Entity('conversations')
-export class ConversationEntity {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
+@Index('idx_conv_tenant_created', ['tenantId', 'createdAt'], { unique: false })
+@Index('idx_conv_created_at', ['createdAt'], { unique: false })
+@Index('idx_conv_tenant', ['tenantId'], { unique: false })
+@Index('idx_conv_deleted_at', ['deletedAt'], { unique: false })
+export class ConversationEntity extends CommonEntity {
   @Column({ nullable: true })
+  @Index('idx_conv_name', { unique: false })
   name?: string;
 
   @Column({
@@ -24,6 +20,7 @@ export class ConversationEntity {
     enum: ConversationType,
     default: ConversationType.DIRECT,
   })
+  @Index('idx_conv_type', { unique: false })
   type: ConversationType;
 
   @OneToMany(
@@ -41,9 +38,11 @@ export class ConversationEntity {
   messages: MessageEntity[];
 
   @Column({ name: 'tenant_id' })
+  @Index('idx_conversation_tenant', { unique: false })
   tenantId: string;
 
   @Column({ name: 'is_private', default: false })
+  @Index('idx_conv_privacy', { unique: false })
   isPrivate: boolean;
 
   @Column({ name: 'metadata', type: 'jsonb', default: {} })
@@ -52,19 +51,19 @@ export class ConversationEntity {
     isEncrypted?: boolean;
   };
 
-  @CreateDateColumn()
-  createdAt: Date;
-
-  @UpdateDateColumn()
-  updatedAt: Date;
-
-  @Column({ nullable: true })
+  @Column({
+    name: 'last_message_at',
+    nullable: true,
+    type: 'timestamp with time zone',
+  })
+  @Index('idx_conv_last_message', { unique: false })
   lastMessageAt: Date;
 
   @Column({ name: 'settings', type: 'jsonb', default: {} })
   settings: IConversationSettings;
 
   @Column({ type: 'jsonb', default: {} })
+  @Index('idx_conv_last_read_message_ids', { unique: false })
   lastReadMessageIds: {
     [userId: string]: {
       messageId: string;
@@ -73,6 +72,7 @@ export class ConversationEntity {
   };
 
   @Column({ type: 'jsonb', default: {} })
+  @Index('idx_conv_unread_counts', { unique: false })
   unreadCounts: {
     [userId: string]: number;
   };

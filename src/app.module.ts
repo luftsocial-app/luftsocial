@@ -41,7 +41,7 @@ import { MessagingModule } from './messaging/messaging.module';
       username: 'root',
       password: 'admin',
       database: 'start-template',
-      synchronize: false,
+      synchronize: true,
       logging: 'all',
       logger: 'advanced-console',
 

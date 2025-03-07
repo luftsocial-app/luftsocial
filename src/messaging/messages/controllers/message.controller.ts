@@ -1,45 +1,51 @@
+// External dependencies
 import {
-  Controller,
-  Get,
-  Post,
-  Patch,
-  Delete,
-  Param,
-  Query,
   Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
   UseGuards,
   UseInterceptors,
-  ParseUUIDPipe,
-  HttpStatus,
-  HttpCode,
-  BadRequestException,
 } from '@nestjs/common';
 import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiParam,
   ApiBearerAuth,
   ApiBody,
+  ApiOperation,
+  ApiParam,
   ApiQuery,
+  ApiResponse,
+  ApiTags,
 } from '@nestjs/swagger';
-import { MessageService } from '../services/message.service';
-import { ChatGuard } from '../../../guards/chat.guard';
 import { ThrottlerGuard } from '@nestjs/throttler';
+
+// Internal dependencies
+import { ChatGuard } from '../../../guards/chat.guard';
+import { CurrentUser } from '../../../decorators/current-user.decorator';
+import { ResponseInterceptor } from '../../shared/interceptors/response.interceptor';
+
+// DTOs
 import { MessageQueryDto } from '../../conversations/dto/conversation.dto';
 import {
   CreateMessageDto,
-  UpdateMessageDto,
   ReactionDto,
+  UpdateMessageDto,
 } from '../dto/message.dto';
-import { CurrentUser } from '../../../decorators/current-user.decorator';
-import { ResponseInterceptor } from '../../shared/interceptors/response.interceptor';
 import {
+  AttachmentResponseDto,
+  MessageListResponseDto,
   MessageResponseDto,
   MessageWithRelationsDto,
-  MessageListResponseDto,
-  AttachmentResponseDto,
 } from '../dto/message-response.dto';
+
+// Services
+import { MessageService } from '../services/message.service';
 
 @ApiTags('Messages')
 @ApiBearerAuth()

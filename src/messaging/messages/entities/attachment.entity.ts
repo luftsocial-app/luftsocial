@@ -1,13 +1,6 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  ManyToOne,
-  JoinColumn,
-} from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { MessageEntity } from './message.entity';
-
+import { CommonEntity } from '../../shared/entities/common.entity';
 export enum AttachmentType {
   IMAGE = 'image',
   VIDEO = 'video',
@@ -17,15 +10,17 @@ export enum AttachmentType {
 }
 
 @Entity('message_attachments')
-export class AttachmentEntity {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
+@Index('idx_att_tenant_created', ['tenantId', 'createdAt'], { unique: false })
+@Index('idx_att_created_at', ['createdAt'], { unique: false })
+@Index('idx_att_tenant', ['tenantId'], { unique: false })
+@Index('idx_att_deleted_at', ['deletedAt'], { unique: false })
+export class AttachmentEntity extends CommonEntity {
   @ManyToOne(() => MessageEntity, (message) => message.attachments)
   @JoinColumn({ name: 'message_id' })
   message: MessageEntity;
 
   @Column({ name: 'message_id' })
+  @Index('idx_att_message', { unique: false })
   messageId: string;
 
   @Column({ name: 'file_name' })
@@ -35,6 +30,7 @@ export class AttachmentEntity {
   fileSize: number;
 
   @Column({ name: 'mime_type' })
+  @Index('idx_att_mime_type', { unique: false })
   mimeType: string;
 
   @Column({
@@ -42,6 +38,7 @@ export class AttachmentEntity {
     enum: AttachmentType,
     default: AttachmentType.OTHER,
   })
+  @Index('idx_att_type', { unique: false })
   type: AttachmentType;
 
   @Column({ name: 'storage_path' })
@@ -62,16 +59,11 @@ export class AttachmentEntity {
     isProcessed?: boolean;
   };
 
-  @Column({ name: 'tenant_id' })
-  tenantId: string;
-
-  @CreateDateColumn()
-  createdAt: Date;
-
   @Column()
   url: string;
 
   @Column()
+  @Index('idx_att_processing', { unique: false })
   processingStatus: string;
 
   // Helper methods to check file type

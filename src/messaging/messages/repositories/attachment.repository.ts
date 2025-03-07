@@ -18,7 +18,7 @@ export class AttachmentRepository extends Repository<AttachmentEntity> {
    */
   async findByMessageId(messageId: string): Promise<AttachmentEntity[]> {
     try {
-      return this.find({
+      return await this.find({
         where: { messageId },
         order: { createdAt: 'ASC' },
       });
@@ -39,7 +39,7 @@ export class AttachmentRepository extends Repository<AttachmentEntity> {
     messageId: string,
   ): Promise<AttachmentEntity[]> {
     try {
-      return this.find({
+      return await this.find({
         where: { type, messageId },
         order: { createdAt: 'ASC' },
       });
@@ -57,7 +57,7 @@ export class AttachmentRepository extends Repository<AttachmentEntity> {
    */
   async findByUserId(userId: string): Promise<AttachmentEntity[]> {
     try {
-      return this.createQueryBuilder('attachment')
+      return await this.createQueryBuilder('attachment')
         .innerJoin('attachment.message', 'message')
         .where('message.senderId = :userId', { userId })
         .getMany();
@@ -98,7 +98,7 @@ export class AttachmentRepository extends Repository<AttachmentEntity> {
    */
   async findUnprocessed(): Promise<AttachmentEntity[]> {
     try {
-      return this.createQueryBuilder('attachment')
+      return await this.createQueryBuilder('attachment')
         .where(
           `(attachment.metadata->>'isProcessed')::boolean = false OR attachment.metadata->>'isProcessed' IS NULL`,
         )

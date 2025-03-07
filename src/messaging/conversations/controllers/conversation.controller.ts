@@ -1,34 +1,40 @@
+// External dependencies
 import {
-  Controller,
-  Post,
-  Get,
   Body,
+  Controller,
+  Get,
   Param,
-  UseGuards,
-  Request,
-  Query,
   Patch,
+  Post,
+  UseGuards,
 } from '@nestjs/common';
 import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiParam,
   ApiBearerAuth,
   ApiBody,
-  ApiQuery,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
 } from '@nestjs/swagger';
-import { ConversationService } from '../services/conversation.service';
+
+// Internal dependencies
 import { ChatGuard } from '../../../guards/chat.guard';
+import { CurrentUser } from '../../../decorators/current-user.decorator';
+
+// DTOs
 import {
-  CreateConversationDto,
   AddParticipantsDto,
+  CreateConversationDto,
   UpdateConversationSettingsDto,
 } from '../dto/conversation.dto';
 import { CreateMessageDto } from '../../messages/dto/message.dto';
-import { CurrentUser } from '../../../decorators/current-user.decorator';
+
+// Entities
 import { ConversationEntity } from '../entities/conversation.entity';
 import { MessageEntity } from '../../messages/entities/message.entity';
+
+// Services
+import { ConversationService } from '../services/conversation.service';
 
 @ApiTags('Conversations')
 @ApiBearerAuth()

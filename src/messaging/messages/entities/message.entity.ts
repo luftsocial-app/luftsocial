@@ -1,13 +1,10 @@
 import {
   Entity,
-  PrimaryGeneratedColumn,
   Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-  DeleteDateColumn,
   ManyToOne,
   JoinColumn,
   OneToMany,
+  Index,
 } from 'typeorm';
 import {
   MessageType,
@@ -17,12 +14,15 @@ import { ConversationEntity } from '../../conversations/entities/conversation.en
 import { User } from '../../../entities/users/user.entity';
 import { AttachmentEntity } from './attachment.entity';
 import { MessageReactionDto } from '../dto/message-response.dto';
+import { CommonEntity } from '../../shared/entities/common.entity';
 
 @Entity('messages')
-export class MessageEntity {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
+@Index('idx_msg_search', ['conversationId', 'createdAt'], { unique: false })
+@Index('idx_msg_tenant_created', ['tenantId', 'createdAt'], { unique: false })
+@Index('idx_msg_created_at', ['createdAt'], { unique: false })
+@Index('idx_msg_tenant', ['tenantId'], { unique: false })
+@Index('idx_msg_deleted_at', ['deletedAt'], { unique: false })
+export class MessageEntity extends CommonEntity {
   @Column('text')
   content: string;
 
@@ -31,6 +31,7 @@ export class MessageEntity {
   conversation: ConversationEntity;
 
   @Column({ name: 'conversation_id' })
+  @Index('idx_msg_conversation', { unique: false })
   conversationId: string;
 
   @ManyToOne(() => User)
@@ -38,13 +39,8 @@ export class MessageEntity {
   sender: User;
 
   @Column({ name: 'sender_id' })
+  @Index('idx_msg_sender', { unique: false })
   senderId: string;
-
-  @Column({ name: 'tenant_id' })
-  tenantId: string;
-
-  @CreateDateColumn()
-  createdAt: Date;
 
   @Column({
     name: 'type',
@@ -52,6 +48,7 @@ export class MessageEntity {
     enum: MessageType,
     default: MessageType.TEXT,
   })
+  @Index('idx_msg_type', { unique: false })
   type: MessageType;
 
   @OneToMany(() => AttachmentEntity, (attachment) => attachment.message, {
@@ -64,9 +61,11 @@ export class MessageEntity {
   isEdited: boolean;
 
   @Column({ name: 'is_deleted', default: false })
+  @Index('idx_msg_deleted', { unique: false })
   isDeleted: boolean;
 
   @Column({ name: 'is_pinned', default: false })
+  @Index('idx_msg_pinned', { unique: false })
   isPinned: boolean;
 
   @Column({
@@ -75,13 +74,8 @@ export class MessageEntity {
     enum: MessageStatus,
     default: MessageStatus.SENDING,
   })
+  @Index('idx_msg_status', { unique: false })
   status: MessageStatus;
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
-
-  @DeleteDateColumn({ name: 'deleted_at' })
-  deletedAt: Date;
 
   @Column({ name: 'deleted_by', nullable: true })
   deletedBy: string;
@@ -91,6 +85,7 @@ export class MessageEntity {
   parentMessage?: MessageEntity; // For threads
 
   @Column({ name: 'parent_message_id', nullable: true })
+  @Index('idx_msg_parent', { unique: false })
   parentMessageId?: string;
 
   @Column({ name: 'metadata', type: 'jsonb', default: {} })
@@ -106,10 +101,10 @@ export class MessageEntity {
   @Column({ type: 'jsonb', default: [] })
   reactions: MessageReactionDto[];
 
-  @Column({ type: 'jsonb', default: [] })
+  @Column({ type: 'jsonb', default: [], name: 'edit_history' })
   editHistory: string[];
 
-  @Column({ type: 'jsonb', default: {} })
+  @Column({ type: 'jsonb', default: {}, name: 'read_by' })
   readBy: { [userId: string]: Date };
 
   // Helper methods

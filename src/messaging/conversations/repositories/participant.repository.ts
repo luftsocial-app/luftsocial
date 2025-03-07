@@ -18,7 +18,7 @@ export class ParticipantRepository extends Repository<ParticipantEntity> {
     conversationId: string,
   ): Promise<ParticipantEntity[]> {
     try {
-      return this.find({
+      return await this.find({
         where: { conversationId },
         relations: ['user'],
       });
@@ -39,7 +39,7 @@ export class ParticipantRepository extends Repository<ParticipantEntity> {
     conversationId: string,
   ): Promise<ParticipantEntity | null> {
     try {
-      return this.findOne({
+      return await this.findOne({
         where: {
           userId,
           conversationId,
@@ -62,7 +62,7 @@ export class ParticipantRepository extends Repository<ParticipantEntity> {
     userId: string,
   ): Promise<ParticipantEntity[]> {
     try {
-      return this.find({
+      return await this.find({
         where: { userId, status: 'member' },
         relations: ['conversation'],
       });

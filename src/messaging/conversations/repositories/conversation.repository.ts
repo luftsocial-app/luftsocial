@@ -19,7 +19,7 @@ export class ConversationRepository extends Repository<ConversationEntity> {
     tenantId: string,
   ): Promise<ConversationEntity | null> {
     try {
-      return this.findOne({
+      return await this.findOne({
         where: { id, tenantId },
         relations: ['participants.user', 'messages'],
       });
@@ -37,7 +37,7 @@ export class ConversationRepository extends Repository<ConversationEntity> {
    */
   async findByTenant(tenantId: string): Promise<ConversationEntity[]> {
     try {
-      return this.find({
+      return await this.find({
         where: { tenantId },
         relations: ['participants', 'messages'],
       });
@@ -58,7 +58,7 @@ export class ConversationRepository extends Repository<ConversationEntity> {
     tenantId: string,
   ): Promise<ConversationEntity[]> {
     try {
-      return this.createQueryBuilder('conversation')
+      return await this.createQueryBuilder('conversation')
         .innerJoin('conversation.participants', 'participant')
         .where('participant.userId = :userId', { userId })
         .andWhere('conversation.tenantId = :tenantId', { tenantId })

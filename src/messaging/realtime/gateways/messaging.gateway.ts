@@ -1,3 +1,7 @@
+// External dependencies
+import { Logger, UseGuards, Inject, forwardRef } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { Server } from 'socket.io';
 import {
   WebSocketGateway,
   WebSocketServer,
@@ -6,39 +10,40 @@ import {
   OnGatewayDisconnect,
   OnGatewayInit,
 } from '@nestjs/websockets';
-import { Server } from 'socket.io';
-import { Logger, UseGuards, Inject, forwardRef } from '@nestjs/common';
-import { WsGuard } from '../../../guards/ws.guard';
+
+// Internal services
 import { ConversationService } from '../../conversations/services/conversation.service';
 import { MessageService } from '../../messages/services/message.service';
-import {
-  MessageEventType,
-  RoomNameFactory,
-  MessageEventPayload,
-  MessageUpdatePayload,
-  TypingEventPayload,
-  ReadReceiptPayload,
-  ReactionPayload,
-  ParticipantActionPayload,
-  MessageDeletePayload,
-  ErrorEvent,
-} from '../events/message-events';
 import { MessageValidatorService } from '../services/message-validator.service';
-import { ConfigService } from '@nestjs/config';
-import { MessageEntity } from '../../messages/entities/message.entity';
-import { ConversationType } from '../../shared/enums/conversation-type.enum';
-import { ParticipantRole } from '../../shared/enums/participant-role.enum';
-import { In } from 'typeorm';
 
-// Import from modular files
+// Guards
+import { WsGuard } from '../../../guards/ws.guard';
+
+// Events and payloads
 import {
-  SocketWithUser,
+  ErrorEvent,
+  MessageDeletePayload,
+  MessageEventPayload,
+  MessageEventType,
+  MessageUpdatePayload,
+  ParticipantActionPayload,
+  ReactionPayload,
+  ReadReceiptPayload,
+  RoomNameFactory,
+  TypingEventPayload,
+} from '../events/message-events';
+
+// Interfaces and types
+import {
   SocketResponse,
+  SocketWithUser,
 } from '../interfaces/socket.interfaces';
+
+// Utils and decorators
 import { SocketHandler } from '../decorators/socket-handler.decorator';
 import {
-  createSuccessResponse,
   createErrorResponse,
+  createSuccessResponse,
   validatePayload,
 } from '../utils/response.utils';
 

@@ -42,7 +42,7 @@ export class MessageRepository extends Repository<MessageEntity> {
         });
       }
 
-      return queryBuilder
+      return await queryBuilder
         .orderBy(
           `message.${query.sortBy || 'createdAt'}`,
           query.sortOrder || 'DESC',
@@ -67,7 +67,7 @@ export class MessageRepository extends Repository<MessageEntity> {
     tenantId: string,
   ): Promise<MessageEntity | null> {
     try {
-      return this.findOne({
+      return await this.findOne({
         where: { id, tenantId },
         relations: ['sender', 'attachments'],
       });
@@ -85,7 +85,7 @@ export class MessageRepository extends Repository<MessageEntity> {
    */
   async findMessageHistory(userId: string): Promise<MessageEntity[]> {
     try {
-      return this.find({
+      return await this.find({
         where: [{ senderId: userId }],
         order: { createdAt: 'ASC' },
       });
@@ -103,7 +103,7 @@ export class MessageRepository extends Repository<MessageEntity> {
    */
   async findThreadReplies(parentMessageId: string): Promise<MessageEntity[]> {
     try {
-      return this.find({
+      return await this.find({
         where: { parentMessageId },
         order: { createdAt: 'ASC' },
         relations: ['sender', 'attachments'],
@@ -156,7 +156,7 @@ export class MessageRepository extends Repository<MessageEntity> {
         userId,
       });
 
-      return queryBuilder.getCount();
+      return await queryBuilder.getCount();
     } catch (error) {
       this.logger.error(
         `Error getting unread count: ${error.message}`,
