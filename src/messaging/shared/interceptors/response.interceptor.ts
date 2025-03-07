@@ -15,15 +15,20 @@ export interface ResponseFormat<T> {
 }
 
 @Injectable()
-export class ResponseInterceptor<T> implements NestInterceptor<T, ResponseFormat<T>> {
-  intercept(context: ExecutionContext, next: CallHandler): Observable<ResponseFormat<T>> {
+export class ResponseInterceptor<T>
+  implements NestInterceptor<T, ResponseFormat<T>>
+{
+  intercept(
+    context: ExecutionContext,
+    next: CallHandler,
+  ): Observable<ResponseFormat<T>> {
     return next.handle().pipe(
-      map(data => ({
+      map((data) => ({
         success: true,
         data,
         message: 'Operation completed successfully',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
       })),
     );
   }
-} 
+}

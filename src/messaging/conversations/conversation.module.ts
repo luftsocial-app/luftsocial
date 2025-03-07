@@ -11,14 +11,21 @@ import { ConversationRepository } from './repositories/conversation.repository';
 import { ParticipantRepository } from './repositories/participant.repository';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([ConversationEntity, ParticipantEntity, MessageEntity, User])],
+  imports: [
+    TypeOrmModule.forFeature([
+      ConversationEntity,
+      ParticipantEntity,
+      MessageEntity,
+      User,
+    ]),
+  ],
   controllers: [ConversationController],
   providers: [
-    ConversationService, 
+    ConversationService,
     TenantService,
     ConversationRepository,
     ParticipantRepository,
   ],
   exports: [ConversationService, ConversationRepository, ParticipantRepository],
 })
-export class ConversationModule {} 
+export class ConversationModule {}

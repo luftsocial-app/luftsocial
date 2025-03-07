@@ -4,7 +4,7 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
-  InternalServerErrorException
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { TenantService } from '../../../database/tenant.service';
 import { MessageRepository } from '../repositories/message.repository';
@@ -14,12 +14,12 @@ import { MessageQueryDto } from '../../conversations/dto/conversation.dto';
 import { UpdateMessageDto } from '../dto/message.dto';
 import { MessageEntity } from '../entities/message.entity';
 import { ConversationService } from '../../conversations/services/conversation.service';
-import { 
-  MessageResponseDto, 
-  MessageWithRelationsDto, 
+import {
+  MessageResponseDto,
+  MessageWithRelationsDto,
   MessageListResponseDto,
   AttachmentResponseDto,
-  UnreadCountResponseDto
+  UnreadCountResponseDto,
 } from '../dto/message-response.dto';
 import { Not, Like } from 'typeorm';
 
@@ -35,7 +35,10 @@ export class MessageService {
   ) {}
 
   // Helper method to map entity to DTO
-  private mapToMessageDto(message: MessageEntity, userId?: string): MessageResponseDto {
+  private mapToMessageDto(
+    message: MessageEntity,
+    userId?: string,
+  ): MessageResponseDto {
     const dto = new MessageResponseDto();
     dto.id = message.id;
     dto.conversationId = message.conversationId;
@@ -47,7 +50,7 @@ export class MessageService {
     dto.editHistory = message.editHistory || [];
     dto.createdAt = message.createdAt;
     dto.updatedAt = message.updatedAt;
-    
+
     // Fix readBy mapping - convert object to array of IDs
     if (message.readBy) {
       dto.readBy = Object.keys(message.readBy);
@@ -56,44 +59,46 @@ export class MessageService {
       dto.readBy = [];
       dto.isRead = false;
     }
-    
+
     dto.isEdited = (message.editHistory?.length ?? 0) > 0;
     dto.metadata = { editHistory: message.editHistory || [] };
-    
+
     return dto;
   }
 
   private async mapToMessageWithRelationsDto(
-    message: MessageEntity, 
-    userId?: string
+    message: MessageEntity,
+    userId?: string,
   ): Promise<MessageWithRelationsDto> {
     const baseDto = this.mapToMessageDto(message, userId);
     const withRelations = new MessageWithRelationsDto();
-    
+
     // Copy all properties from the base DTO
     Object.assign(withRelations, baseDto);
-    
+
     // Add attachments if any
-    const attachments = await this.attachmentRepository.findByMessageId(message.id);
-    withRelations.attachments = attachments.map(attachment => {
+    const attachments = await this.attachmentRepository.findByMessageId(
+      message.id,
+    );
+    withRelations.attachments = attachments.map((attachment) => {
       const attachmentDto = new AttachmentResponseDto();
       attachmentDto.id = attachment.id;
       attachmentDto.fileName = attachment.fileName;
       attachmentDto.fileSize = attachment.fileSize;
       attachmentDto.mimeType = attachment.mimeType;
-      
+
       // Fix missing properties
       attachmentDto.url = attachment.url;
       attachmentDto.processingStatus = attachment.processingStatus;
       attachmentDto.createdAt = attachment.createdAt;
       return attachmentDto;
     });
-    
+
     // Count replies if it's a parent message
     const replies = await this.messageRepository.findThreadReplies(message.id);
     const replyCount = replies ? replies.length : 0;
     withRelations.replyCount = replyCount;
-    
+
     return withRelations;
   }
 
@@ -109,7 +114,7 @@ export class MessageService {
       const hasAccess = await this.conversationService.validateAccess(
         conversationId,
         senderId,
-        tenantId
+        tenantId,
       );
 
       if (!hasAccess) {
@@ -119,7 +124,7 @@ export class MessageService {
       if (parentMessageId) {
         const parentMessage = await this.messageRepository.findByIdAndTenant(
           parentMessageId,
-          tenantId
+          tenantId,
         );
 
         if (!parentMessage) {
@@ -127,7 +132,9 @@ export class MessageService {
         }
 
         if (parentMessage.conversationId !== conversationId) {
-          throw new BadRequestException('Parent message must be in the same conversation');
+          throw new BadRequestException(
+            'Parent message must be in the same conversation',
+          );
         }
       }
 
@@ -143,10 +150,15 @@ export class MessageService {
       const savedMessage = await this.messageRepository.save(message);
       await this.conversationService.updateLastMessageTimestamp(conversationId);
 
-      this.logger.debug(`Message created: ${savedMessage.id} in conversation: ${conversationId}`);
+      this.logger.debug(
+        `Message created: ${savedMessage.id} in conversation: ${conversationId}`,
+      );
       return this.mapToMessageDto(savedMessage, senderId);
     } catch (error) {
-      this.logger.error(`Failed to create message: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to create message: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -157,7 +169,10 @@ export class MessageService {
   ): Promise<void> {
     try {
       const tenantId = this.tenantService.getTenantId();
-      const message = await this.messageRepository.findByIdAndTenant(messageId, tenantId);
+      const message = await this.messageRepository.findByIdAndTenant(
+        messageId,
+        tenantId,
+      );
 
       if (!message) {
         throw new NotFoundException(`Message with ID ${messageId} not found`);
@@ -165,30 +180,41 @@ export class MessageService {
 
       await this.messageRepository.update(
         { id: messageId, tenantId },
-        { status }
+        { status },
       );
 
       this.logger.debug(`Message ${messageId} status updated to: ${status}`);
     } catch (error) {
-      this.logger.error(`Failed to update message status: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to update message status: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
 
   async getMessages(
     conversationId: string,
-    query: MessageQueryDto
+    query: MessageQueryDto,
   ): Promise<MessageListResponseDto> {
     try {
       const tenantId = this.tenantService.getTenantId();
-      const messages = await this.messageRepository.findByConversation(conversationId, query);
-      
+      const messages = await this.messageRepository.findByConversation(
+        conversationId,
+        query,
+      );
+
       const total = messages.length;
       const { page = 1, limit = 20 } = query;
-      const paginatedMessages = messages.slice((page - 1) * limit, page * limit);
+      const paginatedMessages = messages.slice(
+        (page - 1) * limit,
+        page * limit,
+      );
 
       const messageDtos = await Promise.all(
-        paginatedMessages.map(message => this.mapToMessageDto(message, query.userId))
+        paginatedMessages.map((message) =>
+          this.mapToMessageDto(message, query.userId),
+        ),
       );
 
       const response = new MessageListResponseDto();
@@ -196,15 +222,23 @@ export class MessageService {
       response.total = total;
       response.page = page;
       response.pageSize = limit;
-      
+
       if (query.userId) {
-        response.unreadCount = await this.getUnreadCount(conversationId, query.userId);
+        response.unreadCount = await this.getUnreadCount(
+          conversationId,
+          query.userId,
+        );
       }
-      
-      this.logger.debug(`Retrieved ${messages.length} messages from conversation: ${conversationId}`);
+
+      this.logger.debug(
+        `Retrieved ${messages.length} messages from conversation: ${conversationId}`,
+      );
       return response;
     } catch (error) {
-      this.logger.error(`Failed to get messages: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to get messages: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -212,9 +246,12 @@ export class MessageService {
   async getMessageHistory(userId: string): Promise<MessageResponseDto[]> {
     try {
       const messages = await this.messageRepository.findMessageHistory(userId);
-      return messages.map(message => this.mapToMessageDto(message, userId));
+      return messages.map((message) => this.mapToMessageDto(message, userId));
     } catch (error) {
-      this.logger.error(`Failed to get message history: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to get message history: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -226,7 +263,10 @@ export class MessageService {
   ): Promise<MessageResponseDto> {
     try {
       const tenantId = this.tenantService.getTenantId();
-      const message = await this.messageRepository.findByIdAndTenant(messageId, tenantId);
+      const message = await this.messageRepository.findByIdAndTenant(
+        messageId,
+        tenantId,
+      );
 
       if (!message) {
         throw new NotFoundException(`Message with ID ${messageId} not found`);
@@ -248,7 +288,10 @@ export class MessageService {
       this.logger.debug(`Message ${messageId} updated by user: ${userId}`);
       return this.mapToMessageDto(updatedMessage, userId);
     } catch (error) {
-      this.logger.error(`Failed to update message: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to update message: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -256,7 +299,10 @@ export class MessageService {
   async deleteMessage(messageId: string, userId: string): Promise<void> {
     try {
       const tenantId = this.tenantService.getTenantId();
-      const message = await this.messageRepository.findByIdAndTenant(messageId, tenantId);
+      const message = await this.messageRepository.findByIdAndTenant(
+        messageId,
+        tenantId,
+      );
 
       if (!message) {
         throw new NotFoundException(`Message with ID ${messageId} not found`);
@@ -267,9 +313,14 @@ export class MessageService {
       }
 
       await this.messageRepository.markAsDeleted(messageId, userId);
-      this.logger.debug(`Message ${messageId} marked as deleted by user: ${userId}`);
+      this.logger.debug(
+        `Message ${messageId} marked as deleted by user: ${userId}`,
+      );
     } catch (error) {
-      this.logger.error(`Failed to delete message: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to delete message: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -281,7 +332,10 @@ export class MessageService {
   ): Promise<MessageResponseDto> {
     try {
       const tenantId = this.tenantService.getTenantId();
-      const message = await this.messageRepository.findByIdAndTenant(messageId, tenantId);
+      const message = await this.messageRepository.findByIdAndTenant(
+        messageId,
+        tenantId,
+      );
 
       if (!message) {
         throw new NotFoundException(`Message with ID ${messageId} not found`);
@@ -293,11 +347,16 @@ export class MessageService {
 
       message.addReaction(userId, emoji);
       const updatedMessage = await this.messageRepository.save(message);
-      
-      this.logger.debug(`Reaction added to message ${messageId} by user: ${userId}`);
+
+      this.logger.debug(
+        `Reaction added to message ${messageId} by user: ${userId}`,
+      );
       return this.mapToMessageDto(updatedMessage, userId);
     } catch (error) {
-      this.logger.error(`Failed to add reaction: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to add reaction: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -309,7 +368,10 @@ export class MessageService {
   ): Promise<MessageResponseDto> {
     try {
       const tenantId = this.tenantService.getTenantId();
-      const message = await this.messageRepository.findByIdAndTenant(messageId, tenantId);
+      const message = await this.messageRepository.findByIdAndTenant(
+        messageId,
+        tenantId,
+      );
 
       if (!message) {
         throw new NotFoundException(`Message with ID ${messageId} not found`);
@@ -317,11 +379,16 @@ export class MessageService {
 
       message.removeReaction(userId, emoji);
       const updatedMessage = await this.messageRepository.save(message);
-      
-      this.logger.debug(`Reaction removed from message ${messageId} by user: ${userId}`);
+
+      this.logger.debug(
+        `Reaction removed from message ${messageId} by user: ${userId}`,
+      );
       return this.mapToMessageDto(updatedMessage, userId);
     } catch (error) {
-      this.logger.error(`Failed to remove reaction: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to remove reaction: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -329,15 +396,19 @@ export class MessageService {
   async getAttachments(messageId: string): Promise<AttachmentResponseDto[]> {
     try {
       const tenantId = this.tenantService.getTenantId();
-      const message = await this.messageRepository.findByIdAndTenant(messageId, tenantId);
+      const message = await this.messageRepository.findByIdAndTenant(
+        messageId,
+        tenantId,
+      );
 
       if (!message) {
         throw new NotFoundException(`Message with ID ${messageId} not found`);
       }
 
-      const attachments = await this.attachmentRepository.findByMessageId(messageId);
-      
-      const attachmentDtos = attachments.map(attachment => {
+      const attachments =
+        await this.attachmentRepository.findByMessageId(messageId);
+
+      const attachmentDtos = attachments.map((attachment) => {
         const dto = new AttachmentResponseDto();
         dto.id = attachment.id;
         dto.fileName = attachment.fileName;
@@ -348,37 +419,56 @@ export class MessageService {
         dto.createdAt = attachment.createdAt;
         return dto;
       });
-      
-      this.logger.debug(`Retrieved ${attachments.length} attachments for message: ${messageId}`);
+
+      this.logger.debug(
+        `Retrieved ${attachments.length} attachments for message: ${messageId}`,
+      );
       return attachmentDtos;
     } catch (error) {
-      this.logger.error(`Failed to get attachments: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to get attachments: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
 
-  async getThreadReplies(parentMessageId: string): Promise<MessageResponseDto[]> {
+  async getThreadReplies(
+    parentMessageId: string,
+  ): Promise<MessageResponseDto[]> {
     try {
       const parentMessage = await this.messageRepository.findOne({
-        where: { id: parentMessageId }
+        where: { id: parentMessageId },
       });
-      
+
       if (!parentMessage) {
-        throw new NotFoundException(`Parent message with ID ${parentMessageId} not found`);
+        throw new NotFoundException(
+          `Parent message with ID ${parentMessageId} not found`,
+        );
       }
-      
-      const replies = await this.messageRepository.findThreadReplies(parentMessageId);
-      return replies.map(reply => this.mapToMessageDto(reply));
+
+      const replies =
+        await this.messageRepository.findThreadReplies(parentMessageId);
+      return replies.map((reply) => this.mapToMessageDto(reply));
     } catch (error) {
-      this.logger.error(`Failed to get thread replies: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to get thread replies: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
 
-  async findMessageById(messageId: string, userId?: string): Promise<MessageWithRelationsDto> {
+  async findMessageById(
+    messageId: string,
+    userId?: string,
+  ): Promise<MessageWithRelationsDto> {
     try {
       const tenantId = this.tenantService.getTenantId();
-      const message = await this.messageRepository.findByIdAndTenant(messageId, tenantId);
+      const message = await this.messageRepository.findByIdAndTenant(
+        messageId,
+        tenantId,
+      );
 
       if (!message) {
         throw new NotFoundException(`Message with ID ${messageId} not found`);
@@ -386,7 +476,10 @@ export class MessageService {
 
       return this.mapToMessageWithRelationsDto(message, userId);
     } catch (error) {
-      this.logger.error(`Failed to find message: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to find message: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -394,7 +487,10 @@ export class MessageService {
   async markMessageAsRead(messageId: string, userId: string): Promise<void> {
     try {
       const tenantId = this.tenantService.getTenantId();
-      const message = await this.messageRepository.findByIdAndTenant(messageId, tenantId);
+      const message = await this.messageRepository.findByIdAndTenant(
+        messageId,
+        tenantId,
+      );
 
       if (!message) {
         throw new NotFoundException(`Message with ID ${messageId} not found`);
@@ -404,28 +500,41 @@ export class MessageService {
       message.readBy[userId] = new Date();
       await this.messageRepository.save(message);
 
-      this.logger.debug(`Message ${messageId} marked as read by user: ${userId}`);
+      this.logger.debug(
+        `Message ${messageId} marked as read by user: ${userId}`,
+      );
     } catch (error) {
-      this.logger.error(`Failed to mark message as read: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to mark message as read: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
 
-  async getUnreadCount(conversationId: string, userId: string): Promise<number> {
+  async getUnreadCount(
+    conversationId: string,
+    userId: string,
+  ): Promise<number> {
     try {
       const count = await this.messageRepository.count({
         where: {
           conversationId,
           isDeleted: false,
-          readBy: Not(Like(`%${userId}%`))
-        }
+          readBy: Not(Like(`%${userId}%`)),
+        },
       });
-      
-      this.logger.debug(`Retrieved unread count for user ${userId} in conversation ${conversationId}: ${count}`);
+
+      this.logger.debug(
+        `Retrieved unread count for user ${userId} in conversation ${conversationId}: ${count}`,
+      );
       return count;
     } catch (error) {
-      this.logger.error(`Failed to get unread count: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to get unread count: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
-} 
+}

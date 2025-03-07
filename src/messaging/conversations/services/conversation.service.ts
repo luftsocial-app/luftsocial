@@ -13,7 +13,10 @@ import { In, Repository } from 'typeorm';
 import { User } from '../../../entities/users/user.entity';
 import { ConversationEntity } from '../entities/conversation.entity';
 import { MessageEntity } from '../../messages/entities/message.entity';
-import { CreateConversationDto, UpdateConversationSettingsDto } from '../dto/conversation.dto';
+import {
+  CreateConversationDto,
+  UpdateConversationSettingsDto,
+} from '../dto/conversation.dto';
 import { ConversationType } from '../../shared/enums/conversation-type.enum';
 import { ParticipantRole } from '../../shared/enums/participant-role.enum';
 import { Logger } from '@nestjs/common';
@@ -31,7 +34,9 @@ export class ConversationService {
     private userRepository: Repository<User>,
   ) {}
 
-  async createConversation(data: CreateConversationDto): Promise<ConversationEntity> {
+  async createConversation(
+    data: CreateConversationDto,
+  ): Promise<ConversationEntity> {
     const users = await this.userRepository.findBy({
       id: In(data.participantIds),
     });
@@ -45,10 +50,11 @@ export class ConversationService {
       tenantId: this.tenantService.getTenantId(),
     });
 
-    const savedConversation = await this.conversationRepository.save(conversation);
-    
+    const savedConversation =
+      await this.conversationRepository.save(conversation);
+
     // Create participant records for all users
-    const participants = users.map(user => {
+    const participants = users.map((user) => {
       const isCreator = data.creatorId === user.id;
       return this.participantRepository.create({
         conversation: savedConversation,
@@ -57,22 +63,29 @@ export class ConversationService {
         userId: user.id,
         role: isCreator ? ParticipantRole.OWNER : ParticipantRole.MEMBER,
         status: 'member',
-        tenantId: this.tenantService.getTenantId()
+        tenantId: this.tenantService.getTenantId(),
       });
     });
-    
+
     await this.participantRepository.save(participants);
     savedConversation.participants = participants;
-    
+
     return savedConversation;
   }
 
   async getConversations(): Promise<ConversationEntity[]> {
-    return this.conversationRepository.findByTenant(this.tenantService.getTenantId());
+    return this.conversationRepository.findByTenant(
+      this.tenantService.getTenantId(),
+    );
   }
 
-  async getConversationsByUserId(userId: string): Promise<ConversationEntity[]> {
-    return this.conversationRepository.findByUserId(userId, this.tenantService.getTenantId());
+  async getConversationsByUserId(
+    userId: string,
+  ): Promise<ConversationEntity[]> {
+    return this.conversationRepository.findByUserId(
+      userId,
+      this.tenantService.getTenantId(),
+    );
   }
 
   async createMessage(
@@ -90,7 +103,9 @@ export class ConversationService {
     const savedMessage = await this.messageRepository.save(message);
 
     // Update conversation's lastMessageAt
-    await this.conversationRepository.updateLastMessageTimestamp(conversationId);
+    await this.conversationRepository.updateLastMessageTimestamp(
+      conversationId,
+    );
 
     return savedMessage;
   }
@@ -100,8 +115,16 @@ export class ConversationService {
     userId: string,
     tenantId: string,
   ): Promise<boolean> {
-    const participant = await this.participantRepository.findByUserAndConversation(userId, conversationId);
-    return !!participant && participant.status === 'member' && participant.conversation.tenantId === tenantId;
+    const participant =
+      await this.participantRepository.findByUserAndConversation(
+        userId,
+        conversationId,
+      );
+    return (
+      !!participant &&
+      participant.status === 'member' &&
+      participant.conversation.tenantId === tenantId
+    );
   }
 
   async createOrGetDirectChat(
@@ -109,14 +132,15 @@ export class ConversationService {
     userId2: string,
   ): Promise<ConversationEntity> {
     const tenantId = this.tenantService.getTenantId();
-    
+
     // Check if direct chat already exists
-    const existingChat = await this.conversationRepository.findDirectConversation(
-      userId1,
-      userId2,
-      tenantId
-    );
-    
+    const existingChat =
+      await this.conversationRepository.findDirectConversation(
+        userId1,
+        userId2,
+        tenantId,
+      );
+
     if (existingChat) {
       return existingChat;
     }
@@ -125,7 +149,7 @@ export class ConversationService {
     const users = await this.userRepository.findBy({
       id: In([userId1, userId2]),
     });
-    
+
     if (users.length !== 2) {
       throw new NotFoundException('One or both users not found');
     }
@@ -134,11 +158,12 @@ export class ConversationService {
       type: ConversationType.DIRECT,
       tenantId,
     });
-    
-    const savedConversation = await this.conversationRepository.save(conversation);
-    
+
+    const savedConversation =
+      await this.conversationRepository.save(conversation);
+
     // Create participants
-    const participants = users.map(user => {
+    const participants = users.map((user) => {
       return this.participantRepository.create({
         conversation: savedConversation,
         conversationId: savedConversation.id,
@@ -146,13 +171,13 @@ export class ConversationService {
         userId: user.id,
         role: ParticipantRole.MEMBER,
         status: 'member',
-        tenantId
+        tenantId,
       });
     });
-    
+
     await this.participantRepository.save(participants);
     savedConversation.participants = participants;
-    
+
     return savedConversation;
   }
 
@@ -164,8 +189,8 @@ export class ConversationService {
     const users = await this.userRepository.findBy({
       id: In([...participantIds, creatorId]),
     });
-    
-    const creator = users.find(user => user.id === creatorId);
+
+    const creator = users.find((user) => user.id === creatorId);
 
     if (!creator || users.length !== participantIds.length + 1) {
       throw new NotFoundException('One or more users not found');
@@ -176,33 +201,38 @@ export class ConversationService {
       type: ConversationType.GROUP,
       tenantId: this.tenantService.getTenantId(),
     });
-    
-    const savedConversation = await this.conversationRepository.save(conversation);
-    
+
+    const savedConversation =
+      await this.conversationRepository.save(conversation);
+
     // Create participants with creator as owner
-    const participants = users.map(user => {
+    const participants = users.map((user) => {
       return this.participantRepository.create({
         conversation: savedConversation,
         conversationId: savedConversation.id,
         user: user,
         userId: user.id,
-        role: user.id === creatorId ? ParticipantRole.OWNER : ParticipantRole.MEMBER,
+        role:
+          user.id === creatorId
+            ? ParticipantRole.OWNER
+            : ParticipantRole.MEMBER,
         status: 'member',
-        tenantId: this.tenantService.getTenantId()
+        tenantId: this.tenantService.getTenantId(),
       });
     });
-    
+
     await this.participantRepository.save(participants);
     savedConversation.participants = participants;
-    
+
     return savedConversation;
   }
 
   async getConversation(conversationId: string): Promise<ConversationEntity> {
-    const conversation = await this.conversationRepository.findByIdWithRelations(
-      conversationId,
-      this.tenantService.getTenantId()
-    );
+    const conversation =
+      await this.conversationRepository.findByIdWithRelations(
+        conversationId,
+        this.tenantService.getTenantId(),
+      );
 
     if (!conversation) {
       throw new NotFoundException('Conversation not found');
@@ -223,8 +253,11 @@ export class ConversationService {
     }
 
     // Check if current user is admin or owner
-    const isAdmin = await this.participantRepository.isUserAdmin(currentUserId, conversationId);
-    
+    const isAdmin = await this.participantRepository.isUserAdmin(
+      currentUserId,
+      conversationId,
+    );
+
     if (!isAdmin) {
       throw new ForbiddenException('Only admins can add participants');
     }
@@ -233,12 +266,14 @@ export class ConversationService {
     const newUsers = await this.userRepository.findBy({
       id: In(newParticipantIds),
     });
-    
+
     // Create new participant records
-    const existingParticipantUserIds = conversation.participants.map(p => p.userId);
+    const existingParticipantUserIds = conversation.participants.map(
+      (p) => p.userId,
+    );
     const newParticipants = newUsers
-      .filter(user => !existingParticipantUserIds.includes(user.id))
-      .map(user => {
+      .filter((user) => !existingParticipantUserIds.includes(user.id))
+      .map((user) => {
         return this.participantRepository.create({
           conversation,
           conversationId,
@@ -246,48 +281,60 @@ export class ConversationService {
           userId: user.id,
           role: ParticipantRole.MEMBER,
           status: 'member',
-          tenantId: this.tenantService.getTenantId()
+          tenantId: this.tenantService.getTenantId(),
         });
       });
-    
+
     if (newParticipants.length > 0) {
       await this.participantRepository.save(newParticipants);
-      conversation.participants = [...conversation.participants, ...newParticipants];
+      conversation.participants = [
+        ...conversation.participants,
+        ...newParticipants,
+      ];
     }
 
     return conversation;
   }
 
   async updateConversationSettings(
-    conversationId: string, 
+    conversationId: string,
     settings: UpdateConversationSettingsDto,
-    userId: string
+    userId: string,
   ): Promise<ConversationEntity> {
     const conversation = await this.getConversation(conversationId);
-    
+
     // Check if current user is participant
-    const participant = await this.participantRepository.findByUserAndConversation(userId, conversationId);
-    
+    const participant =
+      await this.participantRepository.findByUserAndConversation(
+        userId,
+        conversationId,
+      );
+
     if (!participant) {
-      throw new ForbiddenException('You are not a participant in this conversation');
+      throw new ForbiddenException(
+        'You are not a participant in this conversation',
+      );
     }
-    
+
     // For group chats, only admins can update certain settings
     if (conversation.type === ConversationType.GROUP) {
-      const isAdmin = await this.participantRepository.isUserAdmin(userId, conversationId);
-      
+      const isAdmin = await this.participantRepository.isUserAdmin(
+        userId,
+        conversationId,
+      );
+
       // These settings can only be updated by admins
       const adminOnlySettings = ['name', 'isPrivate'];
-      
-      const hasAdminOnlySetting = Object.keys(settings).some(key => 
-        adminOnlySettings.includes(key)
+
+      const hasAdminOnlySetting = Object.keys(settings).some((key) =>
+        adminOnlySettings.includes(key),
       );
-      
+
       if (hasAdminOnlySetting && !isAdmin) {
         throw new ForbiddenException('Only admins can update these settings');
       }
     }
-    
+
     // Update the conversation
     Object.assign(conversation, settings);
     return this.conversationRepository.save(conversation);
@@ -297,7 +344,7 @@ export class ConversationService {
     const message = await this.messageRepository.findOne({
       where: { id: messageId },
     });
-    
+
     if (!message) {
       throw new NotFoundException('Message not found');
     }
@@ -306,15 +353,28 @@ export class ConversationService {
     await this.messageRepository.save(message);
 
     // Update conversation unread count
-    const unreadCount = await this.messageRepository.getUnreadCount(message.conversationId, userId);
-    await this.conversationRepository.updateUnreadCount(message.conversationId, userId, unreadCount);
+    const unreadCount = await this.messageRepository.getUnreadCount(
+      message.conversationId,
+      userId,
+    );
+    await this.conversationRepository.updateUnreadCount(
+      message.conversationId,
+      userId,
+      unreadCount,
+    );
   }
 
-  async getUnreadCount(conversationId: string, userId: string): Promise<number> {
+  async getUnreadCount(
+    conversationId: string,
+    userId: string,
+  ): Promise<number> {
     return this.messageRepository.getUnreadCount(conversationId, userId);
   }
 
-  async updateParticipantLastActive(userId: string, conversationId: string): Promise<void> {
+  async updateParticipantLastActive(
+    userId: string,
+    conversationId: string,
+  ): Promise<void> {
     try {
       await this.participantRepository.updateLastActive(userId, conversationId);
     } catch (error) {
@@ -323,14 +383,18 @@ export class ConversationService {
   }
 
   async isUserAdmin(userId: string, conversationId: string): Promise<boolean> {
-    const participant = await this.participantRepository.findByUserAndConversation(userId, conversationId);
+    const participant =
+      await this.participantRepository.findByUserAndConversation(
+        userId,
+        conversationId,
+      );
     return participant && participant.isAdmin();
   }
 
   async updateLastMessageTimestamp(conversationId: string): Promise<void> {
     await this.conversationRepository.update(
       { id: conversationId },
-      { lastMessageAt: new Date() }
+      { lastMessageAt: new Date() },
     );
   }
-} 
+}

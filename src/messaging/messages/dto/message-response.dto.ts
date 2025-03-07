@@ -2,18 +2,27 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { MessageStatus } from '../../shared/enums/message-type.enum';
 
 export class MessageReactionDto {
-  @ApiProperty({ description: 'User ID who added the reaction', example: 'a1b2c3d4-e5f6-g7h8-i9j0' })
+  @ApiProperty({
+    description: 'User ID who added the reaction',
+    example: 'a1b2c3d4-e5f6-g7h8-i9j0',
+  })
   userId: string;
 
   @ApiProperty({ description: 'Emoji reaction', example: '👍' })
   emoji: string;
 
-  @ApiProperty({ description: 'When the reaction was added', example: '2023-01-01T12:00:00.000Z' })
+  @ApiProperty({
+    description: 'When the reaction was added',
+    example: '2023-01-01T12:00:00.000Z',
+  })
   createdAt: Date;
 }
 
 export class AttachmentResponseDto {
-  @ApiProperty({ description: 'Attachment ID', example: 'a1b2c3d4-e5f6-g7h8-i9j0' })
+  @ApiProperty({
+    description: 'Attachment ID',
+    example: 'a1b2c3d4-e5f6-g7h8-i9j0',
+  })
   id: string;
 
   @ApiProperty({ description: 'File name', example: 'document.pdf' })
@@ -25,21 +34,36 @@ export class AttachmentResponseDto {
   @ApiProperty({ description: 'MIME type', example: 'application/pdf' })
   mimeType: string;
 
-  @ApiProperty({ description: 'File URL', example: 'https://storage.example.com/files/document.pdf' })
+  @ApiProperty({
+    description: 'File URL',
+    example: 'https://storage.example.com/files/document.pdf',
+  })
   url: string;
 
-  @ApiPropertyOptional({ description: 'Processing status', example: 'COMPLETED' })
+  @ApiPropertyOptional({
+    description: 'Processing status',
+    example: 'COMPLETED',
+  })
   processingStatus?: string;
 
-  @ApiProperty({ description: 'When the attachment was created', example: '2023-01-01T12:00:00.000Z' })
+  @ApiProperty({
+    description: 'When the attachment was created',
+    example: '2023-01-01T12:00:00.000Z',
+  })
   createdAt: Date;
 }
 
 export class MessageResponseDto {
-  @ApiProperty({ description: 'Message ID', example: 'a1b2c3d4-e5f6-g7h8-i9j0' })
+  @ApiProperty({
+    description: 'Message ID',
+    example: 'a1b2c3d4-e5f6-g7h8-i9j0',
+  })
   id: string;
 
-  @ApiProperty({ description: 'Conversation ID', example: 'b2c3d4e5-f6g7-h8i9-j0k1' })
+  @ApiProperty({
+    description: 'Conversation ID',
+    example: 'b2c3d4e5-f6g7-h8i9-j0k1',
+  })
   conversationId: string;
 
   @ApiProperty({ description: 'Message content', example: 'Hello world!' })
@@ -53,56 +77,65 @@ export class MessageResponseDto {
 
   @ApiPropertyOptional({
     description: 'Parent message ID (for threaded replies)',
-    example: 'd4e5f6g7-h8i9-j0k1-l2m3'
+    example: 'd4e5f6g7-h8i9-j0k1-l2m3',
   })
   parentMessageId?: string;
 
   @ApiProperty({
     description: 'Message status',
     enum: MessageStatus,
-    example: MessageStatus.SENT
+    example: MessageStatus.SENT,
   })
   status: MessageStatus;
 
   @ApiPropertyOptional({
     description: 'Reactions to this message',
-    type: [MessageReactionDto]
+    type: [MessageReactionDto],
   })
   reactions?: MessageReactionDto[];
 
   @ApiPropertyOptional({
     description: 'Edits history',
-    example: ['Original content', 'First edit']
+    example: ['Original content', 'First edit'],
   })
   editHistory?: string[];
 
-  @ApiProperty({ description: 'Creation timestamp', example: '2023-01-01T12:00:00.000Z' })
+  @ApiProperty({
+    description: 'Creation timestamp',
+    example: '2023-01-01T12:00:00.000Z',
+  })
   createdAt: Date;
 
-  @ApiPropertyOptional({ description: 'Update timestamp', example: '2023-01-01T12:30:00.000Z' })
+  @ApiPropertyOptional({
+    description: 'Update timestamp',
+    example: '2023-01-01T12:30:00.000Z',
+  })
   updatedAt?: Date;
 
   @ApiPropertyOptional({
     description: 'Users who have read this message',
     type: [String],
-    example: ['user1-id', 'user2-id']
+    example: ['user1-id', 'user2-id'],
   })
   readBy?: string[];
 
-  @ApiPropertyOptional({ description: 'Whether the current user has read this message', example: true })
+  @ApiPropertyOptional({
+    description: 'Whether the current user has read this message',
+    example: true,
+  })
   isRead?: boolean;
 
-  @ApiPropertyOptional({ 
-    description: 'Whether the message has been edited', 
-    example: true 
+  @ApiPropertyOptional({
+    description: 'Whether the message has been edited',
+    example: true,
   })
   isEdited?: boolean;
-  
-  @ApiPropertyOptional({ 
+
+  @ApiPropertyOptional({
     description: 'Additional metadata about the message',
     example: {
-      editHistory: ['Original message']
-    }
+      editHistory: ['Original message'],
+    },
   })
   metadata?: {
     editHistory?: string[];
@@ -113,13 +146,13 @@ export class MessageResponseDto {
 export class MessageWithRelationsDto extends MessageResponseDto {
   @ApiPropertyOptional({
     description: 'Attachments for this message',
-    type: [AttachmentResponseDto]
+    type: [AttachmentResponseDto],
   })
   attachments?: AttachmentResponseDto[];
 
   @ApiPropertyOptional({
     description: 'Number of thread replies',
-    example: 5
+    example: 5,
   })
   replyCount?: number;
 }
@@ -127,7 +160,7 @@ export class MessageWithRelationsDto extends MessageResponseDto {
 export class MessageListResponseDto {
   @ApiProperty({
     description: 'List of messages',
-    type: [MessageResponseDto]
+    type: [MessageResponseDto],
   })
   messages: MessageResponseDto[];
 
@@ -148,6 +181,9 @@ export class UnreadCountResponseDto {
   @ApiProperty({ description: 'Number of unread messages', example: 5 })
   count: number;
 
-  @ApiProperty({ description: 'Conversation ID', example: 'a1b2c3d4-e5f6-g7h8-i9j0' })
+  @ApiProperty({
+    description: 'Conversation ID',
+    example: 'a1b2c3d4-e5f6-g7h8-i9j0',
+  })
   conversationId: string;
-} 
+}

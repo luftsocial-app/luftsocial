@@ -21,7 +21,7 @@ export class AttachmentEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => MessageEntity, message => message.attachments)
+  @ManyToOne(() => MessageEntity, (message) => message.attachments)
   @JoinColumn({ name: 'message_id' })
   message: MessageEntity;
 
@@ -90,4 +90,4 @@ export class AttachmentEntity {
   isDocument(): boolean {
     return this.type === AttachmentType.DOCUMENT;
   }
-} 
+}

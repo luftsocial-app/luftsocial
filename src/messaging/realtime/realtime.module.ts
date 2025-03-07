@@ -6,17 +6,8 @@ import { MessageValidatorService } from './services/message-validator.service';
 import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [
-    ConversationModule,
-    MessageModule,
-    ConfigModule,
-  ],
-  providers: [
-    MessagingGateway,
-    MessageValidatorService,
-  ],
-  exports: [
-    MessagingGateway,
-  ],
+  imports: [ConversationModule, MessageModule, ConfigModule],
+  providers: [MessagingGateway, MessageValidatorService],
+  exports: [MessagingGateway],
 })
-export class RealtimeModule {} 
+export class RealtimeModule {}

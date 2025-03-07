@@ -16,7 +16,10 @@ export class ParticipantEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @ManyToOne(() => ConversationEntity, conversation => conversation.participants)
+  @ManyToOne(
+    () => ConversationEntity,
+    (conversation) => conversation.participants,
+  )
   @JoinColumn({ name: 'conversation_id' })
   conversation: ConversationEntity;
 
@@ -69,6 +72,8 @@ export class ParticipantEntity {
 
   // Helper method to check if the participant is an admin or owner
   isAdmin(): boolean {
-    return this.role === ParticipantRole.ADMIN || this.role === ParticipantRole.OWNER;
+    return (
+      this.role === ParticipantRole.ADMIN || this.role === ParticipantRole.OWNER
+    );
   }
-} 
+}

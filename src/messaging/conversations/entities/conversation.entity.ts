@@ -26,12 +26,16 @@ export class ConversationEntity {
   })
   type: ConversationType;
 
-  @OneToMany(() => ParticipantEntity, participant => participant.conversation, {
-    cascade: true,
-  })
+  @OneToMany(
+    () => ParticipantEntity,
+    (participant) => participant.conversation,
+    {
+      cascade: true,
+    },
+  )
   participants: ParticipantEntity[];
 
-  @OneToMany(() => MessageEntity, message => message.conversation, {
+  @OneToMany(() => MessageEntity, (message) => message.conversation, {
     cascade: true,
   })
   messages: MessageEntity[];
@@ -72,4 +76,4 @@ export class ConversationEntity {
   unreadCounts: {
     [userId: string]: number;
   };
-} 
+}

@@ -9,7 +9,10 @@ import {
   JoinColumn,
   OneToMany,
 } from 'typeorm';
-import { MessageType, MessageStatus } from '../../shared/enums/message-type.enum';
+import {
+  MessageType,
+  MessageStatus,
+} from '../../shared/enums/message-type.enum';
 import { ConversationEntity } from '../../conversations/entities/conversation.entity';
 import { User } from '../../../entities/users/user.entity';
 import { AttachmentEntity } from './attachment.entity';
@@ -23,7 +26,7 @@ export class MessageEntity {
   @Column('text')
   content: string;
 
-  @ManyToOne(() => ConversationEntity, conversation => conversation.messages)
+  @ManyToOne(() => ConversationEntity, (conversation) => conversation.messages)
   @JoinColumn({ name: 'conversation_id' })
   conversation: ConversationEntity;
 
@@ -51,7 +54,7 @@ export class MessageEntity {
   })
   type: MessageType;
 
-  @OneToMany(() => AttachmentEntity, attachment => attachment.message, {
+  @OneToMany(() => AttachmentEntity, (attachment) => attachment.message, {
     cascade: true,
     eager: true,
   })
@@ -129,33 +132,33 @@ export class MessageEntity {
 
   addReaction(userId: string, emoji: string): void {
     if (!this.reactions) this.reactions = [];
-    
+
     const existingIndex = this.reactions.findIndex(
-      r => r.userId === userId && r.emoji === emoji
+      (r) => r.userId === userId && r.emoji === emoji,
     );
-    
+
     if (existingIndex === -1) {
       this.reactions.push({
         userId,
         emoji,
-        createdAt: new Date()
+        createdAt: new Date(),
       });
     }
   }
 
   removeReaction(userId: string, emoji?: string): void {
     if (!this.reactions) return;
-    
+
     if (emoji) {
       this.reactions = this.reactions.filter(
-        r => !(r.userId === userId && r.emoji === emoji)
+        (r) => !(r.userId === userId && r.emoji === emoji),
       );
     } else {
-      this.reactions = this.reactions.filter(r => r.userId !== userId);
+      this.reactions = this.reactions.filter((r) => r.userId !== userId);
     }
   }
 
   getReactionCount(): number {
     return this.reactions.length;
   }
-} 
+}

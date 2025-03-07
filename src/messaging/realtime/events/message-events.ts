@@ -15,7 +15,7 @@ export enum MessageEventType {
   REMOVE_REACTION = 'removeReaction',
   PARTICIPANT_ADD = 'addParticipant',
   PARTICIPANT_REMOVE = 'removeParticipant',
-  
+
   // Server -> Client events
   MESSAGE_CREATED = 'messageCreated',
   MESSAGE_UPDATED = 'messageUpdated',
@@ -26,7 +26,7 @@ export enum MessageEventType {
   REACTION_ADDED = 'reactionAdded',
   REACTION_REMOVED = 'reactionRemoved',
   PARTICIPANTS_UPDATED = 'participantsUpdated',
-  ERROR = 'error'
+  ERROR = 'error',
 }
 
 /**
@@ -36,7 +36,7 @@ export class RoomNameFactory {
   static userRoom(userId: string): string {
     return `user:${userId}`;
   }
-  
+
   static conversationRoom(conversationId: string): string {
     return `conversation:${conversationId}`;
   }
@@ -148,4 +148,4 @@ export interface ErrorEvent {
   code: string;
   message: string;
   details?: any;
-} 
+}

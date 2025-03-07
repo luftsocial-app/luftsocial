@@ -1,4 +1,10 @@
-import { IsString, IsNotEmpty, IsUUID, IsOptional, Length } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsUUID,
+  IsOptional,
+  Length,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateMessageDto {
@@ -14,7 +20,7 @@ export class CreateMessageDto {
     description: 'The content of the message',
     example: 'Hello world!',
     minLength: 1,
-    maxLength: 5000
+    maxLength: 5000,
   })
   @IsString()
   @IsNotEmpty()
@@ -35,7 +41,7 @@ export class UpdateMessageDto {
     description: 'The updated content of the message',
     example: 'Updated message content',
     minLength: 1,
-    maxLength: 5000
+    maxLength: 5000,
   })
   @IsString()
   @IsNotEmpty()
@@ -51,4 +57,4 @@ export class ReactionDto {
   @IsString()
   @IsNotEmpty()
   emoji: string;
-} 
+}

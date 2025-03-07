@@ -19,4 +19,4 @@ export interface MessageMetadata {
     description?: string;
     imageUrl?: string;
   }[];
-} 
+}

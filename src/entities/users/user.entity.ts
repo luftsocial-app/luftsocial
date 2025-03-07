@@ -113,9 +113,12 @@ export class User {
   @Column({ name: 'deleted_by', nullable: true })
   deletedBy: string;
 
-  @OneToMany(() =>  MessageEntity, (message) => message.sender)
+  @OneToMany(() => MessageEntity, (message) => message.sender)
   sentMessages: MessageEntity[];
 
-  @ManyToMany(() => ConversationEntity, (conversation) => conversation.participants)
+  @ManyToMany(
+    () => ConversationEntity,
+    (conversation) => conversation.participants,
+  )
   conversations: ConversationEntity[];
 }

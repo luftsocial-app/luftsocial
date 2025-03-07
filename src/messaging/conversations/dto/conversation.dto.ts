@@ -17,8 +17,9 @@ import { IConversationSettings } from '../../shared/interfaces/conversation-sett
 
 export class CreateConversationDto {
   @ApiPropertyOptional({
-    description: 'The name of the conversation (required for group conversations)',
-    example: 'Project Team Chat'
+    description:
+      'The name of the conversation (required for group conversations)',
+    example: 'Project Team Chat',
   })
   @IsString()
   @IsOptional()
@@ -27,7 +28,7 @@ export class CreateConversationDto {
   @ApiProperty({
     description: 'The type of conversation',
     enum: ConversationType,
-    example: ConversationType.GROUP
+    example: ConversationType.GROUP,
   })
   @IsEnum(ConversationType)
   type: ConversationType;
@@ -35,7 +36,7 @@ export class CreateConversationDto {
   @ApiProperty({
     description: 'IDs of users to add to the conversation',
     type: [String],
-    example: ['a1b2c3d4-e5f6-g7h8-i9j0', 'b2c3d4e5-f6g7-h8i9-j0k1']
+    example: ['a1b2c3d4-e5f6-g7h8-i9j0', 'b2c3d4e5-f6g7-h8i9-j0k1'],
   })
   @IsArray()
   @IsUUID(undefined, { each: true })
@@ -44,7 +45,7 @@ export class CreateConversationDto {
   @ApiPropertyOptional({
     description: 'ID of the user creating the conversation',
     type: String,
-    example: 'a1b2c3d4-e5f6-g7h8-i9j0'
+    example: 'a1b2c3d4-e5f6-g7h8-i9j0',
   })
   @IsUUID()
   @IsOptional()
@@ -53,7 +54,7 @@ export class CreateConversationDto {
   @ApiPropertyOptional({
     description: 'Whether the conversation is private',
     default: false,
-    example: true
+    example: true,
   })
   @IsBoolean()
   @IsOptional()
@@ -63,8 +64,8 @@ export class CreateConversationDto {
     description: 'Additional metadata for the conversation',
     example: {
       avatar: 'https://example.com/avatar.jpg',
-      isEncrypted: false
-    }
+      isEncrypted: false,
+    },
   })
   @IsOptional()
   metadata?: {
@@ -77,8 +78,8 @@ export class CreateConversationDto {
     example: {
       muteNotifications: false,
       theme: 'light',
-      enableReadReceipts: true
-    }
+      enableReadReceipts: true,
+    },
   })
   @IsOptional()
   settings?: IConversationSettings;
@@ -87,7 +88,7 @@ export class CreateConversationDto {
 export class UpdateConversationSettingsDto {
   @ApiPropertyOptional({
     description: 'New name for the conversation',
-    example: 'Updated Team Chat'
+    example: 'Updated Team Chat',
   })
   @IsString()
   @IsOptional()
@@ -95,7 +96,7 @@ export class UpdateConversationSettingsDto {
 
   @ApiPropertyOptional({
     description: 'Update privacy setting for the conversation',
-    example: true
+    example: true,
   })
   @IsBoolean()
   @IsOptional()
@@ -105,8 +106,8 @@ export class UpdateConversationSettingsDto {
     description: 'Updated metadata for the conversation',
     example: {
       avatar: 'https://example.com/new-avatar.jpg',
-      isEncrypted: true
-    }
+      isEncrypted: true,
+    },
   })
   @IsOptional()
   metadata?: {
@@ -119,8 +120,8 @@ export class UpdateConversationSettingsDto {
     example: {
       muteNotifications: true,
       theme: 'dark',
-      enableReadReceipts: false
-    }
+      enableReadReceipts: false,
+    },
   })
   @IsOptional()
   settings?: Partial<IConversationSettings>;
@@ -130,7 +131,7 @@ export class AddParticipantsDto {
   @ApiProperty({
     description: 'IDs of users to add to the conversation',
     type: [String],
-    example: ['a1b2c3d4-e5f6-g7h8-i9j0', 'b2c3d4e5-f6g7-h8i9-j0k1']
+    example: ['a1b2c3d4-e5f6-g7h8-i9j0', 'b2c3d4e5-f6g7-h8i9-j0k1'],
   })
   @IsArray()
   @IsUUID(undefined, { each: true })
@@ -142,7 +143,7 @@ export class MessageQueryDto {
   @ApiProperty({
     description: 'ID of the conversation to fetch messages from',
     type: String,
-    example: 'a1b2c3d4-e5f6-g7h8-i9j0'
+    example: 'a1b2c3d4-e5f6-g7h8-i9j0',
   })
   @IsUUID()
   @IsString()
@@ -151,7 +152,7 @@ export class MessageQueryDto {
   @ApiPropertyOptional({
     description: 'User ID for personalized responses like read status',
     type: String,
-    example: 'c3d4e5f6-g7h8-i9j0-k1l2'
+    example: 'c3d4e5f6-g7h8-i9j0-k1l2',
   })
   @IsOptional()
   @IsUUID()
@@ -161,7 +162,7 @@ export class MessageQueryDto {
   @ApiPropertyOptional({
     description: 'Filter messages by sender ID',
     type: String,
-    example: 'b2c3d4e5-f6g7-h8i9-j0k1'
+    example: 'b2c3d4e5-f6g7-h8i9-j0k1',
   })
   @IsOptional()
   @IsUUID()
@@ -170,7 +171,7 @@ export class MessageQueryDto {
 
   @ApiPropertyOptional({
     description: 'Search term to filter messages by content',
-    example: 'project update'
+    example: 'project update',
   })
   @IsOptional()
   @IsString()
@@ -178,7 +179,7 @@ export class MessageQueryDto {
 
   @ApiPropertyOptional({
     description: 'Whether to include deleted messages',
-    default: false
+    default: false,
   })
   @IsOptional()
   @IsBoolean()
@@ -188,7 +189,7 @@ export class MessageQueryDto {
     description: 'Page number for pagination',
     minimum: 1,
     default: 1,
-    example: 1
+    example: 1,
   })
   @IsOptional()
   @IsInt()
@@ -200,7 +201,7 @@ export class MessageQueryDto {
     description: 'Number of messages per page',
     minimum: 1,
     default: 20,
-    example: 20
+    example: 20,
   })
   @IsOptional()
   @IsInt()
@@ -211,7 +212,7 @@ export class MessageQueryDto {
   @ApiPropertyOptional({
     description: 'Field to sort messages by',
     enum: ['createdAt', 'senderId'],
-    default: 'createdAt'
+    default: 'createdAt',
   })
   @IsOptional()
   @IsString()
@@ -220,9 +221,9 @@ export class MessageQueryDto {
   @ApiPropertyOptional({
     description: 'Sort order',
     enum: ['ASC', 'DESC'],
-    default: 'DESC'
+    default: 'DESC',
   })
   @IsOptional()
   @IsString()
   sortOrder?: 'ASC' | 'DESC';
-} 
+}

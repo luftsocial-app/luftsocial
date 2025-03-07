@@ -1,6 +1,6 @@
 export enum MessageType {
   TEXT = 'text',
-  IMAGE = 'image', 
+  IMAGE = 'image',
   VIDEO = 'video',
   AUDIO = 'audio',
   FILE = 'file',
@@ -13,4 +13,4 @@ export enum MessageStatus {
   DELIVERED = 'delivered',
   READ = 'read',
   FAILED = 'failed',
-} 
+}

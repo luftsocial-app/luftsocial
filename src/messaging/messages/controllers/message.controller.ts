@@ -14,11 +14,11 @@ import {
   HttpCode,
   BadRequestException,
 } from '@nestjs/common';
-import { 
-  ApiTags, 
-  ApiOperation, 
-  ApiResponse, 
-  ApiParam, 
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiParam,
   ApiBearerAuth,
   ApiBody,
   ApiQuery,
@@ -27,14 +27,18 @@ import { MessageService } from '../services/message.service';
 import { ChatGuard } from '../../../guards/chat.guard';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { MessageQueryDto } from '../../conversations/dto/conversation.dto';
-import { CreateMessageDto, UpdateMessageDto, ReactionDto } from '../dto/message.dto';
+import {
+  CreateMessageDto,
+  UpdateMessageDto,
+  ReactionDto,
+} from '../dto/message.dto';
 import { CurrentUser } from '../../../decorators/current-user.decorator';
 import { ResponseInterceptor } from '../../shared/interceptors/response.interceptor';
 import {
   MessageResponseDto,
   MessageWithRelationsDto,
   MessageListResponseDto,
-  AttachmentResponseDto
+  AttachmentResponseDto,
 } from '../dto/message-response.dto';
 
 @ApiTags('Messages')
@@ -46,16 +50,16 @@ export class MessageController {
   constructor(private readonly messageService: MessageService) {}
 
   @ApiOperation({ summary: 'Get messages from a conversation' })
-  @ApiParam({ 
-    name: 'conversationId', 
+  @ApiParam({
+    name: 'conversationId',
     description: 'ID of the conversation',
-    type: String 
+    type: String,
   })
   @ApiQuery({ type: MessageQueryDto })
-  @ApiResponse({ 
-    status: HttpStatus.OK, 
+  @ApiResponse({
+    status: HttpStatus.OK,
     description: 'Messages retrieved successfully',
-    type: MessageListResponseDto
+    type: MessageListResponseDto,
   })
   @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Access denied' })
   @Get('conversations/:conversationId')
@@ -69,10 +73,10 @@ export class MessageController {
 
   @ApiOperation({ summary: 'Create a new message' })
   @ApiBody({ type: CreateMessageDto })
-  @ApiResponse({ 
-    status: HttpStatus.CREATED, 
+  @ApiResponse({
+    status: HttpStatus.CREATED,
     description: 'Message created successfully',
-    type: MessageResponseDto
+    type: MessageResponseDto,
   })
   @UseGuards(ThrottlerGuard)
   @Post()
@@ -91,11 +95,11 @@ export class MessageController {
 
   @ApiOperation({ summary: 'Get message history for a user' })
   @ApiParam({ name: 'userId', description: 'ID of the user' })
-  @ApiResponse({ 
-    status: HttpStatus.OK, 
+  @ApiResponse({
+    status: HttpStatus.OK,
     description: 'Message history retrieved successfully',
     type: MessageResponseDto,
-    isArray: true
+    isArray: true,
   })
   @Get('history/:userId')
   getMessageHistory(
@@ -108,10 +112,10 @@ export class MessageController {
 
   @ApiOperation({ summary: 'Get message by ID' })
   @ApiParam({ name: 'id', description: 'ID of the message' })
-  @ApiResponse({ 
-    status: HttpStatus.OK, 
+  @ApiResponse({
+    status: HttpStatus.OK,
     description: 'Message retrieved successfully',
-    type: MessageWithRelationsDto
+    type: MessageWithRelationsDto,
   })
   @Get(':id')
   getMessage(
@@ -124,28 +128,46 @@ export class MessageController {
   @ApiOperation({ summary: 'Update a message' })
   @ApiParam({ name: 'id', description: 'ID of the message to update' })
   @ApiBody({ type: UpdateMessageDto })
-  @ApiResponse({ 
-    status: HttpStatus.OK, 
+  @ApiResponse({
+    status: HttpStatus.OK,
     description: 'Message updated successfully',
-    type: MessageResponseDto
+    type: MessageResponseDto,
   })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Message not found' })
-  @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Not authorized to update message' })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Message not found',
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: 'Not authorized to update message',
+  })
   @Patch(':id')
   updateMessage(
     @CurrentUser() user,
     @Param('id', ParseUUIDPipe) messageId: string,
     @Body() updateMessageDto: UpdateMessageDto,
   ): Promise<MessageResponseDto> {
-   
-    return this.messageService.updateMessage(messageId, updateMessageDto, user.id);
+    return this.messageService.updateMessage(
+      messageId,
+      updateMessageDto,
+      user.id,
+    );
   }
 
   @ApiOperation({ summary: 'Delete a message' })
   @ApiParam({ name: 'id', description: 'ID of the message to delete' })
-  @ApiResponse({ status: HttpStatus.NO_CONTENT, description: 'Message deleted successfully' })
-  @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Message not found' })
-  @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Not authorized to delete message' })
+  @ApiResponse({
+    status: HttpStatus.NO_CONTENT,
+    description: 'Message deleted successfully',
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Message not found',
+  })
+  @ApiResponse({
+    status: HttpStatus.FORBIDDEN,
+    description: 'Not authorized to delete message',
+  })
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   deleteMessage(
@@ -158,10 +180,10 @@ export class MessageController {
   @ApiOperation({ summary: 'Add a reaction to a message' })
   @ApiParam({ name: 'id', description: 'ID of the message' })
   @ApiBody({ type: ReactionDto })
-  @ApiResponse({ 
-    status: HttpStatus.OK, 
+  @ApiResponse({
+    status: HttpStatus.OK,
     description: 'Reaction added successfully',
-    type: MessageResponseDto
+    type: MessageResponseDto,
   })
   @Post(':id/reactions')
   addReaction(
@@ -169,16 +191,20 @@ export class MessageController {
     @Param('id', ParseUUIDPipe) messageId: string,
     @Body() reactionDto: ReactionDto,
   ): Promise<MessageResponseDto> {
-    return this.messageService.addReaction(messageId, user.id, reactionDto.emoji);
+    return this.messageService.addReaction(
+      messageId,
+      user.id,
+      reactionDto.emoji,
+    );
   }
 
   @ApiOperation({ summary: 'Remove a reaction from a message' })
   @ApiParam({ name: 'id', description: 'ID of the message' })
   @ApiBody({ type: ReactionDto })
-  @ApiResponse({ 
-    status: HttpStatus.OK, 
+  @ApiResponse({
+    status: HttpStatus.OK,
     description: 'Reaction removed successfully',
-    type: MessageResponseDto
+    type: MessageResponseDto,
   })
   @Delete(':id/reactions')
   removeReaction(
@@ -186,15 +212,19 @@ export class MessageController {
     @Param('id', ParseUUIDPipe) messageId: string,
     @Body() reactionDto: ReactionDto,
   ): Promise<MessageResponseDto> {
-    return this.messageService.removeReaction(messageId, user.id, reactionDto.emoji);
+    return this.messageService.removeReaction(
+      messageId,
+      user.id,
+      reactionDto.emoji,
+    );
   }
 
   @ApiOperation({ summary: 'Get attachments for a message' })
   @ApiParam({ name: 'id', description: 'ID of the message' })
-  @ApiResponse({ 
-    status: HttpStatus.OK, 
+  @ApiResponse({
+    status: HttpStatus.OK,
     description: 'Attachments retrieved successfully',
-    type: [AttachmentResponseDto]
+    type: [AttachmentResponseDto],
   })
   @Get(':id/attachments')
   getAttachments(
@@ -205,10 +235,10 @@ export class MessageController {
 
   @ApiOperation({ summary: 'Get thread replies' })
   @ApiParam({ name: 'id', description: 'ID of the parent message' })
-  @ApiResponse({ 
-    status: HttpStatus.OK, 
+  @ApiResponse({
+    status: HttpStatus.OK,
     description: 'Thread replies retrieved successfully',
-    type: [MessageResponseDto]
+    type: [MessageResponseDto],
   })
   @Get(':id/replies')
   getThreadReplies(
@@ -219,9 +249,9 @@ export class MessageController {
 
   @ApiOperation({ summary: 'Mark message as read' })
   @ApiParam({ name: 'id', description: 'ID of the message' })
-  @ApiResponse({ 
-    status: HttpStatus.NO_CONTENT, 
-    description: 'Message marked as read successfully' 
+  @ApiResponse({
+    status: HttpStatus.NO_CONTENT,
+    description: 'Message marked as read successfully',
   })
   @Post(':id/read')
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -234,12 +264,12 @@ export class MessageController {
 
   @ApiOperation({ summary: 'Get unread message count' })
   @ApiParam({ name: 'conversationId', description: 'ID of the conversation' })
-  @ApiResponse({ 
-    status: HttpStatus.OK, 
+  @ApiResponse({
+    status: HttpStatus.OK,
     description: 'Unread count retrieved successfully',
     schema: {
-      type: 'number'
-    }
+      type: 'number',
+    },
   })
   @Get('unread/:conversationId')
   getUnreadCount(
@@ -248,4 +278,4 @@ export class MessageController {
   ): Promise<number> {
     return this.messageService.getUnreadCount(conversationId, user.id);
   }
-} 
+}

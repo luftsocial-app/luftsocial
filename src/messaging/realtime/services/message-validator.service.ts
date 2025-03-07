@@ -1,12 +1,17 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { MessageEventPayload, MessageUpdatePayload, ReactionPayload } from '../events/message-events';
+import {
+  MessageEventPayload,
+  MessageUpdatePayload,
+  ReactionPayload,
+} from '../events/message-events';
 
 @Injectable()
 export class MessageValidatorService {
   private readonly logger = new Logger(MessageValidatorService.name);
   private readonly MAX_MESSAGE_LENGTH = 5000;
   private readonly MIN_MESSAGE_LENGTH = 1;
-  private readonly EMOJI_REGEX = /^(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])$/;
+  private readonly EMOJI_REGEX =
+    /^(\u00a9|\u00ae|[\u2000-\u3300]|\ud83c[\ud000-\udfff]|\ud83d[\ud000-\udfff]|\ud83e[\ud000-\udfff])$/;
 
   validateNewMessage(payload: MessageEventPayload): string | null {
     try {
@@ -33,7 +38,10 @@ export class MessageValidatorService {
 
       return null;
     } catch (error) {
-      this.logger.error(`Message validation error: ${error.message}`, error.stack);
+      this.logger.error(
+        `Message validation error: ${error.message}`,
+        error.stack,
+      );
       return 'Invalid message format';
     }
   }
@@ -58,7 +66,10 @@ export class MessageValidatorService {
 
       return null;
     } catch (error) {
-      this.logger.error(`Update validation error: ${error.message}`, error.stack);
+      this.logger.error(
+        `Update validation error: ${error.message}`,
+        error.stack,
+      );
       return 'Invalid update format';
     }
   }
@@ -79,8 +90,11 @@ export class MessageValidatorService {
 
       return null;
     } catch (error) {
-      this.logger.error(`Reaction validation error: ${error.message}`, error.stack);
+      this.logger.error(
+        `Reaction validation error: ${error.message}`,
+        error.stack,
+      );
       return 'Invalid reaction format';
     }
   }
-} 
+}

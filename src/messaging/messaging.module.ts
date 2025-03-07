@@ -4,15 +4,7 @@ import { MessageModule } from './messages/message.module';
 import { RealtimeModule } from './realtime/realtime.module';
 
 @Module({
-  imports: [
-    ConversationModule,
-    MessageModule,
-    RealtimeModule,
-  ],
-  exports: [
-    ConversationModule,
-    MessageModule,
-    RealtimeModule,
-  ],
+  imports: [ConversationModule, MessageModule, RealtimeModule],
+  exports: [ConversationModule, MessageModule, RealtimeModule],
 })
-export class MessagingModule {} 
+export class MessagingModule {}

@@ -3,4 +3,4 @@ export enum ParticipantRole {
   ADMIN = 'admin',
   MEMBER = 'member',
   GUEST = 'guest',
-} 
+}

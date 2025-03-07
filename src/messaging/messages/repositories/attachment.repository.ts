@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
-import { AttachmentEntity, AttachmentType } from '../entities/attachment.entity';
+import {
+  AttachmentEntity,
+  AttachmentType,
+} from '../entities/attachment.entity';
 
 @Injectable()
 export class AttachmentRepository extends Repository<AttachmentEntity> {
@@ -17,10 +20,13 @@ export class AttachmentRepository extends Repository<AttachmentEntity> {
     try {
       return this.find({
         where: { messageId },
-        order: { createdAt: 'ASC' }
+        order: { createdAt: 'ASC' },
       });
     } catch (error) {
-      this.logger.error(`Error finding attachments by message ID: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error finding attachments by message ID: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -28,14 +34,20 @@ export class AttachmentRepository extends Repository<AttachmentEntity> {
   /**
    * Find attachments by type and message ID
    */
-  async findByTypeAndMessageId(type: AttachmentType, messageId: string): Promise<AttachmentEntity[]> {
+  async findByTypeAndMessageId(
+    type: AttachmentType,
+    messageId: string,
+  ): Promise<AttachmentEntity[]> {
     try {
       return this.find({
         where: { type, messageId },
-        order: { createdAt: 'ASC' }
+        order: { createdAt: 'ASC' },
       });
     } catch (error) {
-      this.logger.error(`Error finding attachments by type and message: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error finding attachments by type and message: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -50,7 +62,10 @@ export class AttachmentRepository extends Repository<AttachmentEntity> {
         .where('message.senderId = :userId', { userId })
         .getMany();
     } catch (error) {
-      this.logger.error(`Error finding attachments by user ID: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error finding attachments by user ID: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -62,15 +77,18 @@ export class AttachmentRepository extends Repository<AttachmentEntity> {
     try {
       await this.update(
         { id },
-        { 
+        {
           metadata: {
             ...metadata,
-            isProcessed: true 
-          }
-        }
+            isProcessed: true,
+          },
+        },
       );
     } catch (error) {
-      this.logger.error(`Error marking attachment as processed: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error marking attachment as processed: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -81,11 +99,16 @@ export class AttachmentRepository extends Repository<AttachmentEntity> {
   async findUnprocessed(): Promise<AttachmentEntity[]> {
     try {
       return this.createQueryBuilder('attachment')
-        .where(`(attachment.metadata->>'isProcessed')::boolean = false OR attachment.metadata->>'isProcessed' IS NULL`)
+        .where(
+          `(attachment.metadata->>'isProcessed')::boolean = false OR attachment.metadata->>'isProcessed' IS NULL`,
+        )
         .getMany();
     } catch (error) {
-      this.logger.error(`Error finding unprocessed attachments: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error finding unprocessed attachments: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
-} 
+}

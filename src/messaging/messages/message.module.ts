@@ -11,11 +11,11 @@ import { AttachmentRepository } from './repositories/attachment.repository';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([MessageEntity, AttachmentEntity]), 
-    DatabaseModule
+    TypeOrmModule.forFeature([MessageEntity, AttachmentEntity]),
+    DatabaseModule,
   ],
   providers: [
-    MessageService, 
+    MessageService,
     TenantService,
     MessageRepository,
     AttachmentRepository,
@@ -23,4 +23,4 @@ import { AttachmentRepository } from './repositories/attachment.repository';
   controllers: [MessageController],
   exports: [MessageService, MessageRepository, AttachmentRepository],
 })
-export class MessageModule {} 
+export class MessageModule {}

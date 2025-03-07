@@ -14,14 +14,19 @@ export class ParticipantRepository extends Repository<ParticipantEntity> {
   /**
    * Find participants by conversation ID
    */
-  async findByConversationId(conversationId: string): Promise<ParticipantEntity[]> {
+  async findByConversationId(
+    conversationId: string,
+  ): Promise<ParticipantEntity[]> {
     try {
       return this.find({
         where: { conversationId },
         relations: ['user'],
       });
     } catch (error) {
-      this.logger.error(`Error finding participants by conversation ID: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error finding participants by conversation ID: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -29,7 +34,10 @@ export class ParticipantRepository extends Repository<ParticipantEntity> {
   /**
    * Find participant by user ID and conversation ID
    */
-  async findByUserAndConversation(userId: string, conversationId: string): Promise<ParticipantEntity | null> {
+  async findByUserAndConversation(
+    userId: string,
+    conversationId: string,
+  ): Promise<ParticipantEntity | null> {
     try {
       return this.findOne({
         where: {
@@ -39,7 +47,10 @@ export class ParticipantRepository extends Repository<ParticipantEntity> {
         relations: ['user', 'conversation'],
       });
     } catch (error) {
-      this.logger.error(`Error finding participant by user and conversation: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error finding participant by user and conversation: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -47,14 +58,19 @@ export class ParticipantRepository extends Repository<ParticipantEntity> {
   /**
    * Find all conversations where user is a participant
    */
-  async findConversationsByUserId(userId: string): Promise<ParticipantEntity[]> {
+  async findConversationsByUserId(
+    userId: string,
+  ): Promise<ParticipantEntity[]> {
     try {
       return this.find({
         where: { userId, status: 'member' },
         relations: ['conversation'],
       });
     } catch (error) {
-      this.logger.error(`Error finding conversations by user ID: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error finding conversations by user ID: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -71,10 +87,13 @@ export class ParticipantRepository extends Repository<ParticipantEntity> {
           role: In([ParticipantRole.ADMIN, ParticipantRole.OWNER]),
         },
       });
-      
+
       return !!participant;
     } catch (error) {
-      this.logger.error(`Error checking if user is admin: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error checking if user is admin: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -82,15 +101,21 @@ export class ParticipantRepository extends Repository<ParticipantEntity> {
   /**
    * Update participant's last active timestamp
    */
-  async updateLastActive(userId: string, conversationId: string): Promise<void> {
+  async updateLastActive(
+    userId: string,
+    conversationId: string,
+  ): Promise<void> {
     try {
       await this.update(
         { userId, conversationId },
-        { lastActiveAt: new Date() }
+        { lastActiveAt: new Date() },
       );
     } catch (error) {
-      this.logger.error(`Error updating last active timestamp: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error updating last active timestamp: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
-} 
+}
