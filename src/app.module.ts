@@ -13,30 +13,17 @@ import { LoggerMiddleware } from '../logger.middleware';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TenantMiddleware } from './middleware/tenant.middleware';
 import { UsersModule } from './user-management/users/users.module';
-import { User } from './entities/users/user.entity';
 import { ClerkAuthGuard } from './guards/clerk-auth.guard';
 import { RolesGuard } from './guards/role-guard';
-import { Role } from './entities/roles/role.entity';
-import { Permissions } from './entities/roles/permissions.entity';
-import { Tenant } from './entities/users/tenant.entity';
-import { DatabaseModule } from './database/database.module';
 import { PostsModule } from './post-management/posts/posts.module';
-import { Post } from './entities/posts/post.entity';
-import { Conversation } from './entities/chats/conversation.entity';
-import { ChatParticipants } from './entities/chats/chat-participants.entity';
-import { UserRoleChange } from './entities/roles/user-role-change.entity';
-import { Notification } from './entities/notifications/notification.entity';
-import { Team } from './entities/users/team.entity';
-import { UserTenant } from './entities/users/user-tenant.entity';
-import { MessageModule } from './messaging/message/message.module';
-import { Message } from './entities/chats/message.entity';
-import { ChatModule } from './messaging/chat/chat.module';
+
 import { TenantModule } from './user-management/tenant/tenant.module';
 import { TaskModule } from './task/task.module';
 import { MediaStorageModule } from './asset-management/media-storage/media-storage.module';
 import { CacheModule } from './cache/cache.module';
 import { PlatformsModule } from './platforms/platforms.module';
 import { FacebookModule } from './platforms/facebook/facebook.module';
+import { DatabaseModule } from './database/database.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -46,22 +33,19 @@ import { FacebookModule } from './platforms/facebook/facebook.module';
       load: [config.util.toObject],
     }),
     TypeOrmModule.forRoot({
-      ...config.get('db.options'),
-      entities: [
-        User,
-        Tenant,
-        UserRoleChange,
-        Permissions,
-        Role,
-        Conversation,
-        Message,
-        ChatParticipants,
-        Notification,
-        Post,
-        Team,
-        UserTenant,
-        ChatModule,
-      ],
+      //...config.get('db.options'),
+      type: 'postgres',
+      host: 'localhost',
+      port: 5434,
+      username: 'root', 
+      password: 'admin',
+      database: 'start-template',
+      synchronize: false,
+      logging: 'all',
+          logger: 'advanced-console',
+
+          entities: ['dist/**/**.entity{.ts,.js}'],
+          migrations: ['dist/config/database/migrations/**/*{.js,.ts}'],
     }),
     LoggerModule.forRoot({
       ...JSON.parse(JSON.stringify(config.get('logger'))),
@@ -74,13 +58,11 @@ import { FacebookModule } from './platforms/facebook/facebook.module';
     ]),
 
     HealthModule,
-    MessageModule,
     ScheduleModule.forRoot(),
     UsersModule,
     HealthModule,
     DatabaseModule,
     PostsModule,
-    MessageModule,
     TenantModule,
     TaskModule,
     MediaStorageModule,

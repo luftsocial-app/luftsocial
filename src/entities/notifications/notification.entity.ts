@@ -5,8 +5,8 @@ import {
   Column,
   CreateDateColumn,
 } from 'typeorm';
-import { Message } from '../chats/message.entity';
 import { User } from '../users/user.entity';
+import { MessageEntity } from '../../messaging/messages/entities/message.entity';
 
 @Entity('tbl_notifications')
 export class Notification {
@@ -16,8 +16,8 @@ export class Notification {
   @ManyToOne(() => User)
   user: User;
 
-  @ManyToOne(() => Message, { nullable: true })
-  message?: Message;
+  @ManyToOne(() => MessageEntity, { nullable: true })
+  message?: MessageEntity;
 
   @Column({
     name: 'type',

@@ -5,4 +5,4 @@ import { TenantService } from './tenant.service';
   providers: [TenantService],
   exports: [TenantService],
 })
-export class DatabaseModule {}
+export class  DatabaseModule {}
