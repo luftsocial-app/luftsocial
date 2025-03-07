@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConversationController } from './controllers/conversation.controller';
 import { ConversationService } from './services/conversation.service';
@@ -9,6 +9,8 @@ import { User } from '../../entities/users/user.entity';
 import { TenantService } from '../../database/tenant.service';
 import { ConversationRepository } from './repositories/conversation.repository';
 import { ParticipantRepository } from './repositories/participant.repository';
+import { MessageModule } from '../messages/message.module';
+import { RealtimeModule } from '../realtime/realtime.module';
 
 @Module({
   imports: [
@@ -18,6 +20,8 @@ import { ParticipantRepository } from './repositories/participant.repository';
       MessageEntity,
       User,
     ]),
+    MessageModule,
+    forwardRef(() => RealtimeModule),
   ],
   controllers: [ConversationController],
   providers: [

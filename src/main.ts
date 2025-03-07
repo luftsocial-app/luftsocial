@@ -3,7 +3,6 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import * as config from 'config';
 import { clerkMiddleware } from '@clerk/express';
-
 import { Logger, LoggerErrorInterceptor, PinoLogger } from 'nestjs-pino';
 import {
   BadRequestException,
@@ -38,6 +37,15 @@ const logger: Logger = new Logger(
   new PinoLogger({
     pinoHttp: {
       ...config.get('logger'),
+      transport: {
+        target: 'pino-pretty',
+        options: {
+          colorize: true,
+          levelFirst: true,
+          translateTime: true,
+          ignore: 'pid,hostname',
+        },
+      },
     },
   }),
   { renameContext: 'luftsocial' },

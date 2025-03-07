@@ -3,6 +3,8 @@ import {
   ConflictException,
   NotFoundException,
   ForbiddenException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { TenantService } from '../../../database/tenant.service';
 import { ConversationRepository } from '../repositories/conversation.repository';
@@ -29,6 +31,7 @@ export class ConversationService {
     private tenantService: TenantService,
     private conversationRepository: ConversationRepository,
     private participantRepository: ParticipantRepository,
+    @Inject(forwardRef(() => MessageRepository))
     private messageRepository: MessageRepository,
     @InjectRepository(User)
     private userRepository: Repository<User>,
@@ -47,7 +50,7 @@ export class ConversationService {
       isPrivate: data.isPrivate,
       metadata: data.metadata,
       settings: data.settings,
-      tenantId: this.tenantService.getTenantId(),
+      tenantId: await this.tenantService.getTenantId(),
     });
 
     const savedConversation =
@@ -396,5 +399,61 @@ export class ConversationService {
       { id: conversationId },
       { lastMessageAt: new Date() },
     );
+  }
+
+  /**
+   * Remove participants from a group conversation
+   * Only admins and owners can remove participants
+   * Owners cannot be removed
+   */
+  async removeParticipantsFromGroup(
+    conversationId: string,
+    participantIdsToRemove: string[],
+    currentUserId: string,
+  ): Promise<ConversationEntity> {
+    const conversation = await this.getConversation(conversationId);
+
+    if (conversation.type !== ConversationType.GROUP) {
+      throw new ConflictException(
+        'Cannot remove participants from direct chat',
+      );
+    }
+
+    // Check if current user is admin or owner
+    const isAdmin = await this.isUserAdmin(currentUserId, conversationId);
+
+    if (!isAdmin) {
+      throw new ForbiddenException('Only admins can remove participants');
+    }
+
+    // Find participants to remove
+    const participantsToRemove = await this.participantRepository.find({
+      where: {
+        conversationId,
+        userId: In(participantIdsToRemove),
+      },
+    });
+
+    // Check if trying to remove an owner
+    const ownersBeingRemoved = participantsToRemove.filter(
+      (p) => p.role === ParticipantRole.OWNER,
+    );
+
+    if (ownersBeingRemoved.length > 0) {
+      throw new ForbiddenException('Cannot remove the conversation owner');
+    }
+
+    if (participantsToRemove.length > 0) {
+      // Remove participants
+      await this.participantRepository.remove(participantsToRemove);
+
+      // Update the conversation object by removing the participants
+      const updatedParticipants = conversation.participants.filter(
+        (p) => !participantIdsToRemove.includes(p.userId),
+      );
+      conversation.participants = updatedParticipants;
+    }
+
+    return conversation;
   }
 }

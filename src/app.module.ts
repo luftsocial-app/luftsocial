@@ -24,6 +24,7 @@ import { CacheModule } from './cache/cache.module';
 import { PlatformsModule } from './platforms/platforms.module';
 import { FacebookModule } from './platforms/facebook/facebook.module';
 import { DatabaseModule } from './database/database.module';
+import { MessagingModule } from './messaging/messaging.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -56,7 +57,7 @@ import { DatabaseModule } from './database/database.module';
         limit: 5,
       },
     ]),
-
+    MessagingModule,
     HealthModule,
     ScheduleModule.forRoot(),
     UsersModule,
