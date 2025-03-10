@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { SocketWithUser, ErrorResponse } from '../interfaces/socket.interfaces';
+import { ErrorResponse } from '../interfaces/socket.interfaces';
 
 /**
  * Helper function to create standardized error responses

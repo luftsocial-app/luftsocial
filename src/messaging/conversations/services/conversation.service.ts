@@ -44,6 +44,10 @@ export class ConversationService {
       id: In(data.participantIds),
     });
 
+    if (users.length === 0) {
+      throw new NotFoundException('No users found with the provided IDs');
+    }
+
     const conversation = this.conversationRepository.create({
       name: data.name,
       type: data.type,
@@ -386,12 +390,7 @@ export class ConversationService {
   }
 
   async isUserAdmin(userId: string, conversationId: string): Promise<boolean> {
-    const participant =
-      await this.participantRepository.findByUserAndConversation(
-        userId,
-        conversationId,
-      );
-    return participant && participant.isAdmin();
+    return this.participantRepository.isUserAdmin(userId, conversationId);
   }
 
   async updateLastMessageTimestamp(conversationId: string): Promise<void> {

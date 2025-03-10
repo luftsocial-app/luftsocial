@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { DataSource, Repository, In } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { ParticipantEntity } from '../entities/participant.entity';
 import { ParticipantRole } from '../../shared/enums/participant-role.enum';
 
@@ -84,11 +84,17 @@ export class ParticipantRepository extends Repository<ParticipantEntity> {
         where: {
           userId,
           conversationId,
-          role: In([ParticipantRole.ADMIN, ParticipantRole.OWNER]),
         },
       });
 
-      return !!participant;
+      if (!participant) {
+        return false;
+      }
+
+      return (
+        participant.role === ParticipantRole.ADMIN ||
+        participant.role === ParticipantRole.OWNER
+      );
     } catch (error) {
       this.logger.error(
         `Error checking if user is admin: ${error.message}`,

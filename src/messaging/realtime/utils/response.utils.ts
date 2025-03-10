@@ -12,7 +12,7 @@ import {
 export function createSuccessResponse(data: any = {}): SuccessResponse {
   return {
     success: true,
-    ...data,
+    data,
   };
 }
 

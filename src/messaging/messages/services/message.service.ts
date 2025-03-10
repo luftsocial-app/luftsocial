@@ -4,7 +4,6 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
-  InternalServerErrorException,
   Inject,
   forwardRef,
 } from '@nestjs/common';
@@ -21,7 +20,6 @@ import {
   MessageWithRelationsDto,
   MessageListResponseDto,
   AttachmentResponseDto,
-  UnreadCountResponseDto,
 } from '../dto/message-response.dto';
 import { Not, Like } from 'typeorm';
 
@@ -63,8 +61,13 @@ export class MessageService {
       dto.isRead = false;
     }
 
-    dto.isEdited = (message.editHistory?.length ?? 0) > 0;
-    dto.metadata = { editHistory: message.editHistory || [] };
+    // Set isEdited based on either the entity's isEdited flag or the presence of edit history
+    dto.isEdited =
+      message.isEdited || (message.metadata?.editHistory?.length ?? 0) > 0;
+    dto.metadata = {
+      editHistory:
+        message.metadata?.editHistory?.map((edit) => edit.content) || [],
+    };
 
     return dto;
   }
@@ -201,7 +204,6 @@ export class MessageService {
     query: MessageQueryDto,
   ): Promise<MessageListResponseDto> {
     try {
-      const tenantId = this.tenantService.getTenantId();
       const messages = await this.messageRepository.findByConversation(
         conversationId,
         query,
@@ -283,7 +285,12 @@ export class MessageService {
         throw new BadRequestException('Cannot edit deleted messages');
       }
 
-      message.addEditHistory(message.content);
+      message.metadata.editHistory = message.metadata.editHistory || [];
+      message.metadata.editHistory.push({
+        content: message.content,
+        editedAt: new Date(),
+      });
+      message.isEdited = true;
       message.content = updateData.content;
       message.updatedAt = new Date();
 
@@ -348,7 +355,8 @@ export class MessageService {
         throw new BadRequestException('Cannot react to deleted messages');
       }
 
-      message.addReaction(userId, emoji);
+      message.metadata.reactions = message.metadata.reactions || {};
+      message.metadata.reactions[userId] = emoji;
       const updatedMessage = await this.messageRepository.save(message);
 
       this.logger.debug(

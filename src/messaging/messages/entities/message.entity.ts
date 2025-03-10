@@ -121,24 +121,21 @@ export class MessageEntity extends CommonEntity {
   }
 
   addEditHistory(content: string): void {
-    if (!this.editHistory) this.editHistory = [];
-    this.editHistory.push(content);
+    if (!this.metadata.editHistory) {
+      this.metadata.editHistory = [];
+    }
+    this.metadata.editHistory.push({
+      content,
+      editedAt: new Date(),
+    });
+    this.isEdited = true;
   }
 
   addReaction(userId: string, emoji: string): void {
-    if (!this.reactions) this.reactions = [];
-
-    const existingIndex = this.reactions.findIndex(
-      (r) => r.userId === userId && r.emoji === emoji,
-    );
-
-    if (existingIndex === -1) {
-      this.reactions.push({
-        userId,
-        emoji,
-        createdAt: new Date(),
-      });
+    if (!this.metadata.reactions) {
+      this.metadata.reactions = {};
     }
+    this.metadata.reactions[userId] = emoji;
   }
 
   removeReaction(userId: string, emoji?: string): void {

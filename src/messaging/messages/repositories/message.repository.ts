@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { DataSource, Repository, FindOptionsWhere } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { MessageEntity } from '../entities/message.entity';
 import { MessageQueryDto } from '../../conversations/dto/conversation.dto';
 

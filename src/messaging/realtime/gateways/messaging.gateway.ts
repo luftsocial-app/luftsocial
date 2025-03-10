@@ -355,6 +355,9 @@ export class MessagingGateway
         payload.participantIds,
         user.id,
       );
+    this.logger.debug(
+      `handleParticipantRemoved: Removed participants from conversation ${payload.conversationId} ${conversation.participants.map((p) => p.id).join(',')}`,
+    );
 
     // Notify remaining participants about the removal
     const room = RoomNameFactory.conversationRoom(payload.conversationId);
