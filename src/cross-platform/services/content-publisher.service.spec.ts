@@ -189,7 +189,7 @@ describe('ContentPublisherService', () => {
 
       expect(mockPublishRepo.update).toHaveBeenCalledWith(
         mockPublishRecord.id,
-        { mediaItems },
+        { mediaItems: mockMediaItems },
       );
 
       expect(mockFacebookService.post).toHaveBeenCalled();
