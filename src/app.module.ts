@@ -1,4 +1,4 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule, Post } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { HealthModule } from './health/health.module';
@@ -14,9 +14,8 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { TenantMiddleware } from './middleware/tenant.middleware';
 import { UsersModule } from './user-management/users/users.module';
 import { ClerkAuthGuard } from './guards/clerk-auth.guard';
-import { RolesGuard } from './guards/role-guard';
+import { Role, RolesGuard } from './guards/role-guard';
 import { PostsModule } from './post-management/posts/posts.module';
-
 import { TenantModule } from './user-management/tenant/tenant.module';
 import { TaskModule } from './task/task.module';
 import { MediaStorageModule } from './asset-management/media-storage/media-storage.module';
@@ -25,6 +24,25 @@ import { PlatformsModule } from './platforms/platforms.module';
 import { FacebookModule } from './platforms/facebook/facebook.module';
 import { DatabaseModule } from './database/database.module';
 import { MessagingModule } from './messaging/messaging.module';
+
+// Entity imports
+import { User } from './entities/users/user.entity';
+import { Tenant } from './entities/users/tenant.entity';
+import { UserRoleChange } from './entities/roles/user-role-change.entity';
+import { Permissions } from './entities/roles/permissions.entity';
+import { Role as RoleEntity } from './entities/roles/role.entity';
+import { ConversationEntity } from './messaging/conversations/entities/conversation.entity';
+import { MessageEntity } from './messaging/messages/entities/message.entity';
+import { AttachmentEntity } from './messaging/messages/entities/attachment.entity';
+import { Post as PostEntity } from './entities/posts/post.entity';
+import { Team } from './entities/users/team.entity';
+import { UserTenant } from './entities/users/user-tenant.entity';
+import { Notification } from './entities/notifications/notification.entity';
+import { FacebookPost } from './platforms/facebook/entity/facebook-post.entity';
+import { FacebookPage } from './platforms/facebook/entity/facebook-page.entity';
+import { FacebookPageMetric } from './platforms/facebook/entity/facebook-page-metric.entity';
+import { AuthState } from './platforms/facebook/entity/auth-state.entity';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -34,19 +52,25 @@ import { MessagingModule } from './messaging/messaging.module';
       load: [config.util.toObject],
     }),
     TypeOrmModule.forRoot({
-      //...config.get('db.options'),
-      type: 'postgres',
-      host: 'localhost',
-      port: 5434,
-      username: 'root',
-      password: 'admin',
-      database: 'start-template',
-      synchronize: true,
-      logging: 'all',
-      logger: 'advanced-console',
-
-      entities: ['dist/**/**.entity{.ts,.js}'],
-      migrations: ['dist/config/database/migrations/**/*{.js,.ts}'],
+      ...config.get('db.options'),
+      entities: [
+        User,
+        Tenant,
+        UserRoleChange,
+        Permissions,
+        RoleEntity,
+        ConversationEntity,
+        MessageEntity,
+        AttachmentEntity,
+        PostEntity,
+        Team,
+        UserTenant,
+        Notification,
+        FacebookPost,
+        FacebookPage,
+        FacebookPageMetric,
+        AuthState,
+      ],
     }),
     LoggerModule.forRoot({
       ...JSON.parse(JSON.stringify(config.get('logger'))),
