@@ -8,6 +8,13 @@ logger:
         __format: json
       censor: '***'
 port: 3000
+messaging:
+  throttle:
+    messageRateMs: MESSAGE_THROTTLE_MS
+    typingRateMs: TYPING_THROTTLE_MS
+    readReceiptRateMs: READ_RECEIPT_THROTTLE_MS
+    maxClientsPerUser: MAX_CLIENTS_PER_USER
+    connectionTimeout: WS_CONNECTION_TIMEOUT
 database:
   options:
     username: DB_USER

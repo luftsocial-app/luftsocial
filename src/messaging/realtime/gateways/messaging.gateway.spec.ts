@@ -160,7 +160,9 @@ describe('MessagingGateway', () => {
           provide: ConfigService,
           useValue: {
             get: jest.fn().mockImplementation((key, defaultValue) => {
-              if (key === 'messaging.throttleTimeMs') return 2000;
+              if (key === 'messaging.throttle.messageRateMs') return 500;
+              if (key === 'messaging.throttle.typingRateMs') return 2000;
+              if (key === 'messaging.throttle.readReceiptRateMs') return 1000;
               if (key === 'messaging.maxClientsPerUser') return 5;
               return defaultValue;
             }),
@@ -320,16 +322,16 @@ describe('MessagingGateway', () => {
 
   describe('isThrottled', () => {
     it('should return false for first call with a key', () => {
-      const result = (gateway as any).isThrottled('test-key');
+      const result = (gateway as any).isThrottled('test-key', 2000);
       expect(result).toBeFalsy();
     });
 
     it('should return true for rapid subsequent calls', () => {
       // First call sets the timer
-      (gateway as any).isThrottled('test-key');
+      (gateway as any).isThrottled('test-key', 2000);
 
       // Second call should be throttled
-      const result = (gateway as any).isThrottled('test-key');
+      const result = (gateway as any).isThrottled('test-key', 2000);
       expect(result).toBeTruthy();
     });
 
@@ -341,11 +343,11 @@ describe('MessagingGateway', () => {
 
       // First call at time 1000
       mockNow.mockReturnValue(1000);
-      (gateway as any).isThrottled('test-key');
+      (gateway as any).isThrottled('test-key', 2000);
 
       // Second call after throttle time (2000ms)
       mockNow.mockReturnValue(3001);
-      const result = (gateway as any).isThrottled('test-key');
+      const result = (gateway as any).isThrottled('test-key', 2000);
 
       expect(result).toBeFalsy();
 

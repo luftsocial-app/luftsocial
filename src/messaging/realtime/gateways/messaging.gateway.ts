@@ -63,7 +63,9 @@ export class MessagingGateway
 
   private readonly logger = new Logger(MessagingGateway.name);
   private readonly throttleTimers = new Map<string, number>();
-  private readonly THROTTLE_TIME_MS: number;
+  private readonly MESSAGE_THROTTLE_MS: number;
+  private readonly TYPING_THROTTLE_MS: number;
+  private readonly READ_RECEIPT_THROTTLE_MS: number;
   private readonly MAX_CLIENTS_PER_USER: number;
   private readonly clientsPerUser = new Map<string, Set<string>>();
 
@@ -74,9 +76,17 @@ export class MessagingGateway
     private readonly messageValidator: MessageValidatorService,
     private readonly configService: ConfigService,
   ) {
-    this.THROTTLE_TIME_MS = this.configService.get<number>(
-      'messaging.throttleTimeMs',
+    this.MESSAGE_THROTTLE_MS = this.configService.get<number>(
+      'messaging.throttle.messageRateMs',
+      500,
+    );
+    this.TYPING_THROTTLE_MS = this.configService.get<number>(
+      'messaging.throttle.typingRateMs',
       2000,
+    );
+    this.READ_RECEIPT_THROTTLE_MS = this.configService.get<number>(
+      'messaging.throttle.readReceiptRateMs',
+      1000,
     );
     this.MAX_CLIENTS_PER_USER = this.configService.get<number>(
       'messaging.maxClientsPerUser',
@@ -158,11 +168,11 @@ export class MessagingGateway
     }
   }
 
-  private isThrottled(key: string): boolean {
+  private isThrottled(key: string, throttleTimeMs: number): boolean {
     const now = Date.now();
     const lastTime = this.throttleTimers.get(key) || 0;
 
-    if (now - lastTime < this.THROTTLE_TIME_MS) {
+    if (now - lastTime < throttleTimeMs) {
       return true;
     }
 
@@ -184,7 +194,7 @@ export class MessagingGateway
 
     // Rate limiting
     const throttleKey = `message:${user.id}`;
-    if (this.isThrottled(throttleKey)) {
+    if (this.isThrottled(throttleKey, this.MESSAGE_THROTTLE_MS)) {
       return createErrorResponse(
         'RATE_LIMITED',
         'You are sending messages too quickly',
@@ -414,7 +424,7 @@ export class MessagingGateway
 
     // Rate limiting for typing events
     const throttleKey = `typing:${user.id}:${payload.conversationId}`;
-    if (this.isThrottled(throttleKey)) {
+    if (this.isThrottled(throttleKey, this.TYPING_THROTTLE_MS)) {
       // Silently ignore rate-limited typing events but return success
       // Typing indicators are non-critical and shouldn't error for UX reasons
       return createSuccessResponse({ throttled: true });
@@ -476,7 +486,7 @@ export class MessagingGateway
 
     // Rate limiting for read receipts
     const throttleKey = `read:${user.id}:${payload.messageId}`;
-    if (this.isThrottled(throttleKey)) {
+    if (this.isThrottled(throttleKey, this.READ_RECEIPT_THROTTLE_MS)) {
       // Return success but don't process - this is a high frequency event
       return createSuccessResponse({ throttled: true });
     }
