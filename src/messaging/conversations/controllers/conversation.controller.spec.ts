@@ -16,7 +16,6 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { ParticipantRole } from '../../shared/enums/participant-role.enum';
-import { IConversationSettings } from '../../shared/interfaces/conversation-settings.interface';
 
 describe('ConversationController', () => {
   let controller: ConversationController;

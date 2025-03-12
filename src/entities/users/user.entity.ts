@@ -15,7 +15,7 @@ import { Permission } from '../../common/enums/roles';
 import { UserTenant } from './user-tenant.entity';
 import { MessageEntity } from '../../messaging/messages/entities/message.entity';
 import { Team } from './team.entity';
-import { ConversationEntity } from '../../messaging/conversations/entities/conversation.entity';
+import { ParticipantEntity } from '../../messaging/conversations/entities/participant.entity';
 
 @Entity({ name: 'tbl_users' })
 export class User {
@@ -116,9 +116,6 @@ export class User {
   @OneToMany(() => MessageEntity, (message) => message.sender)
   sentMessages: MessageEntity[];
 
-  @ManyToMany(
-    () => ConversationEntity,
-    (conversation) => conversation.participants,
-  )
-  conversations: ConversationEntity[];
+  @OneToMany(() => ParticipantEntity, (participant) => participant.user)
+  conversationParticipants: ParticipantEntity[];
 }

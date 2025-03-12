@@ -1,0 +1,615 @@
+{
+  "info": {
+    "_postman_id": "33ee4a85-dce4-4f08-a830-de1fa2af5830",
+    "name": "LuftSocial Messaging API",
+    "description": "API collection for LuftSocial messaging module",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "tenantId",
+      "value": "022058bf-df69-43a9-8250-ec0cece1e9e0",
+      "type": "string"
+    },
+    {
+      "key": "authToken",
+      "value": "YOUR_CLERK_SESSION_TOKEN",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "user-id-here",
+      "type": "string"
+    },
+    {
+      "key": "conversationId",
+      "value": "conversation-id-here",
+      "type": "string"
+    },
+    {
+      "key": "messageId",
+      "value": "message-id-here",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Conversations",
+      "item": [
+        {
+          "name": "Get all conversations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/conversations",
+              "host": ["{{baseUrl}}"],
+              "path": ["conversations"]
+            },
+            "description": "Get all conversations for the current user"
+          },
+          "response": []
+        },
+        {
+          "name": "Get conversation by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/conversations/{{conversationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["conversations", "{{conversationId}}"]
+            },
+            "description": "Get a specific conversation by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Create/Get direct chat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/conversations/direct/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["conversations", "direct", "{{userId}}"]
+            },
+            "description": "Create or get a direct chat with another user"
+          },
+          "response": []
+        },
+        {
+          "name": "Create group chat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "content-type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Group Chat Name\",\n    \"participantIds\": [\"user-id-1\", \"user-id-2\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/conversations/group",
+              "host": ["{{baseUrl}}"],
+              "path": ["conversations", "group"]
+            },
+            "description": "Create a new group chat"
+          },
+          "response": []
+        },
+        {
+          "name": "Add participants",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "content-type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"participantIds\": [\"user-id-1\", \"user-id-2\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/conversations/{{conversationId}}/participants",
+              "host": ["{{baseUrl}}"],
+              "path": ["conversations", "{{conversationId}}", "participants"]
+            },
+            "description": "Add participants to a conversation"
+          },
+          "response": []
+        },
+        {
+          "name": "Update conversation settings",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "content-type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"name\": \"Updated Group Name\",\n    \"avatar\": \"avatar-url\",\n    \"color\": \"#FF5733\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/conversations/{{conversationId}}/settings",
+              "host": ["{{baseUrl}}"],
+              "path": ["conversations", "{{conversationId}}", "settings"]
+            },
+            "description": "Update conversation settings"
+          },
+          "response": []
+        },
+        {
+          "name": "Create message in conversation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "content-type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"content\": \"Hello, this is a message\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/conversations/{{conversationId}}/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["conversations", "{{conversationId}}", "messages"]
+            },
+            "description": "Create a new message in a conversation (via conversation controller)"
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints for managing conversations"
+    },
+    {
+      "name": "Messages",
+      "item": [
+        {
+          "name": "Get messages from conversation",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/messages/conversations/{{conversationId}}?limit=20&cursor=last-message-id&direction=older",
+              "host": ["{{baseUrl}}"],
+              "path": ["messages", "conversations", "{{conversationId}}"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "cursor",
+                  "value": "last-message-id"
+                },
+                {
+                  "key": "direction",
+                  "value": "older"
+                }
+              ]
+            },
+            "description": "Get messages from a conversation with pagination"
+          },
+          "response": []
+        },
+        {
+          "name": "Create message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "content-type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"conversationId\": \"{{conversationId}}\",\n    \"content\": \"Hello, this is a message\",\n    \"parentMessageId\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/messages",
+              "host": ["{{baseUrl}}"],
+              "path": ["messages"]
+            },
+            "description": "Create a new message (via message controller)"
+          },
+          "response": []
+        },
+        {
+          "name": "Get message history for user",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/messages/history/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["messages", "history", "{{userId}}"]
+            },
+            "description": "Get message history for a user"
+          },
+          "response": []
+        },
+        {
+          "name": "Get message by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/messages/{{messageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["messages", "{{messageId}}"]
+            },
+            "description": "Get message by ID"
+          },
+          "response": []
+        },
+        {
+          "name": "Update message",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "content-type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"content\": \"Updated message content\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/messages/{{messageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["messages", "{{messageId}}"]
+            },
+            "description": "Update a message"
+          },
+          "response": []
+        },
+        {
+          "name": "Delete message",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/messages/{{messageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["messages", "{{messageId}}"]
+            },
+            "description": "Delete a message"
+          },
+          "response": []
+        },
+        {
+          "name": "Add reaction to message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "content-type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"emoji\": \"👍\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/messages/{{messageId}}/reactions",
+              "host": ["{{baseUrl}}"],
+              "path": ["messages", "{{messageId}}", "reactions"]
+            },
+            "description": "Add a reaction to a message"
+          },
+          "response": []
+        },
+        {
+          "name": "Remove reaction from message",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "content-type",
+                "value": "application/json",
+                "type": "text"
+              },
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"emoji\": \"👍\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/messages/{{messageId}}/reactions",
+              "host": ["{{baseUrl}}"],
+              "path": ["messages", "{{messageId}}", "reactions"]
+            },
+            "description": "Remove a reaction from a message"
+          },
+          "response": []
+        },
+        {
+          "name": "Get message attachments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/messages/{{messageId}}/attachments",
+              "host": ["{{baseUrl}}"],
+              "path": ["messages", "{{messageId}}", "attachments"]
+            },
+            "description": "Get attachments for a message"
+          },
+          "response": []
+        },
+        {
+          "name": "Get thread replies",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/messages/{{messageId}}/replies",
+              "host": ["{{baseUrl}}"],
+              "path": ["messages", "{{messageId}}", "replies"]
+            },
+            "description": "Get thread replies"
+          },
+          "response": []
+        },
+        {
+          "name": "Mark message as read",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/messages/{{messageId}}/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["messages", "{{messageId}}", "read"]
+            },
+            "description": "Mark message as read"
+          },
+          "response": []
+        },
+        {
+          "name": "Get unread count for conversation",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "x-tenant-id",
+                "value": "{{tenantId}}",
+                "type": "text"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{authToken}}",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/messages/unread/{{conversationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["messages", "unread", "{{conversationId}}"]
+            },
+            "description": "Get unread count for a conversation"
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints for managing messages"
+    }
+  ]
+}

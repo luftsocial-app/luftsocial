@@ -23,8 +23,8 @@ db:
     username: root
     password: admin
     host: localhost
-    port: 5432
-    database: postgres
+    port: 5434
+    database: start-template
     synchronize: false
 cache:
   redis:

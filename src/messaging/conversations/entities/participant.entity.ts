@@ -1,13 +1,4 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  ManyToOne,
-  JoinColumn,
-  CreateDateColumn,
-  UpdateDateColumn,
-  Index,
-} from 'typeorm';
+import { Entity, Column, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { ConversationEntity } from './conversation.entity';
 import { User } from '../../../entities/users/user.entity';
 import { ParticipantRole } from '../../shared/enums/participant-role.enum';

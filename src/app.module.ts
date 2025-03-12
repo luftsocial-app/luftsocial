@@ -1,4 +1,4 @@
-import { MiddlewareConsumer, Module, NestModule, Post } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { HealthModule } from './health/health.module';
@@ -14,7 +14,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { TenantMiddleware } from './middleware/tenant.middleware';
 import { UsersModule } from './user-management/users/users.module';
 import { ClerkAuthGuard } from './guards/clerk-auth.guard';
-import { Role, RolesGuard } from './guards/role-guard';
+import { RolesGuard } from './guards/role-guard';
 import { PostsModule } from './post-management/posts/posts.module';
 import { TenantModule } from './user-management/tenant/tenant.module';
 import { TaskModule } from './task/task.module';
@@ -42,6 +42,10 @@ import { FacebookPost } from './platforms/facebook/entity/facebook-post.entity';
 import { FacebookPage } from './platforms/facebook/entity/facebook-page.entity';
 import { FacebookPageMetric } from './platforms/facebook/entity/facebook-page-metric.entity';
 import { AuthState } from './platforms/facebook/entity/auth-state.entity';
+import { ParticipantEntity } from './messaging/conversations/entities/participant.entity';
+import { FacebookAccount } from './platforms/facebook/entity/facebook-account.entity';
+import { SocialAccount } from './platforms/entity/social-account.entity';
+import { FacebookPostMetric } from './platforms/facebook/entity/facebook-post-metric.entity';
 
 @Module({
   imports: [
@@ -66,10 +70,14 @@ import { AuthState } from './platforms/facebook/entity/auth-state.entity';
         Team,
         UserTenant,
         Notification,
+        FacebookPostMetric,
         FacebookPost,
         FacebookPage,
         FacebookPageMetric,
         AuthState,
+        ParticipantEntity,
+        FacebookAccount,
+        SocialAccount,
       ],
     }),
     LoggerModule.forRoot({
