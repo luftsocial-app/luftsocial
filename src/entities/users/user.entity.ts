@@ -13,9 +13,9 @@ import { Tenant } from './tenant.entity';
 import { Role } from '../roles/role.entity';
 import { Permission } from '../../common/enums/roles';
 import { UserTenant } from './user-tenant.entity';
-import { Message } from '../../entities/chats/message.entity';
-import { Conversation } from '../chats/conversation.entity';
+import { MessageEntity } from '../../messaging/messages/entities/message.entity';
 import { Team } from './team.entity';
+import { ParticipantEntity } from '../../messaging/conversations/entities/participant.entity';
 
 @Entity({ name: 'tbl_users' })
 export class User {
@@ -113,12 +113,9 @@ export class User {
   @Column({ name: 'deleted_by', nullable: true })
   deletedBy: string;
 
-  @OneToMany(() => Message, (message) => message.sender)
-  sentMessages: Message[];
+  @OneToMany(() => MessageEntity, (message) => message.sender)
+  sentMessages: MessageEntity[];
 
-  @ManyToMany(() => Conversation, (conversation) => conversation.participants)
-  conversations: Conversation[];
-
-  @ManyToMany(() => Conversation, (conversation) => conversation.admins)
-  adminOf: Conversation[];
+  @OneToMany(() => ParticipantEntity, (participant) => participant.user)
+  conversationParticipants: ParticipantEntity[];
 }

@@ -10,6 +10,13 @@ logger:
         - req.headers.auth
       censor: '***'
 port: 3000
+messaging:
+  throttle:
+    messageRateMs: 500 # Time between messages (ms)
+    typingRateMs: 2000 # Time between typing indicators (ms)
+    readReceiptRateMs: 1000 # Time between read receipts (ms)
+    maxClientsPerUser: 5 # Maximum number of concurrent connections per user
+    connectionTimeout: 30000 # WebSocket connection timeout (ms)
 db:
   options:
     type: postgres

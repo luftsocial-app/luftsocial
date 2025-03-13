@@ -1,0 +1,223 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { MessageValidatorService } from './message-validator.service';
+import { Logger } from '@nestjs/common';
+import {
+  MessageEventPayload,
+  MessageUpdatePayload,
+  ReactionPayload,
+} from '../events/message-events';
+
+describe('MessageValidatorService', () => {
+  let service: MessageValidatorService;
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        MessageValidatorService,
+        {
+          provide: Logger,
+          useValue: {
+            error: jest.fn(),
+            debug: jest.fn(),
+          },
+        },
+      ],
+    }).compile();
+
+    service = module.get<MessageValidatorService>(MessageValidatorService);
+  });
+
+  it('should be defined', () => {
+    expect(service).toBeDefined();
+  });
+
+  describe('validateNewMessage', () => {
+    it('should return null for valid message payload', () => {
+      const payload: MessageEventPayload = {
+        conversationId: 'conv-123',
+        content: 'Hello world',
+      };
+
+      const result = service.validateNewMessage(payload);
+      expect(result).toBeNull();
+    });
+
+    it('should return error when conversationId is missing', () => {
+      const payload: MessageEventPayload = {
+        conversationId: '',
+        content: 'Hello world',
+      };
+
+      const result = service.validateNewMessage(payload);
+      expect(result).toBe('Conversation ID is required');
+    });
+
+    it('should return error when content is missing', () => {
+      const payload: MessageEventPayload = {
+        conversationId: 'conv-123',
+        content: '',
+      };
+
+      const result = service.validateNewMessage(payload);
+      expect(result).toBe('Message content is required');
+    });
+
+    it('should return error when content exceeds maximum length', () => {
+      const payload: MessageEventPayload = {
+        conversationId: 'conv-123',
+        content: 'a'.repeat(5001), // MAX_MESSAGE_LENGTH + 1
+      };
+
+      const result = service.validateNewMessage(payload);
+      expect(result).toBe('Message exceeds maximum length of 5000 characters');
+    });
+
+    it('should return error when content is less than minimum length', () => {
+      const payload: MessageEventPayload = {
+        conversationId: 'conv-123',
+        content: '',
+      };
+
+      const result = service.validateNewMessage(payload);
+      expect(result).toBe('Message content is required');
+    });
+
+    it('should return error when content contains XSS attempt', () => {
+      const payload: MessageEventPayload = {
+        conversationId: 'conv-123',
+        content: 'Hello <script>alert("XSS")</script>',
+      };
+
+      const result = service.validateNewMessage(payload);
+      expect(result).toBe('Message contains forbidden content');
+    });
+
+    it('should return error message when an exception occurs', () => {
+      // Create a payload that will cause an error when accessed
+      const payload = null;
+
+      const result = service.validateNewMessage(payload);
+      expect(result).toBe('Invalid message format');
+    });
+  });
+
+  describe('validateMessageUpdate', () => {
+    it('should return null for valid update payload', () => {
+      const payload: MessageUpdatePayload = {
+        messageId: 'msg-123',
+        content: 'Updated content',
+      };
+
+      const result = service.validateMessageUpdate(payload);
+      expect(result).toBeNull();
+    });
+
+    it('should return error when messageId is missing', () => {
+      const payload: MessageUpdatePayload = {
+        messageId: '',
+        content: 'Updated content',
+      };
+
+      const result = service.validateMessageUpdate(payload);
+      expect(result).toBe('Message ID is required');
+    });
+
+    it('should return error when content is missing', () => {
+      const payload: MessageUpdatePayload = {
+        messageId: 'msg-123',
+        content: '',
+      };
+
+      const result = service.validateMessageUpdate(payload);
+      expect(result).toBe('Updated content is required');
+    });
+
+    it('should return error when content exceeds maximum length', () => {
+      const payload: MessageUpdatePayload = {
+        messageId: 'msg-123',
+        content: 'a'.repeat(5001), // MAX_MESSAGE_LENGTH + 1
+      };
+
+      const result = service.validateMessageUpdate(payload);
+      expect(result).toBe('Message exceeds maximum length of 5000 characters');
+    });
+
+    it('should return error when content is less than minimum length', () => {
+      const payload: MessageUpdatePayload = {
+        messageId: 'msg-123',
+        content: '',
+      };
+
+      const result = service.validateMessageUpdate(payload);
+      expect(result).toBe('Updated content is required');
+    });
+
+    it('should return error message when an exception occurs', () => {
+      // Create a payload that will cause an error when accessed
+      const payload = null;
+
+      const result = service.validateMessageUpdate(payload);
+      expect(result).toBe('Invalid update format');
+    });
+  });
+
+  describe('validateReaction', () => {
+    it('should return null for valid reaction payload with emoji', () => {
+      const payload: ReactionPayload = {
+        messageId: 'msg-123',
+        emoji: '👍',
+      };
+
+      const result = service.validateReaction(payload);
+      expect(result).toBeNull();
+    });
+
+    it('should return error when messageId is missing', () => {
+      const payload: ReactionPayload = {
+        messageId: '',
+        emoji: '👍',
+      };
+
+      const result = service.validateReaction(payload);
+      expect(result).toBe('Message ID is required');
+    });
+
+    it('should return error when emoji is missing', () => {
+      const payload: ReactionPayload = {
+        messageId: 'msg-123',
+        emoji: '',
+      };
+
+      const result = service.validateReaction(payload);
+      expect(result).toBe('Emoji is required');
+    });
+
+    it('should return error for invalid emoji format', () => {
+      const payload: ReactionPayload = {
+        messageId: 'msg-123',
+        emoji: 'this-is-not-an-emoji-and-is-too-long',
+      };
+
+      const result = service.validateReaction(payload);
+      expect(result).toBe('Invalid emoji format');
+    });
+
+    it('should accept short text emoji alternatives', () => {
+      const payload: ReactionPayload = {
+        messageId: 'msg-123',
+        emoji: ':)',
+      };
+
+      const result = service.validateReaction(payload);
+      expect(result).toBeNull();
+    });
+
+    it('should return error message when an exception occurs', () => {
+      // Create a payload that will cause an error when accessed
+      const payload = null;
+
+      const result = service.validateReaction(payload);
+      expect(result).toBe('Invalid reaction format');
+    });
+  });
+});

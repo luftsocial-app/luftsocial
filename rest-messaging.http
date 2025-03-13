@@ -1,0 +1,150 @@
+@baseUrl = http://localhost:3000
+@tenantId = 022058bf-df69-43a9-8250-ec0cece1e9e0
+@authToken = YOUR_AUTH_TOKEN
+@userId = user-id-here
+@conversationId = conversation-id-here
+@messageId = message-id-here
+
+### Conversations API ###
+
+### Get all conversations for the current user
+GET {{baseUrl}}/conversations
+x-tenant-id: {{tenantId}}
+Authorization: Bearer {{authToken}}
+
+### Get a specific conversation by ID
+GET {{baseUrl}}/conversations/{{conversationId}}
+x-tenant-id: {{tenantId}}
+Authorization: Bearer {{authToken}}
+
+### Create or get a direct chat with another user
+POST {{baseUrl}}/conversations/direct/{{userId}}
+x-tenant-id: {{tenantId}}
+Authorization: Bearer {{authToken}}
+
+### Create a new group chat
+POST {{baseUrl}}/conversations/group
+content-type: application/json
+x-tenant-id: {{tenantId}}
+Authorization: Bearer {{authToken}}
+
+{
+    "name": "Group Chat Name",
+    "participantIds": ["user-id-1", "user-id-2"]
+}
+
+### Add participants to a conversation
+POST {{baseUrl}}/conversations/{{conversationId}}/participants
+content-type: application/json
+x-tenant-id: {{tenantId}}
+Authorization: Bearer {{authToken}}
+
+{
+    "participantIds": ["user-id-1", "user-id-2"]
+}
+
+### Update conversation settings
+PATCH {{baseUrl}}/conversations/{{conversationId}}/settings
+content-type: application/json
+x-tenant-id: {{tenantId}}
+Authorization: Bearer {{authToken}}
+
+{
+    "name": "Updated Group Name",
+    "avatar": "avatar-url",
+    "color": "#FF5733"
+}
+
+### Create a new message in a conversation (via conversation controller)
+POST {{baseUrl}}/conversations/{{conversationId}}/messages
+content-type: application/json
+x-tenant-id: {{tenantId}}
+Authorization: Bearer {{authToken}}
+
+{
+    "content": "Hello, this is a message"
+}
+
+### Messages API ###
+
+### Get messages from a conversation
+GET {{baseUrl}}/messages/conversations/{{conversationId}}?limit=20&cursor=last-message-id&direction=older
+x-tenant-id: {{tenantId}}
+Authorization: Bearer {{authToken}}
+
+### Create a new message (via message controller)
+POST {{baseUrl}}/messages
+content-type: application/json
+x-tenant-id: {{tenantId}}
+Authorization: Bearer {{authToken}}
+
+{
+    "conversationId": "{{conversationId}}",
+    "content": "Hello, this is a message",
+    "parentMessageId": null
+}
+
+### Get message history for a user
+GET {{baseUrl}}/messages/history/{{userId}}
+x-tenant-id: {{tenantId}}
+Authorization: Bearer {{authToken}}
+
+### Get message by ID
+GET {{baseUrl}}/messages/{{messageId}}
+x-tenant-id: {{tenantId}}
+Authorization: Bearer {{authToken}}
+
+### Update a message
+PATCH {{baseUrl}}/messages/{{messageId}}
+content-type: application/json
+x-tenant-id: {{tenantId}}
+Authorization: Bearer {{authToken}}
+
+{
+    "content": "Updated message content"
+}
+
+### Delete a message
+DELETE {{baseUrl}}/messages/{{messageId}}
+x-tenant-id: {{tenantId}}
+Authorization: Bearer {{authToken}}
+
+### Add a reaction to a message
+POST {{baseUrl}}/messages/{{messageId}}/reactions
+content-type: application/json
+x-tenant-id: {{tenantId}}
+Authorization: Bearer {{authToken}}
+
+{
+    "emoji": "👍"
+}
+
+### Remove a reaction from a message
+DELETE {{baseUrl}}/messages/{{messageId}}/reactions
+content-type: application/json
+x-tenant-id: {{tenantId}}
+Authorization: Bearer {{authToken}}
+
+{
+    "emoji": "👍"
+}
+
+### Get attachments for a message
+GET {{baseUrl}}/messages/{{messageId}}/attachments
+x-tenant-id: {{tenantId}}
+Authorization: Bearer {{authToken}}
+
+### Get thread replies
+GET {{baseUrl}}/messages/{{messageId}}/replies
+x-tenant-id: {{tenantId}}
+Authorization: Bearer {{authToken}}
+
+### Mark message as read
+POST {{baseUrl}}/messages/{{messageId}}/read
+x-tenant-id: {{tenantId}}
+Authorization: Bearer {{authToken}}
+
+### Get unread count for a conversation
+GET {{baseUrl}}/messages/unread/{{conversationId}}
+x-tenant-id: {{tenantId}}
+Authorization: Bearer {{authToken}} 

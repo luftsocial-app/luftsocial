@@ -67,7 +67,7 @@ describe('LinkedInRepository', () => {
     comments: 20,
     shares: 10,
     engagementRate: 0.0375,
-    industryData: { tech: 40, finance: 30 }, 
+    industryData: { tech: 40, finance: 30 },
     collectedAt: new Date(),
     createdAt: new Date(),
     updatedAt: new Date(),

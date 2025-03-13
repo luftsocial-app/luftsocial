@@ -13,30 +13,40 @@ import { LoggerMiddleware } from '../logger.middleware';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TenantMiddleware } from './middleware/tenant.middleware';
 import { UsersModule } from './user-management/users/users.module';
-import { User } from './entities/users/user.entity';
 import { ClerkAuthGuard } from './guards/clerk-auth.guard';
 import { RolesGuard } from './guards/role-guard';
-import { Role } from './entities/roles/role.entity';
-import { Permissions } from './entities/roles/permissions.entity';
-import { Tenant } from './entities/users/tenant.entity';
-import { DatabaseModule } from './database/database.module';
 import { PostsModule } from './post-management/posts/posts.module';
-import { Post } from './entities/posts/post.entity';
-import { Conversation } from './entities/chats/conversation.entity';
-import { ChatParticipants } from './entities/chats/chat-participants.entity';
-import { UserRoleChange } from './entities/roles/user-role-change.entity';
-import { Notification } from './entities/notifications/notification.entity';
-import { Team } from './entities/users/team.entity';
-import { UserTenant } from './entities/users/user-tenant.entity';
-import { MessageModule } from './messaging/message/message.module';
-import { Message } from './entities/chats/message.entity';
-import { ChatModule } from './messaging/chat/chat.module';
 import { TenantModule } from './user-management/tenant/tenant.module';
 import { TaskModule } from './task/task.module';
 import { MediaStorageModule } from './asset-management/media-storage/media-storage.module';
 import { CacheModule } from './cache/cache.module';
 import { PlatformsModule } from './platforms/platforms.module';
 import { FacebookModule } from './platforms/facebook/facebook.module';
+import { DatabaseModule } from './database/database.module';
+import { MessagingModule } from './messaging/messaging.module';
+
+// Entity imports
+import { User } from './entities/users/user.entity';
+import { Tenant } from './entities/users/tenant.entity';
+import { UserRoleChange } from './entities/roles/user-role-change.entity';
+import { Permissions } from './entities/roles/permissions.entity';
+import { Role as RoleEntity } from './entities/roles/role.entity';
+import { ConversationEntity } from './messaging/conversations/entities/conversation.entity';
+import { MessageEntity } from './messaging/messages/entities/message.entity';
+import { AttachmentEntity } from './messaging/messages/entities/attachment.entity';
+import { Post as PostEntity } from './entities/posts/post.entity';
+import { Team } from './entities/users/team.entity';
+import { UserTenant } from './entities/users/user-tenant.entity';
+import { Notification } from './entities/notifications/notification.entity';
+import { FacebookPost } from './platforms/facebook/entity/facebook-post.entity';
+import { FacebookPage } from './platforms/facebook/entity/facebook-page.entity';
+import { FacebookPageMetric } from './platforms/facebook/entity/facebook-page-metric.entity';
+import { AuthState } from './platforms/facebook/entity/auth-state.entity';
+import { ParticipantEntity } from './messaging/conversations/entities/participant.entity';
+import { FacebookAccount } from './platforms/facebook/entity/facebook-account.entity';
+import { SocialAccount } from './platforms/entity/social-account.entity';
+import { FacebookPostMetric } from './platforms/facebook/entity/facebook-post-metric.entity';
+
 import { InstagramModule } from './platforms/instagram/instagram.module';
 @Module({
   imports: [
@@ -53,15 +63,22 @@ import { InstagramModule } from './platforms/instagram/instagram.module';
         Tenant,
         UserRoleChange,
         Permissions,
-        Role,
-        Conversation,
-        Message,
-        ChatParticipants,
-        Notification,
-        Post,
+        RoleEntity,
+        ConversationEntity,
+        MessageEntity,
+        AttachmentEntity,
+        PostEntity,
         Team,
         UserTenant,
-        ChatModule,
+        Notification,
+        FacebookPostMetric,
+        FacebookPost,
+        FacebookPage,
+        FacebookPageMetric,
+        AuthState,
+        ParticipantEntity,
+        FacebookAccount,
+        SocialAccount,
       ],
     }),
     LoggerModule.forRoot({
@@ -73,15 +90,13 @@ import { InstagramModule } from './platforms/instagram/instagram.module';
         limit: 5,
       },
     ]),
-
+    MessagingModule,
     HealthModule,
-    MessageModule,
     ScheduleModule.forRoot(),
     UsersModule,
     HealthModule,
     DatabaseModule,
     PostsModule,
-    MessageModule,
     TenantModule,
     TaskModule,
     MediaStorageModule,

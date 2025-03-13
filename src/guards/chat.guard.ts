@@ -1,9 +1,9 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
-import { ChatService } from '../messaging/chat/chat.service';
+import { ConversationService } from '../messaging/conversations/services/conversation.service';
 
 @Injectable()
 export class ChatGuard implements CanActivate {
-  constructor(private chatService: ChatService) {}
+  constructor(private conversationService: ConversationService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
@@ -16,7 +16,7 @@ export class ChatGuard implements CanActivate {
     }
 
     // Check if user has access to the conversation
-    return this.chatService.validateAccess(
+    return this.conversationService.validateAccess(
       conversationId,
       user.id,
       user.tenantId,
