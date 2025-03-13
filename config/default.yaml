@@ -20,11 +20,11 @@ messaging:
 db:
   options:
     type: postgres
-    username: root
-    password: admin
+    username: postgres
+    password: Akinolami6650
     host: localhost
-    port: 5434
-    database: start-template
+    port: 5433
+    database: loftSocial
     synchronize: false
 cache:
   redis:
@@ -52,3 +52,18 @@ platforms:
     clientSecret: ${FACEBOOK_CLIENT_SECRET}
     redirectUri: ${FACEBOOK_REDIRECT_URI}
     apiVersion: v18.0
+  instagram:
+    clientId: INSTAGRAM_CLIENT_ID
+    clientSecret: INSTAGRAM_CLIENT_SECRET
+    redirectUri: INSTAGRAM_REDIRECT_URI
+    apiVersion: INSTAGRAM_API_VERSION
+  linkedin:
+    clientId: LINKEDIN_CLIENT_ID
+    clientSecret: LINKEDIN_CLIENT_SECRET
+    redirectUri: LINKEDIN_REDIRECT_URI
+    apiVersion: LINKEDIN_API_VERSION
+  tiktok:
+    clientKey: TIKTOK_CLIENT_ID
+    clientSecret: TIKTOK_CLIENT_SECRET
+    redirectUri: TIKTOK_REDIRECT_URI
+    apiVersion: TIKTOK_API_VERSION

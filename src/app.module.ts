@@ -47,6 +47,7 @@ import { FacebookAccount } from './platforms/facebook/entity/facebook-account.en
 import { SocialAccount } from './platforms/entity/social-account.entity';
 import { FacebookPostMetric } from './platforms/facebook/entity/facebook-post-metric.entity';
 
+import { InstagramModule } from './platforms/instagram/instagram.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -101,6 +102,7 @@ import { FacebookPostMetric } from './platforms/facebook/entity/facebook-post-me
     MediaStorageModule,
     CacheModule,
     FacebookModule,
+    InstagramModule,
     PlatformsModule,
   ],
   controllers: [AppController],

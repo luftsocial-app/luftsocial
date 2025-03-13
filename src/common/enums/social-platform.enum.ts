@@ -1,6 +1,6 @@
 export enum SocialPlatform {
-  // INSTAGRAM = 'INSTAGRAM',
+  INSTAGRAM = 'INSTAGRAM',
   FACEBOOK = 'FACEBOOK',
-  // TIKTOK = 'TIKTOK',
-  // LINKEDIN = 'LINKEDIN',
+  TIKTOK = 'TIKTOK',
+  LINKEDIN = 'LINKEDIN',
 }

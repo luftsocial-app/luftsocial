@@ -15,6 +15,7 @@ import { AuthState } from './entity/auth-state.entity';
 import { SocialAccount } from '../entity/social-account.entity';
 import { MediaStorageModule } from '../../asset-management/media-storage/media-storage.module';
 import { DatabaseModule } from '../../database/database.module';
+import { PlatformAuthModule } from '../../platform-auth/platform-auth.module';
 
 @Module({
   controllers: [FacebookController],
@@ -34,6 +35,7 @@ import { DatabaseModule } from '../../database/database.module';
       FacebookPageMetric,
       AuthState,
       SocialAccount,
+      PlatformAuthModule,
     ]),
     DatabaseModule,
     MediaStorageModule,

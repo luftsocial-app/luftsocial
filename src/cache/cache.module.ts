@@ -11,6 +11,7 @@ function createRedisUrl(redisConfig: any): string {
     username && password
       ? `${encodeURIComponent(username)}:${encodeURIComponent(password)}@`
       : '';
+  console.log('auth', auth);
 
   return `redis://${auth}${host}:${port}`;
 }
