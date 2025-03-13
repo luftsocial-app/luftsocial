@@ -199,12 +199,10 @@ describe('OAuth2Service', () => {
     // Token cache service
     const mockTokenCacheService = {
       storeState: jest.fn().mockResolvedValue(undefined),
-      getStoredState: jest
-        .fn()
-        .mockResolvedValue({
-          platform: SocialPlatform.FACEBOOK,
-          userId: mockUserId,
-        }),
+      getStoredState: jest.fn().mockResolvedValue({
+        platform: SocialPlatform.FACEBOOK,
+        userId: mockUserId,
+      }),
       generateKey: jest.fn().mockReturnValue('cache_key'),
       getToken: jest.fn().mockResolvedValue(null),
       setToken: jest.fn().mockResolvedValue(undefined),
