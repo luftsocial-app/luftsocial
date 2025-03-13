@@ -9,8 +9,8 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { LinkedInOrganization } from './linkedin-organization.entity';
-import { SocialAccount } from '../../../platforms/entity/social-account.entity';
-import { TenantEntity } from '../../../platforms/entity/tenant-entity';
+import { TenantEntity } from '../../notifications/entity/tenant-entity';
+import { SocialAccount } from '../../notifications/entity/social-account.entity';
 
 @Entity('linkedin_accounts')
 export class LinkedInAccount extends TenantEntity {

@@ -4,12 +4,12 @@ services:
     restart: always
     environment:
       POSTGRES_PASSWORD: admin
-      POSTGRES_DB: start-template
+      POSTGRES_DB: luftsocial
       POSTGRES_USER: root
       PGPORT: 5434
     container_name: postgres
     volumes:
-      - ./data/postgres:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
     ports: ['5434:5434']
 
   # app:

@@ -2,15 +2,15 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import * as crypto from 'crypto';
-import { LinkedInAccount } from '../entities/linkedin-account.entity';
-import { LinkedInOrganization } from '../entities/linkedin-organization.entity';
-import { LinkedInMetric } from '../entities/linkedin-metric.entity';
-import { LinkedInPost } from '../entities/linkedin-post.entity';
-import { SocialAccount } from '../../../platforms/entity/social-account.entity';
-import { AuthState } from '../../../platforms/facebook/entity/auth-state.entity';
+import { LinkedInAccount } from '../../../entities/socials/linkedin-entities/linkedin-account.entity';
+import { LinkedInOrganization } from '../../../entities/socials/linkedin-entities/linkedin-organization.entity';
+import { LinkedInMetric } from '../../../entities/socials/linkedin-entities/linkedin-metric.entity';
+import { LinkedInPost } from '../../../entities/socials/linkedin-entities/linkedin-post.entity';
 import { SocialPlatform } from '../../../common/enums/social-platform.enum';
 import { NotFoundException } from '@nestjs/common';
 import { LinkedInRepository } from './linkedin.repository';
+import { SocialAccount } from '../../../entities/notifications/entity/social-account.entity';
+import { AuthState } from '../../../entities/socials/facebook-entities/auth-state.entity';
 
 // Mock for crypto.randomBytes
 jest.mock('crypto', () => ({

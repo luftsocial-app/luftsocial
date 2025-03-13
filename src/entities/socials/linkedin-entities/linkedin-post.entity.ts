@@ -8,8 +8,8 @@ import {
   OneToMany,
 } from 'typeorm';
 import { LinkedInOrganization } from './linkedin-organization.entity';
-import { TenantEntity } from '../../../platforms/entity/tenant-entity';
 import { MediaStorageItem } from '../../../asset-management/media-storage/media-storage.dto';
+import { TenantEntity } from '../../notifications/entity/tenant-entity';
 
 @Entity('linkedin_posts')
 export class LinkedInPost extends TenantEntity {

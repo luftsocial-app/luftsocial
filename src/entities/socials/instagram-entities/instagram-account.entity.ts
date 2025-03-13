@@ -9,8 +9,8 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { InstagramPost } from './instagram-post.entity';
-import { SocialAccount } from '../../entity/social-account.entity';
-import { TenantEntity } from '../../entity/tenant-entity';
+import { SocialAccount } from '../../notifications/entity/social-account.entity';
+import { TenantEntity } from '../../notifications/entity/tenant-entity';
 
 @Entity('instagram_accounts')
 export class InstagramAccount extends TenantEntity {

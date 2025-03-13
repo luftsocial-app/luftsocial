@@ -9,8 +9,8 @@ import {
   OneToOne,
 } from 'typeorm';
 import { TikTokVideo } from './tiktok-video.entity';
-import { TenantEntity } from '../../../platforms/entity/tenant-entity';
-import { SocialAccount } from '../../../platforms/entity/social-account.entity';
+import { TenantEntity } from '../../notifications/entity/tenant-entity';
+import { SocialAccount } from '../../notifications/entity/social-account.entity';
 
 @Entity('tiktok_accounts')
 export class TikTokAccount extends TenantEntity {

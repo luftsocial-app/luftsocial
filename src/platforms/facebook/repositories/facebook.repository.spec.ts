@@ -4,14 +4,15 @@ import { Repository, EntityManager, MoreThan, LessThan } from 'typeorm';
 import { NotFoundException } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { FacebookRepository } from './facebook.repository';
-import { FacebookAccount } from '../entity/facebook-account.entity';
-import { FacebookPage } from '../entity/facebook-page.entity';
-import { FacebookPost } from '../entity/facebook-post.entity';
-import { FacebookPostMetric } from '../entity/facebook-post-metric.entity';
-import { FacebookPageMetric } from '../entity/facebook-page-metric.entity';
-import { AuthState } from '../entity/auth-state.entity';
 import { SocialPlatform } from '../../../common/enums/social-platform.enum';
-import { SocialAccount } from '../../entity/social-account.entity';
+import { SocialAccount } from '../../../entities/notifications/entity/social-account.entity';
+import { AuthState } from '../../../entities/socials/facebook-entities/auth-state.entity';
+import { FacebookAccount } from '../../../entities/socials/facebook-entities/facebook-account.entity';
+import { FacebookPageMetric } from '../../../entities/socials/facebook-entities/facebook-page-metric.entity';
+import { FacebookPage } from '../../../entities/socials/facebook-entities/facebook-page.entity';
+import { FacebookPostMetric } from '../../../entities/socials/facebook-entities/facebook-post-metric.entity';
+import { FacebookPost } from '../../../entities/socials/facebook-entities/facebook-post.entity';
+
 
 //TODO: FIX TESTS
 

@@ -1,17 +1,17 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, LessThan, MoreThan, Repository } from 'typeorm';
-import { TikTokAccount } from '../entities/tiktok-account.entity';
-import { TikTokVideo } from '../entities/tiktok-video.entity';
-import { TikTokMetric } from '../entities/tiktok-metric.entity';
-import { TikTokRateLimit } from '../entities/tiktok_rate_limits.entity';
-import { TikTokComment } from '../entities/tiktok_comments.entity';
+import { TikTokAccount } from '../../../entities/socials/tiktok-entities/tiktok-account.entity';
+import { TikTokVideo } from '../../../entities/socials/tiktok-entities/tiktok-video.entity';
+import { TikTokMetric } from '../../../entities/socials/tiktok-entities/tiktok-metric.entity';
+import { TikTokRateLimit } from '../../../entities/socials/tiktok-entities/tiktok_rate_limits.entity';
+import { TikTokComment } from '../../../entities/socials/tiktok-entities/tiktok_comments.entity';
 import {
   CreateUploadSessionParams,
   TikTokVideoPrivacyLevel,
 } from '../helpers/tiktok.interfaces';
-import { SocialAccount } from '../../../platforms/entity/social-account.entity';
 import { TenantAwareRepository } from '../../../database/tenant-aware.repository';
+import { SocialAccount } from '../../../entities/notifications/entity/social-account.entity';
 
 @Injectable()
 export class TikTokRepository extends TenantAwareRepository {

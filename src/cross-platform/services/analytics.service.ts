@@ -12,7 +12,7 @@ import {
   PlatformMetrics,
   PostMetrics,
 } from '../helpers/cross-platform.interface';
-import { AnalyticsRecord } from '../entity/analytics.entity';
+import { AnalyticsRecord } from '../../entities/cross-platform-entities/analytics.entity';
 import { SocialPlatform } from '../../common/enums/social-platform.enum';
 
 @Injectable()
@@ -24,7 +24,7 @@ export class AnalyticsService {
     private readonly instagramService: InstagramService,
     private readonly linkedinService: LinkedInService,
     private readonly tiktokService: TikTokService,
-  ) {}
+  ) { }
 
   async getAccountAnalytics(params: {
     userId: string;
@@ -69,11 +69,11 @@ export class AnalyticsService {
         result.status === 'fulfilled'
           ? result.value
           : {
-              platform: result.reason.platform,
-              accountId: result.reason.accountId,
-              success: false,
-              error: result.reason.message,
-            },
+            platform: result.reason.platform,
+            accountId: result.reason.accountId,
+            success: false,
+            error: result.reason.message,
+          },
       ),
     });
 

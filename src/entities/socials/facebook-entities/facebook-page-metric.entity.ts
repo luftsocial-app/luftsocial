@@ -6,7 +6,8 @@ import {
   CreateDateColumn,
 } from 'typeorm';
 import { FacebookPage } from './facebook-page.entity';
-import { TenantEntity } from '../../entity/tenant-entity';
+import { TenantEntity } from '../../notifications/entity/tenant-entity';
+
 
 @Entity('facebook_page_metrics')
 export class FacebookPageMetric extends TenantEntity {

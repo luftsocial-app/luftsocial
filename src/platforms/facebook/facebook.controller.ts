@@ -20,12 +20,12 @@ import {
   UpdatePostDto,
 } from './helpers/post.dto';
 import { RateLimitInterceptor } from './helpers/rate-limit.interceptor';
-import { FacebookPost } from './entity/facebook-post.entity';
-import { FacebookPage } from './entity/facebook-page.entity';
 import { ClerkAuthGuard } from '../../guards/clerk-auth.guard';
 import { FilesInterceptor } from '@nestjs/platform-express/multer';
 import { MediaItem } from '../platform-service.interface';
 import { CurrentUser } from '../../decorators/current-user.decorator';
+import { FacebookPage } from '../../entities/socials/facebook-entities/facebook-page.entity';
+import { FacebookPost } from '../../entities/socials/facebook-entities/facebook-post.entity';
 
 @Controller('platforms/facebook')
 @UseInterceptors(RateLimitInterceptor)

@@ -6,15 +6,15 @@ import { LinkedInRepository } from './repositories/linkedin.repository';
 import { LinkedInController } from './linkedin.controller';
 import { LinkedInConfig } from './config/linkedin.config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { LinkedInAccount } from './entities/linkedin-account.entity';
-import { LinkedInOrganization } from './entities/linkedin-organization.entity';
-import { LinkedInMetric, LinkedInPost } from './entities/linkedin-post.entity';
-import { AuthState } from '../facebook/entity/auth-state.entity';
-import { SocialAccount } from '../entity/social-account.entity';
+import { LinkedInAccount } from '../../entities/socials/linkedin-entities/linkedin-account.entity';
+import { LinkedInOrganization } from '../../entities/socials/linkedin-entities/linkedin-organization.entity';
+import { LinkedInMetric, LinkedInPost } from '../../entities/socials/linkedin-entities/linkedin-post.entity';
 import { DatabaseModule } from '../../database/database.module';
 import { ConfigModule } from '@nestjs/config';
 import { PlatformAuthModule } from '../../platform-auth/platform-auth.module';
 import { MediaStorageModule } from '../../asset-management/media-storage/media-storage.module';
+import { SocialAccount } from '../../entities/notifications/entity/social-account.entity';
+import { AuthState } from '../../entities/socials/facebook-entities/auth-state.entity';
 
 @Module({
   controllers: [LinkedInController],
@@ -41,4 +41,4 @@ import { MediaStorageModule } from '../../asset-management/media-storage/media-s
   ],
   exports: [LinkedInService],
 })
-export class LinkedInModule {}
+export class LinkedInModule { }

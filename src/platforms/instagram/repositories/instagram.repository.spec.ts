@@ -3,14 +3,16 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository, EntityManager, MoreThan, LessThan } from 'typeorm';
 import * as crypto from 'crypto';
 import { InstagramRepository } from './instagram.repository';
-import { InstagramAccount } from '../entities/instagram-account.entity';
-import { InstagramMetric } from '../entities/instagram-metric.entity';
-import { InstagramRateLimit } from '../entities/instagram-rate-limit.entity';
-import { InstagramPost } from '../entities/instagram-post.entity';
-import { SocialAccount } from '../../entity/social-account.entity';
-import { SocialPlatform } from '../../../common/enums/social-platform.enum';
 import { NotFoundException } from '@nestjs/common';
-import { AuthState } from '../../facebook/entity/auth-state.entity';
+import { SocialPlatform } from '../../../common/enums/social-platform.enum';
+import { SocialAccount } from '../../../entities/notifications/entity/social-account.entity';
+import { AuthState } from '../../../entities/socials/facebook-entities/auth-state.entity';
+import { InstagramAccount } from '../../../entities/socials/instagram-entities/instagram-account.entity';
+import { InstagramMetric } from '../../../entities/socials/instagram-entities/instagram-metric.entity';
+import { InstagramPost } from '../../../entities/socials/instagram-entities/instagram-post.entity';
+import { InstagramRateLimit } from '../../../entities/socials/instagram-entities/instagram-rate-limit.entity';
+
+
 
 // Mock crypto.randomBytes
 jest.mock('crypto', () => ({

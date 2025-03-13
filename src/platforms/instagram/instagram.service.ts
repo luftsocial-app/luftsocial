@@ -23,11 +23,11 @@ import {
   DateRange,
   PostMetrics,
 } from '../../common/interface/platform-metrics.interface';
-import { InstagramAccount } from './entities/instagram-account.entity';
 import { MediaStorageItem } from '../../asset-management/media-storage/media-storage.dto';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
 import { MediaType } from '../../common/enums/media-type.enum';
 import { TenantService } from '../../database/tenant.service';
+import { InstagramAccount } from '../../entities/socials/instagram-entities/instagram-account.entity';
 
 @Injectable()
 export class InstagramService implements PlatformService {
@@ -38,7 +38,7 @@ export class InstagramService implements PlatformService {
     private readonly instagramRepo: InstagramRepository,
     private readonly mediaStorageService: MediaStorageService,
     private readonly tenantService: TenantService,
-  ) {}
+  ) { }
 
   private async uploadInstagramMediaItems(
     media: MediaItem[],

@@ -6,17 +6,18 @@ import { InstagramRepository } from './repositories/instagram.repository';
 import { InstagramService } from './instagram.service';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { InstagramAccount } from './entities/instagram-account.entity';
-import { InstagramMetric } from './entities/instagram-metric.entity';
-import { SocialAccount } from '../entity/social-account.entity';
-import { AuthState } from '../facebook/entity/auth-state.entity';
 import { InstagramConfig } from './helpers/instagram.config';
-import { InstagramRateLimit } from './entities/instagram-rate-limit.entity';
 import { RateLimitInterceptor } from './interceptors/rate-limit.interceptor';
-import { InstagramPost } from './entities/instagram-post.entity';
+
 import { DatabaseModule } from '../../database/database.module';
 import { MediaStorageModule } from '../../asset-management/media-storage/media-storage.module';
 import { PlatformAuthModule } from '../../platform-auth/platform-auth.module';
+import { InstagramAccount } from '../../entities/socials/instagram-entities/instagram-account.entity';
+import { SocialAccount } from '../../entities/notifications/entity/social-account.entity';
+import { AuthState } from '../../entities/socials/facebook-entities/auth-state.entity';
+import { InstagramMetric } from '../../entities/socials/instagram-entities/instagram-metric.entity';
+import { InstagramPost } from '../../entities/socials/instagram-entities/instagram-post.entity';
+import { InstagramRateLimit } from '../../entities/socials/instagram-entities/instagram-rate-limit.entity';
 
 @Module({
   imports: [
@@ -60,4 +61,4 @@ import { PlatformAuthModule } from '../../platform-auth/platform-auth.module';
   ],
   exports: [InstagramService, InstagramRepository, RateLimitInterceptor],
 })
-export class InstagramModule {}
+export class InstagramModule { }

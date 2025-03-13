@@ -13,9 +13,9 @@ import { InstagramService } from '../platforms/instagram/instagram.service';
 import { LinkedInService } from '../platforms/linkedin/linkedin.service';
 import { TikTokService } from '../platforms/tiktok/tiktok.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AnalyticsRecord } from './entity/analytics.entity';
-import { PublishRecord } from './entity/publish.entity';
-import { ScheduledPost } from './entity/schedule.entity';
+import { AnalyticsRecord } from '../entities/cross-platform-entities/analytics.entity';
+import { PublishRecord } from '../entities/cross-platform-entities/publish.entity';
+import { ScheduledPost } from '../entities/cross-platform-entities/schedule.entity';
 import { MulterModule } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { MediaStorageModule } from '../asset-management/media-storage/media-storage.module';
@@ -64,4 +64,4 @@ import { MediaStorageModule } from '../asset-management/media-storage/media-stor
   controllers: [CrossPlatformController],
   exports: [CrossPlatformService],
 })
-export class CrossPlatformModule {}
+export class CrossPlatformModule { }

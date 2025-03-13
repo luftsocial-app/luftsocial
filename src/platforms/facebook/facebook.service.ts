@@ -9,7 +9,7 @@ import {
 import axios from 'axios';
 import * as config from 'config';
 import { FacebookRepository } from './repositories/facebook.repository';
-import { FacebookPage } from './entity/facebook-page.entity';
+
 import {
   CreatePostDto,
   SchedulePagePostDto,
@@ -17,7 +17,7 @@ import {
   UpdatePageDto,
   UpdatePostDto,
 } from './helpers/post.dto';
-import { FacebookPost } from './entity/facebook-post.entity';
+
 import {
   CommentResponse,
   MediaItem,
@@ -34,11 +34,14 @@ import {
   AccountMetrics,
   DateRange,
 } from '../../common/interface/platform-metrics.interface';
-import { FacebookAccount } from './entity/facebook-account.entity';
+
 import { MediaStorageItem } from '../../asset-management/media-storage/media-storage.dto';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
 import { TenantService } from '../../database/tenant.service';
 import { FACEBOOK_SCOPES } from '../../common/enums/scopes.enum';
+import { FacebookAccount } from '../../entities/socials/facebook-entities/facebook-account.entity';
+import { FacebookPage } from '../../entities/socials/facebook-entities/facebook-page.entity';
+import { FacebookPost } from '../../entities/socials/facebook-entities/facebook-post.entity';
 
 @Injectable()
 export class FacebookService implements PlatformService {

@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ContentPublisherService } from './content-publisher.service';
 import { Repository } from 'typeorm';
-import { PublishRecord } from '../entity/publish.entity';
+import { PublishRecord } from '../../entities/cross-platform-entities/publish.entity';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { FacebookService } from '../../platforms/facebook/facebook.service';
 import { InstagramService } from '../../platforms/instagram/instagram.service';

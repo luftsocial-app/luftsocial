@@ -20,11 +20,11 @@ messaging:
 db:
   options:
     type: postgres
-    username: postgres
-    password: Akinolami6650
+    username: root
+    password: admin
     host: localhost
-    port: 5433
-    database: loftSocial
+    port: 5434
+    database: luftsocial
     synchronize: false
 cache:
   redis:

@@ -38,16 +38,16 @@ import { Post as PostEntity } from './entities/posts/post.entity';
 import { Team } from './entities/users/team.entity';
 import { UserTenant } from './entities/users/user-tenant.entity';
 import { Notification } from './entities/notifications/notification.entity';
-import { FacebookPost } from './platforms/facebook/entity/facebook-post.entity';
-import { FacebookPage } from './platforms/facebook/entity/facebook-page.entity';
-import { FacebookPageMetric } from './platforms/facebook/entity/facebook-page-metric.entity';
-import { AuthState } from './platforms/facebook/entity/auth-state.entity';
-import { ParticipantEntity } from './messaging/conversations/entities/participant.entity';
-import { FacebookAccount } from './platforms/facebook/entity/facebook-account.entity';
-import { SocialAccount } from './platforms/entity/social-account.entity';
-import { FacebookPostMetric } from './platforms/facebook/entity/facebook-post-metric.entity';
 
 import { InstagramModule } from './platforms/instagram/instagram.module';
+import { SocialAccount } from './entities/notifications/entity/social-account.entity';
+import { AuthState } from './entities/socials/facebook-entities/auth-state.entity';
+import { FacebookAccount } from './entities/socials/facebook-entities/facebook-account.entity';
+import { FacebookPageMetric } from './entities/socials/facebook-entities/facebook-page-metric.entity';
+import { FacebookPage } from './entities/socials/facebook-entities/facebook-page.entity';
+import { FacebookPostMetric } from './entities/socials/facebook-entities/facebook-post-metric.entity';
+import { FacebookPost } from './entities/socials/facebook-entities/facebook-post.entity';
+import { ParticipantEntity } from './messaging/conversations/entities/participant.entity';
 @Module({
   imports: [
     ConfigModule.forRoot({

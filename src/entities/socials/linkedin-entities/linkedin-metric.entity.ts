@@ -6,7 +6,8 @@ import {
   ManyToOne,
 } from 'typeorm';
 import { LinkedInPost } from './linkedin-post.entity';
-import { TenantEntity } from '../../../platforms/entity/tenant-entity';
+import { TenantEntity } from '../../notifications/entity/tenant-entity';
+
 
 @Entity('linkedin_metrics')
 export class LinkedInMetric extends TenantEntity {

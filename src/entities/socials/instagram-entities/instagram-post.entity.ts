@@ -9,7 +9,7 @@ import {
 } from 'typeorm';
 import { InstagramAccount } from './instagram-account.entity';
 import { InstagramMetric } from './instagram-metric.entity';
-import { TenantEntity } from '../../entity/tenant-entity';
+import { TenantEntity } from '../../notifications/entity/tenant-entity';
 import { MediaStorageItem } from '../../../asset-management/media-storage/media-storage.dto';
 
 @Entity('instagram_post')

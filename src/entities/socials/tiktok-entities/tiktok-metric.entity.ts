@@ -6,7 +6,7 @@ import {
   ManyToOne,
 } from 'typeorm';
 import { TikTokVideo } from './tiktok-video.entity';
-import { TenantEntity } from '../../../platforms/entity/tenant-entity';
+import { TenantEntity } from '../../notifications/entity/tenant-entity';
 
 @Entity('tiktok_metrics')
 export class TikTokMetric extends TenantEntity {

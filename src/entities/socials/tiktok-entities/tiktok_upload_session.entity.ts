@@ -7,7 +7,8 @@ import {
   ManyToOne,
 } from 'typeorm';
 import { TikTokAccount } from './tiktok-account.entity';
-import { TenantEntity } from '../../../platforms/entity/tenant-entity';
+import { TenantEntity } from '../../notifications/entity/tenant-entity';
+
 
 @Entity('tiktok_upload_sessions')
 export class TikTokUploadSession extends TenantEntity {
