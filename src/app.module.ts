@@ -37,6 +37,7 @@ import { MediaStorageModule } from './asset-management/media-storage/media-stora
 import { CacheModule } from './cache/cache.module';
 import { PlatformsModule } from './platforms/platforms.module';
 import { FacebookModule } from './platforms/facebook/facebook.module';
+import { InstagramModule } from './platforms/instagram/instagram.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -86,6 +87,7 @@ import { FacebookModule } from './platforms/facebook/facebook.module';
     MediaStorageModule,
     CacheModule,
     FacebookModule,
+    InstagramModule,
     PlatformsModule,
   ],
   controllers: [AppController],
