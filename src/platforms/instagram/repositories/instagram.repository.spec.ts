@@ -12,8 +12,6 @@ import { InstagramMetric } from '../../../entities/socials/instagram-entities/in
 import { InstagramPost } from '../../../entities/socials/instagram-entities/instagram-post.entity';
 import { InstagramRateLimit } from '../../../entities/socials/instagram-entities/instagram-rate-limit.entity';
 
-
-
 // Mock crypto.randomBytes
 jest.mock('crypto', () => ({
   randomBytes: jest.fn().mockReturnValue({

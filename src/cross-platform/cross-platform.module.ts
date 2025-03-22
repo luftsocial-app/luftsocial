@@ -64,4 +64,4 @@ import { MediaStorageModule } from '../asset-management/media-storage/media-stor
   controllers: [CrossPlatformController],
   exports: [CrossPlatformService],
 })
-export class CrossPlatformModule { }
+export class CrossPlatformModule {}

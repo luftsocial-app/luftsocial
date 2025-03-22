@@ -11,7 +11,6 @@ import { TenantEntity } from './tenant-entity';
 import { SocialPlatform } from '../../../common/enums/social-platform.enum';
 import { FacebookAccount } from '../../socials/facebook-entities/facebook-account.entity';
 
-
 @Entity('social_accounts')
 export class SocialAccount extends TenantEntity {
   @PrimaryGeneratedColumn('uuid')

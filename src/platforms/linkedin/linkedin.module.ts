@@ -8,7 +8,10 @@ import { LinkedInConfig } from './config/linkedin.config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { LinkedInAccount } from '../../entities/socials/linkedin-entities/linkedin-account.entity';
 import { LinkedInOrganization } from '../../entities/socials/linkedin-entities/linkedin-organization.entity';
-import { LinkedInMetric, LinkedInPost } from '../../entities/socials/linkedin-entities/linkedin-post.entity';
+import {
+  LinkedInMetric,
+  LinkedInPost,
+} from '../../entities/socials/linkedin-entities/linkedin-post.entity';
 import { DatabaseModule } from '../../database/database.module';
 import { ConfigModule } from '@nestjs/config';
 import { PlatformAuthModule } from '../../platform-auth/platform-auth.module';
@@ -41,4 +44,4 @@ import { AuthState } from '../../entities/socials/facebook-entities/auth-state.e
   ],
   exports: [LinkedInService],
 })
-export class LinkedInModule { }
+export class LinkedInModule {}

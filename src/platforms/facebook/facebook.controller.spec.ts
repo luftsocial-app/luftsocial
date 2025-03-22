@@ -14,7 +14,6 @@ import { ClerkAuthGuard } from '../../guards/clerk-auth.guard';
 import { FacebookPage } from '../../entities/socials/facebook-entities/facebook-page.entity';
 import { FacebookPost } from '../../entities/socials/facebook-entities/facebook-post.entity';
 
-
 describe('FacebookController', () => {
   let controller: FacebookController;
   let facebookService: FacebookService;

@@ -106,4 +106,4 @@ import { InstagramRateLimit } from '../entities/socials/instagram-entities/insta
     ]),
   ],
 })
-export class PlatformAuthModule { }
+export class PlatformAuthModule {}

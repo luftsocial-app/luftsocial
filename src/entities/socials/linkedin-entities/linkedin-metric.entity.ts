@@ -8,7 +8,6 @@ import {
 import { LinkedInPost } from './linkedin-post.entity';
 import { TenantEntity } from '../../notifications/entity/tenant-entity';
 
-
 @Entity('linkedin_metrics')
 export class LinkedInMetric extends TenantEntity {
   @PrimaryGeneratedColumn('uuid')

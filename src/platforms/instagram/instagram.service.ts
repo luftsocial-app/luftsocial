@@ -38,7 +38,7 @@ export class InstagramService implements PlatformService {
     private readonly instagramRepo: InstagramRepository,
     private readonly mediaStorageService: MediaStorageService,
     private readonly tenantService: TenantService,
-  ) { }
+  ) {}
 
   private async uploadInstagramMediaItems(
     media: MediaItem[],

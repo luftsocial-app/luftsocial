@@ -8,7 +8,6 @@ import {
 import { FacebookPage } from './facebook-page.entity';
 import { TenantEntity } from '../../notifications/entity/tenant-entity';
 
-
 @Entity('facebook_page_metrics')
 export class FacebookPageMetric extends TenantEntity {
   @PrimaryGeneratedColumn('uuid')

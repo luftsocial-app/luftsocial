@@ -61,4 +61,4 @@ import { InstagramRateLimit } from '../../entities/socials/instagram-entities/in
   ],
   exports: [InstagramService, InstagramRepository, RateLimitInterceptor],
 })
-export class InstagramModule { }
+export class InstagramModule {}

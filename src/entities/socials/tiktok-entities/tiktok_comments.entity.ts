@@ -9,7 +9,6 @@ import {
 import { TikTokVideo } from './tiktok-video.entity';
 import { TenantEntity } from '../../notifications/entity/tenant-entity';
 
-
 @Entity('tiktok_comments')
 export class TikTokComment extends TenantEntity {
   @PrimaryGeneratedColumn('uuid')

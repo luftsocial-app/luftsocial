@@ -131,7 +131,7 @@ describe('SchedulerService', () => {
     // Mock Logger
     loggerSpy = jest
       .spyOn(Logger.prototype, 'error')
-      .mockImplementation(() => { });
+      .mockImplementation(() => {});
   });
 
   afterEach(() => {

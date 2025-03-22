@@ -25,7 +25,7 @@ export class SchedulerService {
     private readonly scheduledPostRepo: Repository<ScheduledPost>,
     private readonly contentPublisherService: ContentPublisherService,
     private readonly mediaStorageService: MediaStorageService,
-  ) { }
+  ) {}
 
   @Cron(CronExpression.EVERY_MINUTE)
   async processScheduledPosts() {

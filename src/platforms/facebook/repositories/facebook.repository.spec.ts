@@ -13,7 +13,6 @@ import { FacebookPage } from '../../../entities/socials/facebook-entities/facebo
 import { FacebookPostMetric } from '../../../entities/socials/facebook-entities/facebook-post-metric.entity';
 import { FacebookPost } from '../../../entities/socials/facebook-entities/facebook-post.entity';
 
-
 //TODO: FIX TESTS
 
 // Mock crypto module

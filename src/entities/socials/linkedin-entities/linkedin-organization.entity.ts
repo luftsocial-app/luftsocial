@@ -11,7 +11,6 @@ import { LinkedInAccount } from './linkedin-account.entity';
 import { LinkedInPost } from './linkedin-post.entity';
 import { TenantEntity } from '../../notifications/entity/tenant-entity';
 
-
 @Entity('linkedin_organizations')
 export class LinkedInOrganization extends TenantEntity {
   @PrimaryGeneratedColumn('uuid')

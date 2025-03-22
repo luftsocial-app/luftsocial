@@ -38,7 +38,7 @@ export class LinkedInService implements PlatformService {
     private readonly linkedInRepo: LinkedInRepository,
     private readonly tenantService: TenantService,
     private readonly mediaStorageService: MediaStorageService,
-  ) { }
+  ) {}
 
   private async uploadLinkedInMediaItemsToStorage(
     media: MediaItem[],

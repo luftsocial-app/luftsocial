@@ -60,4 +60,4 @@ import { AuthState } from '../../entities/socials/facebook-entities/auth-state.e
   ],
   exports: [TikTokService],
 })
-export class TikTokModule { }
+export class TikTokModule {}

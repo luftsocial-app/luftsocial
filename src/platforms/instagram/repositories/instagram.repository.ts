@@ -13,8 +13,6 @@ import { InstagramPost } from '../../../entities/socials/instagram-entities/inst
 import { InstagramRateLimit } from '../../../entities/socials/instagram-entities/instagram-rate-limit.entity';
 import { InstagramAccount } from '../../../entities/socials/instagram-entities/instagram-account.entity';
 
-
-
 @Injectable()
 export class InstagramRepository extends TenantAwareRepository {
   constructor(

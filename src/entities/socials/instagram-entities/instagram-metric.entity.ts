@@ -8,7 +8,6 @@ import {
 import { InstagramPost } from './instagram-post.entity';
 import { TenantEntity } from '../../notifications/entity/tenant-entity';
 
-
 @Entity('instagram_metrics')
 export class InstagramMetric extends TenantEntity {
   @PrimaryGeneratedColumn('uuid')
