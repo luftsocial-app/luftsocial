@@ -1,12 +1,27 @@
+resource "random_string" "random" {
+  length  = 12
+  upper   = false
+  number  = false
+  lower   = true
+  special = false
+}
+
 resource "aws_s3_bucket" "terraform_state" {
-  bucket = "dev-state-bucket" # Make sure the bucket name is globally unique
+  bucket = "dev-state-bucket-${random_string.random.result}"
+}
+
+resource "aws_s3_bucket_ownership_controls" "terraform_state" {
+  bucket = aws_s3_bucket.terraform_state.id
+  rule {
+    object_ownership = "BucketOwnerPreferred"
+  }
 }
 
 
 resource "aws_s3_bucket_acl" "terraform_state" {
-
-  bucket = aws_s3_bucket.terraform_state.id
-  acl    = "private"
+  depends_on = [aws_s3_bucket_ownership_controls.terraform_state]
+  bucket     = aws_s3_bucket.terraform_state.id
+  acl        = "private"
 }
 
 
