@@ -1,25 +1,37 @@
-provider {
+provider "aws" {
   region = "eu-central-1"
 }
-
 
 
 terraform {
   required_providers {
     aws = {
-      source = "hashicorp/aws"
+      source  = "hashicorp/aws"
+      version = "5.92.0"
+    }
+  }
+}
+
+
+/*
+terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
       version = "5.92.0"
     }
   }
 
   backend "s3" {
-    bucket         = "my-terraform-state-bucket"  # Use the name of your S3 bucket
-    key            = "dev_terraform.tfstate"  # The path in the bucket where the state file will be stored
-    encrypt        = true                          # Enable encryption for the state file
-    dynamodb_table = "terraform-locks"            # Use the DynamoDB table for locking
-    acl            = "private"                    # Set the appropriate ACL for the state file
+    bucket         = "my-terraform-state-bucket" # Use the name of your S3 bucket
+    key            = "dev_terraform.tfstate"     # The path in the bucket where the state file will be stored
+    encrypt        = true                        # Enable encryption for the state file
+    dynamodb_table = "terraform-locks"           # Use the DynamoDB table for locking
+    acl            = "private"                   # Set the appropriate ACL for the state file
   }
 }
+
+*/
 
 /*
 resource "aws_security_group" "nestjs_sg" {
