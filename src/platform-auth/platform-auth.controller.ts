@@ -14,12 +14,12 @@ import { TokenResponse } from '../platforms/platform-service.interface';
 import { OAuth2Service } from './platform-auth.service';
 import { SocialPlatform } from '../common/enums/social-platform.enum';
 
+@UseGuards(ClerkAuthGuard)
 @Controller('auth')
 export class PlatformAuthController {
   constructor(private readonly oauth2Service: OAuth2Service) {}
 
   @Get(':platform/authorize')
-  @UseGuards(ClerkAuthGuard)
   async authorize(
     @Param('platform', new ParseEnumPipe(SocialPlatform))
     platform: SocialPlatform,
@@ -30,7 +30,6 @@ export class PlatformAuthController {
   }
 
   @Get(':platform/callback')
-  @UseGuards(ClerkAuthGuard)
   async handleCallback(
     @Param('platform', new ParseEnumPipe(SocialPlatform))
     platform: SocialPlatform,
@@ -41,7 +40,6 @@ export class PlatformAuthController {
   }
 
   @Post(':platform/refresh')
-  @UseGuards(ClerkAuthGuard)
   async refreshToken(
     @Param('platform', new ParseEnumPipe(SocialPlatform))
     platform: SocialPlatform,
@@ -51,7 +49,6 @@ export class PlatformAuthController {
   }
 
   @Post(':platform/revoke')
-  @UseGuards(ClerkAuthGuard)
   async revokeToken(
     @Param('platform', new ParseEnumPipe(SocialPlatform))
     platform: SocialPlatform,
@@ -61,7 +58,6 @@ export class PlatformAuthController {
   }
 
   @Get('platforms')
-  @UseGuards(ClerkAuthGuard)
   getAvailablePlatforms(): SocialPlatform[] {
     return Object.values(SocialPlatform);
   }

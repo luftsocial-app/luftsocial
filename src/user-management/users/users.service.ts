@@ -19,7 +19,7 @@ export class UsersService {
 
   async getUsers(): Promise<clerkUser[]> {
     const users = await clerkClient.users.getUserList();
-    console.log({ users: users.data });
+    // console.log({ users: users.data });
     return users.data;
   }
 

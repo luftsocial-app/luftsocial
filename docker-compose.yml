@@ -20,9 +20,9 @@ services:
     environment:
       - PORT=${PORT}
     ports:
-      - '3000:3000'
+      - '3100:3100'
     depends_on:
-      - db
+      - postgres_db
     volumes:
       - ./src:/app/src
 

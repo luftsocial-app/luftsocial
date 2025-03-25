@@ -10,6 +10,9 @@ logger:
         - req.headers.auth
       censor: '***'
 port: 3000
+clerk:
+  perishableKey: pk_test_ZWxlZ2FudC1jYW1lbC00MS5jbGVyay5hY2NvdW50cy5kZXYk
+  secretKey: sk_test_rX0cdpfvVMTlYuriJ7pRpaJdWTmCW3j4L9a94e6dZ3
 messaging:
   throttle:
     messageRateMs: 500 # Time between messages (ms)
@@ -25,7 +28,7 @@ db:
     host: localhost
     port: 5434
     database: luftsocial
-    synchronize: false
+    synchronize: true
 cache:
   redis:
     host: localhost

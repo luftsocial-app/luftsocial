@@ -57,7 +57,13 @@ async function bootstrap() {
   });
 
   // Initialize Clerk with the correct middleware
-  app.use(clerkMiddleware());
+  app.use(
+    clerkMiddleware(),
+    //   {
+    //   publishableKey: config.get('clerk.perishableKey'),
+    //   secretKey: config.get('clerk.secretKey'),
+    // }
+  );
   app.enableVersioning({
     type: VersioningType.URI,
   });
@@ -102,5 +108,11 @@ async function bootstrap() {
   //   optionsSuccessStatus: 204,
   // });
   await app.listen(process.env.PORT ?? 3000);
+
+  // const clerkClient = createClerkClient({
+  //   secretKey: config.get('clerk.secretKey'),
+  // });
+  // const userList = await clerkClient.users.getUserList();
+  // console.log({ userList : userList.data });
 }
 bootstrap();

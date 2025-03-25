@@ -48,11 +48,13 @@ import { FacebookPage } from './entities/socials/facebook-entities/facebook-page
 import { FacebookPostMetric } from './entities/socials/facebook-entities/facebook-post-metric.entity';
 import { FacebookPost } from './entities/socials/facebook-entities/facebook-post.entity';
 import { ParticipantEntity } from './messaging/conversations/entities/participant.entity';
+import { CrossPlatformModule } from './cross-platform/cross-platform.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
-      ignoreEnvFile: true,
-      ignoreEnvVars: true,
+      // ignoreEnvFile: true,
+      // ignoreEnvVars: true,
       isGlobal: true,
       load: [config.util.toObject],
     }),
@@ -104,6 +106,8 @@ import { ParticipantEntity } from './messaging/conversations/entities/participan
     FacebookModule,
     InstagramModule,
     PlatformsModule,
+    UsersModule,
+    CrossPlatformModule,
   ],
   controllers: [AppController],
   providers: [
