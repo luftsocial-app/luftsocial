@@ -5,7 +5,7 @@ import { BadRequestException, Logger, NotFoundException } from '@nestjs/common';
 import { SchedulerService } from './scheduler.service';
 import { ContentPublisherService } from './content-publisher.service';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
-import { ScheduledPost } from '../../entities/cross-platform-entities/schedule.entity';
+import { ScheduledPost } from '../entities/schedule.entity';
 import { SocialPlatform } from '../../common/enums/social-platform.enum';
 import {
   PublishStatus,

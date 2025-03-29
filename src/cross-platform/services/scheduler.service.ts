@@ -12,7 +12,7 @@ import {
   ScheduleStatus,
 } from '../helpers/cross-platform.interface';
 import { ContentPublisherService } from './content-publisher.service';
-import { ScheduledPost } from '../../entities/cross-platform-entities/schedule.entity';
+import { ScheduledPost } from '../entities/schedule.entity';
 import { SocialPlatform } from '../../common/enums/social-platform.enum';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
 import { MediaStorageItem } from '../../asset-management/media-storage/media-storage.dto';

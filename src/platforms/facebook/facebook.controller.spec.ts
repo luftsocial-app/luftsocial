@@ -11,8 +11,8 @@ import {
 import { MediaItem } from '../platform-service.interface';
 import { RateLimitInterceptor } from './helpers/rate-limit.interceptor';
 import { ClerkAuthGuard } from '../../guards/clerk-auth.guard';
-import { FacebookPage } from '../../entities/socials/facebook-entities/facebook-page.entity';
-import { FacebookPost } from '../../entities/socials/facebook-entities/facebook-post.entity';
+import { FacebookPage } from '../entities/facebook-entities/facebook-page.entity';
+import { FacebookPost } from '../entities/facebook-entities/facebook-post.entity';
 
 describe('FacebookController', () => {
   let controller: FacebookController;

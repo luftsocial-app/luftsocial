@@ -11,7 +11,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { ClerkWebhookService } from './clerk-webhook.service';
-import { Public } from 'src/decorators/public.decorator';
+import { Public } from '../../decorators/public.decorator';
 import { WebhookEvent } from '@clerk/express';
 import { Webhook } from 'svix';
 

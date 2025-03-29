@@ -9,10 +9,10 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { InstagramPost } from './instagram-post.entity';
-import { SocialAccount } from '../../notifications/entity/social-account.entity';
+import { SocialAccount } from '../notifications/entity/social-account.entity';
 
 @Entity('instagram_accounts')
-export class InstagramAccount{
+export class InstagramAccount {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 

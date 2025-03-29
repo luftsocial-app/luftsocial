@@ -2,7 +2,7 @@ import { Column } from 'typeorm/decorator/columns/Column';
 import { CreateDateColumn } from 'typeorm/decorator/columns/CreateDateColumn';
 import { PrimaryGeneratedColumn } from 'typeorm/decorator/columns/PrimaryGeneratedColumn';
 import { Entity } from 'typeorm/decorator/entity/Entity';
-import { DateRange } from '../../cross-platform/helpers/cross-platform.interface';
+import { DateRange } from '../helpers/cross-platform.interface';
 import { SocialPlatform } from '../../common/enums/social-platform.enum';
 
 @Entity('analytics_records')

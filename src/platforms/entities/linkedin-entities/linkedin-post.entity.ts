@@ -11,12 +11,12 @@ import { LinkedInOrganization } from './linkedin-organization.entity';
 import { MediaStorageItem } from '../../../asset-management/media-storage/media-storage.dto';
 
 @Entity('linkedin_posts')
-export class LinkedInPost  {
+export class LinkedInPost {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-    @Column({ nullable: false })
-    tenantId: string;
+  @Column({ nullable: false })
+  tenantId: string;
 
   @ManyToOne(() => LinkedInOrganization, (org) => org.posts)
   organization: LinkedInOrganization;

@@ -1,4 +1,4 @@
-import { Module} from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { MessagingGateway } from './gateways/messaging.gateway';
 import { ConversationModule } from '../conversations/conversation.module';
 import { MessageModule } from '../messages/message.module';

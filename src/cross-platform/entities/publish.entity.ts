@@ -6,7 +6,7 @@ import { Entity } from 'typeorm/decorator/entity/Entity';
 import {
   PublishPlatformResult,
   PublishStatus,
-} from '../../cross-platform/helpers/cross-platform.interface';
+} from '../helpers/cross-platform.interface';
 import { MediaStorageItem } from '../../asset-management/media-storage/media-storage.dto';
 
 @Entity('publish_records')

@@ -11,13 +11,13 @@ import { RateLimitInterceptor } from './interceptors/rate-limit.interceptor';
 
 import { MediaStorageModule } from '../../asset-management/media-storage/media-storage.module';
 import { PlatformAuthModule } from '../../platform-auth/platform-auth.module';
-import { InstagramAccount } from '../../entities/socials/instagram-entities/instagram-account.entity';
-import { SocialAccount } from '../../entities/notifications/entity/social-account.entity';
-import { AuthState } from '../../entities/socials/facebook-entities/auth-state.entity';
-import { InstagramMetric } from '../../entities/socials/instagram-entities/instagram-metric.entity';
-import { InstagramPost } from '../../entities/socials/instagram-entities/instagram-post.entity';
-import { InstagramRateLimit } from '../../entities/socials/instagram-entities/instagram-rate-limit.entity';
-import { TenantModule } from 'src/user-management/tenant/tenant.module';
+import { InstagramAccount } from '../entities/instagram-entities/instagram-account.entity';
+import { AuthState } from '../entities/facebook-entities/auth-state.entity';
+import { InstagramMetric } from '../entities/instagram-entities/instagram-metric.entity';
+import { InstagramPost } from '../entities/instagram-entities/instagram-post.entity';
+import { InstagramRateLimit } from '../entities/instagram-entities/instagram-rate-limit.entity';
+import { TenantModule } from '../../user-management/tenant/tenant.module';
+import { SocialAccount } from '../entities/notifications/entity/social-account.entity';
 
 @Module({
   imports: [

@@ -1,3 +1,5 @@
+import { MessageEntity } from '../../../messaging/messages/entities/message.entity';
+import { User } from '../../../user-management/entities/user.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -5,8 +7,6 @@ import {
   Column,
   CreateDateColumn,
 } from 'typeorm';
-import { User } from '../users/user.entity';
-import { MessageEntity } from '../../messaging/messages/entities/message.entity';
 
 @Entity('tbl_notifications')
 export class Notification {

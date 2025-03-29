@@ -14,19 +14,19 @@ import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 // TikTok entities
-import { TikTokAccount } from '../../entities/socials/tiktok-entities/tiktok-account.entity';
-import { TikTokVideo } from '../../entities/socials/tiktok-entities/tiktok-video.entity';
-import { TikTokMetric } from '../../entities/socials/tiktok-entities/tiktok-metric.entity';
-import { TikTokComment } from '../../entities/socials/tiktok-entities/tiktok_comments.entity';
-import { TikTokRateLimit } from '../../entities/socials/tiktok-entities/tiktok_rate_limits.entity';
+import { TikTokAccount } from '../entities/tiktok-entities/tiktok-account.entity';
+import { TikTokVideo } from '../entities/tiktok-entities/tiktok-video.entity';
+import { TikTokMetric } from '../entities/tiktok-entities/tiktok-metric.entity';
+import { TikTokComment } from '../entities/tiktok-entities/tiktok_comments.entity';
+import { TikTokRateLimit } from '../entities/tiktok-entities/tiktok_rate_limits.entity';
 
 // Repositories for other platforms
 import { TikTokTokenRefreshJob } from './jobs/token-refresh.job';
 import { PlatformAuthModule } from '../../platform-auth/platform-auth.module';
 import { MediaStorageModule } from '../../asset-management/media-storage/media-storage.module';
-import { SocialAccount } from '../../entities/notifications/entity/social-account.entity';
-import { AuthState } from '../../entities/socials/facebook-entities/auth-state.entity';
-import { TenantModule } from 'src/user-management/tenant/tenant.module';
+import { AuthState } from '../entities/facebook-entities/auth-state.entity';
+import { TenantModule } from '../../user-management/tenant/tenant.module';
+import { SocialAccount } from '../entities/notifications/entity/social-account.entity';
 
 @Module({
   controllers: [TikTokController],

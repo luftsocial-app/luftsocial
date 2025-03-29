@@ -1,4 +1,4 @@
-import { Module} from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MessageService } from './services/message.service';
 import { MessageController } from './controllers/message.controller';
@@ -6,7 +6,7 @@ import { MessageEntity } from './entities/message.entity';
 import { AttachmentEntity } from './entities/attachment.entity';
 import { MessageRepository } from './repositories/message.repository';
 import { AttachmentRepository } from './repositories/attachment.repository';
-import { TenantModule } from 'src/user-management/tenant/tenant.module';
+import { TenantModule } from '../../user-management/tenant/tenant.module';
 import { ConversationModule } from '../conversations/conversation.module';
 
 @Module({
@@ -14,13 +14,9 @@ import { ConversationModule } from '../conversations/conversation.module';
     TypeOrmModule.forFeature([MessageEntity, AttachmentEntity]),
     TenantModule,
     TenantModule,
-    ConversationModule
+    ConversationModule,
   ],
-  providers: [
-    MessageService,
-    MessageRepository,
-    AttachmentRepository,
-  ],
+  providers: [MessageService, MessageRepository, AttachmentRepository],
   controllers: [MessageController],
   exports: [MessageService, MessageRepository, AttachmentRepository],
 })

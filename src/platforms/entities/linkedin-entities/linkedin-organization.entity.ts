@@ -11,12 +11,12 @@ import { LinkedInAccount } from './linkedin-account.entity';
 import { LinkedInPost } from './linkedin-post.entity';
 
 @Entity('linkedin_organizations')
-export class LinkedInOrganization  {
+export class LinkedInOrganization {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-    @Column({ nullable: false })
-    tenantId: string;
+  @Column({ nullable: false })
+  tenantId: string;
 
   @ManyToOne(() => LinkedInAccount, (account) => account.organizations)
   account: LinkedInAccount;

@@ -5,13 +5,13 @@ import { NotFoundException } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { FacebookRepository } from './facebook.repository';
 import { SocialPlatform } from '../../../common/enums/social-platform.enum';
-import { SocialAccount } from '../../../entities/notifications/entity/social-account.entity';
-import { AuthState } from '../../../entities/socials/facebook-entities/auth-state.entity';
-import { FacebookAccount } from '../../../entities/socials/facebook-entities/facebook-account.entity';
-import { FacebookPageMetric } from '../../../entities/socials/facebook-entities/facebook-page-metric.entity';
-import { FacebookPage } from '../../../entities/socials/facebook-entities/facebook-page.entity';
-import { FacebookPostMetric } from '../../../entities/socials/facebook-entities/facebook-post-metric.entity';
-import { FacebookPost } from '../../../entities/socials/facebook-entities/facebook-post.entity';
+import { AuthState } from '../../entities/facebook-entities/auth-state.entity';
+import { FacebookAccount } from '../../entities/facebook-entities/facebook-account.entity';
+import { FacebookPageMetric } from '../../entities/facebook-entities/facebook-page-metric.entity';
+import { FacebookPage } from '../../entities/facebook-entities/facebook-page.entity';
+import { FacebookPostMetric } from '../../entities/facebook-entities/facebook-post-metric.entity';
+import { FacebookPost } from '../../entities/facebook-entities/facebook-post.entity';
+import { SocialAccount } from '../../../platforms/entities/notifications/entity/social-account.entity';
 
 //TODO: FIX TESTS
 
@@ -38,8 +38,6 @@ describe('FacebookRepository', () => {
   const mockAccountData: Partial<FacebookAccount> = {
     id: 'fb-account-id',
     name: 'Test Account',
-    accessToken: 'test-access-token',
-    userId: 'test-user-id',
     socialAccount: {
       id: 'social-account-id',
       accessToken: 'test-access-token',
@@ -60,7 +58,6 @@ describe('FacebookRepository', () => {
   const mockPostData: Partial<FacebookPost> = {
     id: 'fb-post-id',
     postId: 'external-post-id',
-    message: 'Test post message',
     page: mockPageData as FacebookPage,
     account: mockAccountData as FacebookAccount,
     isPublished: true,
@@ -70,9 +67,9 @@ describe('FacebookRepository', () => {
   const mockMetricData: Partial<FacebookPostMetric> = {
     id: 'fb-metric-id',
     post: mockPostData as FacebookPost,
-    likes: 10,
-    comments: 5,
-    shares: 2,
+    likesCount: 10,
+    commentsCount: 5,
+    sharesCount: 2,
     reach: 1000,
     impressions: 1500,
     collectedAt: new Date(),

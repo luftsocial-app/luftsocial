@@ -12,14 +12,10 @@ import {
 import { UserService } from './user.service';
 import { CurrentUser } from '../../decorators/current-user.decorator';
 import { Permission, UserRole } from '../../common/enums/roles';
-import { Public } from 'src/decorators/public.decorator';
-import { TenantService } from '../tenant/tenant.service';
 
 @Controller('users')
 export class UserController {
-  constructor(
-    private readonly userService: UserService,
-  ) {}
+  constructor(private readonly userService: UserService) {}
 
   @Get()
   // @Roles(Role.Admin)

@@ -8,11 +8,11 @@ import {
   OneToOne,
   JoinColumn,
 } from 'typeorm';
-import { FacebookPage } from './facebook-page.entity';
-import { SocialAccount } from '../../notifications/entity/social-account.entity';
+import { LinkedInOrganization } from './linkedin-organization.entity';
+import { SocialAccount } from '../notifications/entity/social-account.entity';
 
-@Entity('facebook_accounts')
-export class FacebookAccount {
+@Entity('linkedin_accounts')
+export class LinkedInAccount {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -24,10 +24,13 @@ export class FacebookAccount {
   socialAccount: SocialAccount;
 
   @Column()
-  facebookUserId: string;
+  linkedinUserId: string;
 
   @Column()
-  name: string;
+  firstName: string;
+
+  @Column()
+  lastName: string;
 
   @Column({ nullable: true })
   email: string;
@@ -38,12 +41,20 @@ export class FacebookAccount {
   @Column('jsonb')
   permissions: string[];
 
-  @OneToMany(() => FacebookPage, (page) => page.facebookAccount)
-  pages: FacebookPage[];
+  @OneToMany(() => LinkedInOrganization, (org) => org.account)
+  organizations: LinkedInOrganization[];
 
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @Column('jsonb', { nullable: true })
+  metadata: {
+    organizations: Array<{
+      id: string;
+      name: string;
+    }>;
+  };
 }

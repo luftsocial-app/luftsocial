@@ -8,7 +8,7 @@ import {
 import {
   PublishPlatformResult,
   ScheduleStatus,
-} from '../../cross-platform/helpers/cross-platform.interface';
+} from '../helpers/cross-platform.interface';
 import { MediaStorageItem } from '../../asset-management/media-storage/media-storage.dto';
 import { SocialPlatform } from '../../common/enums/social-platform.enum';
 

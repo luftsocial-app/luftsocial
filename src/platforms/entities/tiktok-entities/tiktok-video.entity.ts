@@ -9,7 +9,7 @@ import {
 } from 'typeorm';
 import { TikTokAccount } from './tiktok-account.entity';
 import { TikTokMetric } from './tiktok-metric.entity';
-import { TikTokVideoPrivacyLevel } from '../../../platforms/tiktok/helpers/tiktok.interfaces';
+import { TikTokVideoPrivacyLevel } from '../../tiktok/helpers/tiktok.interfaces';
 
 @Entity('tiktok_videos')
 export class TikTokVideo {

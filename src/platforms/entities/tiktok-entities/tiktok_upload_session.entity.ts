@@ -9,7 +9,7 @@ import {
 import { TikTokAccount } from './tiktok-account.entity';
 
 @Entity('tiktok_upload_sessions')
-export class TikTokUploadSession  {
+export class TikTokUploadSession {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 

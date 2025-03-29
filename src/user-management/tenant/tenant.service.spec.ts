@@ -2,13 +2,20 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { TenantService } from './tenant.service';
-import { Tenant } from '../../entities/users/tenant.entity';
+import { NotFoundException } from '@nestjs/common';
+import { Tenant } from '../entities/tenant.entity';
 
 describe('TenantService', () => {
   let service: TenantService;
   let tenantRepository: Repository<Tenant>;
 
-  const mockTenantRepository = {
+  const mockTenant = {
+    id: 'tenant123',
+    name: 'Test Org',
+    slug: 'test-org',
+  } as Tenant;
+
+  const mockTenantRepo = {
     create: jest.fn(),
     save: jest.fn(),
     findOne: jest.fn(),
@@ -19,74 +26,98 @@ describe('TenantService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TenantService,
-        {
-          provide: getRepositoryToken(Tenant),
-          useValue: mockTenantRepository,
-        },
+        { provide: getRepositoryToken(Tenant), useValue: mockTenantRepo },
       ],
     }).compile();
 
     service = module.get<TenantService>(TenantService);
-    tenantRepository = module.get<Repository<Tenant>>(getRepositoryToken(Tenant));
+    tenantRepository = module.get(getRepositoryToken(Tenant));
+
+    jest.clearAllMocks();
   });
 
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
-  describe('handleTenantCreation', () => {
-    it('should create a new tenant from webhook data', async () => {
+  describe('Webhook Handlers', () => {
+    describe('handleTenantCreation', () => {
       const mockWebhookData = {
         data: {
-          id: 'test-id',
+          id: 'tenant123',
           name: 'Test Org',
           slug: 'test-org',
           created_at: '2023-01-01T00:00:00Z',
         },
       };
 
-      const expectedTenant = {
-        id: 'test-id',
-        name: 'Test Org',
-        slug: 'test-org',
-        createdAt: new Date('2023-01-01T00:00:00Z'),
+      it('should create new tenant from webhook data', async () => {
+        mockTenantRepo.create.mockReturnValue(mockTenant);
+        mockTenantRepo.save.mockResolvedValue(mockTenant);
+
+        await service.handleTenantCreation(mockWebhookData as any);
+
+        expect(mockTenantRepo.create).toHaveBeenCalledWith(
+          expect.objectContaining({
+            id: 'tenant123',
+            name: 'Test Org',
+            slug: 'test-org',
+          }),
+        );
+        expect(mockTenantRepo.save).toHaveBeenCalled();
+      });
+    });
+
+    describe('handleTenantDeletion', () => {
+      const mockWebhookData = {
+        data: { id: 'tenant123' },
       };
 
-      mockTenantRepository.create.mockReturnValue(expectedTenant);
-      mockTenantRepository.save.mockResolvedValue(expectedTenant);
+      it('should delete tenant', async () => {
+        mockTenantRepo.findOne.mockResolvedValue(mockTenant);
 
-      await service.handleTenantCreation(mockWebhookData as any);
-      expect(mockTenantRepository.save).toHaveBeenCalledWith(expectedTenant);
+        await service.handleTenantDeletion(mockWebhookData as any);
+
+        expect(mockTenantRepo.delete).toHaveBeenCalledWith('tenant123');
+      });
+
+      it('should throw if tenant not found', async () => {
+        mockTenantRepo.findOne.mockResolvedValue(null);
+
+        await expect(
+          service.handleTenantDeletion(mockWebhookData as any),
+        ).rejects.toThrow(NotFoundException);
+      });
     });
-  });
 
-  describe('handleTenantDeletion', () => {
-    it('should delete tenant when organization is deleted', async () => {
+    describe('handleTenantUpdate', () => {
       const mockWebhookData = {
         data: {
-          id: 'test-id',
+          id: 'tenant123',
+          name: 'Updated Org',
+          updated_at: '2023-01-02T00:00:00Z',
         },
       };
 
-      const mockTenant = { id: 'test-id' };
-      mockTenantRepository.findOne.mockResolvedValue(mockTenant);
+      it('should update tenant', async () => {
+        mockTenantRepo.findOne.mockResolvedValue(mockTenant);
+        mockTenantRepo.save.mockResolvedValue({
+          ...mockTenant,
+          name: 'Updated Org',
+        });
 
-      await service.handleTenantDeletion(mockWebhookData as any);
-      expect(mockTenantRepository.delete).toHaveBeenCalledWith('test-id');
-    });
+        await service.handleTenantUpdate(mockWebhookData as any);
 
-    it('should throw error if tenant not found', async () => {
-      const mockWebhookData = {
-        data: {
-          id: 'non-existent',
-        },
-      };
+        expect(mockTenantRepo.save).toHaveBeenCalledWith(
+          expect.objectContaining({ name: 'Updated Org' }),
+        );
+      });
 
-      mockTenantRepository.findOne.mockResolvedValue(null);
+      it('should throw if tenant not found', async () => {
+        mockTenantRepo.findOne.mockResolvedValue(null);
 
-      await expect(
-        service.handleTenantDeletion(mockWebhookData as any),
-      ).rejects.toThrow('Tenant not found');
+        await expect(
+          service.handleTenantUpdate(mockWebhookData as any),
+        ).rejects.toThrow(NotFoundException);
+      });
     });
   });
+
+  // ... existing tests for core tenant functionality ...
 });

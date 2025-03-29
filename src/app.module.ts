@@ -24,33 +24,33 @@ import { FacebookModule } from './platforms/facebook/facebook.module';
 import { MessagingModule } from './messaging/messaging.module';
 
 // Entity imports
-import { User } from './entities/users/user.entity';
-import { Tenant } from './entities/users/tenant.entity';
-import { UserRoleChange } from './entities/roles/user-role-change.entity';
-import { Permissions } from './entities/roles/permissions.entity';
-import { Role as RoleEntity } from './entities/roles/role.entity';
+import { User } from './user-management/entities/user.entity';
+import { UserRoleChange } from './user-management/entities/user-role-change.entity';
+import { Permissions } from './user-management/entities/permissions.entity';
+import { Role as RoleEntity } from './user-management/entities/role.entity';
 import { ConversationEntity } from './messaging/conversations/entities/conversation.entity';
 import { MessageEntity } from './messaging/messages/entities/message.entity';
 import { AttachmentEntity } from './messaging/messages/entities/attachment.entity';
-import { Post as PostEntity } from './entities/posts/post.entity';
-import { Team } from './entities/users/team.entity';
-import { UserTenant } from './entities/users/user-tenant.entity';
-import { Notification } from './entities/notifications/notification.entity';
+import { Post as PostEntity } from './post-management/entities/posts/post.entity';
 
 import { InstagramModule } from './platforms/instagram/instagram.module';
-import { SocialAccount } from './entities/notifications/entity/social-account.entity';
-import { AuthState } from './entities/socials/facebook-entities/auth-state.entity';
-import { FacebookAccount } from './entities/socials/facebook-entities/facebook-account.entity';
-import { FacebookPageMetric } from './entities/socials/facebook-entities/facebook-page-metric.entity';
-import { FacebookPage } from './entities/socials/facebook-entities/facebook-page.entity';
-import { FacebookPostMetric } from './entities/socials/facebook-entities/facebook-post-metric.entity';
-import { FacebookPost } from './entities/socials/facebook-entities/facebook-post.entity';
+import { AuthState } from './platforms/entities/facebook-entities/auth-state.entity';
+import { FacebookAccount } from './platforms/entities/facebook-entities/facebook-account.entity';
+import { FacebookPageMetric } from './platforms/entities/facebook-entities/facebook-page-metric.entity';
+import { FacebookPage } from './platforms/entities/facebook-entities/facebook-page.entity';
+import { FacebookPostMetric } from './platforms/entities/facebook-entities/facebook-post-metric.entity';
+import { FacebookPost } from './platforms/entities/facebook-entities/facebook-post.entity';
 import { ParticipantEntity } from './messaging/conversations/entities/participant.entity';
 import { CrossPlatformModule } from './cross-platform/cross-platform.module';
 import { ConversationModule } from './messaging/conversations/conversation.module';
 import { RealtimeModule } from './messaging/realtime/realtime.module';
 import { UserModule } from './user-management/user/user.module';
 import { ClerkWebhookModule } from './user-management/clerk-webhook/clerk-webhook.module';
+import { SocialAccount } from './platforms/entities/notifications/entity/social-account.entity';
+import { Team } from './user-management/entities/team.entity';
+import { Tenant } from './user-management/entities/tenant.entity';
+import { UserTenant } from './user-management/entities/user-tenant.entity';
+import { Notification } from './platforms/entities/notifications/notification.entity';
 
 @Module({
   imports: [

@@ -32,5 +32,9 @@ describe('UsersController', () => {
     controller = module.get<UserController>(UserController);
   });
 
-  describe('getTenantUsers', () => {});
+  describe('getTenantUsers', () => {
+    it('should be defined', async () => {
+      expect(controller).toBeDefined();
+    });
+  });
 });

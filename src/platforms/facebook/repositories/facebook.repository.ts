@@ -5,13 +5,13 @@ import * as crypto from 'crypto';
 import { SocialPlatform } from '../../../common/enums/social-platform.enum';
 
 import { TenantAwareRepository } from '../../../user-management/tenant/tenant-aware.repository';
-import { SocialAccount } from '../../../entities/notifications/entity/social-account.entity';
-import { AuthState } from '../../../entities/socials/facebook-entities/auth-state.entity';
-import { FacebookAccount } from '../../../entities/socials/facebook-entities/facebook-account.entity';
-import { FacebookPageMetric } from '../../../entities/socials/facebook-entities/facebook-page-metric.entity';
-import { FacebookPage } from '../../../entities/socials/facebook-entities/facebook-page.entity';
-import { FacebookPostMetric } from '../../../entities/socials/facebook-entities/facebook-post-metric.entity';
-import { FacebookPost } from '../../../entities/socials/facebook-entities/facebook-post.entity';
+import { AuthState } from '../../entities/facebook-entities/auth-state.entity';
+import { FacebookAccount } from '../../entities/facebook-entities/facebook-account.entity';
+import { FacebookPageMetric } from '../../entities/facebook-entities/facebook-page-metric.entity';
+import { FacebookPage } from '../../entities/facebook-entities/facebook-page.entity';
+import { FacebookPostMetric } from '../../entities/facebook-entities/facebook-post-metric.entity';
+import { FacebookPost } from '../../entities/facebook-entities/facebook-post.entity';
+import { SocialAccount } from '../../../platforms/entities/notifications/entity/social-account.entity';
 
 @Injectable()
 export class FacebookRepository extends TenantAwareRepository {

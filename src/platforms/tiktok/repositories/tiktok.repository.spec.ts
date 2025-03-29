@@ -3,13 +3,13 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { NotFoundException } from '@nestjs/common';
 import { TikTokRepository } from './tiktok.repository';
-import { TikTokAccount } from '../../../entities/socials/tiktok-entities/tiktok-account.entity';
-import { TikTokVideo } from '../../../entities/socials/tiktok-entities/tiktok-video.entity';
-import { TikTokMetric } from '../../../entities/socials/tiktok-entities/tiktok-metric.entity';
-import { TikTokRateLimit } from '../../../entities/socials/tiktok-entities/tiktok_rate_limits.entity';
-import { TikTokComment } from '../../../entities/socials/tiktok-entities/tiktok_comments.entity';
+import { TikTokAccount } from '../../entities/tiktok-entities/tiktok-account.entity';
+import { TikTokVideo } from '../../entities/tiktok-entities/tiktok-video.entity';
+import { TikTokMetric } from '../../entities/tiktok-entities/tiktok-metric.entity';
+import { TikTokRateLimit } from '../../entities/tiktok-entities/tiktok_rate_limits.entity';
+import { TikTokComment } from '../../entities/tiktok-entities/tiktok_comments.entity';
 import { TikTokVideoPrivacyLevel } from '../helpers/tiktok.interfaces';
-import { SocialAccount } from '../../../entities/notifications/entity/social-account.entity';
+import { SocialAccount } from '../../../platforms/entities/notifications/entity/social-account.entity';
 
 describe('TikTokRepository', () => {
   let repository: TikTokRepository;

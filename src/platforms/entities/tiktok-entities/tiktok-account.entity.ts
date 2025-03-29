@@ -9,10 +9,10 @@ import {
   OneToOne,
 } from 'typeorm';
 import { TikTokVideo } from './tiktok-video.entity';
-import { SocialAccount } from '../../notifications/entity/social-account.entity';
+import { SocialAccount } from '../notifications/entity/social-account.entity';
 
 @Entity('tiktok_accounts')
-export class TikTokAccount  {
+export class TikTokAccount {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 

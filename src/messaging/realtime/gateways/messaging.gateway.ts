@@ -1,5 +1,5 @@
 // External dependencies
-import { Logger, UseGuards} from '@nestjs/common';
+import { Logger, UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Server } from 'socket.io';
 import {
@@ -490,10 +490,7 @@ export class MessagingGateway
       return createSuccessResponse({ throttled: true });
     }
 
-    await this.messageService.markMessageAsRead(
-      payload.messageId,
-      user.id,
-    );
+    await this.messageService.markMessageAsRead(payload.messageId, user.id);
 
     // Notify other participants
     const room = RoomNameFactory.conversationRoom(payload.conversationId);

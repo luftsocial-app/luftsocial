@@ -39,9 +39,9 @@ import { MediaStorageItem } from '../../asset-management/media-storage/media-sto
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
 import { TenantService } from '../../user-management/tenant/tenant.service';
 import { FACEBOOK_SCOPES } from '../../common/enums/scopes.enum';
-import { FacebookAccount } from '../../entities/socials/facebook-entities/facebook-account.entity';
-import { FacebookPage } from '../../entities/socials/facebook-entities/facebook-page.entity';
-import { FacebookPost } from '../../entities/socials/facebook-entities/facebook-post.entity';
+import { FacebookAccount } from '../entities/facebook-entities/facebook-account.entity';
+import { FacebookPage } from '../entities/facebook-entities/facebook-page.entity';
+import { FacebookPost } from '../entities/facebook-entities/facebook-post.entity';
 
 @Injectable()
 export class FacebookService implements PlatformService {

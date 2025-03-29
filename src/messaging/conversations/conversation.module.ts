@@ -5,10 +5,10 @@ import { ConversationService } from './services/conversation.service';
 import { ConversationEntity } from './entities/conversation.entity';
 import { ParticipantEntity } from './entities/participant.entity';
 import { MessageEntity } from '../messages/entities/message.entity';
-import { User } from '../../entities/users/user.entity';
+import { User } from '../../user-management/entities/user.entity';
 import { ConversationRepository } from './repositories/conversation.repository';
 import { ParticipantRepository } from './repositories/participant.repository';
-import { TenantModule } from 'src/user-management/tenant/tenant.module';
+import { TenantModule } from '../../user-management/tenant/tenant.module';
 
 @Module({
   imports: [
@@ -18,7 +18,7 @@ import { TenantModule } from 'src/user-management/tenant/tenant.module';
       MessageEntity,
       User,
     ]),
-    TenantModule
+    TenantModule,
   ],
   controllers: [ConversationController],
   providers: [

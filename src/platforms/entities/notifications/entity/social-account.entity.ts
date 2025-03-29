@@ -1,3 +1,4 @@
+import { SocialPlatform } from '../../../../common/enums/social-platform.enum';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -6,12 +7,10 @@ import {
   UpdateDateColumn,
   OneToOne,
 } from 'typeorm';
-
-import { SocialPlatform } from '../../../common/enums/social-platform.enum';
-import { FacebookAccount } from '../../socials/facebook-entities/facebook-account.entity';
+import { FacebookAccount } from '../../facebook-entities/facebook-account.entity';
 
 @Entity('social_accounts')
-export class SocialAccount{
+export class SocialAccount {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 

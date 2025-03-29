@@ -11,7 +11,7 @@ import {
   MessageStatus,
 } from '../../shared/enums/message-type.enum';
 import { ConversationEntity } from '../../conversations/entities/conversation.entity';
-import { User } from '../../../entities/users/user.entity';
+import { User } from '../../../user-management/entities/user.entity';
 import { AttachmentEntity } from './attachment.entity';
 import { MessageReactionDto } from '../dto/message-response.dto';
 import { CommonEntity } from '../../shared/entities/common.entity';
@@ -88,18 +88,16 @@ export class MessageEntity extends CommonEntity {
   @Index('idx_msg_parent', { unique: false })
   parentMessageId?: string;
 
-  @Column({ name: 'metadata', type: 'jsonb', default: {} })
+  @Column({ type: 'jsonb', default: {}, name: 'metadata' })
   metadata: {
-    reactions?: { [userId: string]: string };
     editHistory?: Array<{
       content: string;
       editedAt: Date;
+      editorId?: string;
     }>;
+    reactions?: { [userId: string]: string };
     mentionedUserIds?: string[];
   };
-
-  @Column({ type: 'jsonb', default: [] })
-  reactions: MessageReactionDto[];
 
   @Column({ type: 'jsonb', default: [], name: 'edit_history' })
   editHistory: string[];
@@ -109,6 +107,9 @@ export class MessageEntity extends CommonEntity {
 
   // Helper methods
   markAsRead(userId: string): void {
+    if (!this.readBy) {
+      this.readBy = {};
+    }
     this.readBy[userId] = new Date();
   }
 
@@ -120,13 +121,18 @@ export class MessageEntity extends CommonEntity {
     return Object.keys(this.readBy).length;
   }
 
-  addEditHistory(content: string): void {
+  getReadByUsers(): string[] {
+    return Object.keys(this.readBy || {});
+  }
+
+  addEditHistoryEntry(content: string, editorId?: string): void {
     if (!this.metadata.editHistory) {
       this.metadata.editHistory = [];
     }
     this.metadata.editHistory.push({
       content,
       editedAt: new Date(),
+      editorId,
     });
     this.isEdited = true;
   }
@@ -139,18 +145,16 @@ export class MessageEntity extends CommonEntity {
   }
 
   removeReaction(userId: string, emoji?: string): void {
-    if (!this.reactions) return;
+    if (!this.metadata.reactions) return;
 
     if (emoji) {
-      this.reactions = this.reactions.filter(
-        (r) => !(r.userId === userId && r.emoji === emoji),
-      );
+      delete this.metadata.reactions[userId];
     } else {
-      this.reactions = this.reactions.filter((r) => r.userId !== userId);
+      delete this.metadata.reactions[userId];
     }
   }
 
   getReactionCount(): number {
-    return this.reactions.length;
+    return Object.keys(this.metadata.reactions || {}).length;
   }
 }

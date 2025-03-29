@@ -8,12 +8,12 @@ import {
 import { LinkedInPost } from './linkedin-post.entity';
 
 @Entity('linkedin_metrics')
-export class LinkedInMetric  {
+export class LinkedInMetric {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-    @Column({ nullable: false })
-    tenantId: string;
+  @Column({ nullable: false })
+  tenantId: string;
 
   @ManyToOne(() => LinkedInPost, (post) => post.metrics)
   post: LinkedInPost;

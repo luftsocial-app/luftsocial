@@ -3,7 +3,7 @@ import { CreateTenantDto, UpdateTenantDto } from './dto/TenantDto';
 import { OrganizationWebhookEvent } from '@clerk/express';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Tenant } from '../../../src/entities/users/tenant.entity';
+import { Tenant } from '../entities/tenant.entity';
 
 @Injectable()
 export class TenantService {

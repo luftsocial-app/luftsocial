@@ -22,7 +22,7 @@ import {
   DateRange,
   PostMetrics,
 } from '../../cross-platform/helpers/cross-platform.interface';
-import { LinkedInAccount } from '../../entities/socials/linkedin-entities/linkedin-account.entity';
+import { LinkedInAccount } from '../entities/linkedin-entities/linkedin-account.entity';
 import { TenantService } from '../../user-management/tenant/tenant.service';
 import { CreateLinkedInPostDto } from './helpers/create-post.dto';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';

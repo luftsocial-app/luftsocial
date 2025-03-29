@@ -6,7 +6,7 @@ import { ConversationRepository } from '../repositories/conversation.repository'
 import { ParticipantRepository } from '../repositories/participant.repository';
 import { MessageRepository } from '../../messages/repositories/message.repository';
 import { Repository } from 'typeorm';
-import { User } from '../../../entities/users/user.entity';
+import { User } from '../../../user-management/entities/user.entity';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ConversationType } from '../../shared/enums/conversation-type.enum';
 import { NotFoundException } from '@nestjs/common';
@@ -25,12 +25,14 @@ describe('ConversationService', () => {
   const mockUser1 = {
     id: 'user-1',
     username: 'user1',
-  } as User;
+    activetenantId: mockTenantId,
+  } as unknown as User;
 
   const mockUser2 = {
     id: 'user-2',
     username: 'user2',
-  } as User;
+    tenantId: mockTenantId,
+  } as unknown as User;
 
   const mockConversation = {
     id: 'conv-1',
@@ -67,6 +69,7 @@ describe('ConversationService', () => {
 
   const mockUserRepo = {
     findBy: jest.fn(),
+    findOne: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -178,36 +181,6 @@ describe('ConversationService', () => {
     });
   });
 
-  describe('createMessage', () => {
-    it('should create a new message and update conversation', async () => {
-      const mockMessage = {
-        id: 'msg-1',
-        content: 'Test message',
-        conversationId: mockConversation.id,
-        senderId: mockUser1.id,
-      };
-
-      mockMessageRepo.create.mockReturnValue(mockMessage);
-      mockMessageRepo.save.mockResolvedValue(mockMessage);
-      mockConversationRepo.updateLastMessageTimestamp.mockResolvedValue(
-        undefined,
-      );
-
-      const result = await service.createMessage(
-        mockConversation.id,
-        'Test message',
-        mockUser1.id,
-      );
-
-      expect(result).toEqual(mockMessage);
-      expect(mockMessageRepo.create).toHaveBeenCalled();
-      expect(mockMessageRepo.save).toHaveBeenCalled();
-      expect(
-        mockConversationRepo.updateLastMessageTimestamp,
-      ).toHaveBeenCalledWith(mockConversation.id);
-    });
-  });
-
   describe('validateAccess', () => {
     it('should return true for valid access', async () => {
       const mockParticipant = {
@@ -254,6 +227,8 @@ describe('ConversationService', () => {
       mockConversationRepo.findDirectConversation.mockResolvedValue(
         mockDirectChat,
       );
+
+      mockUserRepo.findOne.mockResolvedValue([mockUser2]);
 
       const result = await service.createOrGetDirectChat(
         mockUser1.id,

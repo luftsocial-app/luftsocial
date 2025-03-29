@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClerkWebhookController } from './clerk-webhook.controller';
-import { User } from '../../entities/users/user.entity';
-import { Role } from '../../entities/roles/role.entity';
+import { User } from '../entities/user.entity';
+import { Role } from '../entities/role.entity';
 import { TenantModule } from '../tenant/tenant.module';
 import { ClerkWebhookService } from './clerk-webhook.service';
 import { UserModule } from '../user/user.module';

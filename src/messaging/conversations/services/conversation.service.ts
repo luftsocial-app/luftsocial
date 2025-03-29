@@ -9,7 +9,7 @@ import { ConversationRepository } from '../repositories/conversation.repository'
 import { ParticipantRepository } from '../repositories/participant.repository';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { User } from '../../../entities/users/user.entity';
+import { User } from '../../../user-management/entities/user.entity';
 import { ConversationEntity } from '../entities/conversation.entity';
 import {
   CreateConversationDto,
@@ -113,10 +113,10 @@ export class ConversationService {
   ): Promise<ConversationEntity> {
     const tenantId = this.tenantService.getTenantId();
 
-    const chectUser2TenantId = await this.userRepository.findOne({
+    const checkUser2TenantId = await this.userRepository.findOne({
       where: { id: userId2, userTenants: { id: tenantId } },
     });
-    if (!chectUser2TenantId) {
+    if (!checkUser2TenantId) {
       throw new NotFoundException('User 2 not found in the tenant');
     }
 
