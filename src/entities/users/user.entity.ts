@@ -2,12 +2,12 @@ import {
   Column,
   Entity,
   OneToMany,
-  PrimaryGeneratedColumn,
   ManyToOne,
   ManyToMany,
   JoinTable,
   CreateDateColumn,
   UpdateDateColumn,
+  PrimaryColumn,
 } from 'typeorm';
 import { Tenant } from './tenant.entity';
 import { Role } from '../roles/role.entity';
@@ -19,7 +19,7 @@ import { ParticipantEntity } from '../../messaging/conversations/entities/partic
 
 @Entity({ name: 'tbl_users' })
 export class User {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn()
   id: string;
 
   @Column({ unique: true })

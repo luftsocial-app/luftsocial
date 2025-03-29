@@ -3,6 +3,7 @@ import {
   DeleteDateColumn,
   Entity,
   ManyToOne,
+  PrimaryColumn,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -11,7 +12,7 @@ import { User } from './user.entity';
 
 @Entity({ name: 'tbl_user_tenants' })
 export class UserTenant {
-  @PrimaryGeneratedColumn('uuid')
+  @PrimaryColumn()
   id: string;
 
   @ManyToOne(() => User, (user) => user.userTenants, { onDelete: 'CASCADE' })

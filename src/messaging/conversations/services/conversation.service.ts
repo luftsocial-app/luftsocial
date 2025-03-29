@@ -140,6 +140,13 @@ export class ConversationService {
   ): Promise<ConversationEntity> {
     const tenantId = this.tenantService.getTenantId();
 
+    const chectUser2TenantId = await this.userRepository.findOne({
+      where: { id: userId2, userTenants: { id: tenantId } },
+    });
+    if (!chectUser2TenantId) {
+      throw new NotFoundException('User 2 not found in the tenant');
+    }
+
     // Check if direct chat already exists
     const existingChat =
       await this.conversationRepository.findDirectConversation(
@@ -156,6 +163,8 @@ export class ConversationService {
     const users = await this.userRepository.findBy({
       id: In([userId1, userId2]),
     });
+
+    console.log({ usersRepo: users });
 
     if (users.length !== 2) {
       throw new NotFoundException('One or both users not found');
