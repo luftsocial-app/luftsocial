@@ -4,10 +4,8 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
-  Inject,
-  forwardRef,
 } from '@nestjs/common';
-import { TenantService } from '../../../database/tenant.service';
+import { TenantService } from '../../../user-management/tenant/tenant.service';
 import { MessageRepository } from '../repositories/message.repository';
 import { AttachmentRepository } from '../repositories/attachment.repository';
 import { MessageStatus } from '../../shared/enums/message-type.enum';
@@ -30,7 +28,6 @@ export class MessageService {
   constructor(
     private readonly messageRepository: MessageRepository,
     private readonly attachmentRepository: AttachmentRepository,
-    @Inject(forwardRef(() => ConversationService))
     private readonly conversationService: ConversationService,
     private readonly tenantService: TenantService,
   ) {}

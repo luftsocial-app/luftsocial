@@ -3,18 +3,14 @@ import {
   ConflictException,
   NotFoundException,
   ForbiddenException,
-  Inject,
-  forwardRef,
 } from '@nestjs/common';
-import { TenantService } from '../../../database/tenant.service';
+import { TenantService } from '../../../user-management/tenant/tenant.service';
 import { ConversationRepository } from '../repositories/conversation.repository';
 import { ParticipantRepository } from '../repositories/participant.repository';
-import { MessageRepository } from '../../messages/repositories/message.repository';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { User } from '../../../entities/users/user.entity';
 import { ConversationEntity } from '../entities/conversation.entity';
-import { MessageEntity } from '../../messages/entities/message.entity';
 import {
   CreateConversationDto,
   UpdateConversationSettingsDto,
@@ -31,8 +27,7 @@ export class ConversationService {
     private tenantService: TenantService,
     private conversationRepository: ConversationRepository,
     private participantRepository: ParticipantRepository,
-    @Inject(forwardRef(() => MessageRepository))
-    private messageRepository: MessageRepository,
+
     @InjectRepository(User)
     private userRepository: Repository<User>,
   ) {}
@@ -93,28 +88,6 @@ export class ConversationService {
       userId,
       this.tenantService.getTenantId(),
     );
-  }
-
-  async createMessage(
-    conversationId: string,
-    content: string,
-    senderId: string,
-  ): Promise<MessageEntity> {
-    const message = this.messageRepository.create({
-      conversationId,
-      content,
-      senderId,
-      tenantId: this.tenantService.getTenantId(),
-    });
-
-    const savedMessage = await this.messageRepository.save(message);
-
-    // Update conversation's lastMessageAt
-    await this.conversationRepository.updateLastMessageTimestamp(
-      conversationId,
-    );
-
-    return savedMessage;
   }
 
   async validateAccess(
@@ -354,37 +327,6 @@ export class ConversationService {
     // Update the conversation
     Object.assign(conversation, settings);
     return this.conversationRepository.save(conversation);
-  }
-
-  async markMessageAsRead(messageId: string, userId: string): Promise<void> {
-    const message = await this.messageRepository.findOne({
-      where: { id: messageId },
-    });
-
-    if (!message) {
-      throw new NotFoundException('Message not found');
-    }
-
-    message.markAsRead(userId);
-    await this.messageRepository.save(message);
-
-    // Update conversation unread count
-    const unreadCount = await this.messageRepository.getUnreadCount(
-      message.conversationId,
-      userId,
-    );
-    await this.conversationRepository.updateUnreadCount(
-      message.conversationId,
-      userId,
-      unreadCount,
-    );
-  }
-
-  async getUnreadCount(
-    conversationId: string,
-    userId: string,
-  ): Promise<number> {
-    return this.messageRepository.getUnreadCount(conversationId, userId);
   }
 
   async updateParticipantLastActive(

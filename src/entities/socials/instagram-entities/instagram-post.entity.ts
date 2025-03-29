@@ -9,13 +9,15 @@ import {
 } from 'typeorm';
 import { InstagramAccount } from './instagram-account.entity';
 import { InstagramMetric } from './instagram-metric.entity';
-import { TenantEntity } from '../../notifications/entity/tenant-entity';
 import { MediaStorageItem } from '../../../asset-management/media-storage/media-storage.dto';
 
 @Entity('instagram_post')
-export class InstagramPost extends TenantEntity {
+export class InstagramPost  {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+    @Column({ nullable: false })
+    tenantId: string;
 
   @ManyToOne(() => InstagramAccount, (account) => account.media)
   account: InstagramAccount;

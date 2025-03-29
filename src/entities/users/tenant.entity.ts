@@ -7,19 +7,20 @@ import {
   UpdateDateColumn,
   OneToMany,
   JoinColumn,
+  PrimaryColumn,
 } from 'typeorm';
 import { Team } from './team.entity';
 import { UserTenant } from './user-tenant.entity';
 
 @Entity('tbl_tenants')
 export class Tenant {
-  @PrimaryGeneratedColumn('uuid', { name: 'id' })
+  @PrimaryColumn()
   id: string;
 
   @Column({ name: 'name', unique: true })
   name: string;
 
-  @Column({ name: 'slug', unique: true })
+  @Column({ name: 'slug', unique: true, nullable: true })
   slug?: string;
 
   @Column({ name: 'logo', nullable: true })

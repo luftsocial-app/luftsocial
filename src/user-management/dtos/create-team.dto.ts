@@ -7,7 +7,7 @@ import {
   IsOptional,
 } from 'class-validator';
 
-export class CreateTenantDto {
+export class CreateTeamDto {
   @ApiProperty({
     description: 'The name of the group',
     example: 'Development Team',

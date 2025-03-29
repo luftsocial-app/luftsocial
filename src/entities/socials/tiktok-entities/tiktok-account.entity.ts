@@ -9,13 +9,15 @@ import {
   OneToOne,
 } from 'typeorm';
 import { TikTokVideo } from './tiktok-video.entity';
-import { TenantEntity } from '../../notifications/entity/tenant-entity';
 import { SocialAccount } from '../../notifications/entity/social-account.entity';
 
 @Entity('tiktok_accounts')
-export class TikTokAccount extends TenantEntity {
+export class TikTokAccount  {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ nullable: false })
+  tenantId: string;
 
   @OneToOne(() => SocialAccount)
   @JoinColumn()

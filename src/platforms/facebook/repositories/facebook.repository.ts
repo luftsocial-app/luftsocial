@@ -4,7 +4,7 @@ import { Repository, MoreThan, LessThan, EntityManager } from 'typeorm';
 import * as crypto from 'crypto';
 import { SocialPlatform } from '../../../common/enums/social-platform.enum';
 
-import { TenantAwareRepository } from '../../../database/tenant-aware.repository';
+import { TenantAwareRepository } from '../../../user-management/tenant/tenant-aware.repository';
 import { SocialAccount } from '../../../entities/notifications/entity/social-account.entity';
 import { AuthState } from '../../../entities/socials/facebook-entities/auth-state.entity';
 import { FacebookAccount } from '../../../entities/socials/facebook-entities/facebook-account.entity';

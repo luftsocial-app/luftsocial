@@ -4,12 +4,12 @@ import { Repository } from 'typeorm';
 
 import { Role } from '../../entities/roles/role.entity';
 import { User } from '../../entities/users/user.entity';
-import { UsersService } from './users.service';
-import { TenantService } from '../../database/tenant.service';
+import { UserService } from './user.service';
+import { TenantService } from '../tenant/tenant.service';
 import { UserRole } from '../../common/enums/roles';
 
 describe('UsersService', () => {
-  let service: UsersService;
+  let service: UserService;
   let userRepository: jest.Mocked<Repository<User>>;
   let roleRepository: jest.Mocked<Repository<Role>>;
 
@@ -29,42 +29,42 @@ describe('UsersService', () => {
     name: UserRole.MEMBER,
   } as Role;
 
+  const mockUserRepository = {
+    create: jest.fn(),
+    save: jest.fn(),
+    findOne: jest.fn(),
+    find: jest.fn(),
+  };
+
+  const mockRoleRepository = {
+    findOne: jest.fn(),
+    find: jest.fn(),
+  };
+
+  const mockTenantService = {
+    getTenantId: jest.fn().mockReturnValue('tenant123'),
+  };
+
   beforeEach(async () => {
-    const mockUserRepo = {
-      create: jest.fn(),
-      save: jest.fn(),
-      findOne: jest.fn(),
-      find: jest.fn(),
-    };
-
-    const mockRoleRepo = {
-      findOne: jest.fn(),
-      find: jest.fn(),
-    };
-
-    const mockTenantService = {
-      getTenantId: jest.fn().mockReturnValue('tenant123'),
-    };
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        UsersService,
+        UserService,
         {
           provide: TenantService,
           useValue: mockTenantService,
         },
         {
           provide: getRepositoryToken(User),
-          useValue: mockUserRepo,
+          useValue: mockUserRepository,
         },
         {
           provide: getRepositoryToken(Role),
-          useValue: mockRoleRepo,
+          useValue: mockRoleRepository,
         },
       ],
     }).compile();
 
-    service = module.get<UsersService>(UsersService);
+    service = module.get<UserService>(UserService);
     userRepository = module.get(getRepositoryToken(User));
     roleRepository = module.get(getRepositoryToken(Role));
   });
@@ -162,6 +162,75 @@ describe('UsersService', () => {
       userRepository.findOne.mockResolvedValueOnce(null);
       const result = await service.findUser('nonexistent');
       expect(result).toBeNull();
+    });
+  });
+
+  describe('handleUserCreation', () => {
+    it('should create a new user from webhook data', async () => {
+      const mockWebhookData = {
+        data: {
+          id: 'test-id',
+          email_addresses: [{ email_address: 'test@example.com' }],
+          first_name: 'John',
+          last_name: 'Doe',
+          tenant_id: 'tenant-id',
+        },
+      };
+
+      const expectedUser = {
+        id: 'test-id',
+        clerkId: 'test-id',
+        email: 'test@example.com',
+        username: 'test@example.com',
+        firstName: 'John',
+        lastName: 'Doe',
+        activeTenantId: 'tenant-id',
+      };
+
+      mockUserRepository.create.mockReturnValue(expectedUser);
+      mockUserRepository.save.mockResolvedValue(expectedUser);
+
+      const result = await service.handleUserCreation(mockWebhookData as any);
+      expect(result).toEqual(expectedUser);
+    });
+  });
+
+  describe('handleMembershipCreated', () => {
+    it('should update user tenant id when membership is created', async () => {
+      const mockMembershipData = {
+        data: {
+          public_user_data: { user_id: 'user-id' },
+          organization: { id: 'org-id' },
+        },
+      };
+
+      const mockUser = { id: 'user-id', activeTenantId: null };
+      mockUserRepository.findOne.mockResolvedValue(mockUser);
+      mockUserRepository.save.mockResolvedValue({
+        ...mockUser,
+        activeTenantId: 'org-id',
+      });
+
+      await service.handleMembershipCreated(mockMembershipData as any);
+      expect(mockUserRepository.save).toHaveBeenCalledWith({
+        ...mockUser,
+        activeTenantId: 'org-id',
+      });
+    });
+
+    it('should throw error if user not found', async () => {
+      const mockMembershipData = {
+        data: {
+          public_user_data: { user_id: 'non-existent' },
+          organization: { id: 'org-id' },
+        },
+      };
+
+      mockUserRepository.findOne.mockResolvedValue(null);
+
+      await expect(
+        service.handleMembershipCreated(mockMembershipData as any),
+      ).rejects.toThrow('User not found');
     });
   });
 });

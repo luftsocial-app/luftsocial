@@ -9,13 +9,15 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { LinkedInOrganization } from './linkedin-organization.entity';
-import { TenantEntity } from '../../notifications/entity/tenant-entity';
 import { SocialAccount } from '../../notifications/entity/social-account.entity';
 
 @Entity('linkedin_accounts')
-export class LinkedInAccount extends TenantEntity {
+export class LinkedInAccount {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ nullable: false })
+  tenantId: string;
 
   @OneToOne(() => SocialAccount)
   @JoinColumn()

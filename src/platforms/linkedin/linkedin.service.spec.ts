@@ -4,7 +4,7 @@ import axios from 'axios';
 import * as config from 'config';
 import { LinkedInService } from './linkedin.service';
 import { LinkedInRepository } from './repositories/linkedin.repository';
-import { TenantService } from '../../database/tenant.service';
+import { TenantService } from '../../user-management/tenant/tenant.service';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
 import { LinkedInApiException } from './helpers/linkedin-api.exception';
 import { MediaItem } from '../platform-service.interface';

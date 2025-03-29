@@ -12,7 +12,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { LoggerMiddleware } from '../logger.middleware';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TenantMiddleware } from './middleware/tenant.middleware';
-import { UsersModule } from './user-management/users/users.module';
 import { ClerkAuthGuard } from './guards/clerk-auth.guard';
 import { RolesGuard } from './guards/role-guard';
 import { PostsModule } from './post-management/posts/posts.module';
@@ -22,7 +21,6 @@ import { MediaStorageModule } from './asset-management/media-storage/media-stora
 import { CacheModule } from './cache/cache.module';
 import { PlatformsModule } from './platforms/platforms.module';
 import { FacebookModule } from './platforms/facebook/facebook.module';
-import { DatabaseModule } from './database/database.module';
 import { MessagingModule } from './messaging/messaging.module';
 
 // Entity imports
@@ -49,6 +47,10 @@ import { FacebookPostMetric } from './entities/socials/facebook-entities/faceboo
 import { FacebookPost } from './entities/socials/facebook-entities/facebook-post.entity';
 import { ParticipantEntity } from './messaging/conversations/entities/participant.entity';
 import { CrossPlatformModule } from './cross-platform/cross-platform.module';
+import { ConversationModule } from './messaging/conversations/conversation.module';
+import { RealtimeModule } from './messaging/realtime/realtime.module';
+import { UserModule } from './user-management/user/user.module';
+import { ClerkWebhookModule } from './user-management/clerk-webhook/clerk-webhook.module';
 
 @Module({
   imports: [
@@ -92,12 +94,13 @@ import { CrossPlatformModule } from './cross-platform/cross-platform.module';
         limit: 5,
       },
     ]),
+    RealtimeModule,
+    ClerkWebhookModule,
     MessagingModule,
     HealthModule,
     ScheduleModule.forRoot(),
-    UsersModule,
+    UserModule,
     HealthModule,
-    DatabaseModule,
     PostsModule,
     TenantModule,
     TaskModule,
@@ -106,8 +109,9 @@ import { CrossPlatformModule } from './cross-platform/cross-platform.module';
     FacebookModule,
     InstagramModule,
     PlatformsModule,
-    UsersModule,
     CrossPlatformModule,
+    ConversationModule,
+    TenantModule,
   ],
   controllers: [AppController],
   providers: [

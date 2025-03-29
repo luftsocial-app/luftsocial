@@ -9,12 +9,14 @@ import {
 } from 'typeorm';
 import { LinkedInOrganization } from './linkedin-organization.entity';
 import { MediaStorageItem } from '../../../asset-management/media-storage/media-storage.dto';
-import { TenantEntity } from '../../notifications/entity/tenant-entity';
 
 @Entity('linkedin_posts')
-export class LinkedInPost extends TenantEntity {
+export class LinkedInPost  {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+    @Column({ nullable: false })
+    tenantId: string;
 
   @ManyToOne(() => LinkedInOrganization, (org) => org.posts)
   organization: LinkedInOrganization;

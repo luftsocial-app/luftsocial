@@ -1,5 +1,5 @@
 // External dependencies
-import { Logger, UseGuards, Inject, forwardRef } from '@nestjs/common';
+import { Logger, UseGuards} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Server } from 'socket.io';
 import {
@@ -70,7 +70,6 @@ export class MessagingGateway
   private readonly clientsPerUser = new Map<string, Set<string>>();
 
   constructor(
-    @Inject(forwardRef(() => ConversationService))
     private readonly conversationService: ConversationService,
     private readonly messageService: MessageService,
     private readonly messageValidator: MessageValidatorService,
@@ -222,7 +221,7 @@ export class MessagingGateway
     }
 
     // Save message
-    const message = await this.conversationService.createMessage(
+    const message = await this.messageService.createMessage(
       payload.conversationId,
       payload.content,
       user.id,
@@ -491,7 +490,7 @@ export class MessagingGateway
       return createSuccessResponse({ throttled: true });
     }
 
-    await this.conversationService.markMessageAsRead(
+    await this.messageService.markMessageAsRead(
       payload.messageId,
       user.id,
     );

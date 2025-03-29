@@ -9,7 +9,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { InstagramConfig } from './helpers/instagram.config';
 import { RateLimitInterceptor } from './interceptors/rate-limit.interceptor';
 
-import { DatabaseModule } from '../../database/database.module';
 import { MediaStorageModule } from '../../asset-management/media-storage/media-storage.module';
 import { PlatformAuthModule } from '../../platform-auth/platform-auth.module';
 import { InstagramAccount } from '../../entities/socials/instagram-entities/instagram-account.entity';
@@ -18,12 +17,13 @@ import { AuthState } from '../../entities/socials/facebook-entities/auth-state.e
 import { InstagramMetric } from '../../entities/socials/instagram-entities/instagram-metric.entity';
 import { InstagramPost } from '../../entities/socials/instagram-entities/instagram-post.entity';
 import { InstagramRateLimit } from '../../entities/socials/instagram-entities/instagram-rate-limit.entity';
+import { TenantModule } from 'src/user-management/tenant/tenant.module';
 
 @Module({
   imports: [
     ConfigModule,
     MediaStorageModule,
-    DatabaseModule,
+    TenantModule,
     PlatformAuthModule,
     TypeOrmModule.forFeature([
       InstagramAccount,

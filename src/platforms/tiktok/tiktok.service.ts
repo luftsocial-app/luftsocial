@@ -29,7 +29,7 @@ import {
   PostMetrics,
 } from '../../cross-platform/helpers/cross-platform.interface';
 import { TikTokAccount } from '../../entities/socials/tiktok-entities/tiktok-account.entity';
-import { TenantService } from '../../database/tenant.service';
+import { TenantService } from '../../user-management/tenant/tenant.service';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
 import { MediaStorageItem } from '../../asset-management/media-storage/media-storage.dto';
 

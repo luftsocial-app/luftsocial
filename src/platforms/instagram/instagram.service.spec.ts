@@ -10,7 +10,7 @@ import axios from 'axios';
 import { InstagramService } from './instagram.service';
 import { InstagramRepository } from './repositories/instagram.repository';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
-import { TenantService } from '../../database/tenant.service';
+import { TenantService } from '../../user-management/tenant/tenant.service';
 import { InstagramApiException } from './helpers/instagram-api.exception';
 import { CreatePostDto, CreateStoryDto } from './helpers/create-content.dto';
 import { MediaType } from '../../common/enums/media-type.enum';

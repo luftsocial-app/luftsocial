@@ -3,7 +3,7 @@ import { MessageService } from './message.service';
 import { MessageRepository } from '../repositories/message.repository';
 import { AttachmentRepository } from '../repositories/attachment.repository';
 import { ConversationService } from '../../conversations/services/conversation.service';
-import { TenantService } from '../../../database/tenant.service';
+import { TenantService } from '../../../user-management/tenant/tenant.service';
 import {
   MessageStatus,
   MessageType,

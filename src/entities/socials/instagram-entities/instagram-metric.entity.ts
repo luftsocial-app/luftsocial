@@ -6,12 +6,14 @@ import {
   ManyToOne,
 } from 'typeorm';
 import { InstagramPost } from './instagram-post.entity';
-import { TenantEntity } from '../../notifications/entity/tenant-entity';
 
 @Entity('instagram_metrics')
-export class InstagramMetric extends TenantEntity {
+export class InstagramMetric {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ nullable: false })
+  tenantId: string;
 
   @ManyToOne(() => InstagramPost, (media) => media.metrics)
   media: InstagramPost;

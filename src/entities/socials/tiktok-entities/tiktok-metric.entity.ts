@@ -6,12 +6,14 @@ import {
   ManyToOne,
 } from 'typeorm';
 import { TikTokVideo } from './tiktok-video.entity';
-import { TenantEntity } from '../../notifications/entity/tenant-entity';
 
 @Entity('tiktok_metrics')
-export class TikTokMetric extends TenantEntity {
+export class TikTokMetric {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ nullable: false })
+  tenantId: string;
 
   @ManyToOne(() => TikTokVideo, (video) => video.metrics)
   video: TikTokVideo;

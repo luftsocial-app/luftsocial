@@ -26,7 +26,7 @@ import {
 import { MediaStorageItem } from '../../asset-management/media-storage/media-storage.dto';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
 import { MediaType } from '../../common/enums/media-type.enum';
-import { TenantService } from '../../database/tenant.service';
+import { TenantService } from '../../user-management/tenant/tenant.service';
 import { InstagramAccount } from '../../entities/socials/instagram-entities/instagram-account.entity';
 
 @Injectable()

@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { FacebookService } from './facebook.service';
 import { FacebookRepository } from './repositories/facebook.repository';
-import { TenantService } from '../../database/tenant.service';
+import { TenantService } from '../../user-management/tenant/tenant.service';
 import {
   BadRequestException,
   HttpException,

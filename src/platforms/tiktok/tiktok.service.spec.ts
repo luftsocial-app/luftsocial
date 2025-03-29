@@ -10,7 +10,7 @@ import * as config from 'config';
 import { TikTokService } from './tiktok.service';
 import { TikTokRepository } from './repositories/tiktok.repository';
 import { TikTokConfig } from './config/tiktok.config';
-import { TenantService } from '../../database/tenant.service';
+import { TenantService } from '../../user-management/tenant/tenant.service';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
 import { TikTokApiException } from './helpers/tiktok-api.exception';
 import {

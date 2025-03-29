@@ -1,13 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { UsersController } from './users.controller';
-import { UsersService } from './users.service';
 import { HttpException } from '@nestjs/common';
 import * as Chance from 'chance';
+import { UserController } from './user.controller';
+import { UserService } from './user.service';
 
 const chance = new Chance();
 
 describe('UsersController', () => {
-  let controller: UsersController;
+  let controller: UserController;
 
   const mockUsersService = {
     getUsers: jest.fn(),
@@ -20,16 +20,16 @@ describe('UsersController', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      controllers: [UsersController],
+      controllers: [UserController],
       providers: [
         {
-          provide: UsersService,
+          provide: UserService,
           useValue: mockUsersService,
         },
       ],
     }).compile();
 
-    controller = module.get<UsersController>(UsersController);
+    controller = module.get<UserController>(UserController);
   });
 
   describe('getTenantUsers', () => {
@@ -60,41 +60,6 @@ describe('UsersController', () => {
 
       await expect(controller.getTenantUsers(mockUser)).rejects.toThrow(
         HttpException,
-      );
-    });
-  });
-
-  describe('syncUser', () => {
-    it('should sync clerk user', async () => {
-      const clerkId = chance.guid();
-      const currentUser = {
-        tenantId: chance.guid(),
-        email: chance.email(),
-        firstName: chance.first(),
-        lastName: chance.last(),
-      };
-
-      const mockSyncedUser = {
-        id: chance.guid(),
-        clerkId,
-        ...currentUser,
-      };
-
-      mockUsersService.syncClerkUser.mockResolvedValue(mockSyncedUser);
-
-      const result = await controller.syncUser(clerkId, currentUser);
-
-      expect(result).toEqual(mockSyncedUser);
-      expect(mockUsersService.syncClerkUser).toHaveBeenCalledWith(
-        clerkId,
-        currentUser.tenantId,
-        currentUser,
-      );
-    });
-
-    it('should throw error when clerkId is missing', async () => {
-      await expect(controller.syncUser(null, {})).rejects.toThrow(
-        'ClerkId is required',
       );
     });
   });

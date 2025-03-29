@@ -11,12 +11,14 @@ import { FacebookPage } from './facebook-page.entity';
 import { FacebookPostMetric } from './facebook-post-metric.entity';
 import { FacebookAccount } from './facebook-account.entity';
 import { MediaStorageItem } from '../../../asset-management/media-storage/media-storage.dto';
-import { TenantEntity } from '../../notifications/entity/tenant-entity';
 
 @Entity('facebook_posts')
-export class FacebookPost extends TenantEntity {
+export class FacebookPost {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ nullable: false })
+  tenantId: string;
 
   @ManyToOne(() => FacebookAccount)
   account: FacebookAccount;

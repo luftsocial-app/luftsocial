@@ -7,12 +7,14 @@ import {
 } from 'typeorm';
 import { FacebookPost } from './facebook-post.entity';
 import { FacebookAccount } from './facebook-account.entity';
-import { TenantEntity } from '../../notifications/entity/tenant-entity';
 
 @Entity('facebook_post_metrics')
-export class FacebookPostMetric extends TenantEntity {
+export class FacebookPostMetric {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ nullable: false })
+  tenantId: string;
 
   @ManyToOne(() => FacebookAccount)
   account: FacebookAccount;

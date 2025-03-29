@@ -7,14 +7,16 @@ import {
   OneToOne,
 } from 'typeorm';
 
-import { TenantEntity } from './tenant-entity';
 import { SocialPlatform } from '../../../common/enums/social-platform.enum';
 import { FacebookAccount } from '../../socials/facebook-entities/facebook-account.entity';
 
 @Entity('social_accounts')
-export class SocialAccount extends TenantEntity {
+export class SocialAccount{
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ nullable: false })
+  tenantId: string;
 
   @Column({ type: 'enum', enum: SocialPlatform })
   platform: SocialPlatform;

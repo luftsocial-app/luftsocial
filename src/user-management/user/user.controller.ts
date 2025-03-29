@@ -9,24 +9,28 @@ import {
   HttpStatus,
   BadRequestException,
 } from '@nestjs/common';
-import { UsersService } from './users.service';
+import { UserService } from './user.service';
 import { CurrentUser } from '../../decorators/current-user.decorator';
 import { Permission, UserRole } from '../../common/enums/roles';
+import { Public } from 'src/decorators/public.decorator';
+import { TenantService } from '../tenant/tenant.service';
 
 @Controller('users')
-export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+export class UserController {
+  constructor(
+    private readonly userService: UserService,
+  ) {}
 
   @Get()
   // @Roles(Role.Admin)
   async getUsers() {
-    return this.usersService.getUsers();
+    return this.userService.getUsers();
   }
 
   @Get('Tenant')
   async getTenantUsers(@CurrentUser() user: any) {
     try {
-      return await this.usersService.getTenantUsers(user.tenantId);
+      return await this.userService.getTenantUsers(user.tenantId);
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -39,7 +43,7 @@ export class UsersController {
     @CurrentUser() user: any,
   ) {
     try {
-      return await this.usersService.updateUserRole(
+      return await this.userService.updateUserRole(
         body.userId,
         body.roles,
         user.tenantId,
@@ -54,35 +58,10 @@ export class UsersController {
     }
   }
 
-  @Post('sync/:clerkId')
-  async syncUser(
-    @Param('clerkId') clerkId: string,
-    @CurrentUser() currentUser: any,
-  ) {
-    try {
-      if (!clerkId) {
-        throw new BadRequestException('ClerkId is required');
-      }
-      // currentUser should include the relevant properties (e.g. email, firstName, lastName, tenantId)
-      return await this.usersService.syncClerkUser(
-        clerkId,
-        currentUser.tenantId,
-        currentUser,
-      );
-    } catch (error) {
-      throw new HttpException(
-        error.message,
-        error instanceof BadRequestException
-          ? HttpStatus.BAD_REQUEST
-          : HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
-  }
-
   @Get(':tenantId/:clerkId')
   async findUser(@Param('clerkId') clerkId: string) {
     try {
-      const user = await this.usersService.findUser(clerkId);
+      const user = await this.userService.findUser(clerkId);
       if (!user) {
         throw new HttpException('User not found', HttpStatus.NOT_FOUND);
       }

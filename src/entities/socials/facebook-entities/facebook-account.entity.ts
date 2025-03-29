@@ -10,12 +10,14 @@ import {
 } from 'typeorm';
 import { FacebookPage } from './facebook-page.entity';
 import { SocialAccount } from '../../notifications/entity/social-account.entity';
-import { TenantEntity } from '../../notifications/entity/tenant-entity';
 
 @Entity('facebook_accounts')
-export class FacebookAccount extends TenantEntity {
+export class FacebookAccount {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ nullable: false })
+  tenantId: string;
 
   @OneToOne(() => SocialAccount)
   @JoinColumn()

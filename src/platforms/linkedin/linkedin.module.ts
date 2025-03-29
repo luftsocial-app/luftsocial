@@ -12,18 +12,18 @@ import {
   LinkedInMetric,
   LinkedInPost,
 } from '../../entities/socials/linkedin-entities/linkedin-post.entity';
-import { DatabaseModule } from '../../database/database.module';
 import { ConfigModule } from '@nestjs/config';
 import { PlatformAuthModule } from '../../platform-auth/platform-auth.module';
 import { MediaStorageModule } from '../../asset-management/media-storage/media-storage.module';
 import { SocialAccount } from '../../entities/notifications/entity/social-account.entity';
 import { AuthState } from '../../entities/socials/facebook-entities/auth-state.entity';
+import { TenantModule } from 'src/user-management/tenant/tenant.module';
 
 @Module({
   controllers: [LinkedInController],
   imports: [
     ConfigModule,
-    DatabaseModule,
+    TenantModule,
     MediaStorageModule,
     PlatformAuthModule,
     TypeOrmModule.forFeature([

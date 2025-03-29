@@ -10,12 +10,14 @@ import {
 } from 'typeorm';
 import { InstagramPost } from './instagram-post.entity';
 import { SocialAccount } from '../../notifications/entity/social-account.entity';
-import { TenantEntity } from '../../notifications/entity/tenant-entity';
 
 @Entity('instagram_accounts')
-export class InstagramAccount extends TenantEntity {
+export class InstagramAccount{
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ nullable: false })
+  tenantId: string;
 
   @OneToOne(() => SocialAccount)
   @JoinColumn()

@@ -2,8 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { PostsService } from './posts.service';
 import { Post } from '../../entities/posts/post.entity';
-import { TenantService } from '../../database/tenant.service';
 import { NotFoundException } from '@nestjs/common';
+import { TenantService } from 'src/user-management/tenant/tenant.service';
 
 describe('PostsService', () => {
   let service: PostsService;

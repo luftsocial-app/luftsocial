@@ -22,11 +22,11 @@ import { TikTokRateLimit } from '../../entities/socials/tiktok-entities/tiktok_r
 
 // Repositories for other platforms
 import { TikTokTokenRefreshJob } from './jobs/token-refresh.job';
-import { DatabaseModule } from '../../database/database.module';
 import { PlatformAuthModule } from '../../platform-auth/platform-auth.module';
 import { MediaStorageModule } from '../../asset-management/media-storage/media-storage.module';
 import { SocialAccount } from '../../entities/notifications/entity/social-account.entity';
 import { AuthState } from '../../entities/socials/facebook-entities/auth-state.entity';
+import { TenantModule } from 'src/user-management/tenant/tenant.module';
 
 @Module({
   controllers: [TikTokController],
@@ -38,7 +38,7 @@ import { AuthState } from '../../entities/socials/facebook-entities/auth-state.e
       dest: './uploads',
     }),
     ConfigModule,
-    DatabaseModule,
+    TenantModule,
     MediaStorageModule,
     PlatformAuthModule,
     TypeOrmModule.forFeature([

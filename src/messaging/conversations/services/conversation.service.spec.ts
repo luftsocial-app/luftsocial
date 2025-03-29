@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConversationService } from './conversation.service';
-import { TenantService } from '../../../database/tenant.service';
+import { TenantService } from '../../../user-management/tenant/tenant.service';
 import { ConversationRepository } from '../repositories/conversation.repository';
 import { ParticipantRepository } from '../repositories/participant.repository';
 import { MessageRepository } from '../../messages/repositories/message.repository';

@@ -6,12 +6,14 @@ import {
   ManyToOne,
 } from 'typeorm';
 import { LinkedInPost } from './linkedin-post.entity';
-import { TenantEntity } from '../../notifications/entity/tenant-entity';
 
 @Entity('linkedin_metrics')
-export class LinkedInMetric extends TenantEntity {
+export class LinkedInMetric  {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+    @Column({ nullable: false })
+    tenantId: string;
 
   @ManyToOne(() => LinkedInPost, (post) => post.metrics)
   post: LinkedInPost;

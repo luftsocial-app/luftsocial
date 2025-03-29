@@ -10,12 +10,14 @@ import {
 import { TikTokAccount } from './tiktok-account.entity';
 import { TikTokMetric } from './tiktok-metric.entity';
 import { TikTokVideoPrivacyLevel } from '../../../platforms/tiktok/helpers/tiktok.interfaces';
-import { TenantEntity } from '../../notifications/entity/tenant-entity';
 
 @Entity('tiktok_videos')
-export class TikTokVideo extends TenantEntity {
+export class TikTokVideo {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ nullable: false })
+  tenantId: string;
 
   @ManyToOne(() => TikTokAccount)
   account: TikTokAccount;
