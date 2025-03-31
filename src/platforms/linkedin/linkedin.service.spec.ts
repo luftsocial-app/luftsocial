@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HttpException, NotFoundException } from '@nestjs/common';
 import axios from 'axios';
-import * as config from 'config';
 import { LinkedInService } from './linkedin.service';
 import { LinkedInRepository } from './repositories/linkedin.repository';
 import { TenantService } from '../../database/tenant.service';
@@ -56,19 +55,13 @@ describe('LinkedInService', () => {
     endDate: new Date('2023-01-31'),
   };
 
-  const mockFile = {
-    fieldname: 'file',
-    originalname: 'image.jpg',
-    mimetype: 'image/jpeg',
-    buffer: Buffer.from('test'),
-    size: 1024,
-  } as Express.Multer.File;
-
-  const mockMediaItem: MediaItem = {
-    file: mockFile,
-    url: undefined,
-    description: 'Test image',
-  };
+  // const mockFile = {
+  //   fieldname: 'file',
+  //   originalname: 'image.jpg',
+  //   mimetype: 'image/jpeg',
+  //   buffer: Buffer.from('test'),
+  //   size: 1024,
+  // } as Express.Multer.File;
 
   const mockMediaUrlItem: MediaItem = {
     file: undefined,

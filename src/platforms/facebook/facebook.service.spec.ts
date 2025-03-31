@@ -33,6 +33,7 @@ describe('FacebookService', () => {
   let facebookRepo: jest.Mocked<FacebookRepository>;
   let mediaStorageService: jest.Mocked<MediaStorageService>;
   let tenantService: jest.Mocked<TenantService>;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let configService: jest.Mocked<ConfigService>;
 
   // Mock data

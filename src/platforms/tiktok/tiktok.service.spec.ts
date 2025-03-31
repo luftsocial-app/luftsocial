@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException, Logger } from '@nestjs/common';
 import axios from 'axios';
-import * as config from 'config';
 import { TikTokService } from './tiktok.service';
 import { TikTokRepository } from './repositories/tiktok.repository';
 import { TikTokConfig } from './config/tiktok.config';
@@ -29,6 +28,7 @@ describe('TikTokService', () => {
   let tiktokRepo: jest.Mocked<TikTokRepository>;
   let tenantService: jest.Mocked<TenantService>;
   let mediaStorageService: jest.Mocked<MediaStorageService>;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let tiktokConfig: TikTokConfig;
   let mockedAxios;
   let loggerSpy;

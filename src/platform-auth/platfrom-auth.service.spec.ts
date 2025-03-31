@@ -400,7 +400,7 @@ describe('PlatformAuthService', () => {
         });
       });
 
-      const result = await service.handleCallback(
+      await service.handleCallback(
         SocialPlatform.FACEBOOK,
         mockCode,
         mockState,

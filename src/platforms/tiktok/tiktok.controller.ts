@@ -65,6 +65,7 @@ export class TikTokController {
   @Get(':accountId/analytics')
   async getAnalytics(
     @Param('accountId') accountId: string,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     @Query('days') days: number = 7,
   ) {
     return this.tiktokService.getAccountAnalytics(accountId);

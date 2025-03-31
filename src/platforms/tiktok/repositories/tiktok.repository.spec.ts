@@ -71,19 +71,6 @@ describe('TikTokRepository', () => {
     collectedAt: new Date(),
   };
 
-  const mockComment = {
-    id: mockCommentId,
-    tenantId: mockTenantId,
-    video: { id: mockVideoId },
-    platformCommentId: 'platform_comment_123',
-    content: 'Great video!',
-    authorId: 'author123',
-    authorUsername: 'testuser',
-    likeCount: 20,
-    replyCount: 5,
-    commentedAt: new Date(),
-  };
-
   const mockUploadSession = {
     id: mockSessionId,
     tenantId: mockTenantId,

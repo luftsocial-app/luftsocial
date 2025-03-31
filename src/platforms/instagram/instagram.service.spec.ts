@@ -21,13 +21,13 @@ const mockedAxios = axios as jest.Mocked<typeof axios>;
 describe('InstagramService', () => {
   let service: InstagramService;
   let instagramRepo: jest.Mocked<InstagramRepository>;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let configService: jest.Mocked<ConfigService>;
   let mediaStorageService: jest.Mocked<MediaStorageService>;
   let tenantService: jest.Mocked<TenantService>;
 
   const mockTenantId = 'test-tenant-id';
   const mockAccountId = 'test-account-id';
-  const mockPostId = 'test-post-id';
   const mockAccessToken = 'test-access-token';
   const mockRefreshToken = 'test-refresh-token';
   const mockIgBusinessAccountId = 'test-ig-business-id';
@@ -192,7 +192,7 @@ describe('InstagramService', () => {
         mockInstagramAccount as any,
       );
 
-      const result = await service.getAccountsByUserId(mockAccountId);
+      await service.getAccountsByUserId(mockAccountId);
 
       expect(tenantService.getTenantId).toHaveBeenCalled();
       expect(instagramRepo.setTenantId).toHaveBeenCalledWith(mockTenantId);

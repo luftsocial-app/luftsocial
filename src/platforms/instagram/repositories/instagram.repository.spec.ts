@@ -26,6 +26,7 @@ describe('InstagramRepository', () => {
   let metricRepository: jest.Mocked<Repository<InstagramMetric>>;
   let authStateRepository: jest.Mocked<Repository<AuthState>>;
   let rateLimitRepository: jest.Mocked<Repository<InstagramRateLimit>>;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let socialAccountRepository: jest.Mocked<Repository<SocialAccount>>;
   let entityManager: jest.Mocked<EntityManager>;
 
