@@ -14,7 +14,7 @@ export class FacebookPostMetricsJob {
     this.logger.setContext(FacebookPostMetricsJob.name);
   }
 
-  @Cron(CronExpression.EVERY_5_MINUTES)
+  @Cron(CronExpression.EVERY_12_HOURS)
   async collectPostMetrics() {
     try {
       // Get all posts that need metrics update

@@ -14,7 +14,7 @@ export class TikTokMetricsCollectionJob {
     this.logger.setContext(TikTokMetricsCollectionJob.name);
   }
 
-  @Cron(CronExpression.EVERY_10_MINUTES)
+  @Cron(CronExpression.EVERY_12_HOURS)
   async collectMetrics() {
     this.logger.info('Starting TikTok metrics collection job');
 

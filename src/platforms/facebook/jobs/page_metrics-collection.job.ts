@@ -14,7 +14,7 @@ export class FacebookPageMetricsJob {
     this.logger.setContext(FacebookPageMetricsJob.name);
   }
 
-  @Cron(CronExpression.EVERY_5_MINUTES)
+  @Cron(CronExpression.EVERY_12_HOURS)
   async collectPageMetrics() {
     try {
       const pages = await this.facebookRepo.getActivePages();

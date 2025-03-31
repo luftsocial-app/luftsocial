@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { LinkedInRepository } from '../repositories/linkedin.repository';
-import { OAuth2Service } from '../../../platform-auth/platform-auth.service';
+import { PlatformAuthService } from '../../../platform-auth/platform-auth.service';
 import { SocialPlatform } from '../../../common/enums/social-platform.enum';
 import { PinoLogger } from 'nestjs-pino';
 
@@ -9,7 +9,7 @@ import { PinoLogger } from 'nestjs-pino';
 export class LinkedInTokenRefreshJob {
   constructor(
     private readonly linkedInRepo: LinkedInRepository,
-    private readonly oauth2Service: OAuth2Service,
+    private readonly PlatformAuthService: PlatformAuthService,
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(LinkedInTokenRefreshJob.name);
@@ -24,7 +24,7 @@ export class LinkedInTokenRefreshJob {
 
       for (const account of accounts) {
         try {
-          await this.oauth2Service.refreshToken(
+          await this.PlatformAuthService.refreshToken(
             SocialPlatform.LINKEDIN,
             account.id,
           );

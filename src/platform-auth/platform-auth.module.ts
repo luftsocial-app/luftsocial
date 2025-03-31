@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { OAuth2Service } from './platform-auth.service';
+import { PlatformAuthService } from './platform-auth.service';
 import { PlatformAuthController } from './platform-auth.controller';
 import { PlatformConfigsProvider } from './config/platform.config';
 import { FacebookRepository } from '../platforms/facebook/repositories/facebook.repository';
@@ -31,10 +31,11 @@ import { InstagramMetric } from '../platforms/entities/instagram-entities/instag
 import { InstagramPost } from '../platforms/entities/instagram-entities/instagram-post.entity';
 import { InstagramRateLimit } from '../platforms/entities/instagram-entities/instagram-rate-limit.entity';
 import { SocialAccount } from '../platforms/entities/notifications/entity/social-account.entity';
+import { TenantModule } from 'src/user-management/tenant/tenant.module';
 
 @Module({
   providers: [
-    OAuth2Service,
+    PlatformAuthService,
     PlatformConfigsProvider,
 
     // Facebook Repositories
@@ -68,7 +69,7 @@ import { SocialAccount } from '../platforms/entities/notifications/entity/social
     },
   ],
   exports: [
-    OAuth2Service,
+    PlatformAuthService,
     PlatformConfigsProvider,
     'PLATFORM_REPOSITORIES',
 
@@ -81,6 +82,7 @@ import { SocialAccount } from '../platforms/entities/notifications/entity/social
   controllers: [PlatformAuthController],
   imports: [
     CacheModule,
+    TenantModule,
     TypeOrmModule.forFeature([
       // Include any necessary entities
       FacebookAccount,

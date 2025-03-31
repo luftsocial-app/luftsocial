@@ -17,3 +17,26 @@ export interface FacebookPostMetrics {
   videoViewTime: number;
   collectedAt: Date;
 }
+
+export interface PageInsightsResult {
+  period: string;
+  collected_at: string;
+  metrics: Record<
+    string,
+    {
+      name: string;
+      description: string;
+      current_value: number;
+      previous_value: number;
+      trend_percentage: number;
+      values: { end_time: string; value: number }[];
+    }
+  >;
+  summary: {
+    impressions: number;
+    engagement: number;
+    new_likes: number;
+    page_views: number;
+    new_followers: number;
+  };
+}

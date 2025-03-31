@@ -57,7 +57,6 @@ export class FacebookController {
     @Body() createPostDto: CreatePostDto,
     @UploadedFiles() files: Express.Multer.File[],
   ) {
-    // Associate uploaded files with media in DTO
     if (files?.length) {
       createPostDto.media = createPostDto.media || [];
       files.forEach((file) => {
@@ -92,7 +91,6 @@ export class FacebookController {
     @Body() scheduleDto: SchedulePagePostDto,
     @UploadedFiles() files: Express.Multer.File[],
   ) {
-    // Associate uploaded files with media in DTO
     if (files?.length) {
       scheduleDto.media = scheduleDto.media || [];
       files.forEach((file) => {
@@ -105,16 +103,17 @@ export class FacebookController {
 
   @Get(':accountId/posts/:postId/comments')
   async getComments(
-    @Param('accountId') accountId: string,
+    @CurrentUser() user: any,
     @Param('postId') postId: string,
     @Query('pageToken') pageToken?: string,
   ) {
+    const { userId: accountId } = user;
     return this.facebookService.getComments(accountId, postId, pageToken);
   }
 
   @Get('pages')
-  async getPages(@CurrentUser() userId: string) {
-    return this.facebookService.getUserPages(userId);
+  async getPages(@CurrentUser() user) {
+    return this.facebookService.getUserPages(user.userId);
   }
 
   @Get('pages/:pageId/posts')
@@ -126,12 +125,14 @@ export class FacebookController {
     return this.facebookService.getPagePosts(pageId, limit, cursor);
   }
 
+  // Still need to test
   @Get('pages/:pageId/insights')
   async getPageInsights(
     @Param('pageId') pageId: string,
-    @Query('period') period: string = '30d',
+    @Query('period') period: string = 'days_28',
+    @Query('metrics') metrics?: string,
   ) {
-    return this.facebookService.getPageInsights(pageId, period);
+    return this.facebookService.getPageInsights(pageId, period, metrics);
   }
 
   @Get('posts/:accountId/:postId/metrics')

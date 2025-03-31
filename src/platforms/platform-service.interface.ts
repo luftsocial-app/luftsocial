@@ -48,7 +48,7 @@ export interface PlatformOAuthConfig {
 }
 
 export interface TokenResponse {
-  accessToken: string;
+  accessToken?: string;
   refreshToken?: string;
   expiresIn: number;
   tokenType: string;

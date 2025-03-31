@@ -14,7 +14,7 @@ export class FacebookPageInsightsJob {
     this.logger.setContext(FacebookPageInsightsJob.name);
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_1AM)
+  @Cron(CronExpression.EVERY_12_HOURS)
   async collectPageInsights() {
     try {
       const pages = await this.facebookRepo.getActivePages();

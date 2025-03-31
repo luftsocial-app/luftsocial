@@ -1,6 +1,13 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { EntityManager, MoreThan, LessThan } from 'typeorm';
+import {
+  Repository,
+  EntityManager,
+  MoreThan,
+  LessThan,
+  DataSource,
+} from 'typeorm';
 import { NotFoundException } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { FacebookRepository } from './facebook.repository';
@@ -24,27 +31,35 @@ jest.mock('crypto', () => ({
 
 describe('FacebookRepository', () => {
   let repository: FacebookRepository;
-  // let accountRepo: Repository<FacebookAccount>;
-  // let authStateRepo: Repository<AuthState>;
-  // let pageRepo: Repository<FacebookPage>;
-  // let postRepo: Repository<FacebookPost>;
-  // let metricRepo: Repository<FacebookPostMetric>;
-  // let pageMetricRepo: Repository<FacebookPageMetric>;
-  // let entityManager: EntityManager;
+  let accountRepo: Repository<FacebookAccount>;
+  let authStateRepo: Repository<AuthState>;
+  let pageRepo: Repository<FacebookPage>;
+  let postRepo: Repository<FacebookPost>;
+  let metricRepo: Repository<FacebookPostMetric>;
+  let pageMetricRepo: Repository<FacebookPageMetric>;
+  let socialAccountRepo: Repository<SocialAccount>;
+  let entityManager: EntityManager;
+  let dataSource: DataSource;
 
   const mockTenantId = 'test-tenant-id';
 
   // Mock data
+  const mockSocialAccount: Partial<SocialAccount> = {
+    id: 'social-account-id',
+    accessToken: 'test-access-token',
+    refreshToken: 'test-refresh-token',
+    tokenExpiresAt: new Date(Date.now() + 3600000),
+    platform: SocialPlatform.FACEBOOK,
+    tenantId: mockTenantId,
+  };
+
   const mockAccountData: Partial<FacebookAccount> = {
     id: 'fb-account-id',
     name: 'Test Account',
-    socialAccount: {
-      id: 'social-account-id',
-      accessToken: 'test-access-token',
-      refreshToken: 'test-refresh-token',
-      tokenExpiresAt: new Date(Date.now() + 3600000),
-      platform: SocialPlatform.FACEBOOK,
-    } as SocialAccount,
+    userId: 'test-user-id',
+    facebookUserId: 'fb-123',
+    tenantId: mockTenantId,
+    socialAccount: mockSocialAccount as SocialAccount,
   };
 
   const mockPageData: Partial<FacebookPage> = {
@@ -53,6 +68,8 @@ describe('FacebookRepository', () => {
     accessToken: 'test-page-token',
     pageId: 'external-page-id',
     facebookAccount: mockAccountData as FacebookAccount,
+    tenantId: mockTenantId,
+    permissions: ['CREATE_CONTENT'],
   };
 
   const mockPostData: Partial<FacebookPost> = {
@@ -62,6 +79,7 @@ describe('FacebookRepository', () => {
     account: mockAccountData as FacebookAccount,
     isPublished: true,
     metrics: [],
+    tenantId: mockTenantId,
   };
 
   const mockMetricData: Partial<FacebookPostMetric> = {
@@ -73,19 +91,21 @@ describe('FacebookRepository', () => {
     reach: 1000,
     impressions: 1500,
     collectedAt: new Date(),
+    tenantId: mockTenantId,
   };
 
-  // const mockPageMetricData: Partial<FacebookPageMetric> = {
-  //   id: 'fb-page-metric-id',
-  //   page: mockPageData as FacebookPage,
-  //   impressions: 5000,
-  //   engagedUsers: 200,
-  //   newFans: 20,
-  //   pageViews: 500,
-  //   engagements: 300,
-  //   followers: 1000,
-  //   collectedAt: new Date(),
-  // };
+  const mockPageMetricData: Partial<FacebookPageMetric> = {
+    id: 'fb-page-metric-id',
+    page: mockPageData as FacebookPage,
+    impressions: 5000,
+    engagedUsers: 200,
+    newFans: 20,
+    pageViews: 500,
+    engagements: 300,
+    followers: 1000,
+    collectedAt: new Date(),
+    tenantId: mockTenantId,
+  };
 
   // Mocks for each repository
   const mockAccountRepo = {
@@ -95,6 +115,7 @@ describe('FacebookRepository', () => {
     findOne: jest.fn(),
     find: jest.fn(),
     count: jest.fn(),
+    delete: jest.fn(),
   };
 
   const mockAuthStateRepo = {
@@ -108,6 +129,7 @@ describe('FacebookRepository', () => {
     update: jest.fn(),
     findOne: jest.fn(),
     find: jest.fn(),
+    delete: jest.fn(),
   };
 
   const mockPostRepo = {
@@ -117,6 +139,7 @@ describe('FacebookRepository', () => {
     findOne: jest.fn(),
     find: jest.fn(),
     count: jest.fn(),
+    delete: jest.fn(),
   };
 
   const mockMetricRepo = {
@@ -125,6 +148,7 @@ describe('FacebookRepository', () => {
     update: jest.fn(),
     findOne: jest.fn(),
     find: jest.fn(),
+    delete: jest.fn(),
   };
 
   const mockPageMetricRepo = {
@@ -133,6 +157,16 @@ describe('FacebookRepository', () => {
     update: jest.fn(),
     findOne: jest.fn(),
     find: jest.fn(),
+    delete: jest.fn(),
+  };
+
+  const mockSocialAccountRepo = {
+    create: jest.fn(),
+    save: jest.fn(),
+    update: jest.fn(),
+    findOne: jest.fn(),
+    find: jest.fn(),
+    delete: jest.fn(),
   };
 
   const mockEntityManager = {
@@ -143,6 +177,10 @@ describe('FacebookRepository', () => {
     save: jest.fn(),
     delete: jest.fn(),
     remove: jest.fn(),
+  };
+
+  const mockDataSource = {
+    transaction: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -174,32 +212,44 @@ describe('FacebookRepository', () => {
           useValue: mockPageMetricRepo,
         },
         {
+          provide: getRepositoryToken(SocialAccount),
+          useValue: mockSocialAccountRepo,
+        },
+        {
           provide: EntityManager,
           useValue: mockEntityManager,
+        },
+        {
+          provide: DataSource,
+          useValue: mockDataSource,
         },
       ],
     }).compile();
 
     repository = module.get<FacebookRepository>(FacebookRepository);
-    // accountRepo = module.get<Repository<FacebookAccount>>(
-    //   getRepositoryToken(FacebookAccount),
-    // );
-    // authStateRepo = module.get<Repository<AuthState>>(
-    //   getRepositoryToken(AuthState),
-    // );
-    // pageRepo = module.get<Repository<FacebookPage>>(
-    //   getRepositoryToken(FacebookPage),
-    // );
-    // postRepo = module.get<Repository<FacebookPost>>(
-    //   getRepositoryToken(FacebookPost),
-    // );
-    // metricRepo = module.get<Repository<FacebookPostMetric>>(
-    //   getRepositoryToken(FacebookPostMetric),
-    // );
-    // pageMetricRepo = module.get<Repository<FacebookPageMetric>>(
-    //   getRepositoryToken(FacebookPageMetric),
-    // );
-    // entityManager = module.get<EntityManager>(EntityManager);
+    accountRepo = module.get<Repository<FacebookAccount>>(
+      getRepositoryToken(FacebookAccount),
+    );
+    authStateRepo = module.get<Repository<AuthState>>(
+      getRepositoryToken(AuthState),
+    );
+    pageRepo = module.get<Repository<FacebookPage>>(
+      getRepositoryToken(FacebookPage),
+    );
+    postRepo = module.get<Repository<FacebookPost>>(
+      getRepositoryToken(FacebookPost),
+    );
+    metricRepo = module.get<Repository<FacebookPostMetric>>(
+      getRepositoryToken(FacebookPostMetric),
+    );
+    pageMetricRepo = module.get<Repository<FacebookPageMetric>>(
+      getRepositoryToken(FacebookPageMetric),
+    );
+    socialAccountRepo = module.get<Repository<SocialAccount>>(
+      getRepositoryToken(SocialAccount),
+    );
+    entityManager = module.get<EntityManager>(EntityManager);
+    dataSource = module.get<DataSource>(DataSource);
 
     // Mock the getTenantId method
     jest.spyOn(repository as any, 'getTenantId').mockReturnValue(mockTenantId);
@@ -208,32 +258,80 @@ describe('FacebookRepository', () => {
     jest.clearAllMocks();
   });
 
-  // Test suite for createAccount method
   describe('createAccount', () => {
-    it('should create a new Facebook account', async () => {
+    it('should create a new Facebook account with social account', async () => {
       // Arrange
-      mockAccountRepo.create.mockReturnValue(mockAccountData);
-      mockAccountRepo.save.mockResolvedValue(mockAccountData);
+      const { socialAccount, ...facebookAccountData } = mockAccountData;
+
+      const newSocialAccount = {
+        ...mockSocialAccount,
+        id: 'new-social-account-id',
+      };
+      const newFacebookAccount = {
+        ...facebookAccountData,
+        id: 'new-fb-account-id',
+        socialAccount: newSocialAccount,
+      };
+
+      mockSocialAccountRepo.create.mockReturnValue(newSocialAccount);
+      mockAccountRepo.create.mockReturnValue(newFacebookAccount);
+
+      mockDataSource.transaction.mockImplementation(async (callback) => {
+        const manager = {
+          save: jest
+            .fn()
+            .mockResolvedValueOnce(newSocialAccount)
+            .mockResolvedValueOnce(newFacebookAccount),
+        };
+        return callback(manager);
+      });
 
       // Act
       const result = await repository.createAccount(mockAccountData);
 
       // Assert
-      expect(mockAccountRepo.create).toHaveBeenCalledWith(mockAccountData);
-      expect(mockAccountRepo.save).toHaveBeenCalledWith(mockAccountData);
-      expect(result).toEqual(mockAccountData);
+      expect(mockSocialAccountRepo.create).toHaveBeenCalledWith({
+        ...mockSocialAccount,
+        tenantId: mockTenantId,
+      });
+      expect(mockAccountRepo.create).toHaveBeenCalledWith({
+        ...facebookAccountData,
+        socialAccount: newSocialAccount,
+      });
+      expect(mockDataSource.transaction).toHaveBeenCalled();
+      expect(result).toEqual(newFacebookAccount);
+    });
+
+    it('should throw an error if transaction fails', async () => {
+      // Arrange
+      const error = new Error('Transaction failed');
+      mockDataSource.transaction.mockRejectedValue(error);
+
+      // Act & Assert
+      await expect(repository.createAccount(mockAccountData)).rejects.toThrow(
+        'Transaction failed',
+      );
     });
   });
 
-  // Test suite for createAuthState method
   describe('createAuthState', () => {
     it('should create an auth state for a user', async () => {
       // Arrange
       const userId = 'test-user-id';
       const expectedState = 'mocked-random-state';
 
-      mockAuthStateRepo.create.mockImplementation((data) => data);
-      mockAuthStateRepo.save.mockResolvedValue({ state: expectedState });
+      mockAuthStateRepo.create.mockReturnValue({
+        state: expectedState,
+        userId,
+        platform: SocialPlatform.FACEBOOK,
+        expiresAt: expect.any(Date),
+      });
+      mockAuthStateRepo.save.mockResolvedValue({
+        state: expectedState,
+        userId,
+        platform: SocialPlatform.FACEBOOK,
+        expiresAt: expect.any(Date),
+      });
 
       // Act
       const result = await repository.createAuthState(userId);
@@ -251,7 +349,6 @@ describe('FacebookRepository', () => {
     });
   });
 
-  // Test suite for updateAccount method
   describe('updateAccount', () => {
     it('should update an existing Facebook account', async () => {
       // Arrange
@@ -274,7 +371,6 @@ describe('FacebookRepository', () => {
     });
   });
 
-  // Test suite for createPage method
   describe('createPage', () => {
     it('should create a new Facebook page', async () => {
       // Arrange
@@ -289,9 +385,32 @@ describe('FacebookRepository', () => {
       expect(mockPageRepo.save).toHaveBeenCalledWith(mockPageData);
       expect(result).toEqual(mockPageData);
     });
+
+    it('should set default permissions if none provided', async () => {
+      // Arrange
+      const pageWithoutPermissions = {
+        ...mockPageData,
+        permissions: undefined,
+      };
+      const savedPage = {
+        ...pageWithoutPermissions,
+        permissions: ['CREATE_CONTENT'],
+      };
+
+      mockPageRepo.create.mockReturnValue(pageWithoutPermissions);
+      mockPageRepo.save.mockResolvedValue(savedPage);
+
+      // Act
+      const result = await repository.createPage(pageWithoutPermissions);
+
+      // Assert
+      expect(mockPageRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({ permissions: ['CREATE_CONTENT'] }),
+      );
+      expect(result).toEqual(savedPage);
+    });
   });
 
-  // Test suite for createPost method
   describe('createPost', () => {
     it('should create a new Facebook post', async () => {
       // Arrange
@@ -308,19 +427,19 @@ describe('FacebookRepository', () => {
     });
   });
 
-  // Test suite for getAccountById method
   describe('getAccountById', () => {
     it('should return a Facebook account by ID', async () => {
       // Arrange
+      const userId = 'test-user-id';
       mockAccountRepo.findOne.mockResolvedValue(mockAccountData);
 
       // Act
-      const result = await repository.getAccountById('fb-account-id');
+      const result = await repository.getAccountById(userId);
 
       // Assert
       expect(mockAccountRepo.findOne).toHaveBeenCalledWith({
         where: {
-          id: 'fb-account-id',
+          userId,
           tenantId: mockTenantId,
         },
         relations: ['socialAccount'],
@@ -340,7 +459,6 @@ describe('FacebookRepository', () => {
     });
   });
 
-  // Test suite for getPageById method
   describe('getPageById', () => {
     it('should return a Facebook page by ID', async () => {
       // Arrange
@@ -380,7 +498,6 @@ describe('FacebookRepository', () => {
     });
   });
 
-  // Test suite for getPostById method
   describe('getPostById', () => {
     it('should return a Facebook post by ID', async () => {
       // Arrange
@@ -414,7 +531,6 @@ describe('FacebookRepository', () => {
     });
   });
 
-  // Test suite for getRecentPosts method
   describe('getRecentPosts', () => {
     it('should return recent posts within the specified timeframe', async () => {
       // Arrange
@@ -460,7 +576,6 @@ describe('FacebookRepository', () => {
     });
   });
 
-  // Test suite for getAccountPages method
   describe('getAccountPages', () => {
     it('should return pages associated with a Facebook account', async () => {
       // Arrange
@@ -476,12 +591,12 @@ describe('FacebookRepository', () => {
           facebookAccount: { id: 'fb-account-id' },
           tenantId: mockTenantId,
         },
+        relations: ['facebookAccount'],
       });
       expect(result).toEqual(pages);
     });
   });
 
-  // Test suite for updateAccountTokens method
   describe('updateAccountTokens', () => {
     it('should update account tokens successfully', async () => {
       // Arrange
@@ -494,15 +609,22 @@ describe('FacebookRepository', () => {
 
       mockAccountRepo.findOne.mockResolvedValue(mockAccountData);
       mockEntityManager.update.mockResolvedValue({ affected: 1 });
-      mockAccountRepo.findOne
-        .mockResolvedValueOnce(mockAccountData)
-        .mockResolvedValueOnce({
-          ...mockAccountData,
-          socialAccount: {
-            ...mockAccountData.socialAccount,
-            accessToken: tokens.accessToken,
-          },
-        });
+
+      // Mock getAccountById to return updated account
+      const updatedAccount = {
+        ...mockAccountData,
+        socialAccount: {
+          ...mockAccountData.socialAccount,
+          accessToken: tokens.accessToken,
+          refreshToken: tokens.refreshToken,
+          tokenExpiresAt: tokens.expiresAt,
+        },
+      };
+
+      // Use spyOn to allow this to be mocked but restored
+      jest
+        .spyOn(repository, 'getAccountById')
+        .mockResolvedValue(updatedAccount as FacebookAccount);
 
       // Act
       const result = await repository.updateAccountTokens(accountId, tokens);
@@ -522,7 +644,10 @@ describe('FacebookRepository', () => {
           updatedAt: expect.any(Date),
         },
       );
-      expect(result).toEqual(expect.objectContaining({ id: accountId }));
+      expect(repository.getAccountById).toHaveBeenCalledWith(
+        mockAccountData.userId,
+      );
+      expect(result).toEqual(updatedAccount);
     });
 
     it('should throw NotFoundException when account not found', async () => {
@@ -566,7 +691,6 @@ describe('FacebookRepository', () => {
     });
   });
 
-  // Test suite for getPagePosts method
   describe('getPagePosts', () => {
     it('should return posts for a specific page', async () => {
       // Arrange
@@ -606,7 +730,6 @@ describe('FacebookRepository', () => {
     });
   });
 
-  // Test suite for getRecentPostCount method
   describe('getRecentPostCount', () => {
     it('should return count of recent posts for hourly timeframe', async () => {
       // Arrange
@@ -651,7 +774,6 @@ describe('FacebookRepository', () => {
     });
   });
 
-  // Test suite for updatePageToken method
   describe('updatePageToken', () => {
     it('should update page token successfully', async () => {
       // Arrange
@@ -677,7 +799,6 @@ describe('FacebookRepository', () => {
     });
   });
 
-  // Test suite for updatePageMetrics method
   describe('updatePageMetrics', () => {
     it('should update page metrics successfully', async () => {
       // Arrange
@@ -743,7 +864,6 @@ describe('FacebookRepository', () => {
     });
   });
 
-  // Test suite for upsertPostMetrics method
   describe('upsertPostMetrics', () => {
     it('should update existing metrics', async () => {
       // Arrange
@@ -759,6 +879,7 @@ describe('FacebookRepository', () => {
         id: 'existing-metric-id',
         post: { id: postId },
         ...metrics,
+        tenantId: mockTenantId,
       };
 
       mockEntityManager.transaction.mockImplementation(async (callback) => {
@@ -813,6 +934,7 @@ describe('FacebookRepository', () => {
         id: 'new-metric-id',
         post: { id: postId },
         ...metrics,
+        tenantId: mockTenantId,
       };
 
       mockEntityManager.transaction.mockImplementation(async (callback) => {
@@ -850,7 +972,6 @@ describe('FacebookRepository', () => {
     });
   });
 
-  // Test suite for updatePost method
   describe('updatePost', () => {
     it('should update a post successfully', async () => {
       // Arrange
@@ -876,30 +997,73 @@ describe('FacebookRepository', () => {
     });
   });
 
-  // Test suite for updatePage method
   describe('updatePage', () => {
     it('should update a page successfully', async () => {
       // Arrange
       const pageId = 'fb-page-id';
       const updateData = { name: 'Updated Page Name' };
-      const updatedPage = { ...mockPageData, ...updateData };
+      const page = { ...mockPageData };
+      const updatedPage = { ...page, ...updateData };
 
-      mockPageRepo.update.mockResolvedValue({ affected: 1 });
-      mockPageRepo.findOne.mockResolvedValue(updatedPage);
+      mockPageRepo.findOne.mockResolvedValue(page);
+      mockPageRepo.save.mockResolvedValue(updatedPage);
 
       // Act
       const result = await repository.updatePage(pageId, updateData);
 
       // Assert
-      expect(mockPageRepo.update).toHaveBeenCalledWith(pageId, updateData);
       expect(mockPageRepo.findOne).toHaveBeenCalledWith({
         where: { id: pageId, tenantId: mockTenantId },
       });
+      expect(mockPageRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          ...page,
+          ...updateData,
+        }),
+      );
+      expect(result).toEqual(updatedPage);
+    });
+
+    it('should throw NotFoundException when page not found', async () => {
+      // Arrange
+      const pageId = 'non-existent-id';
+      const updateData = { name: 'Updated Page Name' };
+      mockPageRepo.findOne.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(repository.updatePage(pageId, updateData)).rejects.toThrow(
+        NotFoundException,
+      );
+      expect(mockPageRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('should ensure permissions is set when updating', async () => {
+      // Arrange
+      const pageId = 'fb-page-id';
+      const updateData = { name: 'Updated Page Name' };
+      const pageWithoutPermissions = { ...mockPageData, permissions: [] };
+      const updatedPage = {
+        ...pageWithoutPermissions,
+        ...updateData,
+        permissions: ['CREATE_CONTENT'],
+      };
+
+      mockPageRepo.findOne.mockResolvedValue(pageWithoutPermissions);
+      mockPageRepo.save.mockResolvedValue(updatedPage);
+
+      // Act
+      const result = await repository.updatePage(pageId, updateData);
+
+      // Assert
+      expect(mockPageRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          permissions: ['CREATE_CONTENT'],
+        }),
+      );
       expect(result).toEqual(updatedPage);
     });
   });
 
-  // Test suite for getAccountsWithExpiringTokens method
   describe('getAccountsWithExpiringTokens', () => {
     it('should return accounts with tokens expiring in the next 24 hours', async () => {
       // Arrange
@@ -927,7 +1091,6 @@ describe('FacebookRepository', () => {
     });
   });
 
-  // Test suite for getActivePages method
   describe('getActivePages', () => {
     it('should return active pages with valid tokens', async () => {
       // Arrange
@@ -957,7 +1120,6 @@ describe('FacebookRepository', () => {
     });
   });
 
-  // Test suite for upsertPageMetrics method
   describe('upsertPageMetrics', () => {
     it('should update existing page metrics', async () => {
       // Arrange
@@ -977,6 +1139,7 @@ describe('FacebookRepository', () => {
         id: 'existing-metric-id',
         page: { id: pageId },
         ...metricData,
+        tenantId: mockTenantId,
       };
       const updatedMetric = { ...existingMetric, impressions: 6000 };
 
@@ -1001,11 +1164,7 @@ describe('FacebookRepository', () => {
         existingMetric.id,
         metricData,
       );
-      expect(result).toEqual(
-        expect.objectContaining({
-          id: existingMetric.id,
-        }),
-      );
+      expect(result).toEqual(updatedMetric);
     });
 
     it('should create new page metrics when they do not exist', async () => {
@@ -1026,6 +1185,7 @@ describe('FacebookRepository', () => {
         id: 'new-metric-id',
         page: { id: pageId },
         ...metricData,
+        tenantId: mockTenantId,
       };
 
       mockPageMetricRepo.findOne.mockResolvedValue(null);
@@ -1052,7 +1212,6 @@ describe('FacebookRepository', () => {
     });
   });
 
-  // Test suite for deletePost method
   describe('deletePost', () => {
     it('should delete a post and its metrics successfully', async () => {
       // Arrange
@@ -1093,7 +1252,6 @@ describe('FacebookRepository', () => {
     });
   });
 
-  // Test suite for deleteAccount method
   describe('deleteAccount', () => {
     it('should delete an account and all associated data', async () => {
       // Arrange
@@ -1198,7 +1356,7 @@ describe('FacebookRepository', () => {
 
       // Act & Assert
       await expect(repository.createAccount(mockAccountData)).rejects.toThrow(
-        'Database error during save',
+        'Transaction failed',
       );
     });
   });
@@ -1237,7 +1395,7 @@ describe('FacebookRepository', () => {
       // Assert
       expect(mockAccountRepo.findOne).toHaveBeenCalledWith({
         where: {
-          id: 'fb-account-id',
+          userId: 'fb-account-id',
           tenantId: differentTenantId,
         },
         relations: ['socialAccount'],
@@ -1264,6 +1422,7 @@ describe('FacebookRepository', () => {
 
       // Assert
       expect(mockPageRepo.find).toHaveBeenCalledWith({
+        relations: ['facebookAccount'],
         where: {
           facebookAccount: { id: accountId },
           tenantId: mockTenantId,

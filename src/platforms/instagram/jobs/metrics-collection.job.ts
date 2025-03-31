@@ -15,7 +15,7 @@ export class InstagramMetricsCollectionJob {
     this.logger.setContext(InstagramMetricsCollectionJob.name);
   }
 
-  @Cron(CronExpression.EVERY_30_MINUTES)
+  @Cron(CronExpression.EVERY_12_HOURS)
   async collectMetrics() {
     this.logger.info('Starting Instagram metrics collection job');
 

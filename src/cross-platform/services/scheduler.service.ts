@@ -29,7 +29,7 @@ export class SchedulerService {
     this.logger.setContext(SchedulerService.name);
   }
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_12_HOURS)
   async processScheduledPosts() {
     try {
       const pendingPosts = await this.scheduledPostRepo.find({

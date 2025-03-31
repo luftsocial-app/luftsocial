@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { TikTokRepository } from '../repositories/tiktok.repository';
-import { OAuth2Service } from '../../../platform-auth/platform-auth.service';
+import { PlatformAuthService } from '../../../platform-auth/platform-auth.service';
 import { SocialPlatform } from '../../../common/enums/social-platform.enum';
 import { PinoLogger } from 'nestjs-pino';
 
@@ -9,8 +9,7 @@ import { PinoLogger } from 'nestjs-pino';
 export class TikTokTokenRefreshJob {
   constructor(
     private readonly tiktokRepo: TikTokRepository,
-    private readonly oauth2Service: OAuth2Service,
-
+    private readonly PlatformAuthService: PlatformAuthService,
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(TikTokTokenRefreshJob.name);
@@ -26,8 +25,8 @@ export class TikTokTokenRefreshJob {
 
       for (const account of accounts) {
         try {
-          // Use the new OAuth2Service to refresh the token
-          await this.oauth2Service.refreshToken(
+          // Use the new PlatformAuthService to refresh the token
+          await this.PlatformAuthService.refreshToken(
             SocialPlatform.TIKTOK,
             account.id,
           );

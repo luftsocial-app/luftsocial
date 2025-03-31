@@ -24,6 +24,9 @@ export class FacebookAccount {
   socialAccount: SocialAccount;
 
   @Column()
+  userId: string;
+
+  @Column()
   facebookUserId: string;
 
   @Column()
@@ -35,7 +38,7 @@ export class FacebookAccount {
   @Column({ nullable: true })
   profileUrl: string;
 
-  @Column('jsonb')
+  @Column('jsonb', { nullable: true })
   permissions: string[];
 
   @OneToMany(() => FacebookPage, (page) => page.facebookAccount)

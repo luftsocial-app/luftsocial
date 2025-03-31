@@ -1,6 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan, LessThan, EntityManager } from 'typeorm';
+import {
+  Repository,
+  MoreThan,
+  LessThan,
+  EntityManager,
+  DataSource,
+} from 'typeorm';
 import * as crypto from 'crypto';
 import { SocialPlatform } from '../../../common/enums/social-platform.enum';
 
@@ -15,6 +21,8 @@ import { SocialAccount } from '../../../platforms/entities/notifications/entity/
 
 @Injectable()
 export class FacebookRepository extends TenantAwareRepository {
+  private readonly logger = new Logger(FacebookRepository.name);
+
   constructor(
     @InjectRepository(FacebookAccount)
     private readonly accountRepo: Repository<FacebookAccount>,
@@ -30,6 +38,9 @@ export class FacebookRepository extends TenantAwareRepository {
     private readonly pageMetricRepo: Repository<FacebookPageMetric>,
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
+    @InjectRepository(SocialAccount)
+    private socialAccountRepo: Repository<SocialAccount>,
+    private dataSource: DataSource,
   ) {
     super(accountRepo);
   }
@@ -37,8 +48,28 @@ export class FacebookRepository extends TenantAwareRepository {
   async createAccount(
     data: Partial<FacebookAccount>,
   ): Promise<FacebookAccount> {
-    const account = this.accountRepo.create(data);
-    return this.accountRepo.save(account);
+    const socialAccountData = data.socialAccount;
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { socialAccount, ...facebookAccountData } = data;
+
+    return this.dataSource.transaction(async (manager) => {
+      // First create the social account
+      const socialAccount = this.socialAccountRepo.create({
+        ...socialAccountData,
+        tenantId: data.tenantId, // Ensure tenantId is set
+      });
+
+      const savedSocialAccount = await manager.save(socialAccount);
+
+      // Now create the Facebook account with a reference to the social account
+      const facebookAccount = this.accountRepo.create({
+        ...facebookAccountData,
+        socialAccount: savedSocialAccount,
+      });
+
+      return await manager.save(facebookAccount);
+    });
   }
 
   async createAuthState(userId: string): Promise<string> {
@@ -65,9 +96,25 @@ export class FacebookRepository extends TenantAwareRepository {
     });
   }
 
-  async createPage(data: Partial<FacebookPage>): Promise<FacebookPage> {
-    const page = this.pageRepo.create(data);
-    return this.pageRepo.save(page);
+  async createPage(pageData: Partial<FacebookPage>): Promise<FacebookPage> {
+    try {
+      // Create the page entity
+      const page = this.pageRepo.create(pageData);
+
+      // Ensure permissions is set to avoid not-null constraint
+      if (
+        !page.permissions ||
+        !Array.isArray(page.permissions) ||
+        page.permissions.length === 0
+      ) {
+        page.permissions = ['CREATE_CONTENT'];
+      }
+
+      return await this.pageRepo.save(page);
+    } catch (error) {
+      this.logger.error('Error creating page:', error);
+      throw error;
+    }
   }
 
   async createPost(data: Partial<FacebookPost>): Promise<FacebookPost> {
@@ -78,7 +125,7 @@ export class FacebookRepository extends TenantAwareRepository {
   async getAccountById(id: string): Promise<FacebookAccount> {
     return this.accountRepo.findOne({
       where: {
-        id,
+        userId: id,
         tenantId: this.getTenantId(),
       },
       relations: ['socialAccount'],
@@ -130,6 +177,7 @@ export class FacebookRepository extends TenantAwareRepository {
         facebookAccount: { id: accountId },
         tenantId: this.getTenantId(),
       },
+      relations: ['facebookAccount'],
     });
   }
 
@@ -142,7 +190,10 @@ export class FacebookRepository extends TenantAwareRepository {
     },
   ): Promise<FacebookAccount> {
     const account = await this.accountRepo.findOne({
-      where: { id: accountId, tenantId: this.getTenantId() },
+      where: {
+        id: accountId,
+        tenantId: this.getTenantId(),
+      },
       relations: ['socialAccount'],
     });
 
@@ -158,7 +209,7 @@ export class FacebookRepository extends TenantAwareRepository {
       updatedAt: new Date(),
     });
 
-    return this.getAccountById(accountId);
+    return this.getAccountById(account.userId);
   }
 
   async getPagePosts(
@@ -297,10 +348,34 @@ export class FacebookRepository extends TenantAwareRepository {
     pageId: string,
     updateData: Partial<FacebookPage>,
   ): Promise<FacebookPage> {
-    await this.pageRepo.update(pageId, updateData);
-    return this.pageRepo.findOne({
-      where: { id: pageId, tenantId: this.getTenantId() },
-    });
+    try {
+      const page = await this.pageRepo.findOne({
+        where: { id: pageId, tenantId: this.getTenantId() },
+      });
+      if (!page) {
+        throw new NotFoundException(`Page with ID ${pageId} not found`);
+      }
+
+      // Update the page properties
+      Object.assign(page, updateData);
+
+      // Ensure permissions is set
+      if (
+        !page.permissions ||
+        !Array.isArray(page.permissions) ||
+        page.permissions.length === 0
+      ) {
+        page.permissions = ['CREATE_CONTENT'];
+      }
+
+      const updatedPage = await this.pageRepo.save(page);
+      this.logger.log(`Page ${pageId} updated successfully`);
+
+      return updatedPage;
+    } catch (error) {
+      this.logger.error(`Error updating page ${pageId}:`, error);
+      throw error;
+    }
   }
 
   // Get accounts with expiring tokens
