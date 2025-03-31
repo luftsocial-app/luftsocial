@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { ContentPublisherService } from './content-publisher.service';
 import { PublishRecord } from '../entities/publish.entity';
