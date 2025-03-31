@@ -1356,7 +1356,7 @@ describe('FacebookRepository', () => {
 
       // Act & Assert
       await expect(repository.createAccount(mockAccountData)).rejects.toThrow(
-        'Database error during save',
+        'Transaction failed',
       );
     });
   });
@@ -1395,7 +1395,7 @@ describe('FacebookRepository', () => {
       // Assert
       expect(mockAccountRepo.findOne).toHaveBeenCalledWith({
         where: {
-          id: 'fb-account-id',
+          userId: 'fb-account-id',
           tenantId: differentTenantId,
         },
         relations: ['socialAccount'],
@@ -1422,6 +1422,7 @@ describe('FacebookRepository', () => {
 
       // Assert
       expect(mockPageRepo.find).toHaveBeenCalledWith({
+        relations: ['facebookAccount'],
         where: {
           facebookAccount: { id: accountId },
           tenantId: mockTenantId,

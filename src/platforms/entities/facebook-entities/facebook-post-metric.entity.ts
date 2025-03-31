@@ -7,7 +7,6 @@ import {
 } from 'typeorm';
 import { FacebookPost } from './facebook-post.entity';
 import { FacebookAccount } from './facebook-account.entity';
-import { TenantEntity } from '../../notifications/entity/tenant-entity';
 
 @Entity('facebook_post_metrics')
 export class FacebookPostMetric {

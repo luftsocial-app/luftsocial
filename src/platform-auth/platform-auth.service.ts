@@ -6,7 +6,6 @@ import {
   Inject,
   UnauthorizedException,
   NotFoundException,
-  Logger,
 } from '@nestjs/common';
 import {
   PlatformOAuthConfig,
@@ -16,12 +15,11 @@ import { PlatformError } from '../platforms/platform.error';
 import { TokenCacheService } from '../cache/token-cache.service';
 import { SocialPlatform } from '../common/enums/social-platform.enum';
 import { PinoLogger } from 'nestjs-pino';
-import { TenantService } from '../database/tenant.service';
+import { TenantService } from '../user-management/tenant/tenant.service';
 
 @Injectable()
 export class PlatformAuthService {
   private oauthClients: Record<SocialPlatform, AuthorizationCode>;
-  private readonly logger = new Logger(PlatformAuthService.name);
 
   constructor(
     private readonly tokenCacheService: TokenCacheService,
@@ -32,7 +30,7 @@ export class PlatformAuthService {
     private readonly logger: PinoLogger,
     private readonly tenantService: TenantService,
   ) {
-    this.logger.setContext(OAuth2Service.name);
+    this.logger.setContext(PlatformAuthService.name);
     this.initializeOAuthClients();
   }
 

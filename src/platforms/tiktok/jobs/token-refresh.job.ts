@@ -10,9 +10,6 @@ export class TikTokTokenRefreshJob {
   constructor(
     private readonly tiktokRepo: TikTokRepository,
     private readonly PlatformAuthService: PlatformAuthService,
-  ) {}
-    private readonly oauth2Service: OAuth2Service,
-
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(TikTokTokenRefreshJob.name);

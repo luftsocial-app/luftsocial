@@ -6,7 +6,6 @@ import {
   ManyToOne,
 } from 'typeorm';
 import { InstagramPost } from './instagram-post.entity';
-import { TenantEntity } from '../../notifications/entity/tenant-entity';
 
 @Entity('instagram_metrics')
 export class InstagramMetric {
