@@ -13,8 +13,7 @@ import {
   PublishParams,
   PublishStatus,
 } from '../helpers/cross-platform.interface';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { MediaItem } from '../../platforms/platform-service.interface';
+import { NotFoundException } from '@nestjs/common';
 
 describe('ContentPublisherService', () => {
   let service: ContentPublisherService;

@@ -5,7 +5,6 @@ import { TikTokErrorInterceptor } from './helpers/tiktok-error.interceptor';
 import { RateLimitInterceptor } from './helpers/rate-limit.interceptor';
 import { MediaItem } from '../platform-service.interface';
 import { TikTokPostVideoStatus } from './helpers/tiktok.interfaces';
-import { APP_INTERCEPTOR } from '@nestjs/core';
 import { TikTokRepository } from './repositories/tiktok.repository';
 import { CreateVideoDto } from './helpers/create-video.dto.ts';
 

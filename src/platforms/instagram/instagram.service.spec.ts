@@ -12,10 +12,7 @@ import { InstagramRepository } from './repositories/instagram.repository';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
 import { TenantService } from '../../database/tenant.service';
 import { InstagramApiException } from './helpers/instagram-api.exception';
-import { CreatePostDto, CreateStoryDto } from './helpers/create-content.dto';
 import { MediaType } from '../../common/enums/media-type.enum';
-import { DateRange } from '../../common/interface/platform-metrics.interface';
-import { SocialPlatform } from '../../common/enums/social-platform.enum';
 
 // Mock axios
 jest.mock('axios');

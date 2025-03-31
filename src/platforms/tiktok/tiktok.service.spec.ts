@@ -1,10 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import {
-  HttpException,
-  HttpStatus,
-  NotFoundException,
-  Logger,
-} from '@nestjs/common';
+import { NotFoundException, Logger } from '@nestjs/common';
 import axios from 'axios';
 import * as config from 'config';
 import { TikTokService } from './tiktok.service';
