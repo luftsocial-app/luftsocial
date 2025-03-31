@@ -1,20 +1,22 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { TikTokRepository } from '../repositories/tiktok.repository';
 import { TikTokService } from '../tiktok.service';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class TikTokMetricsCollectionJob {
-  private readonly logger = new Logger(TikTokMetricsCollectionJob.name);
-
   constructor(
     private readonly tiktokRepo: TikTokRepository,
     private readonly tiktokService: TikTokService,
-  ) {}
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(TikTokMetricsCollectionJob.name);
+  }
 
   @Cron(CronExpression.EVERY_12_HOURS)
   async collectMetrics() {
-    this.logger.log('Starting TikTok metrics collection job');
+    this.logger.info('Starting TikTok metrics collection job');
 
     try {
       const accounts = await this.tiktokRepo.getActiveAccounts();

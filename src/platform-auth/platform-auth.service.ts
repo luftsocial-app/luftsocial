@@ -15,6 +15,7 @@ import {
 import { PlatformError } from '../platforms/platform.error';
 import { TokenCacheService } from '../cache/token-cache.service';
 import { SocialPlatform } from '../common/enums/social-platform.enum';
+import { PinoLogger } from 'nestjs-pino';
 import { TenantService } from '../database/tenant.service';
 
 @Injectable()
@@ -28,8 +29,10 @@ export class PlatformAuthService {
     readonly platformConfigs: Record<SocialPlatform, PlatformOAuthConfig>,
     @Inject('PLATFORM_REPOSITORIES')
     private readonly platformRepos: Record<SocialPlatform, any>,
+    private readonly logger: PinoLogger,
     private readonly tenantService: TenantService,
   ) {
+    this.logger.setContext(OAuth2Service.name);
     this.initializeOAuthClients();
   }
 

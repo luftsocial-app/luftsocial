@@ -1,13 +1,16 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import {
   MessageEventPayload,
   MessageUpdatePayload,
   ReactionPayload,
 } from '../events/message-events';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class MessageValidatorService {
-  private readonly logger = new Logger(MessageValidatorService.name);
+  constructor(private readonly logger: PinoLogger) {
+    this.logger.setContext(MessageValidatorService.name);
+  }
   private readonly MAX_MESSAGE_LENGTH = 5000;
   private readonly MIN_MESSAGE_LENGTH = 1;
   private readonly EMOJI_REGEX =

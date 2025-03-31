@@ -113,6 +113,6 @@ async function bootstrap() {
   //   secretKey: config.get('clerk.secretKey'),
   // });
   // const userList = await clerkClient.users.getUserList();
-  // console.log({ userList : userList.data });
+  // this.logger.info({ userList : userList.data });
 }
 bootstrap();

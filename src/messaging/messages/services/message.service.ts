@@ -1,13 +1,10 @@
 import {
   Injectable,
-  Logger,
   NotFoundException,
   ForbiddenException,
   BadRequestException,
-  Inject,
-  forwardRef,
 } from '@nestjs/common';
-import { TenantService } from '../../../database/tenant.service';
+import { TenantService } from '../../../user-management/tenant/tenant.service';
 import { MessageRepository } from '../repositories/message.repository';
 import { AttachmentRepository } from '../repositories/attachment.repository';
 import { MessageStatus } from '../../shared/enums/message-type.enum';
@@ -22,18 +19,19 @@ import {
   AttachmentResponseDto,
 } from '../dto/message-response.dto';
 import { Not, Like } from 'typeorm';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class MessageService {
-  private readonly logger = new Logger(MessageService.name);
-
   constructor(
     private readonly messageRepository: MessageRepository,
     private readonly attachmentRepository: AttachmentRepository,
-    @Inject(forwardRef(() => ConversationService))
     private readonly conversationService: ConversationService,
     private readonly tenantService: TenantService,
-  ) {}
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext('MessageService');
+  }
 
   // Helper method to map entity to DTO
   private mapToMessageDto(
@@ -47,26 +45,31 @@ export class MessageService {
     dto.senderId = message.senderId;
     dto.parentMessageId = message.parentMessageId;
     dto.status = message.status;
-    dto.reactions = message.reactions || [];
+    dto.reactions = message.metadata?.reactions
+      ? Object.entries(message.metadata.reactions).map(([userId, emoji]) => ({
+          userId,
+          emoji,
+          createdAt: new Date(),
+        }))
+      : [];
     dto.editHistory = message.editHistory || [];
     dto.createdAt = message.createdAt;
     dto.updatedAt = message.updatedAt;
 
-    // Fix readBy mapping - convert object to array of IDs
-    if (message.readBy) {
-      dto.readBy = Object.keys(message.readBy);
-      dto.isRead = userId ? !!message.readBy[userId] : false;
-    } else {
-      dto.readBy = [];
-      dto.isRead = false;
-    }
+    // Improved readBy mapping using entity helper method
+    dto.readBy = message.readBy || {};
+    dto.isRead = userId ? !!message.readBy?.[userId] : false;
 
-    // Set isEdited based on either the entity's isEdited flag or the presence of edit history
-    dto.isEdited =
-      message.isEdited || (message.metadata?.editHistory?.length ?? 0) > 0;
+    // Improved edit history mapping
+    dto.isEdited = message.isEdited;
     dto.metadata = {
       editHistory:
-        message.metadata?.editHistory?.map((edit) => edit.content) || [],
+        message.metadata?.editHistory?.map((edit) => ({
+          content: edit.content,
+          editedAt: edit.editedAt,
+          editorId: edit.editorId,
+        })) || [],
+      reactions: message.metadata?.reactions || {},
     };
 
     return dto;
@@ -285,12 +288,8 @@ export class MessageService {
         throw new BadRequestException('Cannot edit deleted messages');
       }
 
-      message.metadata.editHistory = message.metadata.editHistory || [];
-      message.metadata.editHistory.push({
-        content: message.content,
-        editedAt: new Date(),
-      });
-      message.isEdited = true;
+      // Use entity helper method for edit history
+      message.addEditHistoryEntry(message.content, userId);
       message.content = updateData.content;
       message.updatedAt = new Date();
 
@@ -507,8 +506,8 @@ export class MessageService {
         throw new NotFoundException(`Message with ID ${messageId} not found`);
       }
 
-      if (!message.readBy) message.readBy = {};
-      message.readBy[userId] = new Date();
+      // Use entity helper method for marking as read
+      message.markAsRead(userId);
       await this.messageRepository.save(message);
 
       this.logger.debug(

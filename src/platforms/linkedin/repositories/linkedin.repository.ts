@@ -2,14 +2,14 @@ import * as crypto from 'crypto';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, LessThan, MoreThan, Repository } from 'typeorm';
-import { LinkedInAccount } from '../../../entities/socials/linkedin-entities/linkedin-account.entity';
-import { LinkedInOrganization } from '../../../entities/socials/linkedin-entities/linkedin-organization.entity';
-import { LinkedInMetric } from '../../../entities/socials/linkedin-entities/linkedin-metric.entity';
-import { LinkedInPost } from '../../../entities/socials/linkedin-entities/linkedin-post.entity';
-import { TenantAwareRepository } from '../../../database/tenant-aware.repository';
+import { LinkedInAccount } from '../../entities/linkedin-entities/linkedin-account.entity';
+import { LinkedInOrganization } from '../../entities/linkedin-entities/linkedin-organization.entity';
+import { LinkedInMetric } from '../../entities/linkedin-entities/linkedin-metric.entity';
+import { LinkedInPost } from '../../entities/linkedin-entities/linkedin-post.entity';
+import { TenantAwareRepository } from '../../../user-management/tenant/tenant-aware.repository';
 import { SocialPlatform } from '../../../common/enums/social-platform.enum';
-import { SocialAccount } from '../../../entities/notifications/entity/social-account.entity';
-import { AuthState } from '../../../entities/socials/facebook-entities/auth-state.entity';
+import { AuthState } from '../../entities/facebook-entities/auth-state.entity';
+import { SocialAccount } from '../../../platforms/entities/notifications/entity/social-account.entity';
 
 @Injectable()
 export class LinkedInRepository extends TenantAwareRepository {

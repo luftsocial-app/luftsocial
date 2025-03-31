@@ -3,39 +3,37 @@ import {
   ConflictException,
   NotFoundException,
   ForbiddenException,
-  Inject,
-  forwardRef,
 } from '@nestjs/common';
-import { TenantService } from '../../../database/tenant.service';
+import { TenantService } from '../../../user-management/tenant/tenant.service';
 import { ConversationRepository } from '../repositories/conversation.repository';
 import { ParticipantRepository } from '../repositories/participant.repository';
-import { MessageRepository } from '../../messages/repositories/message.repository';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { User } from '../../../entities/users/user.entity';
+import { User } from '../../../user-management/entities/user.entity';
 import { ConversationEntity } from '../entities/conversation.entity';
-import { MessageEntity } from '../../messages/entities/message.entity';
 import {
   CreateConversationDto,
   UpdateConversationSettingsDto,
 } from '../dto/conversation.dto';
 import { ConversationType } from '../../shared/enums/conversation-type.enum';
 import { ParticipantRole } from '../../shared/enums/participant-role.enum';
-import { Logger } from '@nestjs/common';
+import {} from '@nestjs/common';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class ConversationService {
-  private readonly logger = new Logger(ConversationService.name);
-
   constructor(
     private tenantService: TenantService,
     private conversationRepository: ConversationRepository,
     private participantRepository: ParticipantRepository,
-    @Inject(forwardRef(() => MessageRepository))
-    private messageRepository: MessageRepository,
+
+    private readonly logger: PinoLogger,
+
     @InjectRepository(User)
     private userRepository: Repository<User>,
-  ) {}
+  ) {
+    this.logger.setContext(ConversationService.name);
+  }
 
   async createConversation(
     data: CreateConversationDto,
@@ -95,28 +93,6 @@ export class ConversationService {
     );
   }
 
-  async createMessage(
-    conversationId: string,
-    content: string,
-    senderId: string,
-  ): Promise<MessageEntity> {
-    const message = this.messageRepository.create({
-      conversationId,
-      content,
-      senderId,
-      tenantId: this.tenantService.getTenantId(),
-    });
-
-    const savedMessage = await this.messageRepository.save(message);
-
-    // Update conversation's lastMessageAt
-    await this.conversationRepository.updateLastMessageTimestamp(
-      conversationId,
-    );
-
-    return savedMessage;
-  }
-
   async validateAccess(
     conversationId: string,
     userId: string,
@@ -140,6 +116,13 @@ export class ConversationService {
   ): Promise<ConversationEntity> {
     const tenantId = this.tenantService.getTenantId();
 
+    const checkUser2TenantId = await this.userRepository.findOne({
+      where: { id: userId2, userTenants: { id: tenantId } },
+    });
+    if (!checkUser2TenantId) {
+      throw new NotFoundException('User 2 not found in the tenant');
+    }
+
     // Check if direct chat already exists
     const existingChat =
       await this.conversationRepository.findDirectConversation(
@@ -156,6 +139,8 @@ export class ConversationService {
     const users = await this.userRepository.findBy({
       id: In([userId1, userId2]),
     });
+
+    this.logger.info({ usersRepo: users });
 
     if (users.length !== 2) {
       throw new NotFoundException('One or both users not found');
@@ -345,37 +330,6 @@ export class ConversationService {
     // Update the conversation
     Object.assign(conversation, settings);
     return this.conversationRepository.save(conversation);
-  }
-
-  async markMessageAsRead(messageId: string, userId: string): Promise<void> {
-    const message = await this.messageRepository.findOne({
-      where: { id: messageId },
-    });
-
-    if (!message) {
-      throw new NotFoundException('Message not found');
-    }
-
-    message.markAsRead(userId);
-    await this.messageRepository.save(message);
-
-    // Update conversation unread count
-    const unreadCount = await this.messageRepository.getUnreadCount(
-      message.conversationId,
-      userId,
-    );
-    await this.conversationRepository.updateUnreadCount(
-      message.conversationId,
-      userId,
-      unreadCount,
-    );
-  }
-
-  async getUnreadCount(
-    conversationId: string,
-    userId: string,
-  ): Promise<number> {
-    return this.messageRepository.getUnreadCount(conversationId, userId);
   }
 
   async updateParticipantLastActive(

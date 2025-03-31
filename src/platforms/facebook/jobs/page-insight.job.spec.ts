@@ -1,19 +1,30 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Logger } from '@nestjs/common';
 import { FacebookService } from '../facebook.service';
 import { FacebookRepository } from '../repositories/facebook.repository';
 import { FacebookPageInsightsJob } from './page-insight.job';
+import { FacebookPage } from 'src/platforms/entities/facebook-entities/facebook-page.entity';
+import { PinoLogger } from 'nestjs-pino';
 
 describe('FacebookPageInsightsJob', () => {
   let job: FacebookPageInsightsJob;
   let facebookRepo: FacebookRepository;
   let facebookService: FacebookService;
-  let loggerSpy: jest.SpyInstance;
+  let loggerSpy: PinoLogger;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         FacebookPageInsightsJob,
+        {
+          provide: PinoLogger,
+          useValue: {
+            info: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+            setContext: jest.fn(),
+          },
+        },
         {
           provide: FacebookRepository,
           useValue: {
@@ -35,7 +46,7 @@ describe('FacebookPageInsightsJob', () => {
     facebookService = module.get<FacebookService>(FacebookService);
 
     // Spy on the logger to test error handling
-    loggerSpy = jest.spyOn(Logger.prototype, 'error');
+    loggerSpy = module.get<PinoLogger>(PinoLogger);
   });
 
   afterEach(() => {
@@ -48,7 +59,8 @@ describe('FacebookPageInsightsJob', () => {
       const mockPages = [
         { id: 'page1', name: 'Page 1' },
         { id: 'page2', name: 'Page 2' },
-      ];
+      ] as unknown as FacebookPage[];
+
       const mockInsights1 = { followers: 100, engagement: 50 };
       const mockInsights2 = { followers: 200, engagement: 75 };
 
@@ -61,6 +73,8 @@ describe('FacebookPageInsightsJob', () => {
       jest
         .spyOn(facebookRepo, 'updatePageMetrics')
         .mockResolvedValue(undefined);
+
+      const loggerErrorSpy = jest.spyOn(loggerSpy, 'error');
 
       // Execute
       await job.collectPageInsights();
@@ -79,7 +93,7 @@ describe('FacebookPageInsightsJob', () => {
         'page2',
         mockInsights2,
       );
-      expect(loggerSpy).not.toHaveBeenCalled();
+      expect(loggerErrorSpy).not.toHaveBeenCalled();
     });
 
     it('should handle errors for individual pages and continue processing', async () => {
@@ -87,7 +101,8 @@ describe('FacebookPageInsightsJob', () => {
       const mockPages = [
         { id: 'page1', name: 'Page 1' },
         { id: 'page2', name: 'Page 2' },
-      ];
+      ] as unknown as FacebookPage[];
+
       const mockInsights = { followers: 100, engagement: 50 };
       const mockError = new Error('API error');
       mockError.stack = 'Error stack trace';
@@ -102,6 +117,8 @@ describe('FacebookPageInsightsJob', () => {
         .spyOn(facebookRepo, 'updatePageMetrics')
         .mockResolvedValue(undefined);
 
+      const loggerErrorSpy = jest.spyOn(loggerSpy, 'error');
+
       // Execute
       await job.collectPageInsights();
 
@@ -113,8 +130,8 @@ describe('FacebookPageInsightsJob', () => {
         'page2',
         mockInsights,
       );
-      expect(loggerSpy).toHaveBeenCalledTimes(1);
-      expect(loggerSpy).toHaveBeenCalledWith(
+      expect(loggerErrorSpy).toHaveBeenCalledTimes(1);
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
         'Failed to collect insights for page page1',
         'Error stack trace',
       );
@@ -127,6 +144,9 @@ describe('FacebookPageInsightsJob', () => {
 
       // Setup mocks
       jest.spyOn(facebookRepo, 'getActivePages').mockRejectedValue(mockError);
+      jest.spyOn(facebookService, 'getPageInsights');
+
+      const loggerErrorSpy = jest.spyOn(loggerSpy, 'error');
 
       // Execute
       await job.collectPageInsights();
@@ -135,8 +155,8 @@ describe('FacebookPageInsightsJob', () => {
       expect(facebookRepo.getActivePages).toHaveBeenCalledTimes(1);
       expect(facebookService.getPageInsights).not.toHaveBeenCalled();
       expect(facebookRepo.updatePageMetrics).not.toHaveBeenCalled();
-      expect(loggerSpy).toHaveBeenCalledTimes(1);
-      expect(loggerSpy).toHaveBeenCalledWith(
+      expect(loggerErrorSpy).toHaveBeenCalledTimes(1);
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
         'Page insights collection failed',
         'Error stack trace',
       );
@@ -149,16 +169,21 @@ describe('FacebookPageInsightsJob', () => {
       // Execute
       await job.collectPageInsights();
 
+      const loggerErrorSpy = jest.spyOn(loggerSpy, 'error');
+
       // Verify
       expect(facebookRepo.getActivePages).toHaveBeenCalledTimes(1);
       expect(facebookService.getPageInsights).not.toHaveBeenCalled();
       expect(facebookRepo.updatePageMetrics).not.toHaveBeenCalled();
-      expect(loggerSpy).not.toHaveBeenCalled();
+      expect(loggerErrorSpy).not.toHaveBeenCalled();
     });
 
     it('should handle error when updating page metrics fails', async () => {
       // Mock data
-      const mockPages = [{ id: 'page1', name: 'Page 1' }];
+      const mockPages = [
+        { id: 'page1', name: 'Page 1' },
+      ] as unknown as FacebookPage[];
+
       const mockInsights = { followers: 100, engagement: 50 };
       const mockError = new Error('Database update error');
       mockError.stack = 'Error stack trace';
@@ -172,6 +197,8 @@ describe('FacebookPageInsightsJob', () => {
         .spyOn(facebookRepo, 'updatePageMetrics')
         .mockRejectedValue(mockError);
 
+      const loggerErrorSpy = jest.spyOn(loggerSpy, 'error');
+
       // Execute
       await job.collectPageInsights();
 
@@ -179,8 +206,8 @@ describe('FacebookPageInsightsJob', () => {
       expect(facebookRepo.getActivePages).toHaveBeenCalledTimes(1);
       expect(facebookService.getPageInsights).toHaveBeenCalledTimes(1);
       expect(facebookRepo.updatePageMetrics).toHaveBeenCalledTimes(1);
-      expect(loggerSpy).toHaveBeenCalledTimes(1);
-      expect(loggerSpy).toHaveBeenCalledWith(
+      expect(loggerErrorSpy).toHaveBeenCalledTimes(1);
+      expect(loggerErrorSpy).toHaveBeenCalledWith(
         'Failed to collect insights for page page1',
         'Error stack trace',
       );

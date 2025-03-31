@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { FacebookService } from './facebook.service';
 import { FacebookRepository } from './repositories/facebook.repository';
-import { TenantService } from '../../database/tenant.service';
+import { TenantService } from '../../user-management/tenant/tenant.service';
 import {
   BadRequestException,
   HttpException,
@@ -21,9 +21,10 @@ import axios from 'axios';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
 import { MediaType } from '../../common/enums/media-type.enum';
 import { MediaStorageItem } from '../../asset-management/media-storage/media-storage.dto';
-import { FacebookPost } from '../../entities/socials/facebook-entities/facebook-post.entity';
-import { FacebookAccount } from '../../entities/socials/facebook-entities/facebook-account.entity';
-import { FacebookPage } from '../../entities/socials/facebook-entities/facebook-page.entity';
+import { FacebookAccount } from '../entities/facebook-entities/facebook-account.entity';
+import { FacebookPage } from '../entities/facebook-entities/facebook-page.entity';
+import { FacebookPost } from '../entities/facebook-entities/facebook-post.entity';
+import { PinoLogger } from 'nestjs-pino';
 
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
@@ -33,8 +34,6 @@ describe('FacebookService', () => {
   let facebookRepo: jest.Mocked<FacebookRepository>;
   let mediaStorageService: jest.Mocked<MediaStorageService>;
   let tenantService: jest.Mocked<TenantService>;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let configService: jest.Mocked<ConfigService>;
 
   // Mock data
   const mockTenantId = 'tenant123';
@@ -132,6 +131,16 @@ describe('FacebookService', () => {
       providers: [
         FacebookService,
         {
+          provide: PinoLogger,
+          useValue: {
+            info: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+            setContext: jest.fn(),
+          },
+        },
+        {
           provide: FacebookRepository,
           useFactory: mockFacebookRepoFactory,
         },
@@ -158,7 +167,6 @@ describe('FacebookService', () => {
       MediaStorageService,
     ) as jest.Mocked<MediaStorageService>;
     tenantService = module.get(TenantService) as jest.Mocked<TenantService>;
-    configService = module.get(ConfigService) as jest.Mocked<ConfigService>;
 
     // Reset mocks
     jest.clearAllMocks();
@@ -260,7 +268,7 @@ describe('FacebookService', () => {
         id: 'media123',
         url: mockUploadedMediaUrl,
         type: MediaType.IMAGE,
-      }) as unknown as MediaStorageItem[];
+      } as unknown as MediaStorageItem);
 
       mockedAxios.post.mockResolvedValue({
         data: { id: mockFacebookPostId },
@@ -319,7 +327,7 @@ describe('FacebookService', () => {
           url: mockUploadedMediaUrl,
           type: MediaType.IMAGE,
         },
-      ]) as unknown as MediaStorageItem[];
+      ] as unknown as MediaStorageItem[]);
 
       // Mock processMedia method
       jest
@@ -963,9 +971,9 @@ describe('FacebookService', () => {
         {
           id: 'media123',
           url: mockUploadedMediaUrl,
-          type: 'image',
+          type: MediaType.IMAGE,
         },
-      ]);
+      ] as unknown as MediaStorageItem[]);
 
       // Access private method using type casting
       const uploadFacebookMediaItems = (
@@ -989,7 +997,7 @@ describe('FacebookService', () => {
         {
           id: 'media123',
           url: mockUploadedMediaUrl,
-          type: 'image',
+          type: 'IMAGE',
         },
       ]);
     });
@@ -1001,8 +1009,8 @@ describe('FacebookService', () => {
       mediaStorageService.uploadMediaFromUrl.mockResolvedValue({
         id: 'media123',
         url: mockUploadedMediaUrl,
-        type: 'image',
-      });
+        type: MediaType.IMAGE,
+      } as unknown as MediaStorageItem);
 
       // Access private method using type casting
       const uploadFacebookMediaItems = (
@@ -1026,7 +1034,7 @@ describe('FacebookService', () => {
         {
           id: 'media123',
           url: mockUploadedMediaUrl,
-          type: 'image',
+          type: 'IMAGE',
         },
       ]);
     });
@@ -1042,15 +1050,15 @@ describe('FacebookService', () => {
         {
           id: 'media123',
           url: 'https://storage.example.com/file-upload.jpg',
-          type: 'image',
+          type: MediaType.IMAGE,
         },
-      ]);
+      ] as unknown as MediaStorageItem[]);
 
       mediaStorageService.uploadMediaFromUrl.mockResolvedValue({
         id: 'media456',
         url: 'https://storage.example.com/url-upload.jpg',
-        type: 'image',
-      });
+        type: MediaType.IMAGE,
+      } as unknown as MediaStorageItem);
 
       // Access private method using type casting
       const uploadFacebookMediaItems = (

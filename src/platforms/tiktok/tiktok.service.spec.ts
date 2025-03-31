@@ -1,18 +1,21 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException, Logger } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import axios from 'axios';
 import { TikTokService } from './tiktok.service';
 import { TikTokRepository } from './repositories/tiktok.repository';
 import { TikTokConfig } from './config/tiktok.config';
-import { TenantService } from '../../database/tenant.service';
+import { TenantService } from '../../user-management/tenant/tenant.service';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
 import { TikTokApiException } from './helpers/tiktok-api.exception';
 import {
   CreateVideoParams,
   TikTokPostVideoStatus,
+  TikTokVideoPrivacyLevel,
 } from './helpers/tiktok.interfaces';
 import { MediaItem } from '../platform-service.interface';
 import { DateRange } from '../../cross-platform/helpers/cross-platform.interface';
+import { PinoLogger } from 'nestjs-pino';
+import { TikTokAccount } from '../entities/tiktok-entities/tiktok-account.entity';
 
 jest.mock('axios');
 jest.mock('config', () => ({
@@ -28,10 +31,10 @@ describe('TikTokService', () => {
   let tiktokRepo: jest.Mocked<TikTokRepository>;
   let tenantService: jest.Mocked<TenantService>;
   let mediaStorageService: jest.Mocked<MediaStorageService>;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  let tiktokConfig: TikTokConfig;
+  // let tiktokConfig: TikTokConfig;
   let mockedAxios;
   let loggerSpy;
+  let logger: PinoLogger;
 
   // Mock data
   const mockTenantId = 'tenant123';
@@ -53,11 +56,11 @@ describe('TikTokService', () => {
       refreshToken: mockRefreshToken,
       expiresAt: new Date(),
     },
-  };
+  } as unknown as TikTokAccount;
 
   const mockDateRange: DateRange = {
-    startDate: new Date('2023-01-01'),
-    endDate: new Date('2023-01-31'),
+    startDate: new Date('2023-01-01').toISOString(),
+    endDate: new Date('2023-01-31').toISOString(),
   };
 
   const mockFile = {
@@ -90,7 +93,7 @@ describe('TikTokService', () => {
 
   const mockCreateVideoParams: CreateVideoParams = {
     title: 'Test video title',
-    privacyLevel: 'PUBLIC',
+    privacyLevel: TikTokVideoPrivacyLevel.PUBLIC_TO_EVERYONE,
     disableDuet: false,
     disableStitch: false,
     disableComment: false,
@@ -98,7 +101,7 @@ describe('TikTokService', () => {
     brandContentToggle: false,
     brandOrganicToggle: false,
     isAigc: false,
-    status: TikTokPostVideoStatus.PUBLISH_NOW,
+    status: TikTokPostVideoStatus.COMPLETED,
   };
 
   const mockUploadSession = {
@@ -150,6 +153,16 @@ describe('TikTokService', () => {
       providers: [
         TikTokService,
         {
+          provide: PinoLogger,
+          useValue: {
+            info: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+            setContext: jest.fn(),
+          },
+        },
+        {
           provide: TikTokRepository,
           useValue: mockTikTokRepo,
         },
@@ -165,6 +178,16 @@ describe('TikTokService', () => {
           provide: MediaStorageService,
           useValue: mockMediaStorageService,
         },
+        {
+          provide: PinoLogger,
+          useValue: {
+            info: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+            setContext: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -174,15 +197,14 @@ describe('TikTokService', () => {
     mediaStorageService = module.get(
       MediaStorageService,
     ) as jest.Mocked<MediaStorageService>;
-    tiktokConfig = module.get(TikTokConfig);
+    // tiktokConfig = module.get(TikTokConfig);
+    logger = module.get(PinoLogger);
 
     // Mock axios
     mockedAxios = axios as jest.Mocked<typeof axios>;
 
     // Mock logger
-    loggerSpy = jest
-      .spyOn(Logger.prototype, 'error')
-      .mockImplementation(() => {});
+    loggerSpy = jest.spyOn(logger, 'error');
   });
 
   it('should be defined', () => {

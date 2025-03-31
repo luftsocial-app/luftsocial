@@ -26,7 +26,9 @@ import {
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { SocialPlatform } from '../common/enums/social-platform.enum';
+import { ApiTags } from '@nestjs/swagger';
 
+@ApiTags('Cross-Platform')
 @Controller('cross-platform')
 export class CrossPlatformController {
   constructor(

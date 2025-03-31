@@ -2,9 +2,14 @@ import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { WsException } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
 import { verify } from 'jsonwebtoken';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class WsGuard implements CanActivate {
+  constructor(private readonly logger: PinoLogger) {
+    this.logger.setContext(WsGuard.name);
+  }
+
   canActivate(context: ExecutionContext): boolean {
     try {
       const client: Socket = context.switchToWs().getClient<Socket>();
@@ -19,7 +24,7 @@ export class WsGuard implements CanActivate {
 
       return true;
     } catch (err) {
-      console.log(err);
+      this.logger.info(err);
       throw new WsException('Unauthorized');
     }
   }
