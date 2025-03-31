@@ -380,7 +380,7 @@ describe('FacebookService', () => {
   });
 
   describe('createPagePost', () => {
-    it.only('should create a post for a page', async () => {
+    it('should create a post for a page', async () => {
       // Setup
       const createPostDto: CreatePostDto = {
         content: 'Page post content',
@@ -1045,7 +1045,7 @@ describe('FacebookService', () => {
         {
           id: 'media123',
           url: mockUploadedMediaUrl,
-          type: 'image',
+          type: 'IMAGE',
         },
       ]);
     });
@@ -1082,7 +1082,7 @@ describe('FacebookService', () => {
         {
           id: 'media123',
           url: mockUploadedMediaUrl,
-          type: 'image',
+          type: 'IMAGE',
         },
       ]);
     });
