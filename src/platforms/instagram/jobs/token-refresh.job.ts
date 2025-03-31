@@ -14,7 +14,7 @@ export class InstagramTokenRefreshJob {
     private readonly instagramService: InstagramService,
   ) {}
 
-  @Cron(CronExpression.EVERY_HOUR)
+  @Cron(CronExpression.EVERY_12_HOURS)
   async refreshTokens() {
     this.logger.log('Starting Instagram token refresh job');
 
@@ -24,7 +24,7 @@ export class InstagramTokenRefreshJob {
 
       for (const account of expiredAccounts) {
         try {
-          await this.oauth2Service.refreshToken(
+          await this.PlatformAuthService.refreshToken(
             SocialPlatform.INSTAGRAM,
             account.id,
           );

@@ -27,7 +27,7 @@ export class SchedulerService {
     private readonly mediaStorageService: MediaStorageService,
   ) {}
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_12_HOURS)
   async processScheduledPosts() {
     try {
       const pendingPosts = await this.scheduledPostRepo.find({

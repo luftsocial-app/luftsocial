@@ -3,8 +3,10 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
+  InternalServerErrorException,
   Logger,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import axios from 'axios';
 import * as config from 'config';
@@ -19,20 +21,20 @@ import {
 } from './helpers/post.dto';
 
 import {
-  CommentResponse,
   MediaItem,
   PlatformService,
   PostResponse,
   SocialAccountDetails,
 } from '../platform-service.interface';
 import {
-  FacebookPageMetrics,
   FacebookPostMetrics,
+  PageInsightsResult,
 } from './helpers/facebook.interfaces';
 import { FacebookApiException } from './helpers/facebook-api.exception';
 import {
   AccountMetrics,
   DateRange,
+  PaginatedResponse,
 } from '../../common/interface/platform-metrics.interface';
 
 import { MediaStorageItem } from '../../asset-management/media-storage/media-storage.dto';
@@ -59,32 +61,107 @@ export class FacebookService implements PlatformService {
     accountId: string,
     postId: string,
     pageToken?: string,
-  ): Promise<CommentResponse> {
-    const tenantId = this.tenantService.getTenantId();
-    this.facebookRepo.setTenantId(tenantId);
+  ): Promise<PaginatedResponse<Comment>> {
+    try {
+      // First, ensure we have a valid access token
+      const account = await this.facebookRepo.getAccountById(accountId);
+      if (!account) {
+        throw new NotFoundException(`Facebook page not found: ${accountId}`);
+      }
 
-    const post = await this.facebookRepo.getPostById(postId);
-    const response = await axios.get(
-      `${this.baseUrl}/${this.apiVersion}/${post.postId}/comments`,
-      {
-        params: {
-          access_token: post.page.accessToken,
-          fields: 'id,message,created_time,from',
-          after: pageToken,
+      // Make sure we have a valid access token
+      const accessToken = account.socialAccount.accessToken;
+      if (!accessToken) {
+        throw new UnauthorizedException(
+          'No access token available for this Facebook page',
+        );
+      }
+
+      // Verify that postId is valid
+      if (!postId) {
+        throw new BadRequestException('Post ID is required');
+      }
+
+      // Construct the API URL according to Facebook's latest documentation
+      const apiUrl = `https://graph.facebook.com/v22.0/${postId}/comments`;
+
+      // Prepare request parameters with the fields we need
+      // According to the Facebook documentation, we need from, message, and created_time
+      const params: Record<string, string> = {
+        access_token: accessToken,
+        fields: 'from,message,created_time',
+        limit: '25', // Set a reasonable limit
+      };
+
+      // Add pagination token if provided and not empty
+      if (pageToken && pageToken.trim() !== '') {
+        params.after = pageToken;
+      }
+
+      // Make the API request using axios
+      const response = await axios.get(apiUrl, { params });
+
+      // Extract the data from the response
+      const { data, paging } = response.data;
+
+      // Map the Facebook data to our Comment model
+      const comments: Comment[] = data.map((item: any) => ({
+        id: item.id,
+        content: item.message || '',
+        createdAt: new Date(item.created_time),
+        author: item.from
+          ? {
+              id: item.from.id,
+              name: item.from.name,
+              // Note: Facebook no longer returns picture in this endpoint
+              picture: null,
+            }
+          : null,
+      }));
+
+      // Return paginated response
+      return {
+        data: comments,
+        pagination: {
+          nextToken: paging?.cursors?.after || null,
+          hasMore: !!paging?.next,
         },
-      },
-    );
+      };
+    } catch (error) {
+      // Improved error handling with specific error types and clearer messages
+      if (axios.isAxiosError(error) && error.response) {
+        const fbError = error.response.data?.error;
 
-    return {
-      items: response.data.data.map((comment) => ({
-        id: comment.id,
-        content: comment.message,
-        authorId: comment.from.id,
-        authorName: comment.from.name,
-        createdAt: new Date(comment.created_time),
-      })),
-      nextPageToken: response.data.paging?.cursors?.after,
-    };
+        if (fbError) {
+          throw new BadRequestException({
+            message: `Facebook API error: ${fbError.message}`,
+            code: fbError.code,
+            type: fbError.type,
+            subcode: fbError.error_subcode || null,
+          });
+        }
+
+        // Handle specific error status codes
+        if (error.response.status === 400) {
+          throw new BadRequestException(
+            'Invalid request to Facebook API. Check your parameters.',
+          );
+        } else if (
+          error.response.status === 401 ||
+          error.response.status === 403
+        ) {
+          throw new UnauthorizedException(
+            'Access token is invalid or has insufficient permissions.',
+          );
+        }
+      }
+
+      // Forward the exception with context
+      throw new InternalServerErrorException(
+        `Failed to fetch comments for post ${postId}: ${error.message}`,
+        error,
+      );
+    }
   }
 
   async getUserAccounts(userId: string): Promise<SocialAccountDetails[]> {
@@ -478,35 +555,82 @@ export class FacebookService implements PlatformService {
     const tenantId = this.tenantService.getTenantId();
     this.facebookRepo.setTenantId(tenantId);
 
+    // Get Facebook account details
     const account = await this.facebookRepo.getAccountById(userId);
     if (!account) {
       throw new NotFoundException('Account not found');
     }
 
-    const existingPages = await this.facebookRepo.getAccountPages(account.id);
-
-    // Refresh pages data from Facebook API
-    const response = await axios.get(
-      `${this.baseUrl}/${this.apiVersion}/me/accounts`,
-      {
-        params: {
-          access_token: account.socialAccount.accessToken,
-          fields: 'id,name,category,access_token,followers_count',
+    try {
+      const existingPages = await this.facebookRepo.getAccountPages(account.id);
+      const response = await axios.get(
+        `${this.baseUrl}/${this.apiVersion}/${account.facebookUserId}/accounts`,
+        {
+          params: {
+            access_token: account.socialAccount.accessToken,
+            fields:
+              'id,name,category,access_token,category_list,tasks,about,description,followers_count',
+          },
         },
-      },
-    );
+      );
 
-    // Update existing pages with fresh data
-    await Promise.all(
-      existingPages.map(async (page) => {
-        const fbPage = response.data.data.find((p) => p.id === page.pageId);
-        if (fbPage) {
-          await this.facebookRepo.updatePageToken(page.id, fbPage.access_token);
+      // Process pages from Facebook API
+      if (response.data?.data?.length > 0) {
+        const fbPages = response.data.data;
+
+        // Track pages that need to be created or updated
+        const pageOperations = [];
+
+        // Process each page from Facebook
+        for (const fbPage of fbPages) {
+          // Look for existing page in our database
+          const existingPage = existingPages.find(
+            (p) => p.pageId === fbPage.id,
+          );
+
+          // Prepare page data matching your entity schema
+          const pageData = {
+            pageId: fbPage.id,
+            name: fbPage.name || 'Unnamed Page',
+            category: fbPage.category || null,
+            about: fbPage.about || null,
+            description: fbPage.description || null,
+            accessToken: fbPage.access_token,
+            permissions: fbPage.tasks || ['CREATE_CONTENT'], // Default permission
+            followerCount: fbPage.followers_count || 0,
+            metadata: {
+              categoryList: fbPage.category_list || [],
+              lastSyncedAt: new Date().toISOString(),
+            },
+            tenantId,
+          };
+
+          if (existingPage) {
+            // Update existing page
+            pageOperations.push(
+              this.facebookRepo.updatePage(existingPage.id, pageData),
+            );
+          } else {
+            pageData['facebookAccount'] = account;
+            pageOperations.push(this.facebookRepo.createPage(pageData));
+          }
         }
-      }),
-    );
 
-    return this.facebookRepo.getAccountPages(account.id);
+        // Wait for all page operations to complete
+        await Promise.all(pageOperations);
+      } else {
+        this.logger.error('No pages returned from Facebook API');
+      }
+
+      // Fetch and return the updated list of pages
+      return await this.facebookRepo.getAccountPages(account.id);
+    } catch (error) {
+      this.logger.error(
+        'Error fetching or processing Facebook pages:',
+        error.response?.data || error.message,
+      );
+      throw new Error(`Failed to fetch Facebook pages: ${error.message}`);
+    }
   }
 
   async getPagePosts(
@@ -536,46 +660,180 @@ export class FacebookService implements PlatformService {
     };
   }
 
-  async getPageInsights(pageId: string, period: string = '30d'): Promise<any> {
+  async getPageInsights(
+    pageId: string,
+    period: string = 'days_28',
+    customMetrics?: string,
+  ): Promise<any> {
     const tenantId = this.tenantService.getTenantId();
     this.facebookRepo.setTenantId(tenantId);
 
+    // Validate the period parameter
+    const validPeriods = ['day', 'week', 'days_28'];
+    if (!validPeriods.includes(period)) {
+      throw new BadRequestException(
+        `Invalid period. Must be one of: ${validPeriods.join(', ')}`,
+      );
+    }
+
     const page = await this.facebookRepo.getPageById(pageId);
-    const response = await axios.get(
-      `${this.baseUrl}/${this.apiVersion}/${page.pageId}/insights`,
-      {
-        params: {
-          access_token: page.accessToken,
-          metric: [
-            FACEBOOK_SCOPES.PAGE_IMPRESSIONS,
-            FACEBOOK_SCOPES.PAGE_ENGAGED_USERS,
-            FACEBOOK_SCOPES.PAGE_FAN_ADDS,
-            FACEBOOK_SCOPES.PAGE_VIEWS_TOTAL,
-            FACEBOOK_SCOPES.PAGE_POST_ENGAGEMENTS,
-            FACEBOOK_SCOPES.PAGE_FOLLOWERS,
-          ].join(','),
-          period,
+    if (!page || !page.accessToken) {
+      throw new NotFoundException('Page not found or missing access token');
+    }
+
+    // Define metrics based on the latest Facebook documentation
+    const metrics = customMetrics
+      ? customMetrics.split(',')
+      : [
+          'page_impressions', // The number of times any Page content entered a person's screen
+          'page_post_engagements', // Engagement with Page posts
+          'page_fan_adds_unique', // New Page likes (unique accounts)
+          'page_views_total', // Total Page views
+          'page_daily_follows_unique', // New followers (unique accounts)
+          'page_engaged_users', // Users who engaged with your Page
+          'page_posts_impressions_unique', // Unique users who saw your Page's posts
+          'page_actions_post_reactions_total', // Total reactions on Page posts
+        ];
+
+    try {
+      const response = await axios.get(
+        `${this.baseUrl}/${this.apiVersion}/${page.pageId}/insights`,
+        {
+          params: {
+            access_token: page.accessToken,
+            metric: metrics.join(','),
+            period: period,
+          },
         },
-      },
-    );
-    return this.transformPageMetrics(response.data.data);
+      );
+      return this.transformPageMetrics(response.data.data, period);
+    } catch (error) {
+      this.logger.error(
+        'Error fetching page insights:',
+        error.response?.data || error.message,
+      );
+
+      // Check for specific error codes from Facebook docs
+      if (error.response?.data?.error) {
+        const fbError = error.response.data.error;
+
+        if (fbError.code === 80001) {
+          throw new Error('Rate limit exceeded. Please try again later.');
+        } else if (fbError.code === 190) {
+          throw new Error(
+            'Invalid access token. The page token may have expired.',
+          );
+        } else if (fbError.code === 100) {
+          throw new Error(`Invalid parameter: ${fbError.message}`);
+        }
+      }
+
+      throw new Error(`Failed to fetch page insights: ${error.message}`);
+    }
   }
 
-  private transformPageMetrics(data: any[]): FacebookPageMetrics {
-    const metrics: any = {};
+  private transformPageMetrics(
+    data: any[],
+    period: string,
+  ): PageInsightsResult {
+    // Create a more structured response with metric descriptions and values
+    const result: PageInsightsResult = {
+      period: period,
+      collected_at: new Date().toISOString(),
+      metrics: {},
+      summary: {
+        impressions: 0,
+        engagement: 0,
+        new_likes: 0,
+        page_views: 0,
+        new_followers: 0,
+      },
+    };
+
+    // Process each metric
     data.forEach((metric) => {
-      metrics[metric.name] = metric.values[0].value;
+      const metricName = metric.name;
+      const values = metric.values || [];
+
+      // Store current value, trend, and description
+      result.metrics[metricName] = {
+        name: this.getMetricDisplayName(metricName),
+        description: this.getMetricDescription(metricName),
+        current_value: values[0]?.value || 0,
+        previous_value: values[1]?.value || 0,
+        trend_percentage: values[1]?.value
+          ? Math.round(
+              (((values[0]?.value || 0) - values[1]?.value) /
+                values[1]?.value) *
+                100,
+            )
+          : 0,
+        values: values.map((v) => ({
+          end_time: v.end_time,
+          value: v.value,
+        })),
+      };
     });
 
-    return {
-      impressions: metrics.page_impressions || 0,
-      engagedUsers: metrics.page_engaged_users || 0,
-      newFans: metrics.page_fan_adds || 0,
-      pageViews: metrics.page_views_total || 0,
-      engagements: metrics.page_post_engagements || 0,
-      followers: metrics.page_followers || 0,
-      collectedAt: new Date(),
+    // Add summary metrics for quick access
+    result.summary = {
+      impressions: this.getSafeMetricValue(result.metrics, 'page_impressions'),
+      engagement: this.getSafeMetricValue(
+        result.metrics,
+        'page_post_engagements',
+      ),
+      new_likes: this.getSafeMetricValue(
+        result.metrics,
+        'page_fan_adds_unique',
+      ),
+      page_views: this.getSafeMetricValue(result.metrics, 'page_views_total'),
+      new_followers: this.getSafeMetricValue(
+        result.metrics,
+        'page_daily_follows_unique',
+      ),
     };
+
+    return result;
+  }
+
+  private getSafeMetricValue(metrics: any, key: string): number {
+    return metrics[key]?.current_value || 0;
+  }
+
+  private getMetricDisplayName(metricName: string): string {
+    const displayNames = {
+      page_impressions: 'Page Impressions',
+      page_post_engagements: 'Post Engagements',
+      page_fan_adds_unique: 'New Page Likes',
+      page_views_total: 'Page Views',
+      page_daily_follows_unique: 'New Followers',
+      page_engaged_users: 'Engaged Users',
+      page_posts_impressions_unique: 'Post Reach',
+      page_actions_post_reactions_total: 'Post Reactions',
+      // Add more mappings as needed
+    };
+
+    return displayNames[metricName] || metricName;
+  }
+
+  private getMetricDescription(metricName: string): string {
+    const descriptions = {
+      page_impressions:
+        "The number of times any content from your Page entered a person's screen",
+      page_post_engagements:
+        'The number of times people engaged with your posts through likes, comments, shares and more',
+      page_fan_adds_unique: 'The number of new people who liked your Page',
+      page_views_total: 'The number of times your Page profile was viewed',
+      page_daily_follows_unique: 'The number of new followers of your Page',
+      page_engaged_users: 'The number of people who engaged with your Page',
+      page_posts_impressions_unique:
+        'The number of people who saw your Page posts',
+      page_actions_post_reactions_total:
+        'The number of reactions on your posts',
+      // Add more descriptions as needed
+    };
+
+    return descriptions[metricName] || 'No description available';
   }
 
   private transformPostMetrics(data: any[]): FacebookPostMetrics {

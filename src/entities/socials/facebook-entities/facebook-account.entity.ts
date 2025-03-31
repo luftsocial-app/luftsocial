@@ -22,6 +22,9 @@ export class FacebookAccount extends TenantEntity {
   socialAccount: SocialAccount;
 
   @Column()
+  userId: string;
+
+  @Column()
   facebookUserId: string;
 
   @Column()
@@ -33,7 +36,7 @@ export class FacebookAccount extends TenantEntity {
   @Column({ nullable: true })
   profileUrl: string;
 
-  @Column('jsonb')
+  @Column('jsonb', { nullable: true })
   permissions: string[];
 
   @OneToMany(() => FacebookPage, (page) => page.facebookAccount)

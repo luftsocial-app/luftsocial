@@ -12,7 +12,7 @@ export class FacebookPostMetricsJob {
     private readonly facebookService: FacebookService,
   ) {}
 
-  @Cron(CronExpression.EVERY_5_MINUTES)
+  @Cron(CronExpression.EVERY_12_HOURS)
   async collectPostMetrics() {
     try {
       // Get all posts that need metrics update

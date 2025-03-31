@@ -1,6 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { PlatformOAuthConfig } from '../../platforms/platform-service.interface';
 import { SocialPlatform } from '../../common/enums/social-platform.enum';
+import { FACEBOOK_SCOPES } from 'src/common/enums/scopes.enum';
 
 export const PlatformConfigsProvider = {
   provide: 'PLATFORM_CONFIGS',
@@ -11,15 +12,17 @@ export const PlatformConfigsProvider = {
       clientId: configService.get('FACEBOOK_CLIENT_ID'),
       clientSecret: configService.get('FACEBOOK_CLIENT_SECRET'),
       redirectUri: configService.get('FACEBOOK_REDIRECT_URI'),
-      tokenHost: 'https://graph.facebook.com',
+      tokenHost: 'https://www.facebook.com',
       tokenPath: '/v18.0/oauth/access_token',
       authorizePath: '/v18.0/dialog/oauth',
       revokePath: '/v18.0/oauth/revoke',
       scopes: [
-        'pages_manage_posts',
-        'pages_read_engagement',
-        'pages_show_list',
-        'publish_to_groups',
+        FACEBOOK_SCOPES.PAGES_MANAGE_POSTS,
+        FACEBOOK_SCOPES.PAGES_MANAGE_METADATA,
+        FACEBOOK_SCOPES.PAGES_READ_ENGAGEMENT,
+        FACEBOOK_SCOPES.PAGES_SHOW_LIST,
+        FACEBOOK_SCOPES.PAGES_PUBLISH_VIDEO,
+        FACEBOOK_SCOPES.PAGES_BUSINESS_MANAGEMENT,
       ],
       cacheOptions: {
         tokenTTL: 3600, // 1 hour

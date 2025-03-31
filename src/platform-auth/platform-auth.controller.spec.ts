@@ -1,31 +1,30 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { PlatformAuthController } from './platform-auth.controller';
-import { OAuth2Service } from './platform-auth.service';
+import { PlatformAuthService } from './platform-auth.service';
 import { SocialPlatform } from '../common/enums/social-platform.enum';
 import { TokenResponse } from '../platforms/platform-service.interface';
 
 describe('PlatformAuthController', () => {
   let controller: PlatformAuthController;
-  let oauth2Service: jest.Mocked<OAuth2Service>;
+  let platformAuthService: jest.Mocked<PlatformAuthService>;
 
-  const mockUserId = 'user123';
+  const mockUser = { userId: 'user123' };
   const mockCode = 'auth_code_123';
   const mockState = 'random_state_123';
   const mockToken = 'access_token_123';
-  const mockRefreshToken = 'refresh_token_123';
 
   // Mock token response
   const mockTokenResponse: TokenResponse = {
     accessToken: mockToken,
-    refreshToken: mockRefreshToken,
+    refreshToken: 'refresh_token_123',
     expiresIn: 3600,
     tokenType: 'Bearer',
     scope: ['read', 'write'],
   };
 
   beforeEach(async () => {
-    // Create mock OAuth2Service
-    const mockOAuth2Service = {
+    // Create mock PlatformAuthService
+    const mockPlatformAuthService = {
       getAuthorizationUrl: jest
         .fn()
         .mockResolvedValue('https://example.com/auth'),
@@ -38,14 +37,16 @@ describe('PlatformAuthController', () => {
       controllers: [PlatformAuthController],
       providers: [
         {
-          provide: OAuth2Service,
-          useValue: mockOAuth2Service,
+          provide: PlatformAuthService,
+          useValue: mockPlatformAuthService,
         },
       ],
     }).compile();
 
     controller = module.get<PlatformAuthController>(PlatformAuthController);
-    oauth2Service = module.get(OAuth2Service) as jest.Mocked<OAuth2Service>;
+    platformAuthService = module.get(
+      PlatformAuthService,
+    ) as jest.Mocked<PlatformAuthService>;
   });
 
   it('should be defined', () => {
@@ -56,12 +57,12 @@ describe('PlatformAuthController', () => {
     it('should return authorization URL for Facebook', async () => {
       const result = await controller.authorize(
         SocialPlatform.FACEBOOK,
-        mockUserId,
+        mockUser,
       );
 
-      expect(oauth2Service.getAuthorizationUrl).toHaveBeenCalledWith(
+      expect(platformAuthService.getAuthorizationUrl).toHaveBeenCalledWith(
         SocialPlatform.FACEBOOK,
-        mockUserId,
+        mockUser.userId,
       );
 
       expect(result).toEqual({ url: 'https://example.com/auth' });
@@ -70,12 +71,12 @@ describe('PlatformAuthController', () => {
     it('should return authorization URL for Instagram', async () => {
       const result = await controller.authorize(
         SocialPlatform.INSTAGRAM,
-        mockUserId,
+        mockUser,
       );
 
-      expect(oauth2Service.getAuthorizationUrl).toHaveBeenCalledWith(
+      expect(platformAuthService.getAuthorizationUrl).toHaveBeenCalledWith(
         SocialPlatform.INSTAGRAM,
-        mockUserId,
+        mockUser.userId,
       );
 
       expect(result).toEqual({ url: 'https://example.com/auth' });
@@ -84,12 +85,12 @@ describe('PlatformAuthController', () => {
     it('should return authorization URL for LinkedIn', async () => {
       const result = await controller.authorize(
         SocialPlatform.LINKEDIN,
-        mockUserId,
+        mockUser,
       );
 
-      expect(oauth2Service.getAuthorizationUrl).toHaveBeenCalledWith(
+      expect(platformAuthService.getAuthorizationUrl).toHaveBeenCalledWith(
         SocialPlatform.LINKEDIN,
-        mockUserId,
+        mockUser.userId,
       );
 
       expect(result).toEqual({ url: 'https://example.com/auth' });
@@ -98,25 +99,25 @@ describe('PlatformAuthController', () => {
     it('should return authorization URL for TikTok', async () => {
       const result = await controller.authorize(
         SocialPlatform.TIKTOK,
-        mockUserId,
+        mockUser,
       );
 
-      expect(oauth2Service.getAuthorizationUrl).toHaveBeenCalledWith(
+      expect(platformAuthService.getAuthorizationUrl).toHaveBeenCalledWith(
         SocialPlatform.TIKTOK,
-        mockUserId,
+        mockUser.userId,
       );
 
       expect(result).toEqual({ url: 'https://example.com/auth' });
     });
 
-    it('should propagate errors from OAuth2Service', async () => {
+    it('should propagate errors from PlatformAuthService', async () => {
       const errorMessage = 'Failed to generate authorization URL';
-      oauth2Service.getAuthorizationUrl.mockRejectedValueOnce(
+      platformAuthService.getAuthorizationUrl.mockRejectedValueOnce(
         new Error(errorMessage),
       );
 
       await expect(
-        controller.authorize(SocialPlatform.FACEBOOK, mockUserId),
+        controller.authorize(SocialPlatform.FACEBOOK, mockUser),
       ).rejects.toThrow(errorMessage);
     });
   });
@@ -129,7 +130,7 @@ describe('PlatformAuthController', () => {
         mockState,
       );
 
-      expect(oauth2Service.handleCallback).toHaveBeenCalledWith(
+      expect(platformAuthService.handleCallback).toHaveBeenCalledWith(
         SocialPlatform.FACEBOOK,
         mockCode,
         mockState,
@@ -145,7 +146,7 @@ describe('PlatformAuthController', () => {
         mockState,
       );
 
-      expect(oauth2Service.handleCallback).toHaveBeenCalledWith(
+      expect(platformAuthService.handleCallback).toHaveBeenCalledWith(
         SocialPlatform.INSTAGRAM,
         mockCode,
         mockState,
@@ -161,7 +162,7 @@ describe('PlatformAuthController', () => {
         mockState,
       );
 
-      expect(oauth2Service.handleCallback).toHaveBeenCalledWith(
+      expect(platformAuthService.handleCallback).toHaveBeenCalledWith(
         SocialPlatform.LINKEDIN,
         mockCode,
         mockState,
@@ -177,7 +178,7 @@ describe('PlatformAuthController', () => {
         mockState,
       );
 
-      expect(oauth2Service.handleCallback).toHaveBeenCalledWith(
+      expect(platformAuthService.handleCallback).toHaveBeenCalledWith(
         SocialPlatform.TIKTOK,
         mockCode,
         mockState,
@@ -186,9 +187,9 @@ describe('PlatformAuthController', () => {
       expect(result).toEqual(mockTokenResponse);
     });
 
-    it('should propagate errors from OAuth2Service', async () => {
+    it('should propagate errors from PlatformAuthService', async () => {
       const errorMessage = 'Failed to exchange code for token';
-      oauth2Service.handleCallback.mockRejectedValueOnce(
+      platformAuthService.handleCallback.mockRejectedValueOnce(
         new Error(errorMessage),
       );
 
@@ -202,12 +203,12 @@ describe('PlatformAuthController', () => {
     it('should refresh token for Facebook', async () => {
       const result = await controller.refreshToken(
         SocialPlatform.FACEBOOK,
-        mockRefreshToken,
+        mockUser,
       );
 
-      expect(oauth2Service.refreshToken).toHaveBeenCalledWith(
+      expect(platformAuthService.refreshToken).toHaveBeenCalledWith(
         SocialPlatform.FACEBOOK,
-        mockRefreshToken,
+        mockUser.userId,
       );
 
       expect(result).toEqual(mockTokenResponse);
@@ -216,12 +217,12 @@ describe('PlatformAuthController', () => {
     it('should refresh token for Instagram', async () => {
       const result = await controller.refreshToken(
         SocialPlatform.INSTAGRAM,
-        mockRefreshToken,
+        mockUser,
       );
 
-      expect(oauth2Service.refreshToken).toHaveBeenCalledWith(
+      expect(platformAuthService.refreshToken).toHaveBeenCalledWith(
         SocialPlatform.INSTAGRAM,
-        mockRefreshToken,
+        mockUser.userId,
       );
 
       expect(result).toEqual(mockTokenResponse);
@@ -230,12 +231,12 @@ describe('PlatformAuthController', () => {
     it('should refresh token for LinkedIn', async () => {
       const result = await controller.refreshToken(
         SocialPlatform.LINKEDIN,
-        mockRefreshToken,
+        mockUser,
       );
 
-      expect(oauth2Service.refreshToken).toHaveBeenCalledWith(
+      expect(platformAuthService.refreshToken).toHaveBeenCalledWith(
         SocialPlatform.LINKEDIN,
-        mockRefreshToken,
+        mockUser.userId,
       );
 
       expect(result).toEqual(mockTokenResponse);
@@ -244,23 +245,25 @@ describe('PlatformAuthController', () => {
     it('should refresh token for TikTok', async () => {
       const result = await controller.refreshToken(
         SocialPlatform.TIKTOK,
-        mockRefreshToken,
+        mockUser,
       );
 
-      expect(oauth2Service.refreshToken).toHaveBeenCalledWith(
+      expect(platformAuthService.refreshToken).toHaveBeenCalledWith(
         SocialPlatform.TIKTOK,
-        mockRefreshToken,
+        mockUser.userId,
       );
 
       expect(result).toEqual(mockTokenResponse);
     });
 
-    it('should propagate errors from OAuth2Service', async () => {
+    it('should propagate errors from PlatformAuthService', async () => {
       const errorMessage = 'Failed to refresh token';
-      oauth2Service.refreshToken.mockRejectedValueOnce(new Error(errorMessage));
+      platformAuthService.refreshToken.mockRejectedValueOnce(
+        new Error(errorMessage),
+      );
 
       await expect(
-        controller.refreshToken(SocialPlatform.FACEBOOK, mockRefreshToken),
+        controller.refreshToken(SocialPlatform.FACEBOOK, mockUser),
       ).rejects.toThrow(errorMessage);
     });
   });
@@ -269,7 +272,7 @@ describe('PlatformAuthController', () => {
     it('should revoke token for Facebook', async () => {
       await controller.revokeToken(SocialPlatform.FACEBOOK, mockToken);
 
-      expect(oauth2Service.revokeToken).toHaveBeenCalledWith(
+      expect(platformAuthService.revokeToken).toHaveBeenCalledWith(
         SocialPlatform.FACEBOOK,
         mockToken,
       );
@@ -278,7 +281,7 @@ describe('PlatformAuthController', () => {
     it('should revoke token for Instagram', async () => {
       await controller.revokeToken(SocialPlatform.INSTAGRAM, mockToken);
 
-      expect(oauth2Service.revokeToken).toHaveBeenCalledWith(
+      expect(platformAuthService.revokeToken).toHaveBeenCalledWith(
         SocialPlatform.INSTAGRAM,
         mockToken,
       );
@@ -287,7 +290,7 @@ describe('PlatformAuthController', () => {
     it('should revoke token for LinkedIn', async () => {
       await controller.revokeToken(SocialPlatform.LINKEDIN, mockToken);
 
-      expect(oauth2Service.revokeToken).toHaveBeenCalledWith(
+      expect(platformAuthService.revokeToken).toHaveBeenCalledWith(
         SocialPlatform.LINKEDIN,
         mockToken,
       );
@@ -296,15 +299,17 @@ describe('PlatformAuthController', () => {
     it('should revoke token for TikTok', async () => {
       await controller.revokeToken(SocialPlatform.TIKTOK, mockToken);
 
-      expect(oauth2Service.revokeToken).toHaveBeenCalledWith(
+      expect(platformAuthService.revokeToken).toHaveBeenCalledWith(
         SocialPlatform.TIKTOK,
         mockToken,
       );
     });
 
-    it('should propagate errors from OAuth2Service', async () => {
+    it('should propagate errors from PlatformAuthService', async () => {
       const errorMessage = 'Failed to revoke token';
-      oauth2Service.revokeToken.mockRejectedValueOnce(new Error(errorMessage));
+      platformAuthService.revokeToken.mockRejectedValueOnce(
+        new Error(errorMessage),
+      );
 
       await expect(
         controller.revokeToken(SocialPlatform.FACEBOOK, mockToken),

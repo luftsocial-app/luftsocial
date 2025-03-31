@@ -12,7 +12,7 @@ export class InstagramMetricsCollectionJob {
     private readonly instagramService: InstagramService,
   ) {}
 
-  @Cron(CronExpression.EVERY_30_MINUTES)
+  @Cron(CronExpression.EVERY_12_HOURS)
   async collectMetrics() {
     this.logger.log('Starting Instagram metrics collection job');
 

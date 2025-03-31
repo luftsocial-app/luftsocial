@@ -12,7 +12,7 @@ export class LinkedInMetricsCollectionJob {
     private readonly linkedInService: LinkedInService,
   ) {}
 
-  @Cron(CronExpression.EVERY_30_MINUTES)
+  @Cron(CronExpression.EVERY_12_HOURS)
   async collectMetrics() {
     this.logger.log('Starting LinkedIn metrics collection job');
 

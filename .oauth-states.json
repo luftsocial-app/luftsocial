@@ -1,0 +1,20 @@
+{
+  "oauth_state:random_state_123": {
+    "data": {
+      "redirect": "/dashboard",
+      "userId": "123"
+    },
+    "expires": 1743419938252
+  },
+  "oauth_state:random_state_789": {
+    "data": {
+      "redirect": "/settings",
+      "userId": "789",
+      "scopes": [
+        "read",
+        "write"
+      ]
+    },
+    "expires": 1743419938294
+  }
+}
