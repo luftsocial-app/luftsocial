@@ -10,6 +10,7 @@ import { User } from '../../../user-management/entities/user.entity';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ConversationType } from '../../shared/enums/conversation-type.enum';
 import { NotFoundException } from '@nestjs/common';
+import { PinoLogger } from 'nestjs-pino';
 
 describe('ConversationService', () => {
   let service: ConversationService;
@@ -18,6 +19,7 @@ describe('ConversationService', () => {
   let participantRepository: ParticipantRepository;
   let messageRepository: MessageRepository;
   let userRepository: Repository<User>;
+  let logger: PinoLogger;
 
   const mockTenantId = 'test-tenant-id';
 
@@ -76,6 +78,17 @@ describe('ConversationService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ConversationService,
+        {
+          provide: PinoLogger,
+          useValue: {
+            info: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+            setContext: jest.fn(),
+          },
+        },
+
         {
           provide: TenantService,
           useValue: { getTenantId: () => mockTenantId },

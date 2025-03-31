@@ -1,11 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, Logger } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import { CrossPlatformService } from './cross-platform.service';
 import { FacebookService } from '../platforms/facebook/facebook.service';
 import { InstagramService } from '../platforms/instagram/instagram.service';
 import { LinkedInService } from '../platforms/linkedin/linkedin.service';
 import { TikTokService } from '../platforms/tiktok/tiktok.service';
 import { SocialPlatform } from '../common/enums/social-platform.enum';
+import { PinoLogger } from 'nestjs-pino';
+import { SocialAccountDetails } from '../platforms/platform-service.interface';
 
 describe('CrossPlatformService', () => {
   let service: CrossPlatformService;
@@ -13,7 +15,7 @@ describe('CrossPlatformService', () => {
   let instagramService: jest.Mocked<InstagramService>;
   let linkedinService: jest.Mocked<LinkedInService>;
   let tiktokService: jest.Mocked<TikTokService>;
-  let loggerSpy: jest.SpyInstance;
+  let logger: PinoLogger;
 
   const mockUserId = 'user123';
 
@@ -21,21 +23,35 @@ describe('CrossPlatformService', () => {
   const mockFacebookAccounts = [
     { id: 'fb123', name: 'My Facebook Page' },
     { id: 'fb456', name: 'Another Facebook Page' },
-  ];
+  ] as unknown as SocialAccountDetails[];
 
-  const mockInstagramAccounts = [{ id: 'ig123', name: 'My Instagram Account' }];
+  const mockInstagramAccounts = [
+    { id: 'ig123', name: 'My Instagram Account' },
+  ] as unknown as SocialAccountDetails[];
 
   const mockLinkedInAccounts = [
     { id: 'li123', name: 'My LinkedIn Profile', type: 'personal' },
     { id: 'li456', name: 'Company Page', type: 'company' },
-  ];
+  ] as unknown as SocialAccountDetails[];
 
-  const mockTikTokAccounts = [{ id: 'tt123', name: 'My TikTok Account' }];
+  const mockTikTokAccounts = [
+    { id: 'tt123', name: 'My TikTok Account' },
+  ] as unknown as SocialAccountDetails[];
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         CrossPlatformService,
+        {
+          provide: PinoLogger,
+          useValue: {
+            info: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+            setContext: jest.fn(),
+          },
+        },
         {
           provide: FacebookService,
           useValue: {
@@ -79,10 +95,7 @@ describe('CrossPlatformService', () => {
     ) as jest.Mocked<LinkedInService>;
     tiktokService = module.get(TikTokService) as jest.Mocked<TikTokService>;
 
-    // Mock Logger
-    loggerSpy = jest
-      .spyOn(Logger.prototype, 'error')
-      .mockImplementation(() => {});
+    logger = module.get(PinoLogger);
   });
 
   afterEach(() => {
@@ -178,6 +191,9 @@ describe('CrossPlatformService', () => {
         new Error('Facebook API error'),
       );
 
+      // Mock Logger
+      const loggerSpy = jest.spyOn(logger, 'error');
+
       const result = await service.getConnectedPlatforms(mockUserId);
 
       // Should still include the other platforms
@@ -207,6 +223,9 @@ describe('CrossPlatformService', () => {
       instagramService.getUserAccounts.mockRejectedValue(
         new Error('Instagram API error'),
       );
+
+      // Mock Logger
+      const loggerSpy = jest.spyOn(logger, 'error');
 
       const result = await service.getConnectedPlatforms(mockUserId);
 
@@ -238,6 +257,9 @@ describe('CrossPlatformService', () => {
         new Error('LinkedIn API error'),
       );
 
+      // Mock Logger
+      const loggerSpy = jest.spyOn(logger, 'error');
+
       const result = await service.getConnectedPlatforms(mockUserId);
 
       // Should still include the other platforms
@@ -267,6 +289,9 @@ describe('CrossPlatformService', () => {
       tiktokService.getUserAccounts.mockRejectedValue(
         new Error('TikTok API error'),
       );
+
+      // Mock Logger
+      const loggerSpy = jest.spyOn(logger, 'error');
 
       const result = await service.getConnectedPlatforms(mockUserId);
 
@@ -306,6 +331,8 @@ describe('CrossPlatformService', () => {
       tiktokService.getUserAccounts.mockRejectedValue(
         new Error('TikTok error'),
       );
+      // Mock Logger
+      const loggerSpy = jest.spyOn(logger, 'error');
 
       const result = await service.getConnectedPlatforms(mockUserId);
 

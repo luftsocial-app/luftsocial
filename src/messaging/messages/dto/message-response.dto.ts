@@ -6,16 +6,16 @@ export class MessageReactionDto {
     description: 'User ID who added the reaction',
     example: 'a1b2c3d4-e5f6-g7h8-i9j0',
   })
-  userId: string;
+  userId?: string;
 
   @ApiProperty({ description: 'Emoji reaction', example: '👍' })
-  emoji: string;
+  emoji?: string;
 
   @ApiProperty({
     description: 'When the reaction was added',
     example: '2023-01-01T12:00:00.000Z',
   })
-  createdAt: Date;
+  createdAt?: Date;
 }
 
 export class AttachmentResponseDto {

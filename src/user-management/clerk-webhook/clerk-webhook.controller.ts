@@ -1,9 +1,6 @@
 import {
   Controller,
-  Get,
-  Patch,
   Body,
-  Param,
   Post,
   HttpException,
   HttpStatus,
@@ -14,16 +11,22 @@ import { ClerkWebhookService } from './clerk-webhook.service';
 import { Public } from '../../decorators/public.decorator';
 import { WebhookEvent } from '@clerk/express';
 import { Webhook } from 'svix';
+import { PinoLogger } from 'nestjs-pino';
 
 @Controller('/webhooks')
 export class ClerkWebhookController {
-  constructor(private readonly clerkWebhookService: ClerkWebhookService) {}
+  constructor(
+    private readonly clerkWebhookService: ClerkWebhookService,
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(ClerkWebhookController.name);
+  }
 
   @Public()
   @Post()
-  async saveNewUser(@Body() clerkWebhookDto: any, @Req() req: Request) {
+  async handleWebhook(@Body() clerkWebhookDto: any, @Req() req: Request) {
     try {
-      console.log('Received webhook:', clerkWebhookDto);
+      this.logger.info('Received webhook:', clerkWebhookDto);
 
       const SIGNING_SECRET = process.env.SIGNING_SECRET;
 
@@ -71,44 +74,44 @@ export class ClerkWebhookController {
       // Do something with payload
       const { id } = evt.data;
       const eventType = evt.type;
-      console.log(
+      this.logger.info(
         `Received webhook with ID ${id} and event type of ${eventType}`,
       );
       if (evt.type === 'user.created') {
-        console.log('userId:', evt.data.id);
+        this.logger.info('userId:', evt.data.id);
         // Create user in your database
-        console.log({ 'Webhook payload:': body });
+        this.logger.info({ 'Webhook payload:': body });
         await this.clerkWebhookService.createUser(evt);
       }
 
       if (evt.type === 'user.updated') {
-        console.log('userId:', evt.data.id);
+        this.logger.info('userId:', evt.data.id);
         // Create user in your database
-        console.log({ 'Webhook payload:': body });
+        this.logger.info({ 'Webhook payload:': body });
         await this.clerkWebhookService.updateUser(evt);
       }
       if (evt.type === 'organization.created') {
-        console.log('userId:', evt.data.id);
+        this.logger.info('userId:', evt.data.id);
         // Create user in your database
-        console.log({ 'Webhook payload:': body });
+        this.logger.info({ 'Webhook payload:': body });
         await this.clerkWebhookService.tenantCreated(evt);
       }
       if (evt.type === 'organization.updated') {
-        console.log('userId:', evt.data.id);
+        this.logger.info('userId:', evt.data.id);
         // Create user in your database
-        console.log({ 'Webhook payload:': body });
+        this.logger.info({ 'Webhook payload:': body });
         await this.clerkWebhookService.tenantUpdated(evt);
       }
       if (evt.type === 'organization.deleted') {
-        console.log('userId:', evt.data.id);
+        this.logger.info('userId:', evt.data.id);
         // Create user in your database
-        console.log({ 'Webhook payload:': body });
+        this.logger.info({ 'Webhook payload:': body });
         await this.clerkWebhookService.tenantDeleted(evt);
       }
       if (evt.type === 'organizationMembership.created') {
-        console.log('userId:', evt.data.id);
+        this.logger.info('userId:', evt.data.id);
         // Create user in your database
-        console.log({ 'Webhook payload:': body });
+        this.logger.info({ 'Webhook payload:': body });
         await this.clerkWebhookService.membershipCreated(evt);
       }
 

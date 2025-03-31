@@ -17,20 +17,23 @@ import {
 } from '../dto/conversation.dto';
 import { ConversationType } from '../../shared/enums/conversation-type.enum';
 import { ParticipantRole } from '../../shared/enums/participant-role.enum';
-import { Logger } from '@nestjs/common';
+import {} from '@nestjs/common';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class ConversationService {
-  private readonly logger = new Logger(ConversationService.name);
-
   constructor(
     private tenantService: TenantService,
     private conversationRepository: ConversationRepository,
     private participantRepository: ParticipantRepository,
 
+    private readonly logger: PinoLogger,
+
     @InjectRepository(User)
     private userRepository: Repository<User>,
-  ) {}
+  ) {
+    this.logger.setContext(ConversationService.name);
+  }
 
   async createConversation(
     data: CreateConversationDto,
@@ -137,7 +140,7 @@ export class ConversationService {
       id: In([userId1, userId2]),
     });
 
-    console.log({ usersRepo: users });
+    this.logger.info({ usersRepo: users });
 
     if (users.length !== 2) {
       throw new NotFoundException('One or both users not found');

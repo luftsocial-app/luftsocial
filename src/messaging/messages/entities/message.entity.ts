@@ -95,7 +95,7 @@ export class MessageEntity extends CommonEntity {
       editedAt: Date;
       editorId?: string;
     }>;
-    reactions?: { [userId: string]: string };
+    reactions?: MessageReactionDto;
     mentionedUserIds?: string[];
   };
 

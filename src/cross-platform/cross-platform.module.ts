@@ -19,6 +19,7 @@ import { ScheduledPost } from './entities/schedule.entity';
 import { MulterModule } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { MediaStorageModule } from '../asset-management/media-storage/media-storage.module';
+import { PinoLogger } from 'nestjs-pino';
 
 @Module({
   imports: [
@@ -47,6 +48,10 @@ import { MediaStorageModule } from '../asset-management/media-storage/media-stor
           instagramService,
           linkedInService,
           tiktokService,
+          new PinoLogger({
+            pinoHttp: { level: 'info' },
+            renameContext: 'CrossPlatformService',
+          }),
         );
       },
       inject: [

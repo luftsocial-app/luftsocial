@@ -2,11 +2,13 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { PostsController } from './posts.controller';
 import { PostsService } from './posts.service';
 import * as Chance from 'chance';
+import { PinoLogger } from 'nestjs-pino';
 
 const chance = new Chance();
 
 describe('PostsController', () => {
   let controller: PostsController;
+  // let logger: PinoLogger;
 
   const mockPostsService = {
     find: jest.fn(),
@@ -23,6 +25,16 @@ describe('PostsController', () => {
         {
           provide: PostsService,
           useValue: mockPostsService,
+        },
+        {
+          provide: PinoLogger,
+          useValue: {
+            info: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+            setContext: jest.fn(),
+          },
         },
       ],
     }).compile();

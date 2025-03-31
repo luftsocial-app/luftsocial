@@ -1,21 +1,24 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { FacebookService } from '../platforms/facebook/facebook.service';
 import { InstagramService } from '../platforms/instagram/instagram.service';
 import { LinkedInService } from '../platforms/linkedin/linkedin.service';
 import { TikTokService } from '../platforms/tiktok/tiktok.service';
 import { ConnectedPlatform } from './helpers/cross-platform.interface';
 import { SocialPlatform } from '../common/enums/social-platform.enum';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class CrossPlatformService {
-  private readonly logger: Logger = new Logger(CrossPlatformService.name);
-
   constructor(
     private readonly facebookService: FacebookService,
     private readonly instagramService: InstagramService,
     private readonly linkedinService: LinkedInService,
     private readonly tiktokService: TikTokService,
-  ) {}
+
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(CrossPlatformService.name);
+  }
 
   async getConnectedPlatforms(userId: string): Promise<ConnectedPlatform[]> {
     const connectedPlatforms: ConnectedPlatform[] = [];

@@ -1,18 +1,19 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Logger } from '@nestjs/common';
 import { FacebookRepository } from '../repositories/facebook.repository';
 import { FacebookService } from '../facebook.service';
-import { SocialAccount } from '../../entity/social-account.entity';
 import { SocialPlatform } from '../../../common/enums/social-platform.enum';
 import { FacebookPageMetricsJob } from './page_metrics-collection.job';
-import { FacebookAccount } from '../entity/facebook-account.entity';
-import { FacebookPage } from '../entity/facebook-page.entity';
+
+import { PinoLogger } from 'nestjs-pino';
+import { FacebookAccount } from '../../../platforms/entities/facebook-entities/facebook-account.entity';
+import { FacebookPage } from '../../../platforms/entities/facebook-entities/facebook-page.entity';
+import { SocialAccount } from '../../../platforms/entities/notifications/entity/social-account.entity';
 
 describe('FacebookPageMetricsJob', () => {
   let job: FacebookPageMetricsJob;
   let facebookRepo: jest.Mocked<FacebookRepository>;
   let facebookService: jest.Mocked<FacebookService>;
-  let loggerSpy: jest.SpyInstance;
+  let logger: PinoLogger;
 
   // Helper function to create a SocialAccount mock
   const createMockSocialAccount = (
@@ -96,6 +97,16 @@ describe('FacebookPageMetricsJob', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         FacebookPageMetricsJob,
+        {
+          provide: PinoLogger,
+          useValue: {
+            info: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+            setContext: jest.fn(),
+          },
+        },
         { provide: FacebookRepository, useValue: mockFacebookRepo },
         { provide: FacebookService, useValue: mockFacebookService },
       ],
@@ -110,10 +121,8 @@ describe('FacebookPageMetricsJob', () => {
     ) as jest.Mocked<FacebookService>;
 
     // Spy on Logger methods
-    loggerSpy = jest
-      .spyOn(Logger.prototype, 'error')
-      .mockImplementation(() => {});
-    jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
+
+    logger = module.get(PinoLogger); // Assign the mocked logger
   });
 
   afterEach(() => {
@@ -148,6 +157,8 @@ describe('FacebookPageMetricsJob', () => {
       facebookService.getPageInsights
         .mockResolvedValueOnce(mockMetrics1)
         .mockResolvedValueOnce(mockMetrics2);
+
+      const loggerSpy = jest.spyOn(logger, 'info');
 
       // Act
       await job.collectPageMetrics();
@@ -196,7 +207,7 @@ describe('FacebookPageMetricsJob', () => {
       const mockMetrics = { likes: 100, shares: 50 };
       facebookService.getPageInsights.mockResolvedValue(mockMetrics);
 
-      const warnSpy = jest.spyOn(Logger.prototype, 'warn');
+      const warnSpy = jest.spyOn(logger, 'warn');
 
       // Act
       await job.collectPageMetrics();
@@ -251,6 +262,8 @@ describe('FacebookPageMetricsJob', () => {
         .mockResolvedValueOnce(mockMetrics)
         .mockRejectedValueOnce(mockError);
 
+      const loggerSpy = jest.spyOn(logger, 'error');
+
       // Act
       await job.collectPageMetrics();
 
@@ -276,6 +289,8 @@ describe('FacebookPageMetricsJob', () => {
       const mockError = new Error('Database error');
       facebookRepo.getActivePages.mockRejectedValue(mockError);
 
+      const loggerSpy = jest.spyOn(logger, 'error');
+
       // Act
       await job.collectPageMetrics();
 
@@ -294,6 +309,8 @@ describe('FacebookPageMetricsJob', () => {
     it('should handle empty list of active pages', async () => {
       // Arrange
       facebookRepo.getActivePages.mockResolvedValue([]);
+
+      const loggerSpy = jest.spyOn(logger, 'info');
 
       // Act
       await job.collectPageMetrics();
@@ -322,6 +339,8 @@ describe('FacebookPageMetricsJob', () => {
 
       const mockError = new Error('Database write error');
       facebookRepo.upsertPageMetrics.mockRejectedValue(mockError);
+
+      const loggerSpy = jest.spyOn(logger, 'error');
 
       // Act
       await job.collectPageMetrics();
@@ -405,7 +424,8 @@ describe('FacebookPageMetricsJob', () => {
           updatedAt: new Date(),
           tenantId: 'tenant1',
         },
-      ];
+      ] as FacebookPage[];
+
       facebookRepo.getActivePages.mockResolvedValue(mockPages);
 
       const mockMetrics1 = { likes: 100, shares: 50 };
@@ -416,6 +436,8 @@ describe('FacebookPageMetricsJob', () => {
         .mockResolvedValueOnce(mockMetrics1)
         .mockRejectedValueOnce(mockError)
         .mockResolvedValueOnce(mockMetrics3);
+
+      const loggerSpy = jest.spyOn(logger, 'error');
 
       // Act
       await job.collectPageMetrics();

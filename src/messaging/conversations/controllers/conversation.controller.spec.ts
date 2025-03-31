@@ -7,9 +7,7 @@ import {
   AddParticipantsDto,
   UpdateConversationSettingsDto,
 } from '../dto/conversation.dto';
-import { CreateMessageDto } from '../../messages/dto/message.dto';
 import { ConversationType } from '../../shared/enums/conversation-type.enum';
-import { MessageEntity } from '../../messages/entities/message.entity';
 import {
   NotFoundException,
   ConflictException,
@@ -70,20 +68,6 @@ describe('ConversationController', () => {
       muteNotifications: true,
       enableReadReceipts: false,
     },
-  };
-
-  const mockCreateMessageDto: CreateMessageDto = {
-    content: 'Hello, world!',
-    conversationId: mockConversationId,
-  };
-
-  const mockMessage: Partial<MessageEntity> = {
-    id: 'msg-123',
-    content: 'Hello, world!',
-    conversationId: mockConversationId,
-    senderId: mockUser.id,
-    createdAt: new Date(),
-    updatedAt: new Date(),
   };
 
   // Define service mock

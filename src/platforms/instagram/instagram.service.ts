@@ -3,7 +3,6 @@ import {
   HttpException,
   HttpStatus,
   NotFoundException,
-  Logger,
 } from '@nestjs/common';
 import * as config from 'config';
 import axios from 'axios';
@@ -28,17 +27,20 @@ import { MediaStorageService } from '../../asset-management/media-storage/media-
 import { MediaType } from '../../common/enums/media-type.enum';
 import { TenantService } from '../../user-management/tenant/tenant.service';
 import { InstagramAccount } from '../entities/instagram-entities/instagram-account.entity';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class InstagramService implements PlatformService {
   private readonly baseUrl: string = 'https://graph.facebook.com/v18.0';
-  private readonly logger = new Logger(InstagramService.name);
 
   constructor(
     private readonly instagramRepo: InstagramRepository,
     private readonly mediaStorageService: MediaStorageService,
     private readonly tenantService: TenantService,
-  ) {}
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(InstagramService.name);
+  }
 
   private async uploadInstagramMediaItems(
     media: MediaItem[],

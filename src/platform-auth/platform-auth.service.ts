@@ -14,6 +14,7 @@ import {
 import { PlatformError } from '../platforms/platform.error';
 import { TokenCacheService } from '../cache/token-cache.service';
 import { SocialPlatform } from '../common/enums/social-platform.enum';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class OAuth2Service {
@@ -25,7 +26,9 @@ export class OAuth2Service {
     readonly platformConfigs: Record<SocialPlatform, PlatformOAuthConfig>,
     @Inject('PLATFORM_REPOSITORIES')
     private readonly platformRepos: Record<SocialPlatform, any>,
+    private readonly logger: PinoLogger,
   ) {
+    this.logger.setContext(OAuth2Service.name);
     this.initializeOAuthClients();
   }
 
@@ -339,7 +342,7 @@ export class OAuth2Service {
       return this.platformConfigs[platform].scopes || [];
     } catch (error) {
       // Log the error or handle cases where platform might not exist]
-      console.log(error);
+      this.logger.info(error);
       console.warn(`No scopes found for platform: ${platform}`);
       return [];
     }

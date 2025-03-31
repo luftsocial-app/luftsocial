@@ -4,7 +4,6 @@ import {
   Patch,
   Body,
   Param,
-  Post,
   HttpException,
   HttpStatus,
   BadRequestException,

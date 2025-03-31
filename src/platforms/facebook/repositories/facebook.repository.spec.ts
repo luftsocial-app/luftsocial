@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository, EntityManager, MoreThan, LessThan } from 'typeorm';
+import { EntityManager, MoreThan, LessThan } from 'typeorm';
 import { NotFoundException } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { FacebookRepository } from './facebook.repository';
@@ -24,13 +24,13 @@ jest.mock('crypto', () => ({
 
 describe('FacebookRepository', () => {
   let repository: FacebookRepository;
-  let accountRepo: Repository<FacebookAccount>;
-  let authStateRepo: Repository<AuthState>;
-  let pageRepo: Repository<FacebookPage>;
-  let postRepo: Repository<FacebookPost>;
-  let metricRepo: Repository<FacebookPostMetric>;
-  let pageMetricRepo: Repository<FacebookPageMetric>;
-  let entityManager: EntityManager;
+  // let accountRepo: Repository<FacebookAccount>;
+  // let authStateRepo: Repository<AuthState>;
+  // let pageRepo: Repository<FacebookPage>;
+  // let postRepo: Repository<FacebookPost>;
+  // let metricRepo: Repository<FacebookPostMetric>;
+  // let pageMetricRepo: Repository<FacebookPageMetric>;
+  // let entityManager: EntityManager;
 
   const mockTenantId = 'test-tenant-id';
 
@@ -75,17 +75,17 @@ describe('FacebookRepository', () => {
     collectedAt: new Date(),
   };
 
-  const mockPageMetricData: Partial<FacebookPageMetric> = {
-    id: 'fb-page-metric-id',
-    page: mockPageData as FacebookPage,
-    impressions: 5000,
-    engagedUsers: 200,
-    newFans: 20,
-    pageViews: 500,
-    engagements: 300,
-    followers: 1000,
-    collectedAt: new Date(),
-  };
+  // const mockPageMetricData: Partial<FacebookPageMetric> = {
+  //   id: 'fb-page-metric-id',
+  //   page: mockPageData as FacebookPage,
+  //   impressions: 5000,
+  //   engagedUsers: 200,
+  //   newFans: 20,
+  //   pageViews: 500,
+  //   engagements: 300,
+  //   followers: 1000,
+  //   collectedAt: new Date(),
+  // };
 
   // Mocks for each repository
   const mockAccountRepo = {
@@ -181,25 +181,25 @@ describe('FacebookRepository', () => {
     }).compile();
 
     repository = module.get<FacebookRepository>(FacebookRepository);
-    accountRepo = module.get<Repository<FacebookAccount>>(
-      getRepositoryToken(FacebookAccount),
-    );
-    authStateRepo = module.get<Repository<AuthState>>(
-      getRepositoryToken(AuthState),
-    );
-    pageRepo = module.get<Repository<FacebookPage>>(
-      getRepositoryToken(FacebookPage),
-    );
-    postRepo = module.get<Repository<FacebookPost>>(
-      getRepositoryToken(FacebookPost),
-    );
-    metricRepo = module.get<Repository<FacebookPostMetric>>(
-      getRepositoryToken(FacebookPostMetric),
-    );
-    pageMetricRepo = module.get<Repository<FacebookPageMetric>>(
-      getRepositoryToken(FacebookPageMetric),
-    );
-    entityManager = module.get<EntityManager>(EntityManager);
+    // accountRepo = module.get<Repository<FacebookAccount>>(
+    //   getRepositoryToken(FacebookAccount),
+    // );
+    // authStateRepo = module.get<Repository<AuthState>>(
+    //   getRepositoryToken(AuthState),
+    // );
+    // pageRepo = module.get<Repository<FacebookPage>>(
+    //   getRepositoryToken(FacebookPage),
+    // );
+    // postRepo = module.get<Repository<FacebookPost>>(
+    //   getRepositoryToken(FacebookPost),
+    // );
+    // metricRepo = module.get<Repository<FacebookPostMetric>>(
+    //   getRepositoryToken(FacebookPostMetric),
+    // );
+    // pageMetricRepo = module.get<Repository<FacebookPageMetric>>(
+    //   getRepositoryToken(FacebookPageMetric),
+    // );
+    // entityManager = module.get<EntityManager>(EntityManager);
 
     // Mock the getTenantId method
     jest.spyOn(repository as any, 'getTenantId').mockReturnValue(mockTenantId);
@@ -855,7 +855,9 @@ describe('FacebookRepository', () => {
     it('should update a post successfully', async () => {
       // Arrange
       const postId = 'fb-post-id';
-      const updateData = { message: 'Updated post message' };
+      const updateData = {
+        message: 'Updated post message',
+      } as unknown as FacebookPost;
       const updatedPost = { ...mockPostData, ...updateData };
 
       mockPostRepo.update.mockResolvedValue({ affected: 1 });
@@ -1180,7 +1182,7 @@ describe('FacebookRepository', () => {
       await expect(
         repository.upsertPostMetrics({
           postId,
-          metrics: { likes: 10, collectedAt: new Date() },
+          metrics: { collectedAt: new Date() },
         }),
       ).rejects.toThrow('Transaction failed');
     });

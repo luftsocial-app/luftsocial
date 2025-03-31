@@ -1,13 +1,14 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { TenantService } from './tenant.service';
 import { NotFoundException } from '@nestjs/common';
 import { Tenant } from '../entities/tenant.entity';
+import { PinoLogger } from 'nestjs-pino';
 
 describe('TenantService', () => {
   let service: TenantService;
-  let tenantRepository: Repository<Tenant>;
+  // let tenantRepository: Repository<Tenant>;
+  // let logger: PinoLogger;
 
   const mockTenant = {
     id: 'tenant123',
@@ -27,11 +28,22 @@ describe('TenantService', () => {
       providers: [
         TenantService,
         { provide: getRepositoryToken(Tenant), useValue: mockTenantRepo },
+        {
+          provide: PinoLogger,
+          useValue: {
+            info: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+            setContext: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<TenantService>(TenantService);
-    tenantRepository = module.get(getRepositoryToken(Tenant));
+    // tenantRepository = module.get(getRepositoryToken(Tenant));
+    // logger = module.get<PinoLogger>(PinoLogger);
 
     jest.clearAllMocks();
   });

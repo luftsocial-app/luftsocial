@@ -26,7 +26,7 @@ describe('InstagramRepository', () => {
   let metricRepository: jest.Mocked<Repository<InstagramMetric>>;
   let authStateRepository: jest.Mocked<Repository<AuthState>>;
   let rateLimitRepository: jest.Mocked<Repository<InstagramRateLimit>>;
-  let socialAccountRepository: jest.Mocked<Repository<SocialAccount>>;
+  // let socialAccountRepository: jest.Mocked<Repository<SocialAccount>>;
   let entityManager: jest.Mocked<EntityManager>;
 
   beforeEach(async () => {
@@ -123,9 +123,9 @@ describe('InstagramRepository', () => {
     rateLimitRepository = module.get(
       getRepositoryToken(InstagramRateLimit),
     ) as jest.Mocked<Repository<InstagramRateLimit>>;
-    socialAccountRepository = module.get(
-      getRepositoryToken(SocialAccount),
-    ) as jest.Mocked<Repository<SocialAccount>>;
+    // socialAccountRepository = module.get(
+    //   getRepositoryToken(SocialAccount),
+    // ) as jest.Mocked<Repository<SocialAccount>>;
     entityManager = module.get(EntityManager) as jest.Mocked<EntityManager>;
 
     // Mock the getTenantId method

@@ -10,6 +10,7 @@ import {
   UserWebhookEvent,
   OrganizationMembershipWebhookEvent,
 } from '@clerk/express';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class UserService {
@@ -19,7 +20,10 @@ export class UserService {
     @InjectRepository(Role)
     private readonly roleRepo: Repository<Role>,
     private readonly tenantService: TenantService,
-  ) {}
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(UserService.name);
+  }
 
   async getUsers(): Promise<clerkUser[]> {
     const users = await clerkClient.users.getUserList();
@@ -215,11 +219,38 @@ export class UserService {
     });
 
     if (!user) {
-      throw new BadRequestException('User not found');
+      const userObject = {
+        id: membershipCreatedData.data['public_user_data']['user_id'],
+        clerkId: membershipCreatedData.data['public_user_data']['user_id'],
+        email:
+          membershipCreatedData.data['public_user_data']['identifier'] || '',
+        username:
+          membershipCreatedData.data['public_user_data']['identifier'] ||
+          membershipCreatedData.data['public_user_data']['first_name'],
+        firstName:
+          membershipCreatedData.data['public_user_data']['first_name'] || '',
+        lastName:
+          membershipCreatedData.data['public_user_data']['last_name'] || '',
+        activeTenantId: membershipCreatedData.data['organization'].id,
+      };
+
+      const newUser = this.userRepo.create(userObject);
+      await this.userRepo.save(newUser);
+
+      this.logger.info(
+        `User ${newUser.firstName} ${newUser.lastName} created with tenant ID ${newUser.activeTenantId}`,
+      );
+      return;
     }
 
-    user.activeTenantId = membershipCreatedData.data['organization'].id;
-    await this.userRepo.save(user);
+    const updatedUser = await this.userRepo.save({
+      ...user,
+      activeTenantId: membershipCreatedData.data['organization'].id,
+    });
+
+    this.logger.info(
+      `User ${updatedUser.firstName} ${updatedUser.lastName} updated with tenant ID ${updatedUser.activeTenantId}`,
+    );
   }
 
   async handleMembershipDeleted(

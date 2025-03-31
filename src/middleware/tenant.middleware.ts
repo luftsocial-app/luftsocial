@@ -1,11 +1,13 @@
-import { Injectable, NestMiddleware } from '@nestjs/common';
+import { Injectable, NestMiddleware, Logger } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { TenantService } from '../user-management/tenant/tenant.service';
 import { PinoLogger } from 'nestjs-pino';
 import { ConfigService } from '@nestjs/config';
 
+const logger = new Logger('TenantMiddleware');
+
 async function createSessionToken(sessionId, clerkSecretKey) {
-  console.log({ sessionId, clerkSecretKey });
+  logger.debug({ sessionId, clerkSecretKey }, 'Creating session token');
 
   try {
     const response = await fetch(
@@ -28,10 +30,11 @@ async function createSessionToken(sessionId, clerkSecretKey) {
     }
 
     const data = await response.json();
-    console.log('Session Token:', data.jwt);
+    logger.debug(`Session Token: ${data.jwt}`);
     return data.jwt;
   } catch (error) {
-    console.error('Failed to create session token:', error.message);
+    logger.error('Failed to create session token:', error.message);
+    throw error;
   }
 }
 

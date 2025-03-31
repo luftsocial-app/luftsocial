@@ -1,10 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { HttpException } from '@nestjs/common';
-import * as Chance from 'chance';
 import { UserService } from '../user/user.service';
 import { UserController } from '../user/user.controller';
-
-const chance = new Chance();
 
 describe('UsersController', () => {
   let controller: UserController;

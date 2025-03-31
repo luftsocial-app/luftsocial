@@ -4,7 +4,6 @@ import { ConversationService } from '../../conversations/services/conversation.s
 import { MessageService } from '../../messages/services/message.service';
 import { MessageValidatorService } from '../services/message-validator.service';
 import { ConfigService } from '@nestjs/config';
-import { Logger } from '@nestjs/common';
 import { Server } from 'socket.io';
 import { MessageEventType, RoomNameFactory } from '../events/message-events';
 import { WsGuard } from '../../../guards/ws.guard';
@@ -14,6 +13,7 @@ import { ParticipantEntity } from '../../conversations/entities/participant.enti
 import { ConversationType } from '../../shared/enums/conversation-type.enum';
 import { SuccessResponse } from '../interfaces/socket.interfaces';
 import { MessageStatus } from '../../../common/enums/messaging';
+import { PinoLogger } from 'nestjs-pino';
 
 describe('MessagingGateway', () => {
   let gateway: MessagingGateway;
@@ -23,6 +23,7 @@ describe('MessagingGateway', () => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let configService: jest.Mocked<ConfigService>;
   let mockServer: jest.Mocked<Server>;
+  let logger: PinoLogger;
 
   // Mock data
   const mockUserId = 'user-123';
@@ -123,6 +124,16 @@ describe('MessagingGateway', () => {
       providers: [
         MessagingGateway,
         {
+          provide: PinoLogger,
+          useValue: {
+            info: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+            setContext: jest.fn(),
+          },
+        },
+        {
           provide: ConversationService,
           useValue: {
             validateAccess: jest.fn(),
@@ -165,13 +176,6 @@ describe('MessagingGateway', () => {
             }),
           },
         },
-        {
-          provide: Logger,
-          useValue: {
-            debug: jest.fn(),
-            error: jest.fn(),
-          },
-        },
       ],
     })
       .overrideGuard(WsGuard)
@@ -201,11 +205,11 @@ describe('MessagingGateway', () => {
 
   describe('afterInit', () => {
     it('should log initialization message', () => {
-      // Mock console.log to verify it's called
-      const consoleSpy = jest.spyOn(console, 'log');
+      logger = gateway['logger'] as PinoLogger; // Assign the mocked logger
+      const loggerSpy = jest.spyOn(logger, 'info');
       gateway.afterInit();
-      expect(consoleSpy).toHaveBeenCalledWith('WebSocket Gateway initialized');
-      consoleSpy.mockRestore();
+      expect(loggerSpy).toHaveBeenCalledWith('WebSocket Gateway initialized');
+      loggerSpy.mockRestore();
     });
   });
 

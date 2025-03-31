@@ -4,6 +4,7 @@ import { OrganizationWebhookEvent } from '@clerk/express';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Tenant } from '../entities/tenant.entity';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class TenantService {
@@ -11,14 +12,17 @@ export class TenantService {
 
   constructor(
     @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
-  ) {}
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(TenantService.name);
+  }
 
   setTenantId(id: string) {
     this.tenantId = id;
   }
 
   getTenantId(): string {
-    console.log({ tenantId: this.tenantId });
+    this.logger.info({ tenantId: this.tenantId });
 
     return this.tenantId;
   }
@@ -34,7 +38,7 @@ export class TenantService {
     this.tenantRepo
       .save(tenant)
       .then(() => {
-        console.log('Tenant saved successfully');
+        this.logger.info('Tenant saved successfully');
       })
       .catch((error) => {
         console.error('Error saving tenant:', error);
@@ -85,11 +89,28 @@ export class TenantService {
     await this.tenantRepo.delete(tenant.id);
   }
 
-  updateTodo(uuid: string, data: UpdateTenantDto): void {}
+  updateTodo(uuid: string, data: UpdateTenantDto): void {
+    this.logger.info({
+      uuid,
+      data,
+    });
+  }
 
-  delete(uuid: string): void {}
+  delete(uuid: string): void {
+    this.logger.info({
+      uuid,
+    });
+  }
 
-  getTenant(id: string): void {}
+  getTenant(id: string): void {
+    this.logger.info({
+      id,
+    });
+  }
 
-  createTodo(data: CreateTenantDto): void {}
+  createTodo(data: CreateTenantDto): void {
+    this.logger.info({
+      data,
+    });
+  }
 }

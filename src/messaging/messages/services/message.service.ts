@@ -1,6 +1,5 @@
 import {
   Injectable,
-  Logger,
   NotFoundException,
   ForbiddenException,
   BadRequestException,
@@ -20,17 +19,19 @@ import {
   AttachmentResponseDto,
 } from '../dto/message-response.dto';
 import { Not, Like } from 'typeorm';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class MessageService {
-  private readonly logger = new Logger(MessageService.name);
-
   constructor(
     private readonly messageRepository: MessageRepository,
     private readonly attachmentRepository: AttachmentRepository,
     private readonly conversationService: ConversationService,
     private readonly tenantService: TenantService,
-  ) {}
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext('MessageService');
+  }
 
   // Helper method to map entity to DTO
   private mapToMessageDto(

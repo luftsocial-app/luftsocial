@@ -52,7 +52,7 @@ describe('TikTokRepository', () => {
     uploadUrl: 'https://upload.tiktok.com/video',
     status: 'PUBLISHED',
     title: 'Test Video',
-    privacyLevel: 'PUBLIC' as TikTokVideoPrivacyLevel,
+    privacyLevel: TikTokVideoPrivacyLevel.PUBLIC_TO_EVERYONE,
     disableDuet: false,
     disableStitch: false,
     disableComment: false,
@@ -71,18 +71,18 @@ describe('TikTokRepository', () => {
     collectedAt: new Date(),
   };
 
-  const mockComment = {
-    id: mockCommentId,
-    tenantId: mockTenantId,
-    video: { id: mockVideoId },
-    platformCommentId: 'platform_comment_123',
-    content: 'Great video!',
-    authorId: 'author123',
-    authorUsername: 'testuser',
-    likeCount: 20,
-    replyCount: 5,
-    commentedAt: new Date(),
-  };
+  // const mockComment = {
+  //   id: mockCommentId,
+  //   tenantId: mockTenantId,
+  //   video: { id: mockVideoId },
+  //   platformCommentId: 'platform_comment_123',
+  //   content: 'Great video!',
+  //   authorId: 'author123',
+  //   authorUsername: 'testuser',
+  //   likeCount: 20,
+  //   replyCount: 5,
+  //   commentedAt: new Date(),
+  // };
 
   const mockUploadSession = {
     id: mockSessionId,
@@ -228,11 +228,13 @@ describe('TikTokRepository', () => {
         accountName: 'Test Account',
       };
 
-      accountRepo.create.mockReturnValue(accountData as TikTokAccount);
+      accountRepo.create.mockReturnValue(
+        accountData as unknown as TikTokAccount,
+      );
       accountRepo.save.mockResolvedValue({
         id: mockAccountId,
         ...accountData,
-      } as TikTokAccount);
+      } as unknown as TikTokAccount);
 
       const result = await repository.createAccount(accountData);
 
@@ -245,11 +247,11 @@ describe('TikTokRepository', () => {
   describe('createVideo', () => {
     it('should create a new TikTok video', async () => {
       const videoData = {
-        account: mockAccount as TikTokAccount,
+        account: mockAccount as unknown as TikTokAccount,
         publishId: mockPublishId,
         status: 'PENDING',
         title: 'Test Video',
-        privacyLevel: 'PUBLIC' as TikTokVideoPrivacyLevel,
+        privacyLevel: TikTokVideoPrivacyLevel.PUBLIC_TO_EVERYONE,
       };
 
       videoRepo.create.mockReturnValue(videoData as TikTokVideo);
@@ -274,8 +276,10 @@ describe('TikTokRepository', () => {
         expiresAt: new Date(Date.now() + 7200000), // 2 hours from now
       };
 
-      accountRepo.findOne.mockResolvedValue(mockAccount as TikTokAccount);
-      socialAccountRepo.update.mockResolvedValue({ affected: 1 });
+      accountRepo.findOne.mockResolvedValue(
+        mockAccount as unknown as TikTokAccount,
+      );
+      socialAccountRepo.update.mockResolvedValue({ affected: 1 } as any);
 
       // Mock getById to return updated account
       jest.spyOn(repository, 'getById').mockResolvedValue({
@@ -286,7 +290,7 @@ describe('TikTokRepository', () => {
           refreshToken: tokenData.refreshToken,
           tokenExpiresAt: tokenData.expiresAt,
         },
-      } as TikTokAccount);
+      } as unknown as TikTokAccount);
 
       const result = await repository.updateAccountTokens(
         mockAccountId,
@@ -327,7 +331,7 @@ describe('TikTokRepository', () => {
     it('should throw NotFoundException when socialAccount not found', async () => {
       const accountWithoutSocial = { ...mockAccount, socialAccount: null };
       accountRepo.findOne.mockResolvedValue(
-        accountWithoutSocial as TikTokAccount,
+        accountWithoutSocial as unknown as TikTokAccount,
       );
 
       await expect(
@@ -348,14 +352,16 @@ describe('TikTokRepository', () => {
         collectedAt: new Date(),
       };
 
-      metricRepo.findOne.mockResolvedValue(mockMetric as TikTokMetric);
-      metricRepo.update.mockResolvedValue({ affected: 1 });
+      metricRepo.findOne.mockResolvedValue(
+        mockMetric as unknown as TikTokMetric,
+      );
+      metricRepo.update.mockResolvedValue({ affected: 1 } as any);
       metricRepo.findOne
-        .mockResolvedValueOnce(mockMetric as TikTokMetric)
+        .mockResolvedValueOnce(mockMetric as unknown as TikTokMetric)
         .mockResolvedValueOnce({
           ...mockMetric,
           ...metricData,
-        } as TikTokMetric);
+        } as unknown as TikTokMetric);
 
       const result = await repository.updateMetrics(mockVideoId, metricData);
 
@@ -390,7 +396,7 @@ describe('TikTokRepository', () => {
         id: 'new_metric',
         ...metricData,
         video: { id: mockVideoId },
-      } as TikTokMetric);
+      } as unknown as TikTokMetric);
 
       const result = await repository.updateMetrics(mockVideoId, metricData);
 
@@ -512,11 +518,11 @@ describe('TikTokRepository', () => {
     it('should update video status', async () => {
       const newStatus = 'PUBLISHED';
 
-      videoRepo.update.mockResolvedValue({ affected: 1 });
+      videoRepo.update.mockResolvedValue({ affected: 1 } as any);
       videoRepo.findOne.mockResolvedValue({
         ...mockVideo,
         status: newStatus,
-      } as TikTokVideo);
+      } as unknown as TikTokVideo);
 
       const result = await repository.updateVideoStatus(
         mockPublishId,
@@ -541,7 +547,9 @@ describe('TikTokRepository', () => {
 
   describe('getAccountById', () => {
     it('should return account by id with default relations', async () => {
-      accountRepo.findOne.mockResolvedValue(mockAccount as TikTokAccount);
+      accountRepo.findOne.mockResolvedValue(
+        mockAccount as unknown as TikTokAccount,
+      );
 
       const result = await repository.getAccountById(mockAccountId);
 
@@ -555,7 +563,9 @@ describe('TikTokRepository', () => {
 
     it('should return account by id with specified relations', async () => {
       const relations = ['socialAccount', 'videos'];
-      accountRepo.findOne.mockResolvedValue(mockAccount as TikTokAccount);
+      accountRepo.findOne.mockResolvedValue(
+        mockAccount as unknown as TikTokAccount,
+      );
 
       const result = await repository.getAccountById(mockAccountId, relations);
 
@@ -630,20 +640,20 @@ describe('TikTokRepository', () => {
           comments: 100,
           shares: 50,
         },
-      };
+      } as unknown as TikTokMetric;
 
       metricRepo.create.mockReturnValue({
         video: { id: metricsData.videoId },
         ...metricsData.metrics,
         collectedAt: expect.any(Date),
-      } as TikTokMetric);
+      } as unknown as TikTokMetric);
 
       metricRepo.save.mockResolvedValue({
         id: mockMetricId,
         video: { id: metricsData.videoId },
         ...metricsData.metrics,
         collectedAt: expect.any(Date),
-      } as TikTokMetric);
+      } as unknown as TikTokMetric);
 
       const result = await repository.createVideoMetrics(metricsData);
 

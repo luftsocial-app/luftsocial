@@ -5,8 +5,8 @@ import { UserService } from '../user/user.service';
 
 describe('ClerkWebhookService', () => {
   let service: ClerkWebhookService;
-  let tenantService: TenantService;
-  let userService: UserService;
+  // let tenantService: TenantService;
+  // let userService: UserService;
 
   const mockUser = {
     id: 'user123',
@@ -37,8 +37,8 @@ describe('ClerkWebhookService', () => {
     }).compile();
 
     service = module.get<ClerkWebhookService>(ClerkWebhookService);
-    tenantService = module.get<TenantService>(TenantService);
-    userService = module.get<UserService>(UserService);
+    // tenantService = module.get<TenantService>(TenantService);
+    // userService = module.get<UserService>(UserService);
 
     jest.clearAllMocks();
   });

@@ -555,8 +555,6 @@ describe('LinkedInRepository', () => {
       const accountId = 'account-id';
       accountRepo.findOne.mockResolvedValue(mockAccount);
 
-      const transEntityManager = entityManager.transaction.mock.calls[0];
-
       // Act
       await repository.deleteAccount(accountId);
 

@@ -104,7 +104,7 @@ export class User {
   @Column({ name: 'updated_by', nullable: true })
   updatedBy: string;
 
-  @Column({ name: 'is_deleted', default: true })
+  @Column({ name: 'is_deleted', default: false })
   isDeleted: boolean;
 
   @Column({ name: 'deleted_at', nullable: true })

@@ -65,7 +65,7 @@ export class TikTokController {
   @Get(':accountId/analytics')
   async getAnalytics(
     @Param('accountId') accountId: string,
-    @Query('days') days: number = 7,
+    // @Query('days') days: number = 7,
   ) {
     return this.tiktokService.getAccountAnalytics(accountId);
   }

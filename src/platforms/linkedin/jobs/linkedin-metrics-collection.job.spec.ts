@@ -1,21 +1,33 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Logger } from '@nestjs/common';
 import { LinkedInRepository } from '../repositories/linkedin.repository';
 import { LinkedInService } from '../linkedin.service';
 import { LinkedInMetricsCollectionJob } from './metrics-collection.job';
+import { PinoLogger } from 'nestjs-pino';
+import { LinkedInOrganization } from 'src/platforms/entities/linkedin-entities/linkedin-organization.entity';
+import { LinkedInPost } from 'src/platforms/entities/linkedin-entities/linkedin-post.entity';
+import { PostMetrics } from 'src/cross-platform/helpers/cross-platform.interface';
 
 describe('LinkedInMetricsCollectionJob', () => {
   let job: LinkedInMetricsCollectionJob;
   let linkedInRepo: LinkedInRepository;
   let linkedInService: LinkedInService;
-  let loggerSpy: jest.SpyInstance;
-  let loggerErrorSpy: jest.SpyInstance;
-  let loggerDebugSpy: jest.SpyInstance;
+  // let logger: PinoLogger;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         LinkedInMetricsCollectionJob,
+        {
+          provide: PinoLogger,
+          useValue: {
+            info: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+            setContext: jest.fn(),
+          },
+        },
+
         {
           provide: LinkedInRepository,
           useFactory: () => ({
@@ -38,11 +50,6 @@ describe('LinkedInMetricsCollectionJob', () => {
     );
     linkedInRepo = module.get<LinkedInRepository>(LinkedInRepository);
     linkedInService = module.get<LinkedInService>(LinkedInService);
-
-    // Spy on logger methods
-    loggerSpy = jest.spyOn(Logger.prototype, 'log').mockImplementation();
-    loggerErrorSpy = jest.spyOn(Logger.prototype, 'error').mockImplementation();
-    loggerDebugSpy = jest.spyOn(Logger.prototype, 'debug').mockImplementation();
   });
 
   afterEach(() => {
@@ -55,12 +62,12 @@ describe('LinkedInMetricsCollectionJob', () => {
       const mockOrganizations = [
         { id: 'org1', name: 'Organization 1' },
         { id: 'org2', name: 'Organization 2' },
-      ];
+      ] as unknown as LinkedInOrganization[];
 
       const mockPosts = [
         { id: 'post1', postId: 'linkedin-post-1' },
         { id: 'post2', postId: 'linkedin-post-2' },
-      ];
+      ] as unknown as LinkedInPost[];
 
       const mockMetrics = {
         impressions: 100,
@@ -69,7 +76,7 @@ describe('LinkedInMetricsCollectionJob', () => {
         shares: 5,
         engagementRate: 0.65,
         collectedAt: new Date(),
-      };
+      } as unknown as PostMetrics;
 
       // Setup repository and service mocks
       jest
@@ -80,6 +87,10 @@ describe('LinkedInMetricsCollectionJob', () => {
         .spyOn(linkedInService, 'getPostMetrics')
         .mockResolvedValue(mockMetrics);
       jest.spyOn(linkedInRepo, 'upsertMetrics').mockResolvedValue(null);
+
+      const logger = job['logger'] as PinoLogger; // Assign the mocked logger
+      const loggerSpy = jest.spyOn(logger, 'info');
+      const loggerDebugSpy = jest.spyOn(logger, 'debug');
 
       // Act
       await job.collectMetrics();
@@ -135,6 +146,10 @@ describe('LinkedInMetricsCollectionJob', () => {
         .spyOn(linkedInRepo, 'getActiveOrganizations')
         .mockRejectedValue(new Error('Failed to get organizations'));
 
+      const logger = job['logger'] as PinoLogger; // Assign the mocked logger
+      const loggerSpy = jest.spyOn(logger, 'info');
+      const loggerErrorSpy = jest.spyOn(logger, 'error');
+
       // Act
       await job.collectMetrics();
 
@@ -158,12 +173,12 @@ describe('LinkedInMetricsCollectionJob', () => {
       const mockOrganizations = [
         { id: 'org1', name: 'Organization 1' },
         { id: 'org2', name: 'Organization 2' },
-      ];
+      ] as unknown as LinkedInOrganization[];
 
       const mockPosts = [
         { id: 'post1', postId: 'linkedin-post-1' },
         { id: 'post2', postId: 'linkedin-post-2' },
-      ];
+      ] as unknown as LinkedInPost[];
 
       const mockMetrics = {
         impressions: 100,
@@ -172,7 +187,7 @@ describe('LinkedInMetricsCollectionJob', () => {
         shares: 5,
         engagementRate: 0.65,
         collectedAt: new Date(),
-      };
+      } as unknown as PostMetrics;
 
       jest
         .spyOn(linkedInRepo, 'getActiveOrganizations')
@@ -188,6 +203,10 @@ describe('LinkedInMetricsCollectionJob', () => {
         .spyOn(linkedInService, 'getPostMetrics')
         .mockResolvedValue(mockMetrics);
       jest.spyOn(linkedInRepo, 'upsertMetrics').mockResolvedValue(null);
+
+      const logger = job['logger'] as PinoLogger; // Assign the mocked logger
+      const loggerSpy = jest.spyOn(logger, 'info');
+      const loggerErrorSpy = jest.spyOn(logger, 'error');
 
       // Act
       await job.collectMetrics();
@@ -216,12 +235,14 @@ describe('LinkedInMetricsCollectionJob', () => {
 
     it('should handle errors when getting metrics for a post and continue with other posts', async () => {
       // Arrange
-      const mockOrganizations = [{ id: 'org1', name: 'Organization 1' }];
+      const mockOrganizations = [
+        { id: 'org1', name: 'Organization 1' },
+      ] as unknown as LinkedInOrganization[];
 
       const mockPosts = [
         { id: 'post1', postId: 'linkedin-post-1' },
         { id: 'post2', postId: 'linkedin-post-2' },
-      ];
+      ] as unknown as LinkedInPost[];
 
       const mockMetrics = {
         impressions: 100,
@@ -230,7 +251,7 @@ describe('LinkedInMetricsCollectionJob', () => {
         shares: 5,
         engagementRate: 0.65,
         collectedAt: new Date(),
-      };
+      } as unknown as PostMetrics;
 
       jest
         .spyOn(linkedInRepo, 'getActiveOrganizations')
@@ -244,6 +265,10 @@ describe('LinkedInMetricsCollectionJob', () => {
         .mockResolvedValueOnce(mockMetrics);
 
       jest.spyOn(linkedInRepo, 'upsertMetrics').mockResolvedValue(null);
+
+      const logger = job['logger'] as PinoLogger; // Assign the mocked logger
+      const loggerSpy = jest.spyOn(logger, 'info');
+      const loggerErrorSpy = jest.spyOn(logger, 'error');
 
       // Act
       await job.collectMetrics();
@@ -282,12 +307,14 @@ describe('LinkedInMetricsCollectionJob', () => {
 
     it('should handle errors when upserting metrics for a post and continue with other posts', async () => {
       // Arrange
-      const mockOrganizations = [{ id: 'org1', name: 'Organization 1' }];
+      const mockOrganizations = [
+        { id: 'org1', name: 'Organization 1' },
+      ] as unknown as LinkedInOrganization[];
 
       const mockPosts = [
         { id: 'post1', postId: 'linkedin-post-1' },
         { id: 'post2', postId: 'linkedin-post-2' },
-      ];
+      ] as unknown as LinkedInPost[];
 
       const mockMetrics = {
         impressions: 100,
@@ -296,7 +323,7 @@ describe('LinkedInMetricsCollectionJob', () => {
         shares: 5,
         engagementRate: 0.65,
         collectedAt: new Date(),
-      };
+      } as unknown as PostMetrics;
 
       jest
         .spyOn(linkedInRepo, 'getActiveOrganizations')
@@ -311,6 +338,11 @@ describe('LinkedInMetricsCollectionJob', () => {
         .spyOn(linkedInRepo, 'upsertMetrics')
         .mockRejectedValueOnce(new Error('Failed to upsert metrics'))
         .mockResolvedValueOnce(null);
+
+      const logger = job['logger'] as PinoLogger; // Assign the mocked logger
+      const loggerSpy = jest.spyOn(logger, 'info');
+      const loggerErrorSpy = jest.spyOn(logger, 'error');
+      const loggerDebugSpy = jest.spyOn(logger, 'debug');
 
       // Act
       await job.collectMetrics();
@@ -348,6 +380,9 @@ describe('LinkedInMetricsCollectionJob', () => {
       // Arrange
       jest.spyOn(linkedInRepo, 'getActiveOrganizations').mockResolvedValue([]);
 
+      const logger = job['logger'] as PinoLogger; // Assign the mocked logger
+      const loggerSpy = jest.spyOn(logger, 'info');
+
       // Act
       await job.collectMetrics();
 
@@ -365,12 +400,17 @@ describe('LinkedInMetricsCollectionJob', () => {
 
     it('should handle the case when an organization has no recent posts', async () => {
       // Arrange
-      const mockOrganizations = [{ id: 'org1', name: 'Organization 1' }];
+      const mockOrganizations = [
+        { id: 'org1', name: 'Organization 1' },
+      ] as unknown as LinkedInOrganization[];
 
       jest
         .spyOn(linkedInRepo, 'getActiveOrganizations')
         .mockResolvedValue(mockOrganizations);
       jest.spyOn(linkedInRepo, 'getRecentPosts').mockResolvedValue([]);
+
+      const logger = job['logger'] as PinoLogger; // Assign the mocked logger
+      const loggerSpy = jest.spyOn(logger, 'info');
 
       // Act
       await job.collectMetrics();

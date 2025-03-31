@@ -27,7 +27,6 @@ import {
   CreateConversationDto,
   UpdateConversationSettingsDto,
 } from '../dto/conversation.dto';
-import { CreateMessageDto } from '../../messages/dto/message.dto';
 
 // Entities
 import { ConversationEntity } from '../entities/conversation.entity';
