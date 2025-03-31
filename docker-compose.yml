@@ -1,5 +1,5 @@
 services:
-  db:
+  postgres_db:
     image: postgres:16-alpine
     restart: always
     environment:
