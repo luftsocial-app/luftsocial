@@ -1,0 +1,86 @@
+name: CD Workflow
+
+on:
+  push:
+    branches:
+      - "dev"
+    paths: 
+    - terraform/**
+  pull_request:
+    branches:
+    - main
+    paths:
+    - terraform/**
+  workflow_dispatch:
+    branches:
+      - dev
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  terraform:
+    name: "Terraform Infra Change Management"
+    runs-on: ubuntu-latest
+    defaults: 
+      run: 
+      shell: bash
+      working_directory: ./terraform
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: "1.3.5"
+          
+      - name: Assume role using OIDC
+        uses: aws-actions/configure-aws-credentials@master
+        with:
+          role-to-assume: arn:aws:iam::495599771428:role/gh-oidc
+          aws-region: eu-central-1
+
+      - name: Terraform Format
+        run: terraform fmt --recursive
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: terraform plan
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve
+
+      # - name: Output EC2 Public IP
+      #   run: echo "EC2 Public IP: $(terraform output -raw ec2_public_ip)"
+
+      # - name: Upload EC2 Public IP to GitHub Secrets
+      #   run: echo "EC2_PUBLIC_IP=$(terraform output -raw ec2_public_ip)" >> $GITHUB_ENV
+
+  # deploy:
+  #   runs-on: ubuntu-latest
+  #   needs: terraform
+  #   steps:
+  #     - name: Checkout Code
+  #       uses: actions/checkout@v3
+
+  #     - name: Setup SSH Key for EC2
+  #       run: |
+  #         echo "${{ secrets.AWS_PRIVATE_KEY }}" > private_key.pem
+  #         chmod 600 private_key.pem
+
+  #     - name: SSH into EC2 and Deploy NestJS App
+  #       run: |
+  #           echo "${{ secrets.AWS_PRIVATE_KEY }}" > private_key.pem
+  #           chmod 600 private_key.pem
+  #           ssh -o StrictHostKeyChecking=no -i private_key.pem ec2-user@${{ secrets.EC2_PUBLIC_IP }} << 'EOF'
+  #             # Add commands to pull Docker images and run your NestJS app
+  #             docker-compose -f /path/to/docker-compose.yml up -d
+  #           EOF

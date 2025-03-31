@@ -1,23 +1,26 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { BadRequestException, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { SchedulerService } from './scheduler.service';
 import { ContentPublisherService } from './content-publisher.service';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
-import { ScheduledPost } from '../../entities/cross-platform-entities/schedule.entity';
+import { ScheduledPost } from '../entities/schedule.entity';
 import { SocialPlatform } from '../../common/enums/social-platform.enum';
 import {
+  PublishResult,
   PublishStatus,
   ScheduleStatus,
 } from '../helpers/cross-platform.interface';
+import { PinoLogger } from 'nestjs-pino';
+import { MediaStorageItem } from '../../asset-management/media-storage/media-storage.dto';
 
 describe('SchedulerService', () => {
   let service: SchedulerService;
   let scheduledPostRepo: jest.Mocked<Repository<ScheduledPost>>;
   let contentPublisherService: jest.Mocked<ContentPublisherService>;
   let mediaStorageService: jest.Mocked<MediaStorageService>;
-  let loggerSpy: jest.SpyInstance;
+  let logger: PinoLogger;
 
   const mockUserId = 'user123';
   const mockPostId = 'post123';
@@ -43,7 +46,7 @@ describe('SchedulerService', () => {
     mimeType: 'image/jpeg',
     fileName: 'image1.jpg',
     size: 1024,
-  };
+  } as unknown as MediaStorageItem;
 
   const mockUploadedUrl = {
     id: 'uploadedUrl1',
@@ -51,7 +54,7 @@ describe('SchedulerService', () => {
     mimeType: 'image/jpeg',
     fileName: 'image2.jpg',
     size: 2048,
-  };
+  } as unknown as MediaStorageItem;
 
   // Mock scheduled post
   const mockScheduledPost = {
@@ -64,7 +67,7 @@ describe('SchedulerService', () => {
     mediaItems: [mockUploadedFile],
     createdAt: new Date(),
     updatedAt: new Date(),
-  };
+  } as unknown as ScheduledPost;
 
   // Mock publish result
   const mockPublishResult = {
@@ -80,12 +83,22 @@ describe('SchedulerService', () => {
         postedAt: new Date(),
       },
     ],
-  };
+  } as unknown as PublishResult;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SchedulerService,
+        {
+          provide: PinoLogger,
+          useValue: {
+            info: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+            setContext: jest.fn(),
+          },
+        },
         {
           provide: getRepositoryToken(ScheduledPost),
           useValue: {
@@ -121,17 +134,16 @@ describe('SchedulerService', () => {
     scheduledPostRepo = module.get(
       getRepositoryToken(ScheduledPost),
     ) as jest.Mocked<Repository<ScheduledPost>>;
+
     contentPublisherService = module.get(
       ContentPublisherService,
     ) as jest.Mocked<ContentPublisherService>;
+
     mediaStorageService = module.get(
       MediaStorageService,
     ) as jest.Mocked<MediaStorageService>;
 
-    // Mock Logger
-    loggerSpy = jest
-      .spyOn(Logger.prototype, 'error')
-      .mockImplementation(() => { });
+    logger = module.get(PinoLogger);
   });
 
   afterEach(() => {
@@ -168,7 +180,7 @@ describe('SchedulerService', () => {
           status: ScheduleStatus.PENDING,
           scheduledTime: mockPastDate,
         },
-      ];
+      ] as unknown as ScheduledPost[];
 
       scheduledPostRepo.find.mockResolvedValue(mockPendingPosts);
       contentPublisherService.publishContentWithMedia.mockResolvedValue(
@@ -213,7 +225,7 @@ describe('SchedulerService', () => {
         mediaItems: [mockUploadedFile],
         status: ScheduleStatus.PENDING,
         scheduledTime: mockPastDate,
-      };
+      } as unknown as ScheduledPost;
 
       scheduledPostRepo.find.mockResolvedValue([mockPendingPost]);
 
@@ -250,7 +262,7 @@ describe('SchedulerService', () => {
         mediaItems: [mockUploadedFile],
         status: ScheduleStatus.PENDING,
         scheduledTime: mockPastDate,
-      };
+      } as unknown as ScheduledPost;
 
       scheduledPostRepo.find.mockResolvedValue([mockPendingPost]);
 
@@ -273,7 +285,7 @@ describe('SchedulerService', () => {
             error: 'Instagram API error',
           },
         ],
-      };
+      } as unknown as PublishResult;
 
       contentPublisherService.publishContentWithMedia.mockResolvedValue(
         partialSuccess,
@@ -295,6 +307,9 @@ describe('SchedulerService', () => {
 
       await service.processScheduledPosts();
 
+      // Mock Logger
+      const loggerSpy = jest.spyOn(logger, 'error');
+
       // Verify error was logged
       expect(loggerSpy).toHaveBeenCalledWith(
         'Failed to process scheduled posts',
@@ -313,7 +328,7 @@ describe('SchedulerService', () => {
         platforms: [{ platform: SocialPlatform.FACEBOOK, accountId: 'fb123' }],
         scheduledTime: mockFutureDate,
         status: ScheduleStatus.PENDING,
-      });
+      } as unknown as ScheduledPost);
 
       scheduledPostRepo.findOne.mockResolvedValue(mockScheduledPost);
 

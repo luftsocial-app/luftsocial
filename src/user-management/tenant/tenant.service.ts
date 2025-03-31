@@ -1,40 +1,116 @@
-import { randomUUID } from 'crypto';
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { IService } from '../../common/interface/app.interface';
 import { CreateTenantDto, UpdateTenantDto } from './dto/TenantDto';
-import { TenantModel } from './TenantModel';
+import { OrganizationWebhookEvent } from '@clerk/express';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Tenant } from '../entities/tenant.entity';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
-export class TenantService
-  implements IService<TenantModel, CreateTenantDto, UpdateTenantDto>
-{
-  private readonly tenants: TenantModel[] = []; // Temp local database..
+export class TenantService {
+  private tenantId: string;
 
-  create(data: CreateTenantDto): void {
-    const uuid = randomUUID();
-    this.tenants.push(new TenantModel(uuid, data.name, data.subdomain));
+  constructor(
+    @InjectRepository(Tenant) private readonly tenantRepo: Repository<Tenant>,
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(TenantService.name);
+  }
+
+  setTenantId(id: string) {
+    this.tenantId = id;
+  }
+
+  getTenantId(): string {
+    this.logger.info({ tenantId: this.tenantId });
+
+    return this.tenantId;
+  }
+
+  createTenant(createOrgData: OrganizationWebhookEvent): void {
+    // save organization to tenant table
+    const tenant = this.tenantRepo.create({
+      id: createOrgData.data.id,
+      name: createOrgData.data['name'],
+      createdAt: new Date(createOrgData.data['created_at']),
+    });
+
+    this.tenantRepo
+      .save(tenant)
+      .then(() => {
+        this.logger.info('Tenant saved successfully');
+      })
+      .catch((error) => {
+        console.error('Error saving tenant:', error);
+        throw new Error('Failed to save tenant');
+      });
+  }
+
+  async handleTenantCreation(
+    createOrgData: OrganizationWebhookEvent,
+  ): Promise<void> {
+    const tenant = this.tenantRepo.create({
+      id: createOrgData.data.id,
+      name: createOrgData.data['name'],
+      slug: createOrgData.data['slug'],
+      createdAt: new Date(createOrgData.data['created_at']),
+    });
+
+    await this.tenantRepo.save(tenant);
+  }
+
+  async handleTenantUpdate(
+    updateOrgData: OrganizationWebhookEvent,
+  ): Promise<void> {
+    const tenant = await this.tenantRepo.findOne({
+      where: { id: updateOrgData.data.id },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant not found');
+    }
+
+    tenant.name = updateOrgData.data['name'];
+    tenant.updatedAt = new Date(updateOrgData.data['updated_at']);
+    await this.tenantRepo.save(tenant);
+  }
+
+  async handleTenantDeletion(
+    deleteOrgData: OrganizationWebhookEvent,
+  ): Promise<void> {
+    const tenant = await this.tenantRepo.findOne({
+      where: { id: deleteOrgData.data.id },
+    });
+
+    if (!tenant) {
+      throw new NotFoundException('Tenant not found');
+    }
+
+    await this.tenantRepo.delete(tenant.id);
+  }
+
+  updateTodo(uuid: string, data: UpdateTenantDto): void {
+    this.logger.info({
+      uuid,
+      data,
+    });
   }
 
   delete(uuid: string): void {
-    const index = this.tenants.findIndex((tenant) => tenant.id === uuid);
-    if (index === -1) throw new NotFoundException('Tenant not found');
-    this.tenants.splice(index, 1);
+    this.logger.info({
+      uuid,
+    });
   }
 
-  get(uuid: string): TenantModel {
-    const todo = this.tenants.find((tenant) => tenant.id === uuid);
-    if (!todo) throw new NotFoundException('Tenant not found');
-    return todo;
+  getTenant(id: string): void {
+    this.logger.info({
+      id,
+    });
   }
 
-  update(uuid: string, data: UpdateTenantDto): void {
-    const tenant = this.tenants.find((tenant) => tenant.id === uuid);
-    if (!tenant) throw new NotFoundException('Tenant not found');
-    tenant.name = data.name;
-    tenant.subdomain = data.subdomain;
-  }
-
-  getAll(): TenantModel[] {
-    return this.tenants;
+  createTodo(data: CreateTenantDto): void {
+    this.logger.info({
+      data,
+    });
   }
 }

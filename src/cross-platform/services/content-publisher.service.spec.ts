@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ContentPublisherService } from './content-publisher.service';
-import { Repository } from 'typeorm';
-import { PublishRecord } from '../../entities/cross-platform-entities/publish.entity';
+import { PublishRecord } from '../entities/publish.entity';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { FacebookService } from '../../platforms/facebook/facebook.service';
 import { InstagramService } from '../../platforms/instagram/instagram.service';
@@ -13,17 +12,16 @@ import {
   PublishParams,
   PublishStatus,
 } from '../helpers/cross-platform.interface';
-import { BadRequestException, NotFoundException } from '@nestjs/common';
-import { MediaItem } from '../../platforms/platform-service.interface';
+import { NotFoundException } from '@nestjs/common';
 
 describe('ContentPublisherService', () => {
   let service: ContentPublisherService;
-  let publishRepo: Repository<PublishRecord>;
-  let facebookService: FacebookService;
-  let instagramService: InstagramService;
-  let linkedinService: LinkedInService;
-  let tiktokService: TikTokService;
-  let mediaStorageService: MediaStorageService;
+  // let publishRepo: Repository<PublishRecord>;
+  // let facebookService: FacebookService;
+  // let instagramService: InstagramService;
+  // let linkedinService: LinkedInService;
+  // let tiktokService: TikTokService;
+  // let mediaStorageService: MediaStorageService;
 
   const mockPublishRepo = {
     save: jest.fn(),
@@ -84,14 +82,14 @@ describe('ContentPublisherService', () => {
     }).compile();
 
     service = module.get<ContentPublisherService>(ContentPublisherService);
-    publishRepo = module.get<Repository<PublishRecord>>(
-      getRepositoryToken(PublishRecord),
-    );
-    facebookService = module.get<FacebookService>(FacebookService);
-    instagramService = module.get<InstagramService>(InstagramService);
-    linkedinService = module.get<LinkedInService>(LinkedInService);
-    tiktokService = module.get<TikTokService>(TikTokService);
-    mediaStorageService = module.get<MediaStorageService>(MediaStorageService);
+    // publishRepo = module.get<Repository<PublishRecord>>(
+    //   getRepositoryToken(PublishRecord),
+    // );
+    // facebookService = module.get<FacebookService>(FacebookService);
+    // instagramService = module.get<InstagramService>(InstagramService);
+    // linkedinService = module.get<LinkedInService>(LinkedInService);
+    // tiktokService = module.get<TikTokService>(TikTokService);
+    // mediaStorageService = module.get<MediaStorageService>(MediaStorageService);
   });
 
   afterEach(() => {
@@ -117,7 +115,7 @@ describe('ContentPublisherService', () => {
           platformSpecificParams: { caption: 'Instagram caption' },
         },
       ],
-      files: [{ buffer: Buffer.from('test'), filename: 'test.jpg' }],
+      files: [{ buffer: Buffer.from('test'), filename: 'test.jpg' }] as any,
       mediaUrls: ['https://example.com/image.jpg'],
     };
 
@@ -220,11 +218,11 @@ describe('ContentPublisherService', () => {
 
       // Mock the determineOverallStatus method by manipulating the last update call
       mockPublishRepo.update
-        .mockImplementationOnce((id, data) => {
+        .mockImplementationOnce(() => {
           // First update call with mediaItems - just return
           return Promise.resolve();
         })
-        .mockImplementationOnce((id, data) => {
+        .mockImplementationOnce((data) => {
           // Second update call - override the status to PARTIALLY_COMPLETED
           return Promise.resolve({
             ...data,
@@ -275,11 +273,11 @@ describe('ContentPublisherService', () => {
 
       // Mock the determineOverallStatus method by manipulating the last update call
       mockPublishRepo.update
-        .mockImplementationOnce((id, data) => {
+        .mockImplementationOnce(() => {
           // First update call with mediaItems - just return
           return Promise.resolve();
         })
-        .mockImplementationOnce((id, data) => {
+        .mockImplementationOnce((data) => {
           // Second update call - override the status to FAILED
           return Promise.resolve({
             ...data,
@@ -465,7 +463,7 @@ describe('ContentPublisherService', () => {
             platformSpecificParams: { visibility: 'public' },
           },
         ],
-        files: [{ buffer: Buffer.from('test'), filename: 'test.jpg' }],
+        files: [{ buffer: Buffer.from('test'), filename: 'test.jpg' }] as any,
       };
 
       const mockPublishRecord = {

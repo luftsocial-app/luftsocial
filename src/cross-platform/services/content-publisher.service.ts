@@ -9,7 +9,7 @@ import { InstagramService } from '../../platforms/instagram/instagram.service';
 import { LinkedInService } from '../../platforms/linkedin/linkedin.service';
 import { TikTokService } from '../../platforms/tiktok/tiktok.service';
 import { Repository } from 'typeorm';
-import { PublishRecord } from '../../entities/cross-platform-entities/publish.entity';
+import { PublishRecord } from '../entities/publish.entity';
 import {
   PublishParams,
   PublishPlatformResult,
@@ -31,7 +31,7 @@ export class ContentPublisherService {
     private readonly instagramService: InstagramService,
     private readonly linkedinService: LinkedInService,
     private readonly tiktokService: TikTokService,
-  ) { }
+  ) {}
 
   async publishContentWithMedia(params: PublishParams): Promise<PublishResult> {
     // Create publishing record first to get an ID
@@ -126,11 +126,11 @@ export class ContentPublisherService {
         result.status === 'fulfilled'
           ? result.value
           : {
-            platform: result.reason.platform,
-            accountId: result.reason.accountId,
-            success: false,
-            error: result.reason.message,
-          },
+              platform: result.reason.platform,
+              accountId: result.reason.accountId,
+              success: false,
+              error: result.reason.message,
+            },
       ),
     });
 

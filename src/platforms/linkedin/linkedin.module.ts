@@ -6,21 +6,23 @@ import { LinkedInRepository } from './repositories/linkedin.repository';
 import { LinkedInController } from './linkedin.controller';
 import { LinkedInConfig } from './config/linkedin.config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { LinkedInAccount } from '../../entities/socials/linkedin-entities/linkedin-account.entity';
-import { LinkedInOrganization } from '../../entities/socials/linkedin-entities/linkedin-organization.entity';
-import { LinkedInMetric, LinkedInPost } from '../../entities/socials/linkedin-entities/linkedin-post.entity';
-import { DatabaseModule } from '../../database/database.module';
+import { LinkedInAccount } from '../entities/linkedin-entities/linkedin-account.entity';
+import { LinkedInOrganization } from '../entities/linkedin-entities/linkedin-organization.entity';
+import {
+  LinkedInMetric,
+  LinkedInPost,
+} from '../entities/linkedin-entities/linkedin-post.entity';
 import { ConfigModule } from '@nestjs/config';
 import { PlatformAuthModule } from '../../platform-auth/platform-auth.module';
 import { MediaStorageModule } from '../../asset-management/media-storage/media-storage.module';
-import { SocialAccount } from '../../entities/notifications/entity/social-account.entity';
-import { AuthState } from '../../entities/socials/facebook-entities/auth-state.entity';
+import { AuthState } from '../entities/facebook-entities/auth-state.entity';
+import { TenantModule } from '../../user-management/tenant/tenant.module';
 
 @Module({
   controllers: [LinkedInController],
   imports: [
     ConfigModule,
-    DatabaseModule,
+    TenantModule,
     MediaStorageModule,
     PlatformAuthModule,
     TypeOrmModule.forFeature([
@@ -29,7 +31,6 @@ import { AuthState } from '../../entities/socials/facebook-entities/auth-state.e
       LinkedInPost,
       LinkedInMetric,
       AuthState,
-      SocialAccount,
     ]),
   ],
   providers: [
@@ -41,4 +42,4 @@ import { AuthState } from '../../entities/socials/facebook-entities/auth-state.e
   ],
   exports: [LinkedInService],
 })
-export class LinkedInModule { }
+export class LinkedInModule {}

@@ -1,21 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import {
-  HttpException,
-  HttpStatus,
-  NotFoundException,
-  Logger,
-} from '@nestjs/common';
+import { HttpException, HttpStatus, NotFoundException } from '@nestjs/common';
 import axios from 'axios';
 import { InstagramService } from './instagram.service';
 import { InstagramRepository } from './repositories/instagram.repository';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
-import { TenantService } from '../../database/tenant.service';
+import { TenantService } from '../../user-management/tenant/tenant.service';
 import { InstagramApiException } from './helpers/instagram-api.exception';
-import { CreatePostDto, CreateStoryDto } from './helpers/create-content.dto';
+import { StickerDto } from './helpers/create-content.dto';
 import { MediaType } from '../../common/enums/media-type.enum';
-import { DateRange } from '../../common/interface/platform-metrics.interface';
-import { SocialPlatform } from '../../common/enums/social-platform.enum';
+import { PinoLogger } from 'nestjs-pino';
 
 // Mock axios
 jest.mock('axios');
@@ -24,13 +18,14 @@ const mockedAxios = axios as jest.Mocked<typeof axios>;
 describe('InstagramService', () => {
   let service: InstagramService;
   let instagramRepo: jest.Mocked<InstagramRepository>;
-  let configService: jest.Mocked<ConfigService>;
+  // let configService: jest.Mocked<ConfigService>;
   let mediaStorageService: jest.Mocked<MediaStorageService>;
   let tenantService: jest.Mocked<TenantService>;
+  let logger: PinoLogger;
 
   const mockTenantId = 'test-tenant-id';
   const mockAccountId = 'test-account-id';
-  const mockPostId = 'test-post-id';
+  // const mockPostId = 'test-post-id';
   const mockAccessToken = 'test-access-token';
   const mockRefreshToken = 'test-refresh-token';
   const mockIgBusinessAccountId = 'test-ig-business-id';
@@ -95,6 +90,16 @@ describe('InstagramService', () => {
         { provide: ConfigService, useValue: mockConfigService },
         { provide: MediaStorageService, useValue: mockMediaStorageService },
         { provide: TenantService, useValue: mockTenantService },
+        {
+          provide: PinoLogger,
+          useValue: {
+            info: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+            setContext: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
@@ -102,16 +107,17 @@ describe('InstagramService', () => {
     instagramRepo = module.get(
       InstagramRepository,
     ) as jest.Mocked<InstagramRepository>;
-    configService = module.get(ConfigService) as jest.Mocked<ConfigService>;
+    // configService = module.get(ConfigService) as jest.Mocked<ConfigService>;
     mediaStorageService = module.get(
       MediaStorageService,
     ) as jest.Mocked<MediaStorageService>;
     tenantService = module.get(TenantService) as jest.Mocked<TenantService>;
+    logger = module.get<PinoLogger>(PinoLogger);
 
     // Mock Logger to avoid console outputs during tests
-    jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
-    jest.spyOn(Logger.prototype, 'log').mockImplementation(() => {});
-    jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => {});
+    jest.spyOn(logger, 'error');
+    jest.spyOn(logger, 'info');
+    jest.spyOn(logger, 'warn');
 
     // Reset all mocks before each test
     jest.clearAllMocks();
@@ -194,8 +200,7 @@ describe('InstagramService', () => {
       instagramRepo.getAccountByUserId.mockResolvedValue(
         mockInstagramAccount as any,
       );
-
-      const result = await service.getAccountsByUserId(mockAccountId);
+      await service.getAccountsByUserId(mockAccountId);
 
       expect(tenantService.getTenantId).toHaveBeenCalled();
       expect(instagramRepo.setTenantId).toHaveBeenCalledWith(mockTenantId);
@@ -335,12 +340,14 @@ describe('InstagramService', () => {
         },
       });
 
-      const stickers = {
-        poll: {
-          question: 'Do you like this?',
-          options: ['Yes', 'No'],
+      const stickers = [
+        {
+          poll: {
+            question: 'Do you like this?',
+            options: ['Yes', 'No'],
+          },
         },
-      };
+      ] as unknown as StickerDto[];
 
       const result = await service.createStory(
         mockAccountId,

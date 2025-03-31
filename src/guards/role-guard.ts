@@ -10,10 +10,16 @@ export const Roles = (...roles: Role[]) => SetMetadata(ROLES_KEY, roles);
 
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-  constructor(private reflector: Reflector) {}
+  constructor(
+    private reflector: Reflector,
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(RolesGuard.name);
+  }
 
   canActivate(context: ExecutionContext): boolean {
     const requiredRoles = this.reflector.getAllAndOverride<Role[]>(ROLES_KEY, [
@@ -21,7 +27,7 @@ export class RolesGuard implements CanActivate {
       context.getClass(),
     ]);
 
-    console.log({ requiredRoles });
+    this.logger.info({ requiredRoles });
 
     if (!requiredRoles) {
       return true;
@@ -29,8 +35,8 @@ export class RolesGuard implements CanActivate {
     const req = context.switchToHttp().getRequest();
 
     const user = req.auth;
-    console.log({ user, permissions: user.has({ role: 'org:member' }) });
-    console.log({ metatata: user.sessionClaims?.metadata.role });
+    this.logger.info({ user, permissions: user.has({ role: 'org:member' }) });
+    this.logger.info({ metatata: user.sessionClaims?.metadata.role });
 
     return requiredRoles.some((role) =>
       user.sessionClaims?.org_role.includes(role),

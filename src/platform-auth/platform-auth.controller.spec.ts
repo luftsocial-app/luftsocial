@@ -3,6 +3,7 @@ import { PlatformAuthController } from './platform-auth.controller';
 import { OAuth2Service } from './platform-auth.service';
 import { SocialPlatform } from '../common/enums/social-platform.enum';
 import { TokenResponse } from '../platforms/platform-service.interface';
+import { PinoLogger } from 'nestjs-pino';
 
 describe('PlatformAuthController', () => {
   let controller: PlatformAuthController;
@@ -40,6 +41,16 @@ describe('PlatformAuthController', () => {
         {
           provide: OAuth2Service,
           useValue: mockOAuth2Service,
+        },
+        {
+          provide: PinoLogger,
+          useValue: {
+            info: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+            setContext: jest.fn(),
+          },
         },
       ],
     }).compile();

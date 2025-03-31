@@ -22,7 +22,7 @@ services:
   #   ports:
   #     - '3000:3000'
   #   depends_on:
-  #     - db
+  #     - postgres_db
   #   volumes:
   #     - ./src:/app/src
 
@@ -49,14 +49,16 @@ services:
     volumes:
       - redis-cache:/data
 
-  # alpine-sqs:
-  #   image: roribio16/alpine-sqs:latest
-  #   container_name: alpine-sqs
+  # nginx:
+  #   image: nginx:latest
+  #   container_name: nginx
+  #   restart: always
   #   ports:
-  #     - '9324:9324'
-  #     - '9325:9325'
-  #   stdin_open: true
-  #   tty: true
+  #     - "80:80"
+  #   volumes:
+  #     - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+  #   depends_on:
+  #     - app
 
 volumes:
   postgres-data: {}

@@ -1,7 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { LinkedInController } from './linkedin.controller';
 import { LinkedInService } from './linkedin.service';
-import { LinkedInErrorInterceptor } from './helpers/linkedin-error.interceptor';
 import { CreateLinkedInPostDto } from './helpers/create-post.dto';
 import { MediaItem } from '../platform-service.interface';
 

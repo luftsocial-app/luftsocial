@@ -3,7 +3,6 @@ import {
   HttpException,
   HttpStatus,
   NotFoundException,
-  Logger,
 } from '@nestjs/common';
 import axios from 'axios';
 import * as config from 'config';
@@ -22,23 +21,26 @@ import {
   DateRange,
   PostMetrics,
 } from '../../cross-platform/helpers/cross-platform.interface';
-import { LinkedInAccount } from '../../entities/socials/linkedin-entities/linkedin-account.entity';
-import { TenantService } from '../../database/tenant.service';
+import { LinkedInAccount } from '../entities/linkedin-entities/linkedin-account.entity';
+import { TenantService } from '../../user-management/tenant/tenant.service';
 import { CreateLinkedInPostDto } from './helpers/create-post.dto';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
 import { MediaStorageItem } from '../../asset-management/media-storage/media-storage.dto';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class LinkedInService implements PlatformService {
   private readonly apiVersion: string = 'v2';
   private readonly baseUrl: string = 'https://api.linkedin.com';
-  private readonly logger = new Logger(LinkedInService.name);
 
   constructor(
     private readonly linkedInRepo: LinkedInRepository,
     private readonly tenantService: TenantService,
     private readonly mediaStorageService: MediaStorageService,
-  ) { }
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(LinkedInService.name);
+  }
 
   private async uploadLinkedInMediaItemsToStorage(
     media: MediaItem[],

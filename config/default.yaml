@@ -10,7 +10,9 @@ logger:
         - req.headers.auth
       censor: '***'
 port: 3000
-messaging:
+clerk:
+  perishableKey: 
+  secretKey: 
   throttle:
     messageRateMs: 500 # Time between messages (ms)
     typingRateMs: 2000 # Time between typing indicators (ms)

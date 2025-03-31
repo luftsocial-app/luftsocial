@@ -3,7 +3,7 @@ import { MessageService } from './message.service';
 import { MessageRepository } from '../repositories/message.repository';
 import { AttachmentRepository } from '../repositories/attachment.repository';
 import { ConversationService } from '../../conversations/services/conversation.service';
-import { TenantService } from '../../../database/tenant.service';
+import { TenantService } from '../../../user-management/tenant/tenant.service';
 import {
   MessageStatus,
   MessageType,
@@ -11,6 +11,7 @@ import {
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { MessageEntity } from '../entities/message.entity';
 import { AttachmentEntity } from '../entities/attachment.entity';
+import { PinoLogger } from 'nestjs-pino';
 
 describe('MessageService', () => {
   let service: MessageService;
@@ -108,6 +109,16 @@ describe('MessageService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MessageService,
+        {
+          provide: PinoLogger,
+          useValue: {
+            info: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+            setContext: jest.fn(),
+          },
+        },
         {
           provide: MessageRepository,
           useValue: {

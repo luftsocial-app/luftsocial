@@ -3,7 +3,6 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
-  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import axios from 'axios';
@@ -37,15 +36,15 @@ import {
 
 import { MediaStorageItem } from '../../asset-management/media-storage/media-storage.dto';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
-import { TenantService } from '../../database/tenant.service';
+import { TenantService } from '../../user-management/tenant/tenant.service';
 import { FACEBOOK_SCOPES } from '../../common/enums/scopes.enum';
-import { FacebookAccount } from '../../entities/socials/facebook-entities/facebook-account.entity';
-import { FacebookPage } from '../../entities/socials/facebook-entities/facebook-page.entity';
-import { FacebookPost } from '../../entities/socials/facebook-entities/facebook-post.entity';
+import { FacebookAccount } from '../entities/facebook-entities/facebook-account.entity';
+import { FacebookPage } from '../entities/facebook-entities/facebook-page.entity';
+import { FacebookPost } from '../entities/facebook-entities/facebook-post.entity';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class FacebookService implements PlatformService {
-  private readonly logger = new Logger(FacebookService.name);
   private readonly apiVersion = 'v18.0';
   private readonly baseUrl = 'https://graph.facebook.com';
 
@@ -53,7 +52,10 @@ export class FacebookService implements PlatformService {
     private readonly facebookRepo: FacebookRepository,
     private readonly mediaStorageService: MediaStorageService,
     private readonly tenantService: TenantService,
-  ) {}
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(FacebookService.name);
+  }
 
   async getComments(
     accountId: string,
@@ -151,6 +153,7 @@ export class FacebookService implements PlatformService {
           mediaItem.url,
           prefix,
         );
+
         mediaItems.push(uploadedMedia);
       }
     }

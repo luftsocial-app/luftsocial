@@ -5,15 +5,13 @@ import * as crypto from 'crypto';
 
 import { SocialPlatform } from '../../../common/enums/social-platform.enum';
 
-import { TenantAwareRepository } from '../../../database/tenant-aware.repository';
-import { SocialAccount } from '../../../entities/notifications/entity/social-account.entity';
-import { AuthState } from '../../../entities/socials/facebook-entities/auth-state.entity';
-import { InstagramMetric } from '../../../entities/socials/instagram-entities/instagram-metric.entity';
-import { InstagramPost } from '../../../entities/socials/instagram-entities/instagram-post.entity';
-import { InstagramRateLimit } from '../../../entities/socials/instagram-entities/instagram-rate-limit.entity';
-import { InstagramAccount } from '../../../entities/socials/instagram-entities/instagram-account.entity';
-
-
+import { TenantAwareRepository } from '../../../user-management/tenant/tenant-aware.repository';
+import { AuthState } from '../../entities/facebook-entities/auth-state.entity';
+import { InstagramMetric } from '../../entities/instagram-entities/instagram-metric.entity';
+import { InstagramPost } from '../../entities/instagram-entities/instagram-post.entity';
+import { InstagramRateLimit } from '../../entities/instagram-entities/instagram-rate-limit.entity';
+import { InstagramAccount } from '../../entities/instagram-entities/instagram-account.entity';
+import { SocialAccount } from '../../../platforms/entities/notifications/entity/social-account.entity';
 
 @Injectable()
 export class InstagramRepository extends TenantAwareRepository {

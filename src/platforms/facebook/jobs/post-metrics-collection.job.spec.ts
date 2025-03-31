@@ -1,21 +1,29 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { Logger } from '@nestjs/common';
 import { FacebookRepository } from '../repositories/facebook.repository';
 import { FacebookService } from '../facebook.service';
 import { FacebookPostMetricsJob } from './post-metrics-collection.job';
+import { PinoLogger } from 'nestjs-pino';
 
 describe('FacebookPostMetricsJob', () => {
   let job: FacebookPostMetricsJob;
   let facebookRepo: FacebookRepository;
   let facebookService: FacebookService;
-  let loggerErrorSpy: jest.SpyInstance;
-  let loggerWarnSpy: jest.SpyInstance;
-  let loggerDebugSpy: jest.SpyInstance;
+  let logger: PinoLogger;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         FacebookPostMetricsJob,
+        {
+          provide: PinoLogger,
+          useValue: {
+            info: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+            setContext: jest.fn(),
+          },
+        },
         {
           provide: FacebookRepository,
           useValue: {
@@ -37,9 +45,7 @@ describe('FacebookPostMetricsJob', () => {
     facebookService = module.get<FacebookService>(FacebookService);
 
     // Spy on logger methods to test different logging scenarios
-    loggerErrorSpy = jest.spyOn(Logger.prototype, 'error');
-    loggerWarnSpy = jest.spyOn(Logger.prototype, 'warn');
-    loggerDebugSpy = jest.spyOn(Logger.prototype, 'debug');
+    logger = module.get(PinoLogger);
   });
 
   afterEach(() => {
@@ -52,7 +58,7 @@ describe('FacebookPostMetricsJob', () => {
       const mockPosts = [
         { id: 'post1', account: { id: 'account1' } },
         { id: 'post2', account: { id: 'account2' } },
-      ];
+      ] as any[];
       const mockMetrics1 = { likes: 100, shares: 50, comments: 25 };
       const mockMetrics2 = { likes: 200, shares: 75, comments: 30 };
 
@@ -65,6 +71,10 @@ describe('FacebookPostMetricsJob', () => {
       jest
         .spyOn(facebookRepo, 'upsertPostMetrics')
         .mockResolvedValue(undefined);
+
+      const loggerErrorSpy = jest.spyOn(logger, 'error');
+      const loggerWarnSpy = jest.spyOn(logger, 'warn');
+      const loggerDebugSpy = jest.spyOn(logger, 'debug');
 
       // Execute
       await job.collectPostMetrics();
@@ -106,7 +116,7 @@ describe('FacebookPostMetricsJob', () => {
         { id: 'post1', account: { id: 'account1' } },
         { id: 'post2', account: null },
         { id: 'post3', account: undefined },
-      ];
+      ] as any[];
       const mockMetrics = { likes: 100, shares: 50, comments: 25 };
 
       // Setup mocks
@@ -117,6 +127,8 @@ describe('FacebookPostMetricsJob', () => {
       jest
         .spyOn(facebookRepo, 'upsertPostMetrics')
         .mockResolvedValue(undefined);
+
+      const loggerWarnSpy = jest.spyOn(logger, 'warn');
 
       // Execute
       await job.collectPostMetrics();
@@ -144,7 +156,7 @@ describe('FacebookPostMetricsJob', () => {
         { id: 'post1', account: { id: 'account1' } },
         { id: 'post2', account: { id: 'account2' } },
         { id: 'post3', account: { id: 'account3' } },
-      ];
+      ] as any[];
       const mockMetrics = { likes: 100, shares: 50, comments: 25 };
       const mockError = new Error('API error');
       mockError.stack = 'Error stack trace';
@@ -161,6 +173,9 @@ describe('FacebookPostMetricsJob', () => {
         .spyOn(facebookRepo, 'upsertPostMetrics')
         .mockResolvedValueOnce(undefined)
         .mockResolvedValueOnce(undefined);
+
+      const loggerErrorSpy = jest.spyOn(logger, 'error');
+      const loggerDebugSpy = jest.spyOn(logger, 'debug');
 
       // Execute
       await job.collectPostMetrics();
@@ -188,7 +203,7 @@ describe('FacebookPostMetricsJob', () => {
       const mockPosts = [
         { id: 'post1', account: { id: 'account1' } },
         { id: 'post2', account: { id: 'account2' } },
-      ];
+      ] as any[];
       const mockMetrics = { likes: 100, shares: 50, comments: 25 };
       const mockError = new Error('Database update error');
       mockError.stack = 'Error stack trace';
@@ -202,6 +217,9 @@ describe('FacebookPostMetricsJob', () => {
         .spyOn(facebookRepo, 'upsertPostMetrics')
         .mockResolvedValueOnce(undefined)
         .mockRejectedValueOnce(mockError);
+
+      const loggerErrorSpy = jest.spyOn(logger, 'error');
+      const loggerDebugSpy = jest.spyOn(logger, 'debug');
 
       // Execute
       await job.collectPostMetrics();
@@ -229,6 +247,8 @@ describe('FacebookPostMetricsJob', () => {
       // Setup mocks
       jest.spyOn(facebookRepo, 'getRecentPosts').mockRejectedValue(mockError);
 
+      const loggerErrorSpy = jest.spyOn(logger, 'error');
+
       // Execute
       await job.collectPostMetrics();
 
@@ -246,6 +266,10 @@ describe('FacebookPostMetricsJob', () => {
     it('should handle empty list of recent posts', async () => {
       // Setup mocks
       jest.spyOn(facebookRepo, 'getRecentPosts').mockResolvedValue([]);
+
+      const loggerErrorSpy = jest.spyOn(logger, 'error');
+      const loggerWarnSpy = jest.spyOn(logger, 'warn');
+      const loggerDebugSpy = jest.spyOn(logger, 'debug');
 
       // Execute
       await job.collectPostMetrics();

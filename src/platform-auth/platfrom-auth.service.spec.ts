@@ -7,6 +7,7 @@ import { TokenCacheService } from '../cache/token-cache.service';
 import { SocialPlatform } from '../common/enums/social-platform.enum';
 import { PlatformError } from '../platforms/platform.error';
 import { OAuth2Service } from './platform-auth.service';
+import { PinoLogger } from 'nestjs-pino';
 
 // Mock simple-oauth2
 jest.mock('simple-oauth2');
@@ -19,6 +20,7 @@ describe('OAuth2Service', () => {
   let mockPlatformRepos;
   let mockAuthorizationCode;
   let mockAxios;
+  let logger: PinoLogger;
 
   const mockUserId = 'user123';
   const mockCode = 'auth_code_123';
@@ -213,6 +215,16 @@ describe('OAuth2Service', () => {
       providers: [
         OAuth2Service,
         {
+          provide: PinoLogger,
+          useValue: {
+            info: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+            setContext: jest.fn(),
+          },
+        },
+        {
           provide: TokenCacheService,
           useValue: mockTokenCacheService,
         },
@@ -231,6 +243,7 @@ describe('OAuth2Service', () => {
     tokenCacheService = module.get(
       TokenCacheService,
     ) as jest.Mocked<TokenCacheService>;
+    logger = module.get<PinoLogger>(PinoLogger);
   });
 
   afterEach(() => {
@@ -398,10 +411,7 @@ describe('OAuth2Service', () => {
     });
 
     it('should refresh Facebook token', async () => {
-      const result = await service.refreshToken(
-        SocialPlatform.FACEBOOK,
-        mockAccountId,
-      );
+      await service.refreshToken(SocialPlatform.FACEBOOK, mockAccountId);
 
       expect(mockAxios.get).toHaveBeenCalledWith(
         'https://graph.facebook.com/oauth/access_token',
@@ -587,6 +597,7 @@ describe('OAuth2Service', () => {
         tokenCacheService,
         platformWithNoScopes,
         mockPlatformRepos,
+        logger,
       );
 
       const scopes = newService.getPlatformScopes(SocialPlatform.FACEBOOK);

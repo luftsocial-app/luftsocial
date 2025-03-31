@@ -7,9 +7,7 @@ import {
   AddParticipantsDto,
   UpdateConversationSettingsDto,
 } from '../dto/conversation.dto';
-import { CreateMessageDto } from '../../messages/dto/message.dto';
 import { ConversationType } from '../../shared/enums/conversation-type.enum';
-import { MessageEntity } from '../../messages/entities/message.entity';
 import {
   NotFoundException,
   ConflictException,
@@ -70,20 +68,6 @@ describe('ConversationController', () => {
       muteNotifications: true,
       enableReadReceipts: false,
     },
-  };
-
-  const mockCreateMessageDto: CreateMessageDto = {
-    content: 'Hello, world!',
-    conversationId: mockConversationId,
-  };
-
-  const mockMessage: Partial<MessageEntity> = {
-    id: 'msg-123',
-    content: 'Hello, world!',
-    conversationId: mockConversationId,
-    senderId: mockUser.id,
-    createdAt: new Date(),
-    updatedAt: new Date(),
   };
 
   // Define service mock
@@ -312,55 +296,6 @@ describe('ConversationController', () => {
           mockUpdateSettingsDto,
         ),
       ).rejects.toThrow(NotFoundException);
-    });
-  });
-
-  describe('createMessage', () => {
-    it('should create a new message in a conversation', async () => {
-      mockConversationService.createMessage.mockResolvedValue(mockMessage);
-
-      const result = await controller.createMessage(
-        mockUser,
-        mockConversationId,
-        mockCreateMessageDto,
-      );
-
-      expect(service.createMessage).toHaveBeenCalledWith(
-        mockConversationId,
-        mockCreateMessageDto.content,
-        mockUser.id,
-      );
-      expect(result).toEqual(mockMessage);
-    });
-
-    it('should handle errors when conversation is not found', async () => {
-      mockConversationService.createMessage.mockRejectedValue(
-        new NotFoundException('Conversation not found'),
-      );
-
-      await expect(
-        controller.createMessage(mockUser, 'invalid-id', mockCreateMessageDto),
-      ).rejects.toThrow(NotFoundException);
-    });
-
-    it('should handle errors when user lacks access to the conversation', async () => {
-      mockConversationService.createMessage.mockRejectedValue(
-        new ForbiddenException(
-          'User does not have access to this conversation',
-        ),
-      );
-
-      await expect(
-        controller.createMessage(
-          {
-            id: 'unauthorized-user',
-            username: 'hacker',
-            tenantId: 'tenant-123',
-          },
-          mockConversationId,
-          mockCreateMessageDto,
-        ),
-      ).rejects.toThrow(ForbiddenException);
     });
   });
 });

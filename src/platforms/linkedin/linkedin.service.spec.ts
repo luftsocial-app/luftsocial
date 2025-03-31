@@ -1,15 +1,17 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { HttpException, NotFoundException } from '@nestjs/common';
 import axios from 'axios';
-import * as config from 'config';
 import { LinkedInService } from './linkedin.service';
 import { LinkedInRepository } from './repositories/linkedin.repository';
-import { TenantService } from '../../database/tenant.service';
+import { TenantService } from '../../user-management/tenant/tenant.service';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
 import { LinkedInApiException } from './helpers/linkedin-api.exception';
 import { MediaItem } from '../platform-service.interface';
 import { DateRange } from '../../cross-platform/helpers/cross-platform.interface';
 import { CreateLinkedInPostDto } from './helpers/create-post.dto';
+import { PinoLogger } from 'nestjs-pino';
+import { LinkedInAccount } from '../entities/linkedin-entities/linkedin-account.entity';
+import { LinkedInOrganization } from './helpers/linkedin.interface';
 
 jest.mock('axios');
 jest.mock('config', () => ({
@@ -52,23 +54,23 @@ describe('LinkedInService', () => {
   };
 
   const mockDateRange: DateRange = {
-    startDate: new Date('2023-01-01'),
-    endDate: new Date('2023-01-31'),
+    startDate: new Date('2023-01-01').toISOString(),
+    endDate: new Date('2023-01-31').toISOString(),
   };
 
-  const mockFile = {
-    fieldname: 'file',
-    originalname: 'image.jpg',
-    mimetype: 'image/jpeg',
-    buffer: Buffer.from('test'),
-    size: 1024,
-  } as Express.Multer.File;
+  // const mockFile = {
+  //   fieldname: 'file',
+  //   originalname: 'image.jpg',
+  //   mimetype: 'image/jpeg',
+  //   buffer: Buffer.from('test'),
+  //   size: 1024,
+  // } as Express.Multer.File;
 
-  const mockMediaItem: MediaItem = {
-    file: mockFile,
-    url: undefined,
-    description: 'Test image',
-  };
+  // const mockMediaItem: MediaItem = {
+  //   file: mockFile,
+  //   url: undefined,
+  //   description: 'Test image',
+  // };
 
   const mockMediaUrlItem: MediaItem = {
     file: undefined,
@@ -112,6 +114,16 @@ describe('LinkedInService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         LinkedInService,
+        {
+          provide: PinoLogger,
+          useValue: {
+            info: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+            setContext: jest.fn(),
+          },
+        },
         {
           provide: LinkedInRepository,
           useValue: mockLinkedInRepo,
@@ -503,7 +515,7 @@ describe('LinkedInService', () => {
       linkedInRepo.getById.mockResolvedValueOnce({
         ...mockAccount,
         organizations: [],
-      });
+      } as unknown as LinkedInAccount);
 
       await expect(
         service.getAccountMetrics(mockAccountId, mockDateRange),
@@ -537,11 +549,21 @@ describe('LinkedInService', () => {
         },
       };
 
+      const linkedInOrg1 = {
+        id: 'org123',
+        name: 'Organization 1',
+      } as unknown as LinkedInOrganization;
+
+      const linkedInOrg2 = {
+        id: 'org456',
+        name: 'Organization 2',
+      } as unknown as LinkedInOrganization;
+
       // Update mock account to have two organizations
       linkedInRepo.getById.mockResolvedValueOnce({
         ...mockAccount,
-        organizations: ['org123', 'org456'],
-      });
+        organizations: [linkedInOrg1, linkedInOrg2],
+      } as unknown as LinkedInAccount);
 
       mockedAxios.get
         .mockResolvedValueOnce(mockOrg1Metrics)
@@ -564,14 +586,20 @@ describe('LinkedInService', () => {
         platformSpecific: {
           organizations: [
             {
-              organizationId: 'org123',
+              organizationId: {
+                id: 'org123',
+                name: 'Organization 1',
+              },
               clickCount: 100,
               likeCount: 200,
               commentCount: 50,
               shareCount: 20,
             },
             {
-              organizationId: 'org456',
+              organizationId: {
+                id: 'org456',
+                name: 'Organization 2',
+              },
               clickCount: 200,
               likeCount: 400,
               commentCount: 100,

@@ -1,7 +1,6 @@
 import {
   BadRequestException,
   Injectable,
-  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -12,20 +11,23 @@ import {
   ScheduleStatus,
 } from '../helpers/cross-platform.interface';
 import { ContentPublisherService } from './content-publisher.service';
-import { ScheduledPost } from '../../entities/cross-platform-entities/schedule.entity';
+import { ScheduledPost } from '../entities/schedule.entity';
 import { SocialPlatform } from '../../common/enums/social-platform.enum';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
 import { MediaStorageItem } from '../../asset-management/media-storage/media-storage.dto';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class SchedulerService {
-  private readonly logger: Logger = new Logger(SchedulerService.name);
   constructor(
     @InjectRepository(ScheduledPost)
     private readonly scheduledPostRepo: Repository<ScheduledPost>,
     private readonly contentPublisherService: ContentPublisherService,
     private readonly mediaStorageService: MediaStorageService,
-  ) { }
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(SchedulerService.name);
+  }
 
   @Cron(CronExpression.EVERY_MINUTE)
   async processScheduledPosts() {

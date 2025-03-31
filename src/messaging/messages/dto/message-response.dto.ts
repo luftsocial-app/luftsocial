@@ -6,16 +6,16 @@ export class MessageReactionDto {
     description: 'User ID who added the reaction',
     example: 'a1b2c3d4-e5f6-g7h8-i9j0',
   })
-  userId: string;
+  userId?: string;
 
   @ApiProperty({ description: 'Emoji reaction', example: '👍' })
-  emoji: string;
+  emoji?: string;
 
   @ApiProperty({
     description: 'When the reaction was added',
     example: '2023-01-01T12:00:00.000Z',
   })
-  createdAt: Date;
+  createdAt?: Date;
 }
 
 export class AttachmentResponseDto {
@@ -114,10 +114,14 @@ export class MessageResponseDto {
 
   @ApiPropertyOptional({
     description: 'Users who have read this message',
-    type: [String],
-    example: ['user1-id', 'user2-id'],
+    type: 'object',
+    additionalProperties: { type: 'string', format: 'date-time' },
+    example: {
+      'user1-id': '2023-01-01T12:00:00.000Z',
+      'user2-id': '2023-01-01T12:05:00.000Z',
+    },
   })
-  readBy?: string[];
+  readBy?: { [userId: string]: Date };
 
   @ApiPropertyOptional({
     description: 'Whether the current user has read this message',
@@ -138,7 +142,7 @@ export class MessageResponseDto {
     },
   })
   metadata?: {
-    editHistory?: string[];
+    editHistory?: object[];
     [key: string]: any;
   };
 }
