@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ClerkWebhookService } from './clerk-webhook.service';
-import { TenantService } from '../tenant/tenant.service';
-import { UserService } from '../user/user.service';
+import { TenantService } from '../../user-management/tenant/tenant.service';
+import { UserService } from '../../user-management/user/user.service';
 
 describe('ClerkWebhookService', () => {
   let service: ClerkWebhookService;

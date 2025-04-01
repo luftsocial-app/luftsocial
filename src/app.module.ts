@@ -9,7 +9,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { ConfigModule } from '@nestjs/config';
 import * as config from 'config';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { LoggerMiddleware } from '../logger.middleware';
+import { LoggerMiddleware } from './middleware/logger.middleware';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TenantMiddleware } from './middleware/tenant.middleware';
 import { ClerkAuthGuard } from './guards/clerk-auth.guard';
@@ -45,12 +45,13 @@ import { CrossPlatformModule } from './cross-platform/cross-platform.module';
 import { ConversationModule } from './messaging/conversations/conversation.module';
 import { RealtimeModule } from './messaging/realtime/realtime.module';
 import { UserModule } from './user-management/user/user.module';
-import { ClerkWebhookModule } from './user-management/clerk-webhook/clerk-webhook.module';
+import { ClerkWebhookModule } from './webhooks/clerk-webhook/clerk-webhook.module';
 import { SocialAccount } from './platforms/entities/notifications/entity/social-account.entity';
 import { Team } from './user-management/entities/team.entity';
 import { Tenant } from './user-management/entities/tenant.entity';
 import { UserTenant } from './user-management/entities/user-tenant.entity';
 import { Notification } from './platforms/entities/notifications/notification.entity';
+import { TiktokModule } from './webhooks/tiktok/tiktok.module';
 
 @Module({
   imports: [
@@ -112,6 +113,7 @@ import { Notification } from './platforms/entities/notifications/notification.en
     CrossPlatformModule,
     ConversationModule,
     TenantModule,
+    TiktokModule,
   ],
   controllers: [AppController],
   providers: [

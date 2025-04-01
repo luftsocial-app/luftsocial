@@ -44,6 +44,8 @@ export class ClerkWebhookController {
       const svix_timestamp = req.headers['svix-timestamp'];
       const svix_signature = req.headers['svix-signature'];
 
+      console.log({ svix_id, svix_timestamp, svix_signature });
+
       // If there are no headers, error out
       if (!svix_id || !svix_timestamp || !svix_signature) {
         return new Response('Error: Missing Svix headers', {
@@ -115,6 +117,7 @@ export class ClerkWebhookController {
         await this.clerkWebhookService.membershipCreated(evt);
       }
 
+      return HttpStatus.OK;
       return new Response('Webhook received', { status: 200 });
     } catch (error) {
       throw new HttpException(

@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { User } from '../entities/user.entity';
+import { User } from '../../user-management/entities/user.entity';
 import { UserWebhookEvent } from '@clerk/express';
 import {
   OrganizationWebhookEvent,
   OrganizationMembershipWebhookEvent,
 } from '@clerk/express';
-import { TenantService } from '../tenant/tenant.service';
-import { UserService } from '../user/user.service';
+import { TenantService } from '../../user-management/tenant/tenant.service';
+import { UserService } from '../../user-management/user/user.service';
 
 @Injectable()
 export class ClerkWebhookService {
