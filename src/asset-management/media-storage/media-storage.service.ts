@@ -206,6 +206,13 @@ export class MediaStorageService {
       ContentType: contentType,
       Expires: 360,
     });
+    if (!preSignedUrl) {
+      throw new BadRequestException('Failed to generate pre-signed URL');
+    }
+    this.logger.info(
+      `Generated pre-signed URL: ${preSignedUrl} for file: ${fileName}`,
+      MediaStorageService.name,
+    );
 
     // Save file metadata to database (optional)
     await this.saveFile(tenantId, key, contentType);
@@ -227,6 +234,11 @@ export class MediaStorageService {
     });
 
     await this.postAssetRepository.save(upload);
+
+    this.logger.info(
+      `File metadata saved: ${JSON.stringify(upload)}`,
+      MediaStorageService.name,
+    );
     return upload;
   }
 

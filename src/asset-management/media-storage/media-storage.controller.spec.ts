@@ -15,6 +15,7 @@ describe('MediaStorageController', () => {
 
   const mockLogger = {
     setContext: jest.fn(),
+    info: jest.fn(),
   };
 
   beforeEach(async () => {

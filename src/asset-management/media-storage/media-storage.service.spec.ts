@@ -70,6 +70,7 @@ describe('MediaStorageService', () => {
 
     mockLogger = {
       setContext: jest.fn(),
+      info: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
