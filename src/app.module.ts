@@ -52,6 +52,7 @@ import { Tenant } from './user-management/entities/tenant.entity';
 import { UserTenant } from './user-management/entities/user-tenant.entity';
 import { Notification } from './platforms/entities/notifications/notification.entity';
 import { TiktokModule } from './webhooks/tiktok/tiktok.module';
+import { PostAsset } from './asset-management/entities/post-asset.entity';
 
 @Module({
   imports: [
@@ -84,6 +85,7 @@ import { TiktokModule } from './webhooks/tiktok/tiktok.module';
         ParticipantEntity,
         FacebookAccount,
         SocialAccount,
+        PostAsset,
       ],
     }),
     LoggerModule.forRoot({

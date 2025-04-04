@@ -9,7 +9,7 @@ describe('MediaStorageController', () => {
   let mediaStorageService: MediaStorageService;
 
   const mockMediaStorageService = {
-    createPreSignedUrl: jest.fn(),
+    generatePreSignedUrl: jest.fn(),
     getTenantUploads: jest.fn(),
   };
 
@@ -50,7 +50,7 @@ describe('MediaStorageController', () => {
         cdnUrl: 'https://cdn-url.com',
       };
 
-      mockMediaStorageService.createPreSignedUrl.mockResolvedValue(
+      mockMediaStorageService.generatePreSignedUrl.mockResolvedValue(
         expectedResult,
       );
 
@@ -60,7 +60,7 @@ describe('MediaStorageController', () => {
         fileType,
       );
 
-      expect(mediaStorageService.createPreSignedUrl).toHaveBeenCalledWith(
+      expect(mediaStorageService.generatePreSignedUrl).toHaveBeenCalledWith(
         fileName,
         fileType,
         mockUser.orgId,

@@ -181,7 +181,7 @@ export class MediaStorageService {
     }
   }
 
-  async createPreSignedUrl(
+  async generatePreSignedUrl(
     fileName: string,
     contentType: string,
     tenantId: string,

@@ -238,7 +238,7 @@ describe('MediaStorageService', () => {
 
       const fileName = `uploads/${tenantId}/${currentTime}-${key}`;
 
-      const result = await service.createPreSignedUrl(
+      const result = await service.generatePreSignedUrl(
         key,
         contentType,
         tenantId,
