@@ -11,7 +11,7 @@ logger:
       censor: '***'
 port: 3000
 clerk:
-  perishableKey: 
+  perishableKey:
   secretKey: 
   throttle:
     messageRateMs: 500 # Time between messages (ms)
@@ -43,11 +43,11 @@ cache:
     access_token: 3600 # 1 hour for access tokens
     refresh_token: 604800 # 7 days for refresh tokens
 aws:
-  region: ${AWS_REGION}
-  accessKeyId: ${AWS_ACCESS_KEY_ID}
-  secretAccessKey: ${AWS_SECRET_ACCESS_KEY}
+  region: eu-central-1
+  accessKeyId: 
+  secretAccessKey: 
   s3:
-    bucket: ${AWS_S3_BUCKET}
+    bucket: uploads-123-456
 platforms:
   facebook:
     clientId: ${FACEBOOK_CLIENT_ID}

@@ -1,11 +1,11 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class Migrations1743075435077 implements MigrationInterface {
-  name = 'Migrations1743075435077';
+export class Migrations1743756708368 implements MigrationInterface {
+  name = 'Migrations1743756708368';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
-      `ALTER TABLE "facebook_accounts" DROP COLUMN "permissions"`,
+      `ALTER TABLE "post_assets" RENAME COLUMN "userId" TO "tenantId"`,
     );
     await queryRunner.query(
       `ALTER TABLE "linkedin_metrics" DROP COLUMN "uniqueImpressions"`,
@@ -59,7 +59,7 @@ export class Migrations1743075435077 implements MigrationInterface {
       `ALTER TABLE "linkedin_metrics" ADD "uniqueImpressions" integer NOT NULL DEFAULT '0'`,
     );
     await queryRunner.query(
-      `ALTER TABLE "facebook_accounts" ADD "permissions" jsonb NOT NULL`,
+      `ALTER TABLE "post_assets" RENAME COLUMN "tenantId" TO "userId"`,
     );
   }
 }

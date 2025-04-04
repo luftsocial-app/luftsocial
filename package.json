@@ -21,8 +21,8 @@
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "eslint:fix": "eslint --fix \"{src,apps,libs,test}/**/*.ts\"",
     "typeorm": "ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
-    "migration:generate": "npm run typeorm -- migration:generate -d src/database/migrations/config/typeorm.config.ts  src/database/migrations",
-    "migration:create": "npm run typeorm -- migration:create",
+    "migration:generate": "npm run typeorm -- migration:generate -d src/database/migrations/config/typeorm.config.ts  src/database/migrations/luftsocialDB/migrations",
+    "migration:create": "npm run typeorm -- migration:create src/database/migrations/updates/${NewMigrationFileName}",
     "migration:run": "npm run typeorm -- migration:run -d src/database/migrations/config/typeorm.config.ts",
     "migration:revert": "npm run typeorm -- migration:revert -d src/database/migrations/config/typeorm.config.ts"
   },

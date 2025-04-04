@@ -16,6 +16,6 @@ export default new DataSource({
   synchronize: false,
   entities: ['dist/**/**.entity{.ts,.js}'],
 
-  migrations: ['src/database/migrations/*.ts'],
+  migrations: ['src/database/migrations/luftsocialDB/*.ts'],
   migrationsTableName: 'migrations_history',
 });
