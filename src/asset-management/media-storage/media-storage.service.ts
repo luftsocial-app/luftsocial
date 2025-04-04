@@ -9,6 +9,10 @@ import {
   UploadResult,
 } from './media-storage.dto';
 import { MediaType } from '../../common/enums/media-type.enum';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { PinoLogger } from 'nestjs-pino';
+import { PostAsset } from '../entities/post-asset.entity';
 
 @Injectable()
 export class MediaStorageService {
@@ -18,7 +22,13 @@ export class MediaStorageService {
     return this._s3;
   }
 
-  constructor() {
+  constructor(
+    @InjectRepository(PostAsset)
+    private readonly postAssetRepository: Repository<PostAsset>,
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(MediaStorageService.name);
+
     this._s3 = new S3({
       region: config.get('aws.region'),
       credentials: {
@@ -172,10 +182,24 @@ export class MediaStorageService {
   }
 
   async createPreSignedUrl(
-    key: string,
+    fileName: string,
     contentType: string,
-    bucket: string = config.get('aws.s3.bucket'),
+    tenantId: string,
   ): Promise<PreSignedUrlResult> {
+    if (!fileName || !contentType) {
+      throw new BadRequestException('File name and content type are required');
+    }
+
+    // Validate file name and content type
+    const validFileName = /^[a-zA-Z0-9._-]+$/.test(fileName);
+    const validContentType =
+      /^(image|video|audio|application)\/[a-zA-Z0-9+.-]+$/.test(contentType);
+    if (!validFileName || !validContentType) {
+      throw new BadRequestException('Invalid file name or content type format');
+    }
+
+    const bucket: string = config.get('aws.s3.bucket');
+    const key = `uploads/${tenantId}/${Date.now()}-${fileName}`;
     const preSignedUrl = await this.s3.getSignedUrlPromise('putObject', {
       Bucket: bucket,
       Key: key,
@@ -185,10 +209,25 @@ export class MediaStorageService {
 
     return {
       preSignedUrl,
-      contentType,
       cdnUrl: `https://${bucket}.s3.${config.get('aws.region')}.amazonaws.com/${key}`,
       bucket,
       key,
     };
+  }
+
+  async saveFile(d: string, fileKey: string, fileType: string) {
+    const upload = this.postAssetRepository.create({
+      tenantId: string,
+      fileKey,
+      fileType,
+      uploadedAt: new Date(),
+    });
+
+    await this.postAssetRepository.save(upload);
+    return upload;
+  }
+
+  async getTenantUploads(userId: string) {
+    return this.postAssetRepository.find({ where: { userId } });
   }
 }

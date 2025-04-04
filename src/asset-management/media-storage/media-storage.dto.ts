@@ -8,7 +8,6 @@ export class UploadResult {
 
 export class PreSignedUrlResult {
   preSignedUrl: string;
-  contentType: string;
   cdnUrl: string;
   bucket: string;
   key: string;

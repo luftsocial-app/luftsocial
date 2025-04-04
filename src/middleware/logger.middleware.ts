@@ -16,8 +16,6 @@ export class LoggerMiddleware implements NestMiddleware {
     this.logger.info('Request Headers:', req.headers);
     this.logger.info('Request Body:', req.body);
     this.logger.info('==============Request END==============');
-    console.log({ loggePackage: this.logger });
-
     // Capture the original send method to log the response body
     const originalSend = res.send;
 
