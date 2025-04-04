@@ -207,6 +207,9 @@ export class MediaStorageService {
       Expires: 360,
     });
 
+    // Save file metadata to database (optional)
+    await this.saveFile(tenantId, key, contentType);
+
     return {
       preSignedUrl,
       cdnUrl: `https://${bucket}.s3.${config.get('aws.region')}.amazonaws.com/${key}`,
@@ -215,11 +218,11 @@ export class MediaStorageService {
     };
   }
 
-  async saveFile(d: string, fileKey: string, fileType: string) {
+  async saveFile(tenantId: string, key: string, ContentType: string) {
     const upload = this.postAssetRepository.create({
-      tenantId: string,
-      fileKey,
-      fileType,
+      tenantId,
+      fileKey: key,
+      fileType: ContentType,
       uploadedAt: new Date(),
     });
 
@@ -227,7 +230,7 @@ export class MediaStorageService {
     return upload;
   }
 
-  async getTenantUploads(userId: string) {
-    return this.postAssetRepository.find({ where: { userId } });
+  async getTenantUploads(tenantId: string) {
+    return this.postAssetRepository.find({ where: { tenantId } });
   }
 }

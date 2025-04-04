@@ -11,7 +11,7 @@ export class PostAsset {
   id: string;
 
   @Column()
-  userId: string;
+  tenantId: string;
 
   @Column()
   fileKey: string;

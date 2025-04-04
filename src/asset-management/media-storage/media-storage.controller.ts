@@ -2,7 +2,7 @@ import { Controller, Get, Query, Req, Res } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { MediaStorageService } from './media-storage.service';
 import { AuthObject } from '@clerk/express';
-import { CurrentUser } from 'src/decorators/current-user.decorator';
+import { CurrentUser } from '../../decorators/current-user.decorator';
 
 @Controller('uploads')
 export class MediaStorageController {
@@ -26,12 +26,9 @@ export class MediaStorageController {
       fileType,
       tenantId,
     );
-
-    // Save file metadata to database (optional)
-    // await this.uploadService.saveFile(userId, fileKey, fileType);
   }
 
-  @Get('tenant-uploads')
+  @Get('tenant-posts')
   async getTenantUploads(@CurrentUser() user: AuthObject) {
     const tenantId = user.orgId;
     return this.mediaStorageService.getTenantUploads(tenantId);

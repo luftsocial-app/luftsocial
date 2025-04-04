@@ -3,6 +3,7 @@ import { MediaStorageService } from './media-storage.service';
 import { S3 } from 'aws-sdk';
 import axios from 'axios';
 import { BadRequestException } from '@nestjs/common';
+import { PinoLogger } from 'nestjs-pino';
 
 // Mock the config module
 jest.mock('config', () => ({
@@ -42,6 +43,8 @@ const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 describe('MediaStorageService', () => {
   let service: MediaStorageService;
+  let mockPostAssetRepository;
+  let mockLogger;
 
   // S3 upload spy
   const uploadSpy = jest.fn().mockReturnValue({
@@ -59,8 +62,28 @@ describe('MediaStorageService', () => {
     // Reset all mocks
     jest.clearAllMocks();
 
+    mockPostAssetRepository = {
+      create: jest.fn(),
+      save: jest.fn(),
+      find: jest.fn(),
+    };
+
+    mockLogger = {
+      setContext: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
-      providers: [MediaStorageService],
+      providers: [
+        MediaStorageService,
+        {
+          provide: 'PostAssetRepository',
+          useValue: mockPostAssetRepository,
+        },
+        {
+          provide: PinoLogger,
+          useValue: mockLogger,
+        },
+      ],
     }).compile();
 
     service = module.get<MediaStorageService>(MediaStorageService);
@@ -207,16 +230,84 @@ describe('MediaStorageService', () => {
     it('should use custom bucket when provided', async () => {
       const key = 'test-key';
       const contentType = 'image/jpeg';
-      const customBucket = 'custom-bucket';
+      const tenantId = 'tenant123';
+      const customBucket = 'test-bucket';
+      const currentTime = 1672531200000;
 
-      await service.createPreSignedUrl(key, contentType, customBucket);
+      jest.spyOn(Date, 'now').mockImplementation(() => currentTime); // Mocked timestamp
+
+
+      const file = `uploads/${tenantId}/${currentTime}-${key}`
+
+      const result = await service.createPreSignedUrl(
+        key,
+        contentType,
+        tenantId,
+      );
 
       expect(getSignedUrlPromiseSpy).toHaveBeenCalledWith(
         'putObject',
         expect.objectContaining({
           Bucket: customBucket,
+          Key: file,
+          ContentType: contentType,
+          Expires: 360,
         }),
       );
+
+      expect(result).toEqual({
+        preSignedUrl: 'https://presigned-url.com',
+        cdnUrl: `https://${customBucket}.s3.${'us-east-1'}.amazonaws.com/${key}`,
+        bucket: customBucket,
+        key,
+      });
+    });
+  });
+
+  describe('saveFile', () => {
+    it('should save file metadata to database', async () => {
+      const tenantId = 'tenant123';
+      const key = 'test-key';
+      const contentType = 'image/jpeg';
+      const mockUpload = {
+        id: 1,
+        tenantId,
+        fileKey: key,
+        fileType: contentType,
+      };
+
+      mockPostAssetRepository.create.mockReturnValue(mockUpload);
+      mockPostAssetRepository.save.mockResolvedValue(mockUpload);
+
+      const result = await service.saveFile(tenantId, key, contentType);
+
+      expect(mockPostAssetRepository.create).toHaveBeenCalledWith({
+        tenantId,
+        fileKey: key,
+        fileType: contentType,
+        uploadedAt: expect.any(Date),
+      });
+      expect(mockPostAssetRepository.save).toHaveBeenCalledWith(mockUpload);
+      expect(result).toEqual(mockUpload);
+    });
+  });
+
+  describe('getTenantUploads', () => {
+    it('should return uploads for a tenant', async () => {
+      const tenantId = 'tenant123';
+      const mockUploads = [
+        { id: 1, tenantId, fileKey: 'key1' },
+        { id: 2, tenantId, fileKey: 'key2' },
+      ];
+
+      mockPostAssetRepository.find.mockResolvedValue(mockUploads);
+
+      const result = await service.getTenantUploads(tenantId);
+
+      expect(mockPostAssetRepository.find).toHaveBeenCalledWith({
+        where: { tenantId },
+      });
+      expect(result).toEqual(mockUploads);
     });
   });
 
