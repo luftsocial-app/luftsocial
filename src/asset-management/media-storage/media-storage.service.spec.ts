@@ -236,8 +236,7 @@ describe('MediaStorageService', () => {
 
       jest.spyOn(Date, 'now').mockImplementation(() => currentTime); // Mocked timestamp
 
-
-      const file = `uploads/${tenantId}/${currentTime}-${key}`
+      const fileName = `uploads/${tenantId}/${currentTime}-${key}`;
 
       const result = await service.createPreSignedUrl(
         key,
@@ -249,7 +248,7 @@ describe('MediaStorageService', () => {
         'putObject',
         expect.objectContaining({
           Bucket: customBucket,
-          Key: file,
+          Key: fileName,
           ContentType: contentType,
           Expires: 360,
         }),
@@ -257,9 +256,9 @@ describe('MediaStorageService', () => {
 
       expect(result).toEqual({
         preSignedUrl: 'https://presigned-url.com',
-        cdnUrl: `https://${customBucket}.s3.${'us-east-1'}.amazonaws.com/${key}`,
+        cdnUrl: `https://${customBucket}.s3.${'us-east-1'}.amazonaws.com/${fileName}`,
         bucket: customBucket,
-        key,
+        key: fileName,
       });
     });
   });
