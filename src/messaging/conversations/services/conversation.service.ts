@@ -116,8 +116,14 @@ export class ConversationService {
   ): Promise<ConversationEntity> {
     const tenantId = this.tenantService.getTenantId();
 
+    console.log({
+      userId1,
+      userId2,
+      tenantId,
+    });
+
     const checkUser2TenantId = await this.userRepository.findOne({
-      where: { id: userId2, userTenants: { id: tenantId } },
+      where: { id: userId2, tenants: { id: tenantId } },
     });
     if (!checkUser2TenantId) {
       throw new NotFoundException('User 2 not found in the tenant');

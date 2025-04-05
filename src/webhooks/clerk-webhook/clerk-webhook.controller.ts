@@ -73,7 +73,6 @@ export class ClerkWebhookController {
         });
       }
 
-      // Do something with payload
       const { id } = evt.data;
       const eventType = evt.type;
       this.logger.info(
@@ -81,44 +80,35 @@ export class ClerkWebhookController {
       );
       if (evt.type === 'user.created') {
         this.logger.info('userId:', evt.data.id);
-        // Create user in your database
-        this.logger.info({ 'Webhook payload:': body });
         await this.clerkWebhookService.createUser(evt);
       }
 
       if (evt.type === 'user.updated') {
         this.logger.info('userId:', evt.data.id);
-        // Create user in your database
-        this.logger.info({ 'Webhook payload:': body });
+        await this.clerkWebhookService.updateUser(evt);
+      }
+      if (evt.type === 'user.deleted') {
+        this.logger.info('userId:', evt.data.id);
         await this.clerkWebhookService.updateUser(evt);
       }
       if (evt.type === 'organization.created') {
         this.logger.info('userId:', evt.data.id);
-        // Create user in your database
-        this.logger.info({ 'Webhook payload:': body });
         await this.clerkWebhookService.tenantCreated(evt);
       }
       if (evt.type === 'organization.updated') {
         this.logger.info('userId:', evt.data.id);
-        // Create user in your database
-        this.logger.info({ 'Webhook payload:': body });
         await this.clerkWebhookService.tenantUpdated(evt);
       }
       if (evt.type === 'organization.deleted') {
         this.logger.info('userId:', evt.data.id);
-        // Create user in your database
-        this.logger.info({ 'Webhook payload:': body });
         await this.clerkWebhookService.tenantDeleted(evt);
       }
       if (evt.type === 'organizationMembership.created') {
         this.logger.info('userId:', evt.data.id);
-        // Create user in your database
-        this.logger.info({ 'Webhook payload:': body });
         await this.clerkWebhookService.membershipCreated(evt);
       }
 
       return HttpStatus.OK;
-      return new Response('Webhook received', { status: 200 });
     } catch (error) {
       throw new HttpException(
         error.message,

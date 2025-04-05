@@ -5,10 +5,11 @@ import { UserController } from './user.controller';
 import { User } from '../entities/user.entity';
 import { Role } from '../entities/role.entity';
 import { TenantModule } from '../tenant/tenant.module';
+import { ClerkClientProvider } from '../../clerk/clerk.provider';
 
 @Module({
   imports: [TypeOrmModule.forFeature([User, Role]), TenantModule],
-  providers: [UserService],
+  providers: [UserService, ClerkClientProvider],
   controllers: [UserController],
   exports: [UserService],
 })

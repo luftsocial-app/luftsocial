@@ -9,7 +9,7 @@ async function createSessionToken( // this function is for testing only, should 
   clerkSecretKey: string,
   logger: PinoLogger,
 ) {
-  logger.debug({ sessionId, clerkSecretKey }, 'Creating session token');
+  logger.info({ sessionId, clerkSecretKey }, 'Creating session token');
 
   try {
     const response = await fetch(
@@ -32,7 +32,7 @@ async function createSessionToken( // this function is for testing only, should 
     }
 
     const data = await response.json();
-    logger.debug(`Session Token: ${data.jwt}`);
+    logger.info(`Session Token: ${data.jwt}`);
     return data.jwt;
   } catch (error) {
     logger.error('Failed to create session token:', error.message);
@@ -51,6 +51,8 @@ export class TenantMiddleware implements NestMiddleware {
   async use(req: Request, res: Response, next: NextFunction) {
     const sessionId = req.auth?.sessionId;
     const clerkSecretKey = this.configService.get('clerk.secretKey');
+
+    console.log('Middleware hit:', req.method, req.originalUrl);
 
     // testing: renew session by 1 hr
     const customJWT = await createSessionToken(

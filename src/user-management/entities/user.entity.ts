@@ -2,7 +2,6 @@ import {
   Column,
   Entity,
   OneToMany,
-  ManyToOne,
   ManyToMany,
   JoinTable,
   CreateDateColumn,
@@ -12,7 +11,6 @@ import {
 import { Tenant } from './tenant.entity';
 import { Role } from './role.entity';
 import { Permission } from '../../common/enums/roles';
-import { UserTenant } from './user-tenant.entity';
 import { MessageEntity } from '../../messaging/messages/entities/message.entity';
 import { Team } from './team.entity';
 import { ParticipantEntity } from '../../messaging/conversations/entities/participant.entity';
@@ -52,15 +50,15 @@ export class User {
   @Column({ type: 'jsonb', default: [] })
   permissions: Permission[];
 
-  @ManyToMany(() => Role, (role) => role.id)
+  @OneToMany(() => Role, (role) => role.id)
   @JoinTable({
     name: 'tbl_user_roles',
     joinColumn: {
-      name: 'role_id',
+      name: 'user_id',
       referencedColumnName: 'id',
     },
     inverseJoinColumn: {
-      name: 'user_id',
+      name: 'role_id',
       referencedColumnName: 'id',
     },
   })
@@ -76,10 +74,19 @@ export class User {
   customStatus?: string;
 
   // User belongs to multiple tenants
-  @OneToMany(() => UserTenant, (userTenant) => userTenant.user, {
-    cascade: true,
+  @ManyToMany(() => Tenant, (tenant) => tenant.users)
+  @JoinTable({
+    name: 'tbl_user_tenants',
+    joinColumn: {
+      name: 'user_id',
+      referencedColumnName: 'id',
+    },
+    inverseJoinColumn: {
+      name: 'tenant_id',
+      referencedColumnName: 'id',
+    },
   })
-  userTenants: UserTenant[];
+  tenants: Tenant[];
 
   // User belongs to multiple teams
   @ManyToMany(() => Team, (team) => team.users)
@@ -88,9 +95,6 @@ export class User {
   // Tracks the currently active Tenant
   @Column({ nullable: true })
   activeTenantId?: string;
-
-  @ManyToOne(() => Tenant, { nullable: true, onDelete: 'SET NULL' })
-  activeTenant?: Tenant;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

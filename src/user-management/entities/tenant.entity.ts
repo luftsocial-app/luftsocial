@@ -5,12 +5,12 @@ import {
   DeleteDateColumn,
   UpdateDateColumn,
   OneToMany,
-  JoinColumn,
   PrimaryColumn,
+  ManyToMany,
 } from 'typeorm';
 import { Team } from './team.entity';
-import { UserTenant } from './user-tenant.entity';
-
+import { User } from './user.entity';
+import { Role } from './role.entity';
 @Entity('tbl_tenants')
 export class Tenant {
   @PrimaryColumn()
@@ -25,11 +25,12 @@ export class Tenant {
   @Column({ name: 'logo', nullable: true })
   logo?: string;
 
-  @OneToMany(() => UserTenant, (userTenant) => userTenant.tenant, {
-    cascade: true,
-  })
-  @JoinColumn({ name: 'tenant_users' })
-  userTenants: UserTenant[];
+  @ManyToMany(() => User, (user) => user.tenants)
+  users: User[];
+
+  // One-to-Many relationship with roles (tenant can have many roles)
+  @OneToMany(() => Role, (role) => role.tenant)
+  roles: Role[];
 
   @OneToMany(() => Team, (team) => team.tenantId, { cascade: true })
   teams: Team[];

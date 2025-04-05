@@ -1,16 +1,17 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
 import { Role } from '../entities/role.entity';
 import { TenantService } from '../tenant/tenant.service';
-import { clerkClient, User as clerkUser } from '@clerk/express';
+import { ClerkClient, clerkClient, User as clerkUser } from '@clerk/express';
 import { UserRole } from '../../common/enums/roles';
 import {
   UserWebhookEvent,
   OrganizationMembershipWebhookEvent,
 } from '@clerk/express';
 import { PinoLogger } from 'nestjs-pino';
+import { CLERK_CLIENT } from '../../clerk/clerk.provider';
 
 @Injectable()
 export class UserService {
@@ -21,6 +22,7 @@ export class UserService {
     private readonly roleRepo: Repository<Role>,
     private readonly tenantService: TenantService,
     private readonly logger: PinoLogger,
+    @Inject(CLERK_CLIENT) private readonly clerkClient: ClerkClient,
   ) {
     this.logger.setContext(UserService.name);
   }
@@ -193,6 +195,8 @@ export class UserService {
       where: { id: userUpdatedData.data.id },
     });
 
+    this.logger.info({ user, userUpdatedData }, 'User data before update');
+
     if (!user) {
       throw new BadRequestException('User not found');
     }
@@ -282,4 +286,14 @@ export class UserService {
     user.activeTenantId = membershipUpdatedData.data['tenant_id'];
     await this.userRepo.save(user);
   }
+
+  //  async getUserRoleAndPermissions(userId: string): Promise<Role[]> {
+  //    const val = this.roleRepo.find({
+  //       where: { users: { id: userId } },
+  //       relations: ['permissions'],
+  //     });
+
+  //     //if not found get from clerk
+  // const roles = await this.clerkClient.users.getUser(userId);
+  //   }
 }
