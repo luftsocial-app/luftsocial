@@ -412,7 +412,7 @@ export class FacebookService implements PlatformService {
     // Store media in S3 first if there are any media items
     const mediaItems = await this.uploadFacebookMediaItems(
       createPostDto.media,
-      page.facebookAccount.id,
+      page.id,
       'post',
     );
 
@@ -690,10 +690,11 @@ export class FacebookService implements PlatformService {
           'page_fan_adds_unique', // New Page likes (unique accounts)
           'page_views_total', // Total Page views
           'page_daily_follows_unique', // New followers (unique accounts)
-          'page_engaged_users', // Users who engaged with your Page
           'page_posts_impressions_unique', // Unique users who saw your Page's posts
           'page_actions_post_reactions_total', // Total reactions on Page posts
         ];
+
+    console.log('Fetching page insights with metrics:', metrics);
 
     try {
       const response = await axios.get(
@@ -749,7 +750,6 @@ export class FacebookService implements PlatformService {
         new_followers: 0,
       },
     };
-
     // Process each metric
     data.forEach((metric) => {
       const metricName = metric.name;
