@@ -66,11 +66,15 @@ export class TenantService {
       where: { id: updateOrgData.data.id },
     });
 
+    // create a new tenant if it doesn't exist
     if (!tenant) {
-      throw new NotFoundException('Tenant not found');
+      this.logger.info('Tenant not found, creating a new one');
+      this.handleTenantCreation(updateOrgData);
+      return;
     }
 
     tenant.name = updateOrgData.data['name'];
+    tenant.slug = updateOrgData.data['slug'];
     tenant.updatedAt = new Date(updateOrgData.data['updated_at']);
     await this.tenantRepo.save(tenant);
   }

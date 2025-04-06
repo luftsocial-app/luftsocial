@@ -390,7 +390,7 @@ export class MessageService {
       message.removeReaction(userId, emoji);
       const updatedMessage = await this.messageRepository.save(message);
 
-      this.logger.debug(
+      this.logger.info(
         `Reaction removed from message ${messageId} by user: ${userId}`,
       );
       return this.mapToMessageDto(updatedMessage, userId);
@@ -527,13 +527,23 @@ export class MessageService {
     userId: string,
   ): Promise<number> {
     try {
-      const count = await this.messageRepository.count({
-        where: {
-          conversationId,
-          isDeleted: false,
-          readBy: Not(Like(`%${userId}%`)),
-        },
-      });
+      const tenantId = this.tenantService.getTenantId();
+
+      // Validate conversation access
+      const hasAccess = await this.conversationService.validateAccess(
+        conversationId,
+        userId,
+        tenantId,
+      );
+
+      if (!hasAccess) {
+        throw new ForbiddenException('No access to this conversation');
+      }
+
+      const count = await this.messageRepository.getUnreadCount(
+        conversationId,
+        userId,
+      );
 
       this.logger.debug(
         `Retrieved unread count for user ${userId} in conversation ${conversationId}: ${count}`,
@@ -544,7 +554,14 @@ export class MessageService {
         `Failed to get unread count: ${error.message}`,
         error.stack,
       );
-      throw error;
+      // Rethrow specific exceptions
+      if (error instanceof ForbiddenException) {
+        throw error;
+      }
+      // Wrap unknown errors
+      throw new BadRequestException(
+        `Failed to get unread count: ${error.message}`,
+      );
     }
   }
 }

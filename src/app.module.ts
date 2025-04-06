@@ -1,4 +1,9 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  RequestMethod,
+} from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { HealthModule } from './health/health.module';
@@ -14,7 +19,6 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { TenantMiddleware } from './middleware/tenant.middleware';
 import { ClerkAuthGuard } from './guards/clerk-auth.guard';
 import { RolesGuard } from './guards/role-guard';
-import { PostsModule } from './post-management/posts/posts.module';
 import { TenantModule } from './user-management/tenant/tenant.module';
 import { TaskModule } from './task/task.module';
 import { MediaStorageModule } from './asset-management/media-storage/media-storage.module';
@@ -31,8 +35,6 @@ import { Role as RoleEntity } from './user-management/entities/role.entity';
 import { ConversationEntity } from './messaging/conversations/entities/conversation.entity';
 import { MessageEntity } from './messaging/messages/entities/message.entity';
 import { AttachmentEntity } from './messaging/messages/entities/attachment.entity';
-import { Post as PostEntity } from './post-management/entities/posts/post.entity';
-
 import { InstagramModule } from './platforms/instagram/instagram.module';
 import { AuthState } from './platforms/entities/facebook-entities/auth-state.entity';
 import { FacebookAccount } from './platforms/entities/facebook-entities/facebook-account.entity';
@@ -49,7 +51,6 @@ import { ClerkWebhookModule } from './webhooks/clerk-webhook/clerk-webhook.modul
 import { SocialAccount } from './platforms/entities/notifications/entity/social-account.entity';
 import { Team } from './user-management/entities/team.entity';
 import { Tenant } from './user-management/entities/tenant.entity';
-import { UserTenant } from './user-management/entities/user-tenant.entity';
 import { Notification } from './platforms/entities/notifications/notification.entity';
 import { TiktokModule } from './webhooks/tiktok/tiktok.module';
 import { PostAsset } from './asset-management/entities/post-asset.entity';
@@ -73,9 +74,7 @@ import { PostAsset } from './asset-management/entities/post-asset.entity';
         ConversationEntity,
         MessageEntity,
         AttachmentEntity,
-        PostEntity,
         Team,
-        UserTenant,
         Notification,
         FacebookPostMetric,
         FacebookPost,
@@ -104,7 +103,6 @@ import { PostAsset } from './asset-management/entities/post-asset.entity';
     ScheduleModule.forRoot(),
     UserModule,
     HealthModule,
-    PostsModule,
     TenantModule,
     TaskModule,
     MediaStorageModule,
@@ -136,6 +134,11 @@ import { PostAsset } from './asset-management/entities/post-asset.entity';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(LoggerMiddleware, TenantMiddleware).forRoutes('*');
+    consumer.apply(LoggerMiddleware).forRoutes('*');
+    consumer
+      .apply(TenantMiddleware)
+      .exclude({ path: 'webhooks', method: RequestMethod.ALL })
+      .exclude({ path: 'webhooks/*', method: RequestMethod.ALL })
+      .forRoutes('*');
   }
 }

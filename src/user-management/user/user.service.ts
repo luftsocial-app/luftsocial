@@ -198,7 +198,26 @@ export class UserService {
     this.logger.info({ user, userUpdatedData }, 'User data before update');
 
     if (!user) {
-      throw new BadRequestException('User not found');
+      // add new user if not found
+      this.logger.error('User not found');
+      const userObject = {
+        id: userUpdatedData.data.id,
+        clerkId: userUpdatedData.data.id,
+        email:
+          userUpdatedData.data['email_addresses'][0]['email_address'] || '',
+        username:
+          userUpdatedData.data['email_addresses'][0]['email_address'] || '',
+        firstName: userUpdatedData.data['first_name'] || '',
+        lastName: userUpdatedData.data['last_name'] || '',
+        activeTenantId: userUpdatedData.data['tenant_id'] || '',
+      };
+
+      const newUser = this.userRepo.create(userObject);
+      await this.userRepo.save(newUser);
+
+      this.logger.info('User created successfully', newUser);
+
+      return newUser;
     }
 
     Object.assign(user, {
