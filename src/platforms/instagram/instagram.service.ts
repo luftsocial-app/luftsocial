@@ -25,9 +25,9 @@ import {
 import { MediaStorageItem } from '../../asset-management/media-storage/media-storage.dto';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
 import { MediaType } from '../../common/enums/media-type.enum';
-import { TenantService } from '../../user-management/tenant/tenant.service';
 import { InstagramAccount } from '../entities/instagram-entities/instagram-account.entity';
 import { PinoLogger } from 'nestjs-pino';
+import { TenantService } from '../../user-management/tenant.service';
 
 @Injectable()
 export class InstagramService implements PlatformService {

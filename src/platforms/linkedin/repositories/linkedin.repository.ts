@@ -6,7 +6,7 @@ import { LinkedInAccount } from '../../entities/linkedin-entities/linkedin-accou
 import { LinkedInOrganization } from '../../entities/linkedin-entities/linkedin-organization.entity';
 import { LinkedInMetric } from '../../entities/linkedin-entities/linkedin-metric.entity';
 import { LinkedInPost } from '../../entities/linkedin-entities/linkedin-post.entity';
-import { TenantAwareRepository } from '../../../user-management/tenant/tenant-aware.repository';
+import { TenantAwareRepository } from '../../../user-management/tenant-aware.repository';
 import { SocialPlatform } from '../../../common/enums/social-platform.enum';
 import { AuthState } from '../../entities/facebook-entities/auth-state.entity';
 import { SocialAccount } from '../../../platforms/entities/notifications/entity/social-account.entity';

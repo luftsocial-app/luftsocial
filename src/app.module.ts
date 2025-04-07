@@ -19,7 +19,6 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { TenantMiddleware } from './middleware/tenant.middleware';
 import { ClerkAuthGuard } from './guards/clerk-auth.guard';
 import { RolesGuard } from './guards/role-guard';
-import { TenantModule } from './user-management/tenant/tenant.module';
 import { TaskModule } from './task/task.module';
 import { MediaStorageModule } from './asset-management/media-storage/media-storage.module';
 import { CacheModule } from './cache/cache.module';
@@ -46,7 +45,6 @@ import { ParticipantEntity } from './messaging/conversations/entities/participan
 import { CrossPlatformModule } from './cross-platform/cross-platform.module';
 import { ConversationModule } from './messaging/conversations/conversation.module';
 import { RealtimeModule } from './messaging/realtime/realtime.module';
-import { UserModule } from './user-management/user/user.module';
 import { ClerkWebhookModule } from './webhooks/clerk-webhook/clerk-webhook.module';
 import { SocialAccount } from './platforms/entities/notifications/entity/social-account.entity';
 import { Team } from './user-management/entities/team.entity';
@@ -54,6 +52,7 @@ import { Tenant } from './user-management/entities/tenant.entity';
 import { Notification } from './platforms/entities/notifications/notification.entity';
 import { TiktokModule } from './webhooks/tiktok/tiktok.module';
 import { PostAsset } from './asset-management/entities/post-asset.entity';
+import { UserManagementModule } from './user-management/user-management.module';
 
 @Module({
   imports: [
@@ -101,10 +100,7 @@ import { PostAsset } from './asset-management/entities/post-asset.entity';
     MessagingModule,
     HealthModule,
     ScheduleModule.forRoot(),
-    UserModule,
     HealthModule,
-    TenantModule,
-    TaskModule,
     MediaStorageModule,
     CacheModule,
     FacebookModule,
@@ -112,8 +108,7 @@ import { PostAsset } from './asset-management/entities/post-asset.entity';
     PlatformsModule,
     CrossPlatformModule,
     ConversationModule,
-    TenantModule,
-    TiktokModule,
+    UserManagementModule,
   ],
   controllers: [AppController],
   providers: [

@@ -8,7 +8,7 @@ import { MessageEntity } from '../messages/entities/message.entity';
 import { User } from '../../user-management/entities/user.entity';
 import { ConversationRepository } from './repositories/conversation.repository';
 import { ParticipantRepository } from './repositories/participant.repository';
-import { TenantModule } from '../../user-management/tenant/tenant.module';
+import { UserManagementModule } from '../../user-management/user-management.module';
 
 @Module({
   imports: [
@@ -18,7 +18,7 @@ import { TenantModule } from '../../user-management/tenant/tenant.module';
       MessageEntity,
       User,
     ]),
-    TenantModule,
+    UserManagementModule
   ],
   controllers: [ConversationController],
   providers: [

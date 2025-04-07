@@ -11,8 +11,8 @@ logger:
       censor: '***'
 port: 3000
 clerk:
-  perishableKey:
-  secretKey: 
+  perishableKey: pk_test_ZWxlZ2FudC1jYW1lbC00MS5jbGVyay5hY2NvdW50cy5kZXYk
+  secretKey: sk_test_rX0cdpfvVMTlYuriJ7pRpaJdWTmCW3j4L9a94e6dZ3
   throttle:
     messageRateMs: 500 # Time between messages (ms)
     typingRateMs: 2000 # Time between typing indicators (ms)
@@ -44,8 +44,8 @@ cache:
     refresh_token: 604800 # 7 days for refresh tokens
 aws:
   region: eu-central-1
-  accessKeyId: 
-  secretAccessKey: 
+  accessKeyId: AKIAXGZAML4SN367LJHH
+  secretAccessKey: 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
   s3:
     bucket: uploads-123-456
 platforms:

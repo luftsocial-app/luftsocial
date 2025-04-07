@@ -2,17 +2,17 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserService } from './user.service';
-import { User } from '../entities/user.entity';
-import { Role } from '../entities/role.entity';
-import { TenantService } from '../tenant/tenant.service';
-import { UserRole } from '../../common/enums/roles';
+import { User } from './entities/user.entity';
+import { Role } from './entities/role.entity';
+import { UserRole } from '../common/enums/roles';
 import { PinoLogger } from 'nestjs-pino';
+import { Tenant } from './entities/tenant.entity';
+import { TenantService } from './tenant.service';
 
 describe('UserService', () => {
   let service: UserService;
   let userRepository: jest.Mocked<Repository<User>>;
   let roleRepository: jest.Mocked<Repository<Role>>;
-  // let logger: PinoLogger;
 
   const mockRole = {
     id: 1,
@@ -39,6 +39,11 @@ describe('UserService', () => {
     find: jest.fn().mockResolvedValue([mockRole]),
   } as unknown as jest.Mocked<Repository<Role>>;
 
+  const mockTenantRepo = {
+    findOne: jest.fn().mockResolvedValue(mockRole),
+    find: jest.fn().mockResolvedValue([mockRole]),
+  } as unknown as jest.Mocked<Repository<Role>>;
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -59,6 +64,7 @@ describe('UserService', () => {
         },
         { provide: getRepositoryToken(User), useValue: mockUserRepo },
         { provide: getRepositoryToken(Role), useValue: mockRoleRepo },
+        { provide: getRepositoryToken(Tenant), useValue: mockTenantRepo },
         {
           provide: 'CLERK_CLIENT',
           useValue: {
@@ -93,7 +99,7 @@ describe('UserService', () => {
         mockUserRepo.create.mockReturnValue(mockUser);
         mockUserRepo.save.mockResolvedValue(mockUser);
 
-        const result = await service.handleUserCreation(mockWebhookData as any);
+        const result = await service.createUser(mockWebhookData as any);
 
         expect(mockUserRepo.create).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -104,68 +110,6 @@ describe('UserService', () => {
           }),
         );
         expect(result).toEqual(mockUser);
-      });
-    });
-
-    describe('handleMembershipCreated', () => {
-      const mockMembershipData = {
-        data: {
-          public_user_data: {
-            user_id: 'user123',
-            identifier: 'test@example.com',
-            first_name: 'John',
-            last_name: 'Doe',
-          },
-          organization: { id: 'org123' },
-        },
-      };
-
-      it('should update user tenant ID when user exists', async () => {
-        const existingUser = { ...mockUser };
-        const updatedUser = { ...mockUser, activeTenantId: 'org123' };
-        mockUserRepo.findOne.mockResolvedValueOnce(existingUser);
-        mockUserRepo.save.mockResolvedValueOnce(updatedUser);
-
-        await service.handleMembershipCreated(mockMembershipData as any);
-
-        expect(mockUserRepo.save).toHaveBeenCalledWith(
-          expect.objectContaining({
-            ...existingUser,
-            activeTenantId: 'org123',
-          }),
-        );
-      });
-
-      it('should create user with tenant ID when user does not exist', async () => {
-        mockUserRepo.findOne.mockResolvedValueOnce(null);
-
-        const newUser = {
-          id: 'user123',
-          clerkId: 'user123',
-          email: 'test@example.com',
-          username: 'test@example.com',
-          firstName: 'John',
-          lastName: 'Doe',
-          activeTenantId: 'org123',
-        } as User;
-
-        mockUserRepo.create.mockReturnValueOnce(newUser);
-        mockUserRepo.save.mockResolvedValueOnce(newUser);
-
-        await service.handleMembershipCreated(mockMembershipData as any);
-
-        expect(mockUserRepo.create).toHaveBeenCalledWith(
-          expect.objectContaining({
-            id: 'user123',
-            clerkId: 'user123',
-            email: 'test@example.com',
-            username: 'test@example.com',
-            firstName: 'John',
-            lastName: 'Doe',
-            activeTenantId: 'org123',
-          }),
-        );
-        expect(mockUserRepo.save).toHaveBeenCalledWith(newUser);
       });
     });
   });
@@ -185,7 +129,7 @@ describe('UserService', () => {
 
       expect(userRepository.findOne).toHaveBeenCalledWith({
         relations: ['roles'],
-        where: { clerkId: 'clerk123', activeTenantId: 'tenant123' },
+        where: { id: 'clerk123', tenants: { id: 'tenant123' } },
       });
       expect(roleRepository.findOne).toHaveBeenCalledWith({
         where: { name: UserRole.MEMBER },
@@ -250,18 +194,18 @@ describe('UserService', () => {
     it('should find user by clerkId', async () => {
       userRepository.findOne.mockResolvedValueOnce(mockUser);
 
-      const result = await service.findUser('clerk123');
+      const result = await service.findById('clerk123');
 
       expect(userRepository.findOne).toHaveBeenCalledWith({
         relations: ['roles'],
-        where: { clerkId: 'clerk123', activeTenantId: 'tenant123' },
+        where: { id: 'clerk123', tenants: { id: 'tenant123' } },
       });
       expect(result).toEqual(mockUser);
     });
 
     it('should return null if user not found', async () => {
       userRepository.findOne.mockResolvedValueOnce(null);
-      const result = await service.findUser('nonexistent');
+      const result = await service.findById('nonexistent');
       expect(result).toBeNull();
     });
   });

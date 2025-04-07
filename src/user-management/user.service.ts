@@ -1,23 +1,29 @@
-import { Injectable, BadRequestException, Inject } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  Inject,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '../entities/user.entity';
-import { Role } from '../entities/role.entity';
-import { TenantService } from '../tenant/tenant.service';
+import { User } from './entities/user.entity';
+import { Role } from './entities/role.entity';
 import { ClerkClient, clerkClient, User as clerkUser } from '@clerk/express';
-import { UserRole } from '../../common/enums/roles';
-import {
-  UserWebhookEvent,
-  OrganizationMembershipWebhookEvent,
-} from '@clerk/express';
+import { UserRole } from '../common/enums/roles';
+import { UserWebhookEvent } from '@clerk/express';
 import { PinoLogger } from 'nestjs-pino';
-import { CLERK_CLIENT } from '../../clerk/clerk.provider';
+import { CLERK_CLIENT } from '../clerk/clerk.provider';
+import { Tenant } from './entities/tenant.entity';
+import { TenantService } from './tenant.service';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+
+    @InjectRepository(Tenant)
+    private readonly tenantRepo: Repository<Tenant>,
     @InjectRepository(Role)
     private readonly roleRepo: Repository<Role>,
     private readonly tenantService: TenantService,
@@ -32,13 +38,20 @@ export class UserService {
     return users.data;
   }
 
-  async findUser(clerkId: string) {
+  async findById(id: string) {
     return this.userRepo.findOne({
       where: {
-        clerkId,
-        activeTenantId: this.tenantService.getTenantId(),
+        id,
+        tenants: { id: this.tenantService.getTenantId() },
       },
       relations: ['roles'],
+    });
+  }
+
+  async findUserWithRelations(userId: string): Promise<User> {
+    return this.userRepo.findOne({
+      where: { id: userId },
+      relations: ['tenants', 'roles'],
     });
   }
 
@@ -47,7 +60,7 @@ export class UserService {
     tenantId: string,
     userData: Partial<User>,
   ) {
-    let user = await this.findUser(clerkId);
+    let user = await this.findById(clerkId);
     if (!user) {
       const defaultRole = await this.roleRepo.findOne({
         where: { name: UserRole.MEMBER },
@@ -121,60 +134,7 @@ export class UserService {
     }
   }
 
-  async updateUser(userId: string, userData: Partial<User>): Promise<User> {
-    const user = await this.userRepo.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new BadRequestException('User not found');
-    }
-    Object.assign(user, userData);
-    return await this.userRepo.save(user);
-  }
-
-  async deleteUser(userId: string): Promise<void> {
-    const user = await this.userRepo.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new BadRequestException('User not found');
-    }
-    await this.userRepo.remove(user);
-  }
-
-  async getUserById(userId: string): Promise<User> {
-    const user = await this.userRepo.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new BadRequestException('User not found');
-    }
-    return user;
-  }
-
-  async getUserByEmail(email: string): Promise<User> {
-    const user = await this.userRepo.findOne({ where: { email } });
-    if (!user) {
-      throw new BadRequestException('User not found');
-    }
-    return user;
-  }
-
-  async getUserByFirstName(firstName: string): Promise<User[]> {
-    const users = await this.userRepo.find({
-      where: { firstName },
-    });
-    if (users.length === 0) {
-      throw new BadRequestException('User not found');
-    }
-    return users;
-  }
-
-  async getUserByLastName(lastName: string): Promise<User[]> {
-    const users = await this.userRepo.find({
-      where: { lastName },
-    });
-    if (users.length === 0) {
-      throw new BadRequestException('User not found');
-    }
-    return users;
-  }
-
-  async handleUserCreation(userCreatedData: UserWebhookEvent): Promise<User> {
+  async createUser(userCreatedData: UserWebhookEvent): Promise<User> {
     const userObject = {
       id: userCreatedData.data.id,
       clerkId: userCreatedData.data.id,
@@ -190,7 +150,7 @@ export class UserService {
     return await this.userRepo.save(user);
   }
 
-  async handleUserUpdate(userUpdatedData: UserWebhookEvent): Promise<User> {
+  async updateUser(userUpdatedData: UserWebhookEvent): Promise<User> {
     const user = await this.userRepo.findOne({
       where: { id: userUpdatedData.data.id },
     });
@@ -234,85 +194,15 @@ export class UserService {
     return await this.userRepo.save(user);
   }
 
-  async handleMembershipCreated(
-    membershipCreatedData: OrganizationMembershipWebhookEvent,
-  ): Promise<void> {
+  async deleteUser(userDeletedData: UserWebhookEvent): Promise<void> {
     const user = await this.userRepo.findOne({
-      where: { id: membershipCreatedData.data['public_user_data']['user_id'] },
+      where: { id: userDeletedData.data.id },
     });
 
     if (!user) {
-      const userObject = {
-        id: membershipCreatedData.data['public_user_data']['user_id'],
-        clerkId: membershipCreatedData.data['public_user_data']['user_id'],
-        email:
-          membershipCreatedData.data['public_user_data']['identifier'] || '',
-        username:
-          membershipCreatedData.data['public_user_data']['identifier'] ||
-          membershipCreatedData.data['public_user_data']['first_name'],
-        firstName:
-          membershipCreatedData.data['public_user_data']['first_name'] || '',
-        lastName:
-          membershipCreatedData.data['public_user_data']['last_name'] || '',
-        activeTenantId: membershipCreatedData.data['organization'].id,
-      };
-
-      const newUser = this.userRepo.create(userObject);
-      await this.userRepo.save(newUser);
-
-      this.logger.info(
-        `User ${newUser.firstName} ${newUser.lastName} created with tenant ID ${newUser.activeTenantId}`,
-      );
-      return;
+      throw new NotFoundException('User not found');
     }
 
-    const updatedUser = await this.userRepo.save({
-      ...user,
-      activeTenantId: membershipCreatedData.data['organization'].id,
-    });
-
-    this.logger.info(
-      `User ${updatedUser.firstName} ${updatedUser.lastName} updated with tenant ID ${updatedUser.activeTenantId}`,
-    );
+    await this.userRepo.remove(user);
   }
-
-  async handleMembershipDeleted(
-    membershipDeletedData: UserWebhookEvent,
-  ): Promise<void> {
-    const user = await this.userRepo.findOne({
-      where: { id: membershipDeletedData.data.id },
-    });
-
-    if (!user) {
-      throw new BadRequestException('User not found');
-    }
-
-    user.activeTenantId = null;
-    await this.userRepo.save(user);
-  }
-
-  async handleMembershipUpdated(
-    membershipUpdatedData: UserWebhookEvent,
-  ): Promise<void> {
-    const user = await this.userRepo.findOne({
-      where: { id: membershipUpdatedData.data.id },
-    });
-
-    if (!user) {
-      throw new BadRequestException('User not found');
-    }
-
-    user.activeTenantId = membershipUpdatedData.data['tenant_id'];
-    await this.userRepo.save(user);
-  }
-
-  //  async getUserRoleAndPermissions(userId: string): Promise<Role[]> {
-  //    const val = this.roleRepo.find({
-  //       where: { users: { id: userId } },
-  //       relations: ['permissions'],
-  //     });
-
-  //     //if not found get from clerk
-  // const roles = await this.clerkClient.users.getUser(userId);
-  //   }
 }

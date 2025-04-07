@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { FacebookService } from './facebook.service';
 import { FacebookRepository } from './repositories/facebook.repository';
-import { TenantService } from '../../user-management/tenant/tenant.service';
 import {
   BadRequestException,
   HttpException,
@@ -25,6 +24,7 @@ import { FacebookAccount } from '../entities/facebook-entities/facebook-account.
 import { FacebookPage } from '../entities/facebook-entities/facebook-page.entity';
 import { FacebookPost } from '../entities/facebook-entities/facebook-post.entity';
 import { PinoLogger } from 'nestjs-pino';
+import { TenantService } from '../../user-management/tenant.service';
 
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;

@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { UserService } from '../../user-management/user/user.service';
-import { UserController } from '../../user-management/user/user.controller';
+import { UserController } from '../../user-management/user.controller';
+import { UserService } from '../../user-management/user.service';
 
 describe('UsersController', () => {
   let controller: UserController;

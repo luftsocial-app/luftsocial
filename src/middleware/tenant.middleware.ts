@@ -4,9 +4,9 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
-import { TenantService } from '../user-management/tenant/tenant.service';
 import { PinoLogger } from 'nestjs-pino';
 import { ConfigService } from '@nestjs/config';
+import { TenantService } from '../user-management/tenant.service';
 
 async function createSessionToken( // this function is for testing only, should be removed in production
   sessionId: string,

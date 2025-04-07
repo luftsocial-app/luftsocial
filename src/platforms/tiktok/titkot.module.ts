@@ -25,8 +25,8 @@ import { TikTokTokenRefreshJob } from './jobs/token-refresh.job';
 import { PlatformAuthModule } from '../../platform-auth/platform-auth.module';
 import { MediaStorageModule } from '../../asset-management/media-storage/media-storage.module';
 import { AuthState } from '../entities/facebook-entities/auth-state.entity';
-import { TenantModule } from '../../user-management/tenant/tenant.module';
 import { SocialAccount } from '../entities/notifications/entity/social-account.entity';
+import { UserManagementModule } from '../../user-management/user-management.module';
 
 @Module({
   controllers: [TikTokController],
@@ -38,7 +38,7 @@ import { SocialAccount } from '../entities/notifications/entity/social-account.e
       dest: './uploads',
     }),
     ConfigModule,
-    TenantModule,
+    UserManagementModule,
     MediaStorageModule,
     PlatformAuthModule,
     TypeOrmModule.forFeature([

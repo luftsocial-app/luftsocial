@@ -10,7 +10,7 @@ import {
   CreateUploadSessionParams,
   TikTokVideoPrivacyLevel,
 } from '../helpers/tiktok.interfaces';
-import { TenantAwareRepository } from '../../../user-management/tenant/tenant-aware.repository';
+import { TenantAwareRepository } from '../../../user-management/tenant-aware.repository';
 import { SocialAccount } from '../../../platforms/entities/notifications/entity/social-account.entity';
 
 @Injectable()

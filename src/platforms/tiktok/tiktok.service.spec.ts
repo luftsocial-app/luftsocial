@@ -4,7 +4,6 @@ import axios from 'axios';
 import { TikTokService } from './tiktok.service';
 import { TikTokRepository } from './repositories/tiktok.repository';
 import { TikTokConfig } from './config/tiktok.config';
-import { TenantService } from '../../user-management/tenant/tenant.service';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
 import { TikTokApiException } from './helpers/tiktok-api.exception';
 import {
@@ -16,6 +15,7 @@ import { MediaItem } from '../platform-service.interface';
 import { DateRange } from '../../cross-platform/helpers/cross-platform.interface';
 import { PinoLogger } from 'nestjs-pino';
 import { TikTokAccount } from '../entities/tiktok-entities/tiktok-account.entity';
+import { TenantService } from '../../user-management/tenant.service';
 
 jest.mock('axios');
 jest.mock('config', () => ({

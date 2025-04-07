@@ -31,7 +31,7 @@ import { InstagramMetric } from '../platforms/entities/instagram-entities/instag
 import { InstagramPost } from '../platforms/entities/instagram-entities/instagram-post.entity';
 import { InstagramRateLimit } from '../platforms/entities/instagram-entities/instagram-rate-limit.entity';
 import { SocialAccount } from '../platforms/entities/notifications/entity/social-account.entity';
-import { TenantModule } from 'src/user-management/tenant/tenant.module';
+import { UserManagementModule } from '../user-management/user-management.module';
 
 @Module({
   providers: [
@@ -82,7 +82,7 @@ import { TenantModule } from 'src/user-management/tenant/tenant.module';
   controllers: [PlatformAuthController],
   imports: [
     CacheModule,
-    TenantModule,
+    UserManagementModule, // Assuming this module is defined elsewhere
     TypeOrmModule.forFeature([
       // Include any necessary entities
       FacebookAccount,

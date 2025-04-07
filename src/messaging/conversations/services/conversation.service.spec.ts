@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConversationService } from './conversation.service';
-import { TenantService } from '../../../user-management/tenant/tenant.service';
 import { ConversationRepository } from '../repositories/conversation.repository';
 import { ParticipantRepository } from '../repositories/participant.repository';
 import { MessageRepository } from '../../messages/repositories/message.repository';
@@ -11,6 +10,8 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { ConversationType } from '../../shared/enums/conversation-type.enum';
 import { NotFoundException } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
+import { UserService } from '../../../user-management/user.service';
+import { TenantService } from '../../../user-management/tenant.service';
 
 describe('ConversationService', () => {
   let service: ConversationService;
@@ -108,6 +109,12 @@ describe('ConversationService', () => {
         {
           provide: getRepositoryToken(User),
           useValue: mockUserRepo,
+        },
+        {
+          provide: UserService,
+          useValue: {
+            findById: jest.fn().mockResolvedValue(mockUser1),
+          },
         },
       ],
     }).compile();

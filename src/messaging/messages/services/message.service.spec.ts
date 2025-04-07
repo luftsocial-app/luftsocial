@@ -3,15 +3,19 @@ import { MessageService } from './message.service';
 import { MessageRepository } from '../repositories/message.repository';
 import { AttachmentRepository } from '../repositories/attachment.repository';
 import { ConversationService } from '../../conversations/services/conversation.service';
-import { TenantService } from '../../../user-management/tenant/tenant.service';
 import {
   MessageStatus,
   MessageType,
 } from '../../shared/enums/message-type.enum';
-import { NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { MessageEntity } from '../entities/message.entity';
 import { AttachmentEntity } from '../entities/attachment.entity';
 import { PinoLogger } from 'nestjs-pino';
+import { TenantService } from '../../../user-management/tenant.service';
 
 describe('MessageService', () => {
   let service: MessageService;
@@ -131,6 +135,7 @@ describe('MessageService', () => {
             update: jest.fn(),
             markAsDeleted: jest.fn(),
             count: jest.fn(),
+            getUnreadCount: jest.fn(),
           },
         },
         {
@@ -267,7 +272,11 @@ describe('MessageService', () => {
   describe('getMessages', () => {
     it('should return messages with pagination', async () => {
       const mockMessages = [mockMessage];
+      const totalMessages = 1;
+
       messageRepository.findByConversation.mockResolvedValue(mockMessages);
+      messageRepository.count.mockResolvedValue(totalMessages);
+      conversationService.validateAccess.mockResolvedValue(true);
 
       const result = await service.getMessages(mockConversationId, {
         conversationId: mockConversationId,
@@ -277,8 +286,40 @@ describe('MessageService', () => {
       });
 
       expect(result.messages).toHaveLength(1);
-      expect(result.total).toBe(1);
+      expect(result.total).toBe(totalMessages);
       expect(result.page).toBe(1);
+      expect(messageRepository.findByConversation).toHaveBeenCalledWith(
+        mockConversationId,
+        expect.objectContaining({
+          page: 1,
+          limit: 20,
+        }),
+      );
+      expect(conversationService.validateAccess).toHaveBeenCalledWith(
+        mockConversationId,
+        mockUserId,
+        mockTenantId,
+      );
+    });
+
+    it('should throw ForbiddenException when user has no access', async () => {
+      conversationService.validateAccess.mockResolvedValue(false);
+      messageRepository.findByConversation.mockResolvedValue([mockMessage]);
+
+      await expect(
+        service.getMessages(mockConversationId, {
+          conversationId: mockConversationId,
+          page: 1,
+          limit: 20,
+          userId: mockUserId,
+        }),
+      ).rejects.toThrow(ForbiddenException);
+
+      expect(conversationService.validateAccess).toHaveBeenCalledWith(
+        mockConversationId,
+        mockUserId,
+        mockTenantId,
+      );
     });
   });
 
@@ -328,6 +369,48 @@ describe('MessageService', () => {
       await service.markMessageAsRead(mockMessageId, mockUserId);
 
       expect(messageRepository.save).toHaveBeenCalled();
+    });
+  });
+
+  describe('getUnreadCount', () => {
+    it('should return unread count for conversation', async () => {
+      conversationService.validateAccess.mockResolvedValue(true);
+      messageRepository.getUnreadCount.mockResolvedValue(5);
+
+      const result = await service.getUnreadCount(
+        mockConversationId,
+        mockUserId,
+      );
+
+      expect(result).toBe(5);
+      expect(conversationService.validateAccess).toHaveBeenCalledWith(
+        mockConversationId,
+        mockUserId,
+        mockTenantId,
+      );
+      expect(messageRepository.getUnreadCount).toHaveBeenCalledWith(
+        mockConversationId,
+        mockUserId,
+      );
+    });
+
+    it('should throw ForbiddenException when user has no access', async () => {
+      conversationService.validateAccess.mockResolvedValue(false);
+
+      await expect(
+        service.getUnreadCount(mockConversationId, mockUserId),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should wrap unknown errors in BadRequestException', async () => {
+      conversationService.validateAccess.mockResolvedValue(true);
+      messageRepository.getUnreadCount.mockRejectedValue(
+        new Error('Database error'),
+      );
+
+      await expect(
+        service.getUnreadCount(mockConversationId, mockUserId),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });

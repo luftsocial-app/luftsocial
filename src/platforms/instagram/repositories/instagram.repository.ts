@@ -5,7 +5,7 @@ import * as crypto from 'crypto';
 
 import { SocialPlatform } from '../../../common/enums/social-platform.enum';
 
-import { TenantAwareRepository } from '../../../user-management/tenant/tenant-aware.repository';
+import { TenantAwareRepository } from '../../../user-management/tenant-aware.repository';
 import { AuthState } from '../../entities/facebook-entities/auth-state.entity';
 import { InstagramMetric } from '../../entities/instagram-entities/instagram-metric.entity';
 import { InstagramPost } from '../../entities/instagram-entities/instagram-post.entity';

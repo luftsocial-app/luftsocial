@@ -74,7 +74,9 @@ export class User {
   customStatus?: string;
 
   // User belongs to multiple tenants
-  @ManyToMany(() => Tenant, (tenant) => tenant.users)
+  @ManyToMany(() => Tenant, (tenant) => tenant.users, {
+    cascade: ['insert', 'update'],
+  })
   @JoinTable({
     name: 'tbl_user_tenants',
     joinColumn: {

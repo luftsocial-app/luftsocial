@@ -8,9 +8,9 @@ import {
   HttpStatus,
   BadRequestException,
 } from '@nestjs/common';
+import { CurrentUser } from '../decorators/current-user.decorator';
+import { Permission, UserRole } from '../common/enums/roles';
 import { UserService } from './user.service';
-import { CurrentUser } from '../../decorators/current-user.decorator';
-import { Permission, UserRole } from '../../common/enums/roles';
 
 @Controller('users')
 export class UserController {
@@ -56,7 +56,7 @@ export class UserController {
   @Get(':tenantId/:clerkId')
   async findUser(@Param('clerkId') clerkId: string) {
     try {
-      const user = await this.userService.findUser(clerkId);
+      const user = await this.userService.findById(clerkId);
       if (!user) {
         throw new HttpException('User not found', HttpStatus.NOT_FOUND);
       }

@@ -38,12 +38,12 @@ import {
 
 import { MediaStorageItem } from '../../asset-management/media-storage/media-storage.dto';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
-import { TenantService } from '../../user-management/tenant/tenant.service';
 import { FACEBOOK_SCOPES } from '../../common/enums/scopes.enum';
 import { FacebookAccount } from '../entities/facebook-entities/facebook-account.entity';
 import { FacebookPage } from '../entities/facebook-entities/facebook-page.entity';
 import { FacebookPost } from '../entities/facebook-entities/facebook-post.entity';
 import { PinoLogger } from 'nestjs-pino';
+import { TenantService } from '../../user-management/tenant.service';
 
 @Injectable()
 export class FacebookService implements PlatformService {

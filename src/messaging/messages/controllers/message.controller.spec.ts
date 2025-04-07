@@ -18,17 +18,21 @@ import { MessageStatus } from '../../shared/enums/message-type.enum';
 import { ChatGuard } from '../../../guards/chat.guard';
 import { ConversationService } from '../../conversations/services/conversation.service';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { AuthObject } from '@clerk/express';
 
 describe('MessageController', () => {
   let controller: MessageController;
   let service: MessageService;
 
+  const userId = 'user-123';
+  const readAt = new Date();
+
   // Mock test data
   const mockUser = {
-    id: 'user-123',
+    userId,
     username: 'testuser',
     tenantId: 'tenant-123',
-  };
+  } as unknown as AuthObject;
 
   const mockConversationId = 'conv-123';
   const mockMessageId = 'msg-123';
@@ -37,11 +41,13 @@ describe('MessageController', () => {
     id: mockMessageId,
     conversationId: mockConversationId,
     content: 'Test message content',
-    senderId: mockUser.id,
+    senderId: mockUser.userId,
     parentMessageId: null,
     status: MessageStatus.SENT,
     reactions: [],
-    readBy: [],
+    readBy: {
+      userId: readAt,
+    },
     isRead: false,
     isEdited: false,
     editHistory: [],
@@ -60,11 +66,13 @@ describe('MessageController', () => {
     id: 'reply-123',
     conversationId: mockConversationId,
     content: 'This is a reply',
-    senderId: mockUser.id,
+    senderId: mockUser.userId,
     parentMessageId: mockMessageId,
     status: MessageStatus.SENT,
     reactions: [],
-    readBy: [],
+    readBy: {
+      userId: readAt,
+    },
     isRead: false,
     isEdited: false,
     editHistory: [],
@@ -225,7 +233,7 @@ describe('MessageController', () => {
       expect(service.createMessage).toHaveBeenCalledWith(
         mockCreateMessageDto.conversationId,
         mockCreateMessageDto.content,
-        mockUser.id,
+        mockUser.userId,
         mockCreateMessageDto.parentMessageId,
       );
       expect(result).toEqual(mockMessageResponse);
@@ -248,9 +256,12 @@ describe('MessageController', () => {
         mockMessageResponse,
       ]);
 
-      const result = await controller.getMessageHistory(mockUser, mockUser.id);
+      const result = await controller.getMessageHistory(
+        mockUser,
+        mockUser.userId,
+      );
 
-      expect(service.getMessageHistory).toHaveBeenCalledWith(mockUser.id);
+      expect(service.getMessageHistory).toHaveBeenCalledWith(mockUser.userId);
       expect(result).toEqual([mockMessageResponse]);
     });
 
@@ -275,7 +286,7 @@ describe('MessageController', () => {
 
       expect(service.findMessageById).toHaveBeenCalledWith(
         mockMessageId,
-        mockUser.id,
+        mockUser.userId,
       );
       expect(result).toEqual(mockMessageWithRelations);
     });
@@ -309,7 +320,7 @@ describe('MessageController', () => {
       expect(service.updateMessage).toHaveBeenCalledWith(
         mockMessageId,
         mockUpdateMessageDto,
-        mockUser.id,
+        mockUser.userId,
       );
       expect(result).toEqual(updatedMessage);
     });
@@ -335,7 +346,7 @@ describe('MessageController', () => {
 
       await expect(
         controller.updateMessage(
-          { ...mockUser, id: 'different-user' },
+          { ...mockUser, userId: 'different-user' },
           mockMessageId,
           mockUpdateMessageDto,
         ),
@@ -351,7 +362,7 @@ describe('MessageController', () => {
 
       expect(service.deleteMessage).toHaveBeenCalledWith(
         mockMessageId,
-        mockUser.id,
+        mockUser.userId,
       );
     });
 
@@ -372,7 +383,7 @@ describe('MessageController', () => {
 
       await expect(
         controller.deleteMessage(
-          { ...mockUser, id: 'different-user' },
+          { ...mockUser, userId: 'different-user' },
           mockMessageId,
         ),
       ).rejects.toThrow(ForbiddenException);
@@ -383,7 +394,7 @@ describe('MessageController', () => {
     it('should add a reaction to a message', async () => {
       const messageWithReaction = {
         ...mockMessageResponse,
-        reactions: [{ userId: mockUser.id, emoji: mockReactionDto.emoji }],
+        reactions: [{ userId: mockUser.userId, emoji: mockReactionDto.emoji }],
       };
       mockMessageService.addReaction.mockResolvedValue(messageWithReaction);
 
@@ -395,7 +406,7 @@ describe('MessageController', () => {
 
       expect(service.addReaction).toHaveBeenCalledWith(
         mockMessageId,
-        mockUser.id,
+        mockUser.userId,
         mockReactionDto.emoji,
       );
       expect(result).toEqual(messageWithReaction);
@@ -424,7 +435,7 @@ describe('MessageController', () => {
 
       expect(service.removeReaction).toHaveBeenCalledWith(
         mockMessageId,
-        mockUser.id,
+        mockUser.userId,
         mockReactionDto.emoji,
       );
       expect(result).toEqual(mockMessageResponse);
@@ -491,7 +502,7 @@ describe('MessageController', () => {
 
       expect(service.markMessageAsRead).toHaveBeenCalledWith(
         mockMessageId,
-        mockUser.id,
+        mockUser.userId,
       );
     });
 
@@ -517,7 +528,7 @@ describe('MessageController', () => {
 
       expect(service.getUnreadCount).toHaveBeenCalledWith(
         mockConversationId,
-        mockUser.id,
+        mockUser.userId,
       );
       expect(result).toBe(5);
     });

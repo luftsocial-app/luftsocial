@@ -4,7 +4,6 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
-import { TenantService } from '../../../user-management/tenant/tenant.service';
 import { MessageRepository } from '../repositories/message.repository';
 import { AttachmentRepository } from '../repositories/attachment.repository';
 import { MessageStatus } from '../../shared/enums/message-type.enum';
@@ -20,6 +19,7 @@ import {
 } from '../dto/message-response.dto';
 import { Not, Like } from 'typeorm';
 import { PinoLogger } from 'nestjs-pino';
+import { TenantService } from '../../../user-management/tenant.service';
 
 @Injectable()
 export class MessageService {

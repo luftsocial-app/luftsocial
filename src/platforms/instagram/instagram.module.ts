@@ -16,14 +16,14 @@ import { AuthState } from '../entities/facebook-entities/auth-state.entity';
 import { InstagramMetric } from '../entities/instagram-entities/instagram-metric.entity';
 import { InstagramPost } from '../entities/instagram-entities/instagram-post.entity';
 import { InstagramRateLimit } from '../entities/instagram-entities/instagram-rate-limit.entity';
-import { TenantModule } from '../../user-management/tenant/tenant.module';
 import { SocialAccount } from '../entities/notifications/entity/social-account.entity';
+import { UserManagementModule } from '../../user-management/user-management.module';
 
 @Module({
   imports: [
     ConfigModule,
     MediaStorageModule,
-    TenantModule,
+    UserManagementModule,
     PlatformAuthModule,
     TypeOrmModule.forFeature([
       InstagramAccount,
