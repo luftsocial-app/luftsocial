@@ -7,7 +7,8 @@ import { TokenCacheService } from '../cache/token-cache.service';
 import { SocialPlatform } from '../common/enums/social-platform.enum';
 import { PlatformError } from '../platforms/platform.error';
 import { PlatformAuthService } from './platform-auth.service';
-import { TenantService } from '../database/tenant.service';
+import { PinoLogger } from 'nestjs-pino';
+import { TenantService } from '../user-management/tenant/tenant.service';
 
 // Mock simple-oauth2
 jest.mock('simple-oauth2');
@@ -21,6 +22,7 @@ describe('PlatformAuthService', () => {
   let mockPlatformRepos;
   let mockAuthorizationCode;
   let mockAxios;
+  let logger: PinoLogger;
 
   const mockUserId = 'user123';
   const mockTenantId = 'tenant123';
@@ -237,6 +239,16 @@ describe('PlatformAuthService', () => {
       providers: [
         PlatformAuthService,
         {
+          provide: PinoLogger,
+          useValue: {
+            info: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+            setContext: jest.fn(),
+          },
+        },
+        {
           provide: TokenCacheService,
           useValue: mockTokenCacheService,
         },
@@ -259,6 +271,7 @@ describe('PlatformAuthService', () => {
     tokenCacheService = module.get(
       TokenCacheService,
     ) as jest.Mocked<TokenCacheService>;
+    logger = module.get<PinoLogger>(PinoLogger);
     tenantService = module.get(TenantService) as jest.Mocked<TenantService>;
   });
 
@@ -640,6 +653,7 @@ describe('PlatformAuthService', () => {
         tokenCacheService,
         platformWithNoScopes,
         mockPlatformRepos,
+        logger,
         tenantService,
       );
 

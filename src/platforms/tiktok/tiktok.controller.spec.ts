@@ -4,7 +4,10 @@ import { TikTokService } from './tiktok.service';
 import { TikTokErrorInterceptor } from './helpers/tiktok-error.interceptor';
 import { RateLimitInterceptor } from './helpers/rate-limit.interceptor';
 import { MediaItem } from '../platform-service.interface';
-import { TikTokPostVideoStatus } from './helpers/tiktok.interfaces';
+import {
+  TikTokPostVideoStatus,
+  TikTokVideoPrivacyLevel,
+} from './helpers/tiktok.interfaces';
 import { TikTokRepository } from './repositories/tiktok.repository';
 import { CreateVideoDto } from './helpers/create-video.dto.ts';
 
@@ -30,7 +33,7 @@ describe('TikTokController', () => {
 
   const mockCreateVideoDto: CreateVideoDto = {
     title: 'Test TikTok video',
-    privacyLevel: 'PUBLIC',
+    privacyLevel: TikTokVideoPrivacyLevel.PUBLIC_TO_EVERYONE,
     disableDuet: false,
     disableStitch: false,
     disableComment: false,
@@ -38,7 +41,7 @@ describe('TikTokController', () => {
     brandContentToggle: false,
     brandOrganicToggle: false,
     isAigc: false,
-    status: TikTokPostVideoStatus.PUBLISH_NOW,
+    status: TikTokPostVideoStatus.COMPLETED,
     videoUrl: 'https://example.com/video.mp4',
   };
 
@@ -349,7 +352,7 @@ describe('TikTokController', () => {
     });
 
     it('should get account analytics with specified days', async () => {
-      const result = await controller.getAnalytics(mockAccountId, mockDays);
+      const result = await controller.getAnalytics(mockAccountId);
 
       // Note: The days parameter is not actually used in the controller method
       // but is accepted as a parameter - we're just testing that it doesn't break anything

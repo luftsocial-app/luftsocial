@@ -6,7 +6,7 @@ import { FacebookService } from '../../platforms/facebook/facebook.service';
 import { InstagramService } from '../../platforms/instagram/instagram.service';
 import { LinkedInService } from '../../platforms/linkedin/linkedin.service';
 import { TikTokService } from '../../platforms/tiktok/tiktok.service';
-import { AnalyticsRecord } from '../../entities/cross-platform-entities/analytics.entity';
+import { AnalyticsRecord } from '../entities/analytics.entity';
 import { SocialPlatform } from '../../common/enums/social-platform.enum';
 
 describe('AnalyticsService', () => {

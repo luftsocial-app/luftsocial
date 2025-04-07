@@ -4,7 +4,6 @@ import {
   HttpStatus,
   Injectable,
   InternalServerErrorException,
-  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -39,15 +38,15 @@ import {
 
 import { MediaStorageItem } from '../../asset-management/media-storage/media-storage.dto';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
-import { TenantService } from '../../database/tenant.service';
+import { TenantService } from '../../user-management/tenant/tenant.service';
 import { FACEBOOK_SCOPES } from '../../common/enums/scopes.enum';
-import { FacebookAccount } from '../../entities/socials/facebook-entities/facebook-account.entity';
-import { FacebookPage } from '../../entities/socials/facebook-entities/facebook-page.entity';
-import { FacebookPost } from '../../entities/socials/facebook-entities/facebook-post.entity';
+import { FacebookAccount } from '../entities/facebook-entities/facebook-account.entity';
+import { FacebookPage } from '../entities/facebook-entities/facebook-page.entity';
+import { FacebookPost } from '../entities/facebook-entities/facebook-post.entity';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class FacebookService implements PlatformService {
-  private readonly logger = new Logger(FacebookService.name);
   private readonly apiVersion = 'v18.0';
   private readonly baseUrl = 'https://graph.facebook.com';
 
@@ -55,7 +54,10 @@ export class FacebookService implements PlatformService {
     private readonly facebookRepo: FacebookRepository,
     private readonly mediaStorageService: MediaStorageService,
     private readonly tenantService: TenantService,
-  ) {}
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(FacebookService.name);
+  }
 
   async getComments(
     accountId: string,
@@ -228,6 +230,7 @@ export class FacebookService implements PlatformService {
           mediaItem.url,
           prefix,
         );
+
         mediaItems.push(uploadedMedia);
       }
     }
@@ -690,11 +693,10 @@ export class FacebookService implements PlatformService {
           'page_fan_adds_unique', // New Page likes (unique accounts)
           'page_views_total', // Total Page views
           'page_daily_follows_unique', // New followers (unique accounts)
+          'page_engaged_users', // Users who engaged with your Page
           'page_posts_impressions_unique', // Unique users who saw your Page's posts
           'page_actions_post_reactions_total', // Total reactions on Page posts
         ];
-
-    console.log('Fetching page insights with metrics:', metrics);
 
     try {
       const response = await axios.get(
@@ -750,6 +752,7 @@ export class FacebookService implements PlatformService {
         new_followers: 0,
       },
     };
+
     // Process each metric
     data.forEach((metric) => {
       const metricName = metric.name;

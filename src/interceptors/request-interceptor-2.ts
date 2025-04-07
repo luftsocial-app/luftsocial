@@ -3,15 +3,17 @@ import {
   NestInterceptor,
   ExecutionContext,
   CallHandler,
+  Logger,
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 
 @Injectable()
 export class RequestInterceptor implements NestInterceptor {
+  private readonly logger = new Logger(RequestInterceptor.name);
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
-    console.log('Intercepted Request:', {
+    this.logger.log('Intercepted Request:', {
       user: request.user,
       body: request.body,
     });
@@ -23,7 +25,7 @@ export class RequestInterceptor implements NestInterceptor {
     return next.handle().pipe(
       tap((data) => {
         // You can manipulate the response data if needed
-        console.log('Response:', data);
+        this.logger.log('Response:', data);
       }),
     );
   }

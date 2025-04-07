@@ -7,31 +7,31 @@ import { FacebookRepository } from '../platforms/facebook/repositories/facebook.
 import { InstagramRepository } from '../platforms/instagram/repositories/instagram.repository';
 import { LinkedInRepository } from '../platforms/linkedin/repositories/linkedin.repository';
 import { TikTokRepository } from '../platforms/tiktok/repositories/tiktok.repository';
-import { LinkedInAccount } from '../entities/socials/linkedin-entities/linkedin-account.entity';
-import { LinkedInOrganization } from '../entities/socials/linkedin-entities/linkedin-organization.entity';
+import { LinkedInAccount } from '../platforms/entities/linkedin-entities/linkedin-account.entity';
+import { LinkedInOrganization } from '../platforms/entities/linkedin-entities/linkedin-organization.entity';
 import {
   LinkedInPost,
   LinkedInMetric,
-} from '../entities/socials/linkedin-entities/linkedin-post.entity';
-import { TikTokAccount } from '../entities/socials/tiktok-entities/tiktok-account.entity';
-import { TikTokMetric } from '../entities/socials/tiktok-entities/tiktok-metric.entity';
-import { TikTokVideo } from '../entities/socials/tiktok-entities/tiktok-video.entity';
-import { TikTokComment } from '../entities/socials/tiktok-entities/tiktok_comments.entity';
-import { TikTokRateLimit } from '../entities/socials/tiktok-entities/tiktok_rate_limits.entity';
+} from '../platforms/entities/linkedin-entities/linkedin-post.entity';
+import { TikTokAccount } from '../platforms/entities/tiktok-entities/tiktok-account.entity';
+import { TikTokMetric } from '../platforms/entities/tiktok-entities/tiktok-metric.entity';
+import { TikTokVideo } from '../platforms/entities/tiktok-entities/tiktok-video.entity';
+import { TikTokComment } from '../platforms/entities/tiktok-entities/tiktok_comments.entity';
+import { TikTokRateLimit } from '../platforms/entities/tiktok-entities/tiktok_rate_limits.entity';
 import { CacheModule } from '../cache/cache.module';
 import { SocialPlatform } from '../common/enums/social-platform.enum';
-import { SocialAccount } from '../entities/notifications/entity/social-account.entity';
-import { AuthState } from '../entities/socials/facebook-entities/auth-state.entity';
-import { FacebookAccount } from '../entities/socials/facebook-entities/facebook-account.entity';
-import { FacebookPageMetric } from '../entities/socials/facebook-entities/facebook-page-metric.entity';
-import { FacebookPage } from '../entities/socials/facebook-entities/facebook-page.entity';
-import { FacebookPostMetric } from '../entities/socials/facebook-entities/facebook-post-metric.entity';
-import { FacebookPost } from '../entities/socials/facebook-entities/facebook-post.entity';
-import { InstagramAccount } from '../entities/socials/instagram-entities/instagram-account.entity';
-import { InstagramMetric } from '../entities/socials/instagram-entities/instagram-metric.entity';
-import { InstagramPost } from '../entities/socials/instagram-entities/instagram-post.entity';
-import { InstagramRateLimit } from '../entities/socials/instagram-entities/instagram-rate-limit.entity';
-import { DatabaseModule } from 'src/database/database.module';
+import { AuthState } from '../platforms/entities/facebook-entities/auth-state.entity';
+import { FacebookAccount } from '../platforms/entities/facebook-entities/facebook-account.entity';
+import { FacebookPageMetric } from '../platforms/entities/facebook-entities/facebook-page-metric.entity';
+import { FacebookPage } from '../platforms/entities/facebook-entities/facebook-page.entity';
+import { FacebookPostMetric } from '../platforms/entities/facebook-entities/facebook-post-metric.entity';
+import { FacebookPost } from '../platforms/entities/facebook-entities/facebook-post.entity';
+import { InstagramAccount } from '../platforms/entities/instagram-entities/instagram-account.entity';
+import { InstagramMetric } from '../platforms/entities/instagram-entities/instagram-metric.entity';
+import { InstagramPost } from '../platforms/entities/instagram-entities/instagram-post.entity';
+import { InstagramRateLimit } from '../platforms/entities/instagram-entities/instagram-rate-limit.entity';
+import { SocialAccount } from '../platforms/entities/notifications/entity/social-account.entity';
+import { TenantModule } from 'src/user-management/tenant/tenant.module';
 
 @Module({
   providers: [
@@ -82,6 +82,7 @@ import { DatabaseModule } from 'src/database/database.module';
   controllers: [PlatformAuthController],
   imports: [
     CacheModule,
+    TenantModule,
     TypeOrmModule.forFeature([
       // Include any necessary entities
       FacebookAccount,

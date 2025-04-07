@@ -9,6 +9,10 @@ import {
   UploadResult,
 } from './media-storage.dto';
 import { MediaType } from '../../common/enums/media-type.enum';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { PinoLogger } from 'nestjs-pino';
+import { PostAsset } from '../entities/post-asset.entity';
 
 @Injectable()
 export class MediaStorageService {
@@ -18,7 +22,13 @@ export class MediaStorageService {
     return this._s3;
   }
 
-  constructor() {
+  constructor(
+    @InjectRepository(PostAsset)
+    private readonly postAssetRepository: Repository<PostAsset>,
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(MediaStorageService.name);
+
     this._s3 = new S3({
       region: config.get('aws.region'),
       credentials: {
@@ -171,24 +181,68 @@ export class MediaStorageService {
     }
   }
 
-  async createPreSignedUrl(
-    key: string,
+  async generatePreSignedUrl(
+    fileName: string,
     contentType: string,
-    bucket: string = config.get('aws.s3.bucket'),
+    tenantId: string,
   ): Promise<PreSignedUrlResult> {
+    if (!fileName || !contentType) {
+      throw new BadRequestException('File name and content type are required');
+    }
+
+    // Validate file name and content type
+    const validFileName = /^[a-zA-Z0-9._-]+$/.test(fileName);
+    const validContentType =
+      /^(image|video|audio|application)\/[a-zA-Z0-9+.-]+$/.test(contentType);
+    if (!validFileName || !validContentType) {
+      throw new BadRequestException('Invalid file name or content type format');
+    }
+
+    const bucket: string = config.get('aws.s3.bucket');
+    const key = `uploads/${tenantId}/${Date.now()}-${fileName}`;
     const preSignedUrl = await this.s3.getSignedUrlPromise('putObject', {
       Bucket: bucket,
       Key: key,
       ContentType: contentType,
       Expires: 360,
     });
+    if (!preSignedUrl) {
+      throw new BadRequestException('Failed to generate pre-signed URL');
+    }
+    this.logger.info(
+      `Generated pre-signed URL: ${preSignedUrl} for file: ${fileName}`,
+      MediaStorageService.name,
+    );
+
+    // Save file metadata to database (optional)
+    await this.saveFile(tenantId, key, contentType);
 
     return {
       preSignedUrl,
-      contentType,
       cdnUrl: `https://${bucket}.s3.${config.get('aws.region')}.amazonaws.com/${key}`,
       bucket,
       key,
     };
+  }
+
+  async saveFile(tenantId: string, key: string, ContentType: string) {
+    const upload = this.postAssetRepository.create({
+      tenantId,
+      fileKey: key,
+      fileType: ContentType,
+      uploadedAt: new Date(),
+    });
+
+    await this.postAssetRepository.save(upload);
+
+    this.logger.info(
+      `File metadata saved: ${JSON.stringify(upload)}`,
+      MediaStorageService.name,
+    );
+    return upload;
+  }
+
+  async getTenantUploads(tenantId: string) {
+    return this.postAssetRepository.find({ where: { tenantId } });
   }
 }

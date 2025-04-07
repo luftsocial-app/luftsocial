@@ -9,7 +9,7 @@ import { InstagramService } from '../../platforms/instagram/instagram.service';
 import { LinkedInService } from '../../platforms/linkedin/linkedin.service';
 import { TikTokService } from '../../platforms/tiktok/tiktok.service';
 import { Repository } from 'typeorm';
-import { PublishRecord } from '../../entities/cross-platform-entities/publish.entity';
+import { PublishRecord } from '../entities/publish.entity';
 import {
   PublishParams,
   PublishPlatformResult,

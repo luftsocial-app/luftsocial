@@ -8,13 +8,13 @@ export class UploadResult {
 
 export class PreSignedUrlResult {
   preSignedUrl: string;
-  contentType: string;
   cdnUrl: string;
   bucket: string;
   key: string;
 }
 
 export interface MediaStorageItem {
+  id?: string;
   url: string;
   key: string;
   type: MediaType;

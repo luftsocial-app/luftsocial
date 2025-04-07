@@ -6,6 +6,7 @@ import {
   MessageUpdatePayload,
   ReactionPayload,
 } from '../events/message-events';
+import { PinoLogger } from 'nestjs-pino';
 
 describe('MessageValidatorService', () => {
   let service: MessageValidatorService;
@@ -14,6 +15,16 @@ describe('MessageValidatorService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MessageValidatorService,
+        {
+          provide: PinoLogger,
+          useValue: {
+            info: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+            setContext: jest.fn(),
+          },
+        },
         {
           provide: Logger,
           useValue: {

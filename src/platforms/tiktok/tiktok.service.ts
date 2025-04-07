@@ -3,7 +3,6 @@ import {
   HttpException,
   HttpStatus,
   NotFoundException,
-  Logger,
 } from '@nestjs/common';
 import axios from 'axios';
 import * as config from 'config';
@@ -28,22 +27,25 @@ import {
   DateRange,
   PostMetrics,
 } from '../../cross-platform/helpers/cross-platform.interface';
-import { TikTokAccount } from '../../entities/socials/tiktok-entities/tiktok-account.entity';
-import { TenantService } from '../../database/tenant.service';
+import { TikTokAccount } from '../entities/tiktok-entities/tiktok-account.entity';
+import { TenantService } from '../../user-management/tenant/tenant.service';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
 import { MediaStorageItem } from '../../asset-management/media-storage/media-storage.dto';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class TikTokService implements PlatformService {
   private readonly baseUrl: string;
-  private readonly logger = new Logger(TikTokService.name);
 
   constructor(
     private readonly tiktokRepo: TikTokRepository,
     private readonly tiktokConfig: TikTokConfig,
     private readonly tenantService: TenantService,
     private readonly mediaStorageService: MediaStorageService,
+
+    private readonly logger: PinoLogger,
   ) {
+    this.logger.setContext(TikTokService.name);
     this.baseUrl = tiktokConfig.baseUrl;
   }
 

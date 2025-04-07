@@ -27,11 +27,9 @@ import {
   CreateConversationDto,
   UpdateConversationSettingsDto,
 } from '../dto/conversation.dto';
-import { CreateMessageDto } from '../../messages/dto/message.dto';
 
 // Entities
 import { ConversationEntity } from '../entities/conversation.entity';
-import { MessageEntity } from '../../messages/entities/message.entity';
 
 // Services
 import { ConversationService } from '../services/conversation.service';
@@ -151,27 +149,6 @@ export class ConversationController {
     return await this.conversationService.updateConversationSettings(
       conversationId,
       settings,
-      user.id,
-    );
-  }
-
-  @ApiOperation({ summary: 'Create a new message in a conversation' })
-  @ApiParam({ name: 'id', description: 'Conversation ID' })
-  @ApiBody({ type: CreateMessageDto })
-  @ApiResponse({
-    status: 201,
-    description: 'Message created successfully',
-    type: MessageEntity,
-  })
-  @Post(':id/messages')
-  async createMessage(
-    @CurrentUser() user,
-    @Param('id') conversationId: string,
-    @Body() messageDto: CreateMessageDto,
-  ) {
-    return await this.conversationService.createMessage(
-      conversationId,
-      messageDto.content,
       user.id,
     );
   }

@@ -1,6 +1,6 @@
 import { Entity, Column, ManyToOne, JoinColumn, Index } from 'typeorm';
 import { ConversationEntity } from './conversation.entity';
-import { User } from '../../../entities/users/user.entity';
+import { User } from '../../../user-management/entities/user.entity';
 import { ParticipantRole } from '../../shared/enums/participant-role.enum';
 import { CommonEntity } from '../../shared/entities/common.entity';
 

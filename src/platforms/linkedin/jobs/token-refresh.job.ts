@@ -1,21 +1,23 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { LinkedInRepository } from '../repositories/linkedin.repository';
 import { PlatformAuthService } from '../../../platform-auth/platform-auth.service';
 import { SocialPlatform } from '../../../common/enums/social-platform.enum';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class LinkedInTokenRefreshJob {
-  private readonly logger = new Logger(LinkedInTokenRefreshJob.name);
-
   constructor(
     private readonly linkedInRepo: LinkedInRepository,
     private readonly PlatformAuthService: PlatformAuthService,
-  ) {}
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(LinkedInTokenRefreshJob.name);
+  }
 
   @Cron(CronExpression.EVERY_HOUR)
   async refreshExpiredTokens() {
-    this.logger.log('Starting LinkedIn token refresh job');
+    this.logger.info('Starting LinkedIn token refresh job');
 
     try {
       const accounts = await this.linkedInRepo.getAccountsNearingExpiration();

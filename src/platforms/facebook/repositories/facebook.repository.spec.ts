@@ -12,13 +12,15 @@ import { NotFoundException } from '@nestjs/common';
 import * as crypto from 'crypto';
 import { FacebookRepository } from './facebook.repository';
 import { SocialPlatform } from '../../../common/enums/social-platform.enum';
-import { SocialAccount } from '../../../entities/notifications/entity/social-account.entity';
-import { AuthState } from '../../../entities/socials/facebook-entities/auth-state.entity';
-import { FacebookAccount } from '../../../entities/socials/facebook-entities/facebook-account.entity';
-import { FacebookPageMetric } from '../../../entities/socials/facebook-entities/facebook-page-metric.entity';
-import { FacebookPage } from '../../../entities/socials/facebook-entities/facebook-page.entity';
-import { FacebookPostMetric } from '../../../entities/socials/facebook-entities/facebook-post-metric.entity';
-import { FacebookPost } from '../../../entities/socials/facebook-entities/facebook-post.entity';
+import { AuthState } from '../../entities/facebook-entities/auth-state.entity';
+import { FacebookAccount } from '../../entities/facebook-entities/facebook-account.entity';
+import { FacebookPageMetric } from '../../entities/facebook-entities/facebook-page-metric.entity';
+import { FacebookPage } from '../../entities/facebook-entities/facebook-page.entity';
+import { FacebookPostMetric } from '../../entities/facebook-entities/facebook-post-metric.entity';
+import { FacebookPost } from '../../entities/facebook-entities/facebook-post.entity';
+import { SocialAccount } from '../../../platforms/entities/notifications/entity/social-account.entity';
+
+//TODO: FIX TESTS
 
 // Mock crypto module
 jest.mock('crypto', () => ({
@@ -73,7 +75,6 @@ describe('FacebookRepository', () => {
   const mockPostData: Partial<FacebookPost> = {
     id: 'fb-post-id',
     postId: 'external-post-id',
-    message: 'Test post message',
     page: mockPageData as FacebookPage,
     account: mockAccountData as FacebookAccount,
     isPublished: true,
@@ -84,9 +85,9 @@ describe('FacebookRepository', () => {
   const mockMetricData: Partial<FacebookPostMetric> = {
     id: 'fb-metric-id',
     post: mockPostData as FacebookPost,
-    likes: 10,
-    comments: 5,
-    shares: 2,
+    likesCount: 10,
+    commentsCount: 5,
+    sharesCount: 2,
     reach: 1000,
     impressions: 1500,
     collectedAt: new Date(),
@@ -975,7 +976,9 @@ describe('FacebookRepository', () => {
     it('should update a post successfully', async () => {
       // Arrange
       const postId = 'fb-post-id';
-      const updateData = { message: 'Updated post message' };
+      const updateData = {
+        message: 'Updated post message',
+      } as unknown as FacebookPost;
       const updatedPost = { ...mockPostData, ...updateData };
 
       mockPostRepo.update.mockResolvedValue({ affected: 1 });
@@ -1320,4 +1323,185 @@ describe('FacebookRepository', () => {
       );
     });
   });
+<<<<<<< HEAD
+=======
+
+  // Additional tests for edge cases and error handling
+
+  // Test for handling transaction failures
+  describe('transaction error handling', () => {
+    it('should propagate errors from EntityManager transactions', async () => {
+      // Arrange
+      const postId = 'fb-post-id';
+      const error = new Error('Transaction failed');
+
+      mockPostRepo.findOne.mockResolvedValue(mockPostData);
+      mockEntityManager.transaction.mockRejectedValue(error);
+
+      // Act & Assert
+      await expect(
+        repository.upsertPostMetrics({
+          postId,
+          metrics: { collectedAt: new Date() },
+        }),
+      ).rejects.toThrow('Transaction failed');
+    });
+  });
+
+  // Test for handling save failures
+  describe('save operation error handling', () => {
+    it('should propagate errors from save operations', async () => {
+      // Arrange
+      const error = new Error('Database error during save');
+      mockAccountRepo.create.mockReturnValue(mockAccountData);
+      mockAccountRepo.save.mockRejectedValue(error);
+
+      // Act & Assert
+      await expect(repository.createAccount(mockAccountData)).rejects.toThrow(
+        'Transaction failed',
+      );
+    });
+  });
+
+  // Test for handling update failures
+  describe('update operation error handling', () => {
+    it('should propagate errors from update operations', async () => {
+      // Arrange
+      const id = 'fb-account-id';
+      const updateData = { name: 'Updated Account Name' };
+      const error = new Error('Database error during update');
+
+      mockAccountRepo.update.mockRejectedValue(error);
+
+      // Act & Assert
+      await expect(repository.updateAccount(id, updateData)).rejects.toThrow(
+        'Database error during update',
+      );
+    });
+  });
+
+  // Test tenant ID isolation
+  describe('tenant isolation', () => {
+    it('should always include tenant ID in queries', async () => {
+      // Arrange
+      const differentTenantId = 'different-tenant-id';
+      jest
+        .spyOn(repository as any, 'getTenantId')
+        .mockReturnValue(differentTenantId);
+
+      mockAccountRepo.findOne.mockResolvedValue(null);
+
+      // Act
+      await repository.getAccountById('fb-account-id');
+
+      // Assert
+      expect(mockAccountRepo.findOne).toHaveBeenCalledWith({
+        where: {
+          userId: 'fb-account-id',
+          tenantId: differentTenantId,
+        },
+        relations: ['socialAccount'],
+      });
+    });
+  });
+
+  // Test for handling extremely large datasets
+  describe('performance with large datasets', () => {
+    it('should handle retrieving many pages', async () => {
+      // Arrange
+      const accountId = 'fb-account-id';
+      const largePageSet = Array(100)
+        .fill(null)
+        .map((_, i) => ({
+          ...mockPageData,
+          id: `fb-page-id-${i}`,
+        }));
+
+      mockPageRepo.find.mockResolvedValue(largePageSet);
+
+      // Act
+      const result = await repository.getAccountPages(accountId);
+
+      // Assert
+      expect(mockPageRepo.find).toHaveBeenCalledWith({
+        relations: ['facebookAccount'],
+        where: {
+          facebookAccount: { id: accountId },
+          tenantId: mockTenantId,
+        },
+      });
+      expect(result).toHaveLength(100);
+      expect(result[99].id).toBe('fb-page-id-99');
+    });
+  });
+
+  // Test for null handling in metrics
+  describe('metrics null handling', () => {
+    it('should handle null values in metrics data', async () => {
+      // Arrange
+      const pageId = 'fb-page-id';
+      const metricsWithNulls = {
+        followers: 1000,
+        fans: null,
+        engagement: undefined,
+        impressions: 5000,
+        reach: 4000,
+        demographics: null,
+      };
+
+      const page = { ...mockPageData };
+
+      mockPageRepo.findOne.mockResolvedValue(page);
+      mockPageRepo.save.mockResolvedValue({
+        ...page,
+        followerCount: metricsWithNulls.followers,
+      });
+      mockPageMetricRepo.save.mockImplementation((data) => data);
+
+      // Act
+      await repository.updatePageMetrics(pageId, metricsWithNulls);
+
+      // Assert
+      expect(mockPageMetricRepo.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          followerCount: 1000,
+          fanCount: null,
+          engagement: undefined,
+          impressions: 5000,
+          reach: 4000,
+          demographics: null,
+        }),
+      );
+    });
+  });
+
+  // Test for date handling
+  describe('date handling', () => {
+    it('should correctly handle date objects in queries', async () => {
+      // Arrange
+      const now = new Date();
+      jest.spyOn(global, 'Date').mockImplementation(() => now);
+
+      mockPostRepo.find.mockResolvedValue([mockPostData]);
+
+      // Act
+      await repository.getRecentPosts(12);
+
+      // Assert
+      const expectedCutoff = new Date(now);
+      expectedCutoff.setHours(expectedCutoff.getHours() - 12);
+
+      expect(mockPostRepo.find).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            createdAt: MoreThan(expectedCutoff),
+          }),
+        }),
+      );
+
+      // Restore the Date implementation
+      jest.restoreAllMocks();
+    });
+  });
+>>>>>>> b7691991edfca5640ba0796c1ea26e997d468209
 });

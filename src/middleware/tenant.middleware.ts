@@ -1,11 +1,15 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
-import { TenantService } from '../database/tenant.service';
+import { TenantService } from '../user-management/tenant/tenant.service';
 import { PinoLogger } from 'nestjs-pino';
 import { ConfigService } from '@nestjs/config';
 
-async function createSessionToken(sessionId, clerkSecretKey) {
-  console.log({ sessionId, clerkSecretKey });
+async function createSessionToken( // this function is for testing only, should be removed in production
+  sessionId: string,
+  clerkSecretKey: string,
+  logger: PinoLogger,
+) {
+  logger.debug({ sessionId, clerkSecretKey }, 'Creating session token');
 
   try {
     const response = await fetch(
@@ -28,10 +32,11 @@ async function createSessionToken(sessionId, clerkSecretKey) {
     }
 
     const data = await response.json();
-    console.log('Session Token:', data.jwt);
+    logger.debug(`Session Token: ${data.jwt}`);
     return data.jwt;
   } catch (error) {
-    console.error('Failed to create session token:', error.message);
+    logger.error('Failed to create session token:', error.message);
+    throw error;
   }
 }
 
@@ -48,7 +53,11 @@ export class TenantMiddleware implements NestMiddleware {
     const clerkSecretKey = this.configService.get('clerk.secretKey');
 
     // testing: renew session by 1 hr
-    const customJWT = await createSessionToken(sessionId, clerkSecretKey);
+    const customJWT = await createSessionToken(
+      sessionId,
+      clerkSecretKey,
+      this.logger,
+    );
     req.headers['authorization'] = `Bearer ${customJWT}`;
     const tenantId =
       (req.headers['X-TENANT-ID'] as string) ||
