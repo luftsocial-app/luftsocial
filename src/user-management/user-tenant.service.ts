@@ -36,25 +36,20 @@ export class UserTenantService {
         // lock: { mode: 'pessimistic_write' },
       });
 
-      console.log({ tenant });
-
       if (!tenant) {
         throw new Error('Tenant not found');
       }
 
       let user = await queryRunner.manager.findOne(User, {
         where: { id: userId },
-        relations: ['tenants', 'roles'],
+        relations: ['tenants'],
       });
 
       switch (operationType) {
         case 'ADD':
-          console.log('ADD');
-
           user = await this.addMembership(user, tenant, userData, queryRunner);
           break;
         case 'UPDATE':
-          console.log('UPDATE');
           user = await this.updateMembership(
             user,
             tenant,
@@ -63,12 +58,10 @@ export class UserTenantService {
           );
           break;
         case 'REMOVE':
-          console.log('REMOVE');
           user = await this.deleteMembership(user, tenantId, queryRunner);
           break;
         default:
-          console.log('Invalid operation type');
-
+          this.logger.info('Invalid operation type');
           throw new Error('Invalid operation type');
       }
 
@@ -93,8 +86,6 @@ export class UserTenantService {
     userData: any,
     queryRunner: any,
   ): Promise<User> {
-    console.log('addMembership');
-
     if (!user) {
       // Create new user if doesn't exist
       user = this.userRepo.create({
@@ -104,17 +95,25 @@ export class UserTenantService {
         username: userData.email || userData.firstName,
         firstName: userData.firstName || '',
         lastName: userData.lastName || '',
-        tenants: [tenant],
+        tenants: [],
         activeTenantId: tenant.id,
       });
-    } else {
-      // Add tenant to existing user if not already present
-      if (!user.tenants) user.tenants = [];
-      if (!user.tenants.find((t) => t.id === tenant.id)) {
-        user.tenants.push(tenant);
-      }
-      user.activeTenantId = tenant.id;
     }
+
+    // Save the user-tenant relationship first
+    await queryRunner.manager.query(
+      `INSERT INTO tbl_user_tenants (user_id, tenant_id) 
+     VALUES ($1, $2)`,
+      [user.id, tenant.id],
+    );
+
+    // Now save/update the user
+    if (!user.tenants) user.tenants = [];
+    if (!user.tenants.find((t) => t.id === tenant.id)) {
+      user.tenants.push(tenant);
+    }
+    user.activeTenantId = tenant.id;
+
     return await queryRunner.manager.save(User, user);
   }
 
@@ -125,8 +124,6 @@ export class UserTenantService {
     queryRunner: any,
   ): Promise<User> {
     if (!user) throw new NotFoundException('User not found');
-
-    console.log({ user });
 
     Object.assign(user, {
       email: userData.email || user.email,

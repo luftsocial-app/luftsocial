@@ -54,11 +54,11 @@ export class User {
   @JoinTable({
     name: 'tbl_user_roles',
     joinColumn: {
-      name: 'user_id',
+      name: 'userId',
       referencedColumnName: 'id',
     },
     inverseJoinColumn: {
-      name: 'role_id',
+      name: 'roleId',
       referencedColumnName: 'id',
     },
   })
