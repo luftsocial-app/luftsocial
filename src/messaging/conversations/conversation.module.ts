@@ -18,7 +18,7 @@ import { UserManagementModule } from '../../user-management/user-management.modu
       MessageEntity,
       User,
     ]),
-    UserManagementModule
+    UserManagementModule,
   ],
   controllers: [ConversationController],
   providers: [

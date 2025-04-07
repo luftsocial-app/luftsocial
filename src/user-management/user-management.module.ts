@@ -11,7 +11,12 @@ import { TenantService } from './tenant.service';
 
 @Module({
   imports: [TypeOrmModule.forFeature([User, Role, Tenant])],
-  providers: [UserService, ClerkClientProvider, TenantService, UserTenantService],
+  providers: [
+    UserService,
+    ClerkClientProvider,
+    TenantService,
+    UserTenantService,
+  ],
   exports: [UserService, TenantService, UserTenantService],
   controllers: [UserController],
 })

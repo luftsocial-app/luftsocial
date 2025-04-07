@@ -17,7 +17,6 @@ import {
   MessageListResponseDto,
   AttachmentResponseDto,
 } from '../dto/message-response.dto';
-import { Not, Like } from 'typeorm';
 import { PinoLogger } from 'nestjs-pino';
 import { TenantService } from '../../../user-management/tenant.service';
 

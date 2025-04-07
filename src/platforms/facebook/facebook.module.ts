@@ -38,7 +38,7 @@ import { UserManagementModule } from '../../user-management/user-management.modu
       PlatformAuthModule,
     ]),
     MediaStorageModule,
-    UserManagementModule
+    UserManagementModule,
   ],
   exports: [FacebookService],
 })

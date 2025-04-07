@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { User } from './entities/user.entity';
@@ -33,8 +33,10 @@ export class UserTenantService {
       const tenant = await queryRunner.manager.findOne(Tenant, {
         where: { id: tenantId },
         relations: ['users'],
-        lock: { mode: 'pessimistic_write' },
+        // lock: { mode: 'pessimistic_write' },
       });
+
+      console.log({ tenant });
 
       if (!tenant) {
         throw new Error('Tenant not found');
@@ -43,14 +45,16 @@ export class UserTenantService {
       let user = await queryRunner.manager.findOne(User, {
         where: { id: userId },
         relations: ['tenants', 'roles'],
-        lock: { mode: 'pessimistic_write' },
       });
 
       switch (operationType) {
         case 'ADD':
+          console.log('ADD');
+
           user = await this.addMembership(user, tenant, userData, queryRunner);
           break;
         case 'UPDATE':
+          console.log('UPDATE');
           user = await this.updateMembership(
             user,
             tenant,
@@ -59,8 +63,13 @@ export class UserTenantService {
           );
           break;
         case 'REMOVE':
+          console.log('REMOVE');
           user = await this.deleteMembership(user, tenantId, queryRunner);
           break;
+        default:
+          console.log('Invalid operation type');
+
+          throw new Error('Invalid operation type');
       }
 
       await queryRunner.commitTransaction();
@@ -84,6 +93,8 @@ export class UserTenantService {
     userData: any,
     queryRunner: any,
   ): Promise<User> {
+    console.log('addMembership');
+
     if (!user) {
       // Create new user if doesn't exist
       user = this.userRepo.create({
@@ -113,7 +124,9 @@ export class UserTenantService {
     userData: any,
     queryRunner: any,
   ): Promise<User> {
-    if (!user) throw new Error('User not found');
+    if (!user) throw new NotFoundException('User not found');
+
+    console.log({ user });
 
     Object.assign(user, {
       email: userData.email || user.email,

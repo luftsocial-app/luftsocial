@@ -126,12 +126,12 @@ describe('ClerkWebhookService', () => {
   });
 
   describe('Membership Webhooks', () => {
-    const mockMembershipData = {
-      data: {
-        public_user_data: { user_id: 'user123' },
-        organization: { id: 'org123' },
-      },
-    };
+    // const mockMembershipData = {
+    //   data: {
+    //     public_user_data: { user_id: 'user123' },
+    //     organization: { id: 'org123' },
+    //   },
+    // };
 
     it('should handle membership creation', async () => {});
 

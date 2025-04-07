@@ -46,6 +46,7 @@ export class ClerkWebhookService {
         'svix-signature': svix_signature,
       }) as WebhookEvent;
     } catch (err) {
+      this.logger.error('Invalid webhook signature', err);
       throw new BadRequestException('Invalid webhook signature');
     }
   }

@@ -25,6 +25,7 @@ import { CacheModule } from './cache/cache.module';
 import { PlatformsModule } from './platforms/platforms.module';
 import { FacebookModule } from './platforms/facebook/facebook.module';
 import { MessagingModule } from './messaging/messaging.module';
+import { BullQueueModule } from './bull-queue/bull-queue.module';
 
 // Entity imports
 import { User } from './user-management/entities/user.entity';
@@ -109,6 +110,9 @@ import { UserManagementModule } from './user-management/user-management.module';
     CrossPlatformModule,
     ConversationModule,
     UserManagementModule,
+    BullQueueModule,
+    TaskModule,
+    TiktokModule,
   ],
   controllers: [AppController],
   providers: [

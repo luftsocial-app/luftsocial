@@ -10,6 +10,7 @@ describe('UserTenantService', () => {
   let service: UserTenantService;
 
   let queryRunner: jest.Mocked<QueryRunner>;
+  let userRepository: jest.Mocked<Repository<User>>;
 
   const mockUser = {
     id: 'user-1',
@@ -78,6 +79,7 @@ describe('UserTenantService', () => {
     }).compile();
 
     service = module.get<UserTenantService>(UserTenantService);
+    userRepository = module.get(getRepositoryToken(User));
   });
 
   describe('executeOperation', () => {
@@ -105,6 +107,7 @@ describe('UserTenantService', () => {
         roles: [],
       } as User;
 
+      jest.spyOn(userRepository, 'create').mockReturnValue(savedUser);
       jest.spyOn(queryRunner.manager, 'save').mockResolvedValueOnce(savedUser);
 
       const result = await service.executeOperation({
@@ -119,12 +122,10 @@ describe('UserTenantService', () => {
       expect(queryRunner.manager.findOne).toHaveBeenNthCalledWith(1, Tenant, {
         where: { id: mockTenant.id },
         relations: ['users'],
-        lock: { mode: 'pessimistic_write' },
       });
       expect(queryRunner.manager.findOne).toHaveBeenNthCalledWith(2, User, {
         where: { id: userData.id },
         relations: ['tenants', 'roles'],
-        lock: { mode: 'pessimistic_write' },
       });
       expect(queryRunner.manager.save).toHaveBeenCalledWith(
         User,
@@ -144,6 +145,10 @@ describe('UserTenantService', () => {
         .mockResolvedValueOnce(mockTenant);
       jest
         .spyOn(queryRunner.manager, 'findOne')
+        .mockResolvedValueOnce(mockUser);
+
+      jest
+        .spyOn(queryRunner.manager, 'save')
         .mockResolvedValueOnce(existingUser);
 
       const result = await service.executeOperation({
@@ -199,6 +204,42 @@ describe('UserTenantService', () => {
       expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
     });
 
+    it('should handle user not found error', async () => {
+      jest
+        .spyOn(queryRunner.manager, 'findOne')
+        .mockResolvedValueOnce(mockTenant)
+        .mockResolvedValueOnce(null);
+
+      const result = await service.executeOperation({
+        userId: 'non-existent-user',
+        tenantId: mockTenant.id,
+        operationType: 'UPDATE',
+        userData: {},
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.message).toBe('User not found');
+      expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
+    });
+
+    it('should handle invalid operation type', async () => {
+      jest
+        .spyOn(queryRunner.manager, 'findOne')
+        .mockResolvedValueOnce(mockTenant)
+        .mockResolvedValueOnce(mockUser);
+
+      const result = await service.executeOperation({
+        userId: mockUser.id,
+        tenantId: mockTenant.id,
+        operationType: 'INVALID' as any,
+        userData: {},
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.message).toBe('Invalid operation type');
+      expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
+    });
+
     it('should handle transaction errors', async () => {
       jest
         .spyOn(queryRunner, 'startTransaction')
@@ -214,6 +255,47 @@ describe('UserTenantService', () => {
       ).rejects.toThrow('Transaction failed');
 
       expect(queryRunner.rollbackTransaction).not.toHaveBeenCalled();
+    });
+
+    it('should properly clean up resources on success', async () => {
+      jest
+        .spyOn(queryRunner.manager, 'findOne')
+        .mockResolvedValueOnce(mockTenant)
+        .mockResolvedValueOnce(mockUser);
+
+      await service.executeOperation({
+        userId: mockUser.id,
+        tenantId: mockTenant.id,
+        operationType: 'ADD',
+        userData: {},
+      });
+
+      expect(queryRunner.commitTransaction).toHaveBeenCalled();
+      expect(queryRunner.release).toHaveBeenCalled();
+    });
+  });
+
+  describe('transaction handling', () => {
+    it('should rollback and release on error', async () => {
+      jest
+        .spyOn(queryRunner.manager, 'findOne')
+        .mockRejectedValueOnce(new Error('Database error'));
+
+      await expect(
+        service.executeOperation({
+          userId: mockUser.id,
+          tenantId: mockTenant.id,
+          operationType: 'ADD',
+          userData: {},
+        }),
+      ).resolves.toEqual({
+        error: expect.any(Error),
+        message: 'Database error',
+        success: false,
+      });
+
+      expect(queryRunner.rollbackTransaction).toHaveBeenCalled();
+      expect(queryRunner.release).toHaveBeenCalled();
     });
   });
 });
