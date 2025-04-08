@@ -1,5 +1,4 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { S3 } from 'aws-sdk';
 import * as merge from 'lodash/merge';
 import axios from 'axios';
 import * as config from 'config';
@@ -13,14 +12,16 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PinoLogger } from 'nestjs-pino';
 import { PostAsset } from '../entities/post-asset.entity';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import {
+  S3Client,
+  PutObjectCommand,
+  GetObjectCommand,
+} from '@aws-sdk/client-s3';
 
 @Injectable()
 export class MediaStorageService {
-  private _s3: S3;
-
-  get s3() {
-    return this._s3;
-  }
+  private s3: S3Client;
 
   constructor(
     @InjectRepository(PostAsset)
@@ -29,7 +30,7 @@ export class MediaStorageService {
   ) {
     this.logger.setContext(MediaStorageService.name);
 
-    this._s3 = new S3({
+    this.s3 = new S3Client({
       region: config.get('aws.region'),
       credentials: {
         accessKeyId: config.get('aws.accessKeyId'),
@@ -42,28 +43,32 @@ export class MediaStorageService {
     key: string,
     fileBuffer: Buffer,
     bucket: string = config.get('aws.s3.bucket'),
-    options?: S3.ManagedUpload.ManagedUploadOptions,
+    options?: any,
   ): Promise<UploadResult> {
-    const defaultOptions: S3.ManagedUpload.ManagedUploadOptions = {
+    const defaultOptions: any = {
       queueSize: 10,
     };
 
     const mergedOptions = merge(defaultOptions, options);
-    const sendData = await this.s3
-      .upload(
-        {
-          Bucket: bucket,
-          Key: key,
-          Body: fileBuffer,
-        },
-        mergedOptions,
-      )
-      .promise();
 
-    return {
-      sendData,
-      cdnUrl: `https://${bucket}.s3.${config.get('aws.region')}.amazonaws.com/${key}`,
-    };
+    const command = new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: fileBuffer,
+      ...mergedOptions,
+    });
+
+    try {
+      const sendData = await this.s3.send(command);
+      return {
+        sendData,
+        cdnUrl: `https://${bucket}.s3.${config.get('aws.region')}.amazonaws.com/${key}`,
+      };
+    } catch (error) {
+      console.log({ error });
+
+      throw new BadRequestException('Failed to upload to S3');
+    }
   }
 
   async uploadPostMedia(
@@ -200,15 +205,22 @@ export class MediaStorageService {
 
     const bucket: string = config.get('aws.s3.bucket');
     const key = `uploads/${tenantId}/${Date.now()}-${fileName}`;
-    const preSignedUrl = await this.s3.getSignedUrlPromise('putObject', {
+
+    const command = new PutObjectCommand({
       Bucket: bucket,
       Key: key,
       ContentType: contentType,
-      Expires: 360,
     });
+
+    // Generate the pre-signed URL
+    const preSignedUrl = await getSignedUrl(this.s3, command, {
+      expiresIn: 3600,
+    });
+
     if (!preSignedUrl) {
       throw new BadRequestException('Failed to generate pre-signed URL');
     }
+
     this.logger.info(
       `Generated pre-signed URL: ${preSignedUrl} for file: ${fileName}`,
       MediaStorageService.name,
@@ -244,5 +256,30 @@ export class MediaStorageService {
 
   async getTenantUploads(tenantId: string) {
     return this.postAssetRepository.find({ where: { tenantId } });
+  }
+
+  async generateViewURL(userId: string, key: string) {
+    if (!key.startsWith(`users/${userId}/`)) throw new Error('Unauthorized');
+
+    const command = new GetObjectCommand({
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: key,
+    });
+
+    const url = await getSignedUrl(this.s3, command, { expiresIn: 3600 });
+    return { url };
+  }
+
+  async generateDownloadURL(userId: string, key: string) {
+    if (!key.startsWith(`users/${userId}/`)) throw new Error('Unauthorized');
+
+    const command = new GetObjectCommand({
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: key,
+      ResponseContentDisposition: 'attachment',
+    });
+
+    const url = await getSignedUrl(this.s3, command, { expiresIn: 3600 });
+    return { url };
   }
 }

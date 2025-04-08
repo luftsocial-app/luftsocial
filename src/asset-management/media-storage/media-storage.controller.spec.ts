@@ -11,6 +11,9 @@ describe('MediaStorageController', () => {
   const mockMediaStorageService = {
     generatePreSignedUrl: jest.fn(),
     getTenantUploads: jest.fn(),
+    generateUploadURL: jest.fn(),
+    generateDownloadURL: jest.fn(),
+    generateViewURL: jest.fn(),
   };
 
   const mockLogger = {
@@ -86,6 +89,47 @@ describe('MediaStorageController', () => {
         mockUser.orgId,
       );
       expect(result).toEqual(mockUploads);
+    });
+  });
+
+  describe('getS3Items', () => {
+    it('should return a view URL', async () => {
+      const userId = 'user-123';
+      const key = 'users/user-123/media/image.jpg';
+      const mockResponse = { url: 'https://example.com/view-url' };
+
+      const user = { userId: userId } as unknown as AuthObject;
+      jest
+        .spyOn(mediaStorageService, 'generateViewURL')
+        .mockResolvedValue(mockResponse);
+
+      const result = await controller.getViewUrl(user, key);
+
+      expect(result).toEqual(mockResponse);
+      expect(mediaStorageService.generateViewURL).toHaveBeenCalledWith(
+        userId,
+        key,
+      );
+    });
+
+    it('should return a download URL', async () => {
+      const userId = 'user-123';
+      const key = 'users/user-123/media/image.jpg';
+      const mockResponse = { url: 'https://example.com/download-url' };
+
+      const user = { userId } as unknown as AuthObject;
+
+      jest
+        .spyOn(mediaStorageService, 'generateDownloadURL')
+        .mockResolvedValue(mockResponse);
+
+      const result = await controller.getDownloadUrl(user, key);
+
+      expect(result).toEqual(mockResponse);
+      expect(mediaStorageService.generateDownloadURL).toHaveBeenCalledWith(
+        userId,
+        key,
+      );
     });
   });
 });

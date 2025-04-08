@@ -1,8 +1,8 @@
-import { S3 } from 'aws-sdk';
 import { MediaType } from '../../common/enums/media-type.enum';
+import { PutObjectOutput } from '@aws-sdk/client-s3';
 
 export class UploadResult {
-  sendData: S3.ManagedUpload.SendData;
+  sendData: PutObjectOutput;
   cdnUrl: string;
 }
 

@@ -4,6 +4,7 @@ import { MediaStorageService } from './media-storage.service';
 import { AuthObject } from '@clerk/express';
 import { CurrentUser } from '../../decorators/current-user.decorator';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+// s3.controller.ts
 
 @ApiTags('Media Storage')
 @ApiBearerAuth()
@@ -35,5 +36,18 @@ export class MediaStorageController {
   async getTenantUploads(@CurrentUser() user: AuthObject) {
     const tenantId = user.orgId;
     return this.mediaStorageService.getTenantUploads(tenantId);
+  }
+
+  @Get('view-url')
+  async getViewUrl(@CurrentUser() user: AuthObject, @Query('key') key: string) {
+    return this.mediaStorageService.generateViewURL(user.userId, key);
+  }
+
+  @Get('download-url')
+  async getDownloadUrl(
+    @CurrentUser() user: AuthObject,
+    @Query('key') key: string,
+  ) {
+    return this.mediaStorageService.generateDownloadURL(user.userId, key);
   }
 }
