@@ -19,6 +19,7 @@ import {
 } from '../dto/message-response.dto';
 import { PinoLogger } from 'nestjs-pino';
 import { TenantService } from '../../../user-management/tenant.service';
+import { ContentSanitizer } from '../../shared/utils/content-sanitizer';
 
 @Injectable()
 export class MessageService {
@@ -27,9 +28,10 @@ export class MessageService {
     private readonly attachmentRepository: AttachmentRepository,
     private readonly conversationService: ConversationService,
     private readonly tenantService: TenantService,
+    private readonly contentSanitizer: ContentSanitizer,
     private readonly logger: PinoLogger,
   ) {
-    this.logger.setContext('MessageService');
+    this.logger.setContext(MessageService.name);
   }
 
   // Helper method to map entity to DTO
@@ -119,6 +121,12 @@ export class MessageService {
     try {
       const tenantId = this.tenantService.getTenantId();
 
+      // Sanitize content before saving
+      const sanitizedContent = this.contentSanitizer.sanitize(content);
+      if (!sanitizedContent) {
+        throw new BadRequestException('Message content is invalid');
+      }
+
       const hasAccess = await this.conversationService.validateAccess(
         conversationId,
         senderId,
@@ -148,7 +156,7 @@ export class MessageService {
 
       const message = this.messageRepository.create({
         conversationId,
-        content,
+        content: sanitizedContent,
         senderId,
         parentMessageId,
         tenantId,
@@ -287,9 +295,17 @@ export class MessageService {
         throw new BadRequestException('Cannot edit deleted messages');
       }
 
+      // Sanitize updated content
+      const sanitizedContent = this.contentSanitizer.sanitize(
+        updateData.content,
+      );
+      if (!sanitizedContent) {
+        throw new BadRequestException('Message content is invalid');
+      }
+
       // Use entity helper method for edit history
       message.addEditHistoryEntry(message.content, userId);
-      message.content = updateData.content;
+      message.content = sanitizedContent;
       message.updatedAt = new Date();
 
       const updatedMessage = await this.messageRepository.save(message);

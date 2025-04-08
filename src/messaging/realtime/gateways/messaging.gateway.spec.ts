@@ -5,7 +5,11 @@ import { MessageService } from '../../messages/services/message.service';
 import { MessageValidatorService } from '../services/message-validator.service';
 import { ConfigService } from '@nestjs/config';
 import { Server } from 'socket.io';
-import { MessageEventType, RoomNameFactory } from '../events/message-events';
+import {
+  MessageEventPayload,
+  MessageEventType,
+  RoomNameFactory,
+} from '../events/message-events';
 import { WsGuard } from '../../../guards/ws.guard';
 import { MessageEntity } from '../../messages/entities/message.entity';
 import { ConversationEntity } from '../../conversations/entities/conversation.entity';
@@ -14,6 +18,7 @@ import { ConversationType } from '../../shared/enums/conversation-type.enum';
 import { SuccessResponse } from '../interfaces/socket.interfaces';
 import { MessageStatus } from '../../../common/enums/messaging';
 import { PinoLogger } from 'nestjs-pino';
+import { ContentSanitizer } from '../../shared/utils/content-sanitizer';
 
 describe('MessagingGateway', () => {
   let gateway: MessagingGateway;
@@ -123,6 +128,7 @@ describe('MessagingGateway', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MessagingGateway,
+        ContentSanitizer,
         {
           provide: PinoLogger,
           useValue: {
@@ -361,7 +367,7 @@ describe('MessagingGateway', () => {
     const mockPayload = {
       conversationId: mockConversationId,
       content: 'Test message',
-    };
+    } as unknown as MessageEventPayload;
 
     beforeEach(() => {
       // Mock the isThrottled method to always return false (not throttled)
@@ -372,7 +378,7 @@ describe('MessagingGateway', () => {
       // Override the mock to return true (throttled)
       (gateway as any).isThrottled.mockReturnValue(true);
 
-      const result = await gateway.handleMessage(mockClient, mockPayload);
+      const result = await gateway.handleMessage(mockPayload, mockClient);
 
       expect(result.success).toBeFalsy();
       expect(result.error.code).toBe('RATE_LIMITED');
@@ -381,7 +387,7 @@ describe('MessagingGateway', () => {
     it('should return error if validation fails', async () => {
       messageValidator.validateNewMessage.mockReturnValue('Validation error');
 
-      const result = await gateway.handleMessage(mockClient, mockPayload);
+      const result = await gateway.handleMessage(mockPayload, mockClient);
 
       expect(result.success).toBeFalsy();
       expect(result.error.code).toBe('VALIDATION_ERROR');
@@ -391,7 +397,7 @@ describe('MessagingGateway', () => {
       messageValidator.validateNewMessage.mockReturnValue(null);
       conversationService.validateAccess.mockResolvedValue(false);
 
-      const result = await gateway.handleMessage(mockClient, mockPayload);
+      const result = await gateway.handleMessage(mockPayload, mockClient);
 
       expect(result.success).toBeFalsy();
       expect(result.error.code).toBe('ACCESS_DENIED');
@@ -406,7 +412,7 @@ describe('MessagingGateway', () => {
         mockConversation as ConversationEntity,
       );
 
-      const result = await gateway.handleMessage(mockClient, mockPayload);
+      const result = await gateway.handleMessage(mockPayload, mockClient);
 
       // Verify message was created
       expect(messageService.createMessage).toHaveBeenCalledWith(
@@ -809,8 +815,8 @@ describe('MessagingGateway', () => {
       );
 
       const result = await gateway.handleMessageUpdated(
-        mockClient,
         mockUpdatePayload,
+        mockClient,
       );
 
       expect(result.success).toBeFalsy();
@@ -827,8 +833,8 @@ describe('MessagingGateway', () => {
       });
 
       const result = await gateway.handleMessageUpdated(
-        mockClient,
         mockUpdatePayload,
+        mockClient,
       );
 
       // Should update message

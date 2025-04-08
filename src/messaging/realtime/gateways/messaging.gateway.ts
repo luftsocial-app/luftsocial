@@ -1,5 +1,5 @@
 // External dependencies
-import { UseGuards } from '@nestjs/common';
+import { UseGuards, UsePipes } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Server } from 'socket.io';
 import {
@@ -9,6 +9,8 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
   OnGatewayInit,
+  MessageBody,
+  ConnectedSocket,
 } from '@nestjs/websockets';
 
 // Internal services
@@ -47,6 +49,8 @@ import {
   validatePayload,
 } from '../utils/response.utils';
 import { PinoLogger } from 'nestjs-pino';
+import { WebsocketSanitizationPipe } from '../pipes/websocket-sanitization.pipe';
+import { ContentSanitizer } from '../../shared/utils/content-sanitizer';
 
 @WebSocketGateway({
   cors: {
@@ -75,6 +79,7 @@ export class MessagingGateway
     private readonly messageValidator: MessageValidatorService,
     private readonly configService: ConfigService,
     private readonly logger: PinoLogger,
+    private readonly contentSanitizer: ContentSanitizer,
   ) {
     this.logger.setContext(MessagingGateway.name);
     this.MESSAGE_THROTTLE_MS = this.configService.get<number>(
@@ -187,9 +192,10 @@ export class MessagingGateway
 
   @SubscribeMessage(MessageEventType.SEND_MESSAGE)
   @SocketHandler()
+  @UsePipes(WebsocketSanitizationPipe)
   async handleMessage(
-    client: SocketWithUser,
-    payload: MessageEventPayload,
+    @MessageBody() payload: MessageEventPayload,
+    @ConnectedSocket() client: SocketWithUser,
   ): Promise<SocketResponse> {
     const { user } = client.data;
 
@@ -508,9 +514,10 @@ export class MessagingGateway
 
   @SubscribeMessage(MessageEventType.UPDATE_MESSAGE)
   @SocketHandler()
+  @UsePipes(WebsocketSanitizationPipe)
   async handleMessageUpdated(
-    client: SocketWithUser,
-    payload: MessageUpdatePayload,
+    @MessageBody() payload: MessageUpdatePayload,
+    @ConnectedSocket() client: SocketWithUser,
   ): Promise<SocketResponse> {
     const { user } = client.data;
 

@@ -7,9 +7,11 @@ import {
   ReactionPayload,
 } from '../events/message-events';
 import { PinoLogger } from 'nestjs-pino';
+import { ContentSanitizer } from '../../shared/utils/content-sanitizer';
 
 describe('MessageValidatorService', () => {
   let service: MessageValidatorService;
+  let contentSanitizer: jest.Mocked<ContentSanitizer>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -32,10 +34,22 @@ describe('MessageValidatorService', () => {
             debug: jest.fn(),
           },
         },
+        {
+          provide: ContentSanitizer,
+          useValue: {
+            sanitize: jest.fn().mockReturnValue('sanitized content'),
+            sanitizeRealtimeMessage: jest.fn().mockReturnValue({
+              isValid: true,
+              sanitized: 'sanitized content',
+            }),
+            sanitizeMetadata: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<MessageValidatorService>(MessageValidatorService);
+    contentSanitizer = module.get(ContentSanitizer);
   });
 
   it('should be defined', () => {
@@ -43,11 +57,23 @@ describe('MessageValidatorService', () => {
   });
 
   describe('validateNewMessage', () => {
+    beforeEach(() => {
+      contentSanitizer.sanitizeRealtimeMessage.mockReturnValue({
+        isValid: true,
+        sanitized: 'Sanitized content',
+      });
+    });
+
     it('should return null for valid message payload', () => {
       const payload: MessageEventPayload = {
         conversationId: 'conv-123',
         content: 'Hello world',
       };
+
+      contentSanitizer.sanitizeRealtimeMessage.mockReturnValue({
+        isValid: true,
+        sanitized: 'Hello world',
+      });
 
       const result = service.validateNewMessage(payload);
       expect(result).toBeNull();
@@ -93,14 +119,19 @@ describe('MessageValidatorService', () => {
       expect(result).toBe('Message content is required');
     });
 
-    it('should return error when content contains XSS attempt', () => {
+    it('should return error when content contains forbidden elements', () => {
       const payload: MessageEventPayload = {
         conversationId: 'conv-123',
         content: 'Hello <script>alert("XSS")</script>',
       };
 
+      contentSanitizer.sanitizeRealtimeMessage.mockReturnValue({
+        isValid: false,
+        sanitized: null,
+      });
+
       const result = service.validateNewMessage(payload);
-      expect(result).toBe('Message contains forbidden content');
+      expect(result).toBe('Message content contains forbidden elements');
     });
 
     it('should return error message when an exception occurs', () => {
@@ -110,9 +141,28 @@ describe('MessageValidatorService', () => {
       const result = service.validateNewMessage(payload);
       expect(result).toBe('Invalid message format');
     });
+
+    it('should return error when sanitization fails', () => {
+      const payload: MessageEventPayload = {
+        conversationId: 'conv-123',
+        content: '<script>alert("xss")</script>',
+      };
+
+      contentSanitizer.sanitizeRealtimeMessage.mockReturnValueOnce({
+        isValid: false,
+        sanitized: null,
+      });
+
+      const result = service.validateNewMessage(payload);
+      expect(result).toBe('Message content contains forbidden elements');
+    });
   });
 
   describe('validateMessageUpdate', () => {
+    beforeEach(() => {
+      contentSanitizer.sanitize.mockReturnValue('Sanitized content');
+    });
+
     it('should return null for valid update payload', () => {
       const payload: MessageUpdatePayload = {
         messageId: 'msg-123',
@@ -121,6 +171,7 @@ describe('MessageValidatorService', () => {
 
       const result = service.validateMessageUpdate(payload);
       expect(result).toBeNull();
+      expect(contentSanitizer.sanitize).toHaveBeenCalledWith('Updated content');
     });
 
     it('should return error when messageId is missing', () => {
@@ -143,11 +194,13 @@ describe('MessageValidatorService', () => {
       expect(result).toBe('Updated content is required');
     });
 
-    it('should return error when content exceeds maximum length', () => {
+    it('should return error mesage when content exceeds maximum length', () => {
       const payload: MessageUpdatePayload = {
         messageId: 'msg-123',
         content: 'a'.repeat(5001), // MAX_MESSAGE_LENGTH + 1
       };
+
+      jest.spyOn(contentSanitizer, 'sanitize').mockReturnValue(payload.content);
 
       const result = service.validateMessageUpdate(payload);
       expect(result).toBe('Message exceeds maximum length of 5000 characters');
@@ -163,12 +216,36 @@ describe('MessageValidatorService', () => {
       expect(result).toBe('Updated content is required');
     });
 
+    it('should return error when sanitization fails', () => {
+      const payload: MessageUpdatePayload = {
+        messageId: 'msg-123',
+        content: 'Bad content',
+      };
+
+      contentSanitizer.sanitize.mockReturnValue('');
+
+      const result = service.validateMessageUpdate(payload);
+      expect(result).toBe('Message contains forbidden content');
+    });
+
     it('should return error message when an exception occurs', () => {
       // Create a payload that will cause an error when accessed
       const payload = null;
 
       const result = service.validateMessageUpdate(payload);
       expect(result).toBe('Invalid update format');
+    });
+
+    it('should return error when content sanitization fails', () => {
+      const payload: MessageUpdatePayload = {
+        messageId: 'msg-123',
+        content: '<script>alert("xss")</script>',
+      };
+
+      contentSanitizer.sanitize.mockReturnValueOnce(null);
+
+      const result = service.validateMessageUpdate(payload);
+      expect(result).toBe('Message contains forbidden content');
     });
   });
 

@@ -16,12 +16,14 @@ import { MessageEntity } from '../entities/message.entity';
 import { AttachmentEntity } from '../entities/attachment.entity';
 import { PinoLogger } from 'nestjs-pino';
 import { TenantService } from '../../../user-management/tenant.service';
+import { ContentSanitizer } from '../../shared/utils/content-sanitizer';
 
 describe('MessageService', () => {
   let service: MessageService;
   let messageRepository: jest.Mocked<MessageRepository>;
   let attachmentRepository: jest.Mocked<AttachmentRepository>;
   let conversationService: jest.Mocked<ConversationService>;
+  let contentSanitizer: ContentSanitizer;
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let tenantService: jest.Mocked<TenantService>;
@@ -113,6 +115,7 @@ describe('MessageService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MessageService,
+        ContentSanitizer,
         {
           provide: PinoLogger,
           useValue: {
@@ -157,6 +160,21 @@ describe('MessageService', () => {
             getTenantId: jest.fn().mockReturnValue(mockTenantId),
           },
         },
+        {
+          provide: ContentSanitizer,
+          useValue: {
+            sanitize: jest.fn().mockImplementation((content) => content),
+            sanitizeRealtimeMessage: jest
+              .fn()
+              .mockImplementation((content) => ({
+                isValid: true,
+                sanitized: content,
+              })),
+            sanitizeMetadata: jest
+              .fn()
+              .mockImplementation((metadata) => metadata),
+          },
+        },
       ],
     }).compile();
 
@@ -165,6 +183,7 @@ describe('MessageService', () => {
     attachmentRepository = module.get(AttachmentRepository);
     conversationService = module.get(ConversationService);
     tenantService = module.get(TenantService);
+    contentSanitizer = module.get(ContentSanitizer);
   });
 
   describe('createMessage', () => {
@@ -187,6 +206,18 @@ describe('MessageService', () => {
       expect(
         conversationService.updateLastMessageTimestamp,
       ).toHaveBeenCalledWith(mockConversationId);
+    });
+
+    it('should handle sanitization failure', async () => {
+      jest.spyOn(contentSanitizer, 'sanitize').mockReturnValue('');
+
+      await expect(
+        service.createMessage(
+          mockConversationId,
+          '<script>alert("xss")</script>',
+          mockUserId,
+        ),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw ForbiddenException when user has no access', async () => {
@@ -228,6 +259,19 @@ describe('MessageService', () => {
       expect(result).toBeDefined();
       expect(result.content).toBe('Updated content');
       expect(result.isEdited).toBe(true);
+    });
+
+    it('should handle sanitization failure during update', async () => {
+      messageRepository.findByIdAndTenant.mockResolvedValue(mockMessage);
+      jest.spyOn(contentSanitizer, 'sanitize').mockReturnValue('');
+
+      await expect(
+        service.updateMessage(
+          mockMessageId,
+          { content: '<script>alert("xss")</script>' },
+          mockUserId,
+        ),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw ForbiddenException when user is not message sender', async () => {
