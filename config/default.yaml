@@ -6,13 +6,14 @@ logger:
       target: pino-pretty
     redact:
       paths:
-        - req.headers.authorization
-        - req.headers.auth
+      - req.headers.authorization
+      - req.headers.auth
       censor: '***'
 port: 3000
 clerk:
-  perishableKey: 
-  secretKey: 
+  perishableKey:
+  secretKey:
+messaging:
   throttle:
     messageRateMs: 500 # Time between messages (ms)
     typingRateMs: 2000 # Time between typing indicators (ms)
@@ -44,8 +45,8 @@ cache:
     refresh_token: 604800 # 7 days for refresh tokens
 aws:
   region: eu-central-1
-  accessKeyId: 
-  secretAccessKey: 
+  accessKeyId:
+  secretAccessKey:
   s3:
     bucket: uploads-123-456
 platforms:
@@ -69,3 +70,6 @@ platforms:
     clientSecret: TIKTOK_CLIENT_SECRET
     redirectUri: TIKTOK_REDIRECT_URI
     apiVersion: TIKTOK_API_VERSION
+websocket:
+  allowedOrigins:
+  - "*"

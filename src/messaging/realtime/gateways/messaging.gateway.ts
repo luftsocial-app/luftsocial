@@ -2,6 +2,8 @@
 import { UseGuards, UsePipes } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Server } from 'socket.io';
+import * as config from 'config';
+
 import {
   WebSocketGateway,
   WebSocketServer,
@@ -50,11 +52,12 @@ import {
 } from '../utils/response.utils';
 import { PinoLogger } from 'nestjs-pino';
 import { WebsocketSanitizationPipe } from '../pipes/websocket-sanitization.pipe';
-import { ContentSanitizer } from '../../shared/utils/content-sanitizer';
+import { ParticipantEventHandler } from './usecases/participants.events';
+import { MessageEventHandler } from './usecases/message.events';
 
 @WebSocketGateway({
   cors: {
-    origin: '*', // In production, specify exact origins
+    origin: config.get('websocket.allowedOrigins'),
   },
   namespace: 'messaging',
   transports: ['websocket', 'polling'],
@@ -78,8 +81,9 @@ export class MessagingGateway
     private readonly messageService: MessageService,
     private readonly messageValidator: MessageValidatorService,
     private readonly configService: ConfigService,
+    private readonly participantEventHandler: ParticipantEventHandler,
+    private readonly messageEventHandler: MessageEventHandler,
     private readonly logger: PinoLogger,
-    private readonly contentSanitizer: ContentSanitizer,
   ) {
     this.logger.setContext(MessagingGateway.name);
     this.MESSAGE_THROTTLE_MS = this.configService.get<number>(
@@ -302,47 +306,13 @@ export class MessagingGateway
   async handleParticipantAdded(
     client: SocketWithUser,
     payload: ParticipantActionPayload,
+    server: Server,
   ): Promise<SocketResponse> {
-    const { user } = client.data;
-
-    // Validate payload
-    const validationError = validatePayload(payload, [
-      'conversationId',
-      'participantIds',
-    ]);
-    if (validationError || !payload.participantIds.length) {
-      return createErrorResponse(
-        'VALIDATION_ERROR',
-        'Invalid participant data',
-      );
-    }
-
-    // Add participants
-    const conversation = await this.conversationService.addParticipantsToGroup(
-      payload.conversationId,
-      payload.participantIds,
-      user.id,
+    return await this.participantEventHandler.participantAdded(
+      client,
+      payload,
+      server,
     );
-
-    // Notify existing participants
-    const room = RoomNameFactory.conversationRoom(conversation.id);
-    this.server.to(room).emit(MessageEventType.PARTICIPANTS_UPDATED, {
-      conversationId: conversation.id,
-      action: 'added',
-      actorId: user.id,
-      participants: payload.participantIds.map((id) => ({ id })),
-      timestamp: new Date(),
-    });
-
-    // Add new participants to the conversation room
-    for (const participantId of payload.participantIds) {
-      const userRoom = RoomNameFactory.userRoom(participantId);
-      this.server.to(userRoom).socketsJoin(room);
-    }
-
-    return createSuccessResponse({
-      message: 'Participants added successfully',
-    });
   }
 
   @SubscribeMessage(MessageEventType.PARTICIPANT_REMOVE)
@@ -350,55 +320,13 @@ export class MessagingGateway
   async handleParticipantRemoved(
     client: SocketWithUser,
     payload: ParticipantActionPayload,
+    server: Server,
   ): Promise<SocketResponse> {
-    const { user } = client.data;
-
-    // Validate payload
-    const validationError = validatePayload(payload, [
-      'conversationId',
-      'participantIds',
-    ]);
-    if (validationError || !payload.participantIds.length) {
-      return createErrorResponse(
-        'VALIDATION_ERROR',
-        'Invalid participant data',
-      );
-    }
-
-    // Remove participants
-    const conversation =
-      await this.conversationService.removeParticipantsFromGroup(
-        payload.conversationId,
-        payload.participantIds,
-        user.id,
-      );
-    this.logger.debug(
-      `handleParticipantRemoved: Removed participants from conversation ${payload.conversationId} ${conversation.participants.map((p) => p.id).join(',')}`,
+    return await this.participantEventHandler.participantRemoved(
+      client,
+      payload,
+      server,
     );
-
-    // Notify remaining participants about the removal
-    const room = RoomNameFactory.conversationRoom(payload.conversationId);
-    this.server.to(room).emit(MessageEventType.PARTICIPANTS_UPDATED, {
-      conversationId: payload.conversationId,
-      action: 'removed',
-      actorId: user.id,
-      participants: payload.participantIds.map((id) => ({ id })),
-      timestamp: new Date(),
-    });
-
-    // Remove sockets of removed participants from the conversation room
-    for (const participantId of payload.participantIds) {
-      const userRoom = RoomNameFactory.userRoom(participantId);
-      // Find all client sockets for this user and make them leave the room
-      const socketsInRoom = await this.server.in(userRoom).fetchSockets();
-      for (const socket of socketsInRoom) {
-        socket.leave(room);
-      }
-    }
-
-    return createSuccessResponse({
-      message: 'Participants removed successfully',
-    });
   }
 
   @SubscribeMessage(MessageEventType.LEAVE_CONVERSATION)
@@ -601,33 +529,13 @@ export class MessagingGateway
   async handleReactionAdded(
     client: SocketWithUser,
     payload: ReactionPayload,
+    server: Server,
   ): Promise<SocketResponse> {
-    const { user } = client.data;
-
-    // Validate reaction payload
-    const validationError = this.messageValidator.validateReaction(payload);
-    if (validationError) {
-      return createErrorResponse('VALIDATION_ERROR', validationError);
-    }
-
-    // Add reaction to message
-    const message = await this.messageService.addReaction(
-      payload.messageId,
-      user.id,
-      payload.emoji,
+    return await this.messageEventHandler.handleReactionAdded(
+      client,
+      payload,
+      server,
     );
-
-    // Notify participants about the reaction
-    const room = RoomNameFactory.conversationRoom(message.conversationId);
-    this.server.to(room).emit(MessageEventType.REACTION_ADDED, {
-      messageId: message.id,
-      userId: user.id,
-      username: user.username,
-      emoji: payload.emoji,
-      timestamp: new Date(),
-    });
-
-    return createSuccessResponse();
   }
 
   @SubscribeMessage(MessageEventType.REMOVE_REACTION)
@@ -635,31 +543,12 @@ export class MessagingGateway
   async handleReactionRemoved(
     client: SocketWithUser,
     payload: ReactionPayload,
+    server: Server,
   ): Promise<SocketResponse> {
-    const { user } = client.data;
-
-    // Validate reaction payload
-    const validationError = this.messageValidator.validateReaction(payload);
-    if (validationError) {
-      return createErrorResponse('VALIDATION_ERROR', validationError);
-    }
-
-    // Remove reaction from message
-    const message = await this.messageService.removeReaction(
-      payload.messageId,
-      user.id,
-      payload.emoji,
+    return await this.messageEventHandler.handleReactionRemoved(
+      client,
+      payload,
+      server,
     );
-
-    // Notify participants about the reaction removal
-    const room = RoomNameFactory.conversationRoom(message.conversationId);
-    this.server.to(room).emit(MessageEventType.REACTION_REMOVED, {
-      messageId: message.id,
-      userId: user.id,
-      emoji: payload.emoji,
-      timestamp: new Date(),
-    });
-
-    return createSuccessResponse();
   }
 }

@@ -61,3 +61,7 @@ platforms:
     clientSecret: TIKTOK_CLIENT_SECRET
     redirectUri: TIKTOK_REDIRECT_URI
     apiVersion: TIKTOK_API_VERSION
+websocket:
+  allowedOrigins: 
+      __name: ALLOWED_ORIGINS
+      __format: json
