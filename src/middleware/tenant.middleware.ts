@@ -13,7 +13,7 @@ async function createSessionToken( // this function is for testing only, should 
   clerkSecretKey: string,
   logger: PinoLogger,
 ) {
-  logger.info({ sessionId, clerkSecretKey }, 'Creating session token');
+  logger.debug({ sessionId, clerkSecretKey }, 'Creating session token');
 
   try {
     const response = await fetch(
@@ -36,7 +36,7 @@ async function createSessionToken( // this function is for testing only, should 
     }
 
     const data = await response.json();
-    logger.info(`Session Token: ${data.jwt}`);
+    logger.debug(`Session Token: ${data.jwt}`);
     return data.jwt;
   } catch (error) {
     logger.error('Failed to create session token:', error.message);
