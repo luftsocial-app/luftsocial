@@ -153,16 +153,6 @@ describe('TikTokService', () => {
       providers: [
         TikTokService,
         {
-          provide: PinoLogger,
-          useValue: {
-            info: jest.fn(),
-            error: jest.fn(),
-            warn: jest.fn(),
-            debug: jest.fn(),
-            setContext: jest.fn(),
-          },
-        },
-        {
           provide: TikTokRepository,
           useValue: mockTikTokRepo,
         },

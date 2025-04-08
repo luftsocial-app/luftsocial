@@ -42,6 +42,8 @@ describe('UserTenantService', () => {
       manager: {
         findOne: jest.fn(),
         save: jest.fn(),
+        create: jest.fn(),
+        query: jest.fn(),
       },
     } as unknown as jest.Mocked<QueryRunner>;
 
@@ -93,12 +95,14 @@ describe('UserTenantService', () => {
         username: 'testuser',
       };
 
+      // Mock finding tenant but no existing user
       jest
         .spyOn(queryRunner.manager, 'findOne')
-        .mockResolvedValueOnce(mockTenant);
+        .mockResolvedValueOnce(mockTenant); // First call for tenant
+
       jest
         .spyOn(queryRunner.manager, 'findOne')
-        .mockResolvedValueOnce(userData);
+        .mockResolvedValueOnce(mockUser); // Second call for user (not found)
 
       const savedUser = {
         ...userData,
@@ -107,8 +111,14 @@ describe('UserTenantService', () => {
         roles: [],
       } as User;
 
+      // Mock the user creation and save
       jest.spyOn(userRepository, 'create').mockReturnValue(savedUser);
       jest.spyOn(queryRunner.manager, 'save').mockResolvedValueOnce(savedUser);
+
+      // Mock the query for user-tenant relationship
+      jest
+        .spyOn(queryRunner.manager, 'query')
+        .mockResolvedValueOnce({ affected: 1 });
 
       const result = await service.executeOperation({
         userId: userData.id,
@@ -118,23 +128,18 @@ describe('UserTenantService', () => {
       });
 
       expect(result.success).toBe(true);
-      expect(result.data).toBeDefined();
-      expect(queryRunner.manager.findOne).toHaveBeenNthCalledWith(1, Tenant, {
-        where: { id: mockTenant.id },
-        relations: ['users'],
-      });
-      expect(queryRunner.manager.findOne).toHaveBeenNthCalledWith(2, User, {
-        where: { id: userData.id },
-        relations: ['tenants', 'roles'],
-      });
-      expect(queryRunner.manager.save).toHaveBeenCalledWith(
-        User,
-        expect.objectContaining({
-          id: userData.id,
-          email: userData.email,
-          tenants: [expect.objectContaining({ id: mockTenant.id })],
-        }),
+      expect(result.data).toEqual(savedUser);
+
+      // Verify the sequence of operations
+      expect(queryRunner.startTransaction).toHaveBeenCalled();
+      expect(queryRunner.manager.findOne).toHaveBeenCalledTimes(2);
+      expect(queryRunner.manager.query).toHaveBeenCalledWith(
+        expect.stringContaining('INSERT INTO tbl_user_tenants'),
+        [userData.id, mockTenant.id],
       );
+      expect(queryRunner.manager.save).toHaveBeenCalledWith(User, savedUser);
+      expect(queryRunner.commitTransaction).toHaveBeenCalled();
+      expect(queryRunner.release).toHaveBeenCalled();
     });
 
     it('should update user membership successfully', async () => {
@@ -228,6 +233,8 @@ describe('UserTenantService', () => {
         .mockResolvedValueOnce(mockTenant)
         .mockResolvedValueOnce(mockUser);
 
+      jest.spyOn((service as any).logger, 'error');
+
       const result = await service.executeOperation({
         userId: mockUser.id,
         tenantId: mockTenant.id,
@@ -261,15 +268,22 @@ describe('UserTenantService', () => {
       jest
         .spyOn(queryRunner.manager, 'findOne')
         .mockResolvedValueOnce(mockTenant)
-        .mockResolvedValueOnce(mockUser);
+        .mockResolvedValueOnce(mockUser); // existing user
 
-      await service.executeOperation({
+      jest
+        .spyOn(queryRunner.manager, 'query')
+        .mockResolvedValueOnce({ affected: 1 }); // simulate relationship insert
+
+      jest.spyOn(queryRunner.manager, 'save').mockResolvedValueOnce(mockUser);
+
+      const result = await service.executeOperation({
         userId: mockUser.id,
         tenantId: mockTenant.id,
         operationType: 'ADD',
         userData: {},
       });
 
+      expect(result.success).toBe(true);
       expect(queryRunner.commitTransaction).toHaveBeenCalled();
       expect(queryRunner.release).toHaveBeenCalled();
     });

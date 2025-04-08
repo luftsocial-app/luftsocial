@@ -61,7 +61,7 @@ export class UserTenantService {
           user = await this.deleteMembership(user, tenantId, queryRunner);
           break;
         default:
-          this.logger.info('Invalid operation type');
+          this.logger.error('Invalid operation type');
           throw new Error('Invalid operation type');
       }
 
