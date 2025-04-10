@@ -54,13 +54,14 @@ import { PinoLogger } from 'nestjs-pino';
 import { WebsocketSanitizationPipe } from '../pipes/websocket-sanitization.pipe';
 import { ParticipantEventHandler } from './usecases/participants.events';
 import { MessageEventHandler } from './usecases/message.events';
+import { WebsocketHelpers } from '../utils/websocket.helpers';
 
 @WebSocketGateway({
   cors: {
     origin: config.get('websocket.allowedOrigins'),
   },
-  namespace: 'messaging',
-  transports: ['websocket', 'polling'],
+  namespace: config.get('websocket.namespace'),
+  transports: config.get('websocket.transports'),
 })
 @UseGuards(WsGuard)
 export class MessagingGateway
@@ -69,9 +70,7 @@ export class MessagingGateway
   @WebSocketServer()
   server: Server;
 
-  private readonly throttleTimers = new Map<string, number>();
   private readonly MESSAGE_THROTTLE_MS: number;
-  private readonly TYPING_THROTTLE_MS: number;
   private readonly READ_RECEIPT_THROTTLE_MS: number;
   private readonly MAX_CLIENTS_PER_USER: number;
   private readonly clientsPerUser = new Map<string, Set<string>>();
@@ -83,6 +82,7 @@ export class MessagingGateway
     private readonly configService: ConfigService,
     private readonly participantEventHandler: ParticipantEventHandler,
     private readonly messageEventHandler: MessageEventHandler,
+    private readonly websoketHelpers: WebsocketHelpers,
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(MessagingGateway.name);
@@ -90,10 +90,7 @@ export class MessagingGateway
       'messaging.throttle.messageRateMs',
       500,
     );
-    this.TYPING_THROTTLE_MS = this.configService.get<number>(
-      'messaging.throttle.typingRateMs',
-      2000,
-    );
+
     this.READ_RECEIPT_THROTTLE_MS = this.configService.get<number>(
       'messaging.throttle.readReceiptRateMs',
       1000,
@@ -178,22 +175,6 @@ export class MessagingGateway
     }
   }
 
-  private isThrottled(key: string, throttleTimeMs: number): boolean {
-    const now = Date.now();
-    const lastTime = this.throttleTimers.get(key) || 0;
-
-    if (now - lastTime < throttleTimeMs) {
-      return true;
-    }
-
-    this.throttleTimers.set(key, now);
-    return false;
-  }
-
-  private handleError(client: SocketWithUser, errorEvent: ErrorEvent): void {
-    client.emit(MessageEventType.ERROR, errorEvent);
-  }
-
   @SubscribeMessage(MessageEventType.SEND_MESSAGE)
   @SocketHandler()
   @UsePipes(WebsocketSanitizationPipe)
@@ -205,7 +186,7 @@ export class MessagingGateway
 
     // Rate limiting
     const throttleKey = `message:${user.id}`;
-    if (this.isThrottled(throttleKey, this.MESSAGE_THROTTLE_MS)) {
+    if (this.websoketHelpers.isThrottled(throttleKey)) {
       return createErrorResponse(
         'RATE_LIMITED',
         'You are sending messages too quickly',
@@ -271,34 +252,10 @@ export class MessagingGateway
     client: SocketWithUser,
     conversationId: string,
   ): Promise<SocketResponse> {
-    const { user } = client.data;
-
-    const hasAccess = await this.conversationService.validateAccess(
+    return await this.participantEventHandler.joinConversation(
+      client,
       conversationId,
-      user.id,
-      user.tenantId,
     );
-
-    if (hasAccess) {
-      const room = RoomNameFactory.conversationRoom(conversationId);
-      client.join(room);
-
-      // Update participant's last active timestamp
-      await this.conversationService.updateParticipantLastActive(
-        user.id,
-        conversationId,
-      );
-
-      return createSuccessResponse({
-        conversationId,
-        message: 'Joined conversation successfully',
-      });
-    } else {
-      return createErrorResponse(
-        'ACCESS_DENIED',
-        'You do not have access to this conversation',
-      );
-    }
   }
 
   @SubscribeMessage(MessageEventType.PARTICIPANT_ADD)
@@ -335,12 +292,10 @@ export class MessagingGateway
     client: SocketWithUser,
     conversationId: string,
   ): Promise<SocketResponse> {
-    const room = RoomNameFactory.conversationRoom(conversationId);
-    client.leave(room);
-    return createSuccessResponse({
+    return await this.participantEventHandler.leaveConversation(
+      client,
       conversationId,
-      message: 'Left conversation successfully',
-    });
+    );
   }
 
   @SubscribeMessage(MessageEventType.TYPING_START)
@@ -348,34 +303,9 @@ export class MessagingGateway
   async handleTyping(
     client: SocketWithUser,
     payload: TypingEventPayload,
+    server: Server,
   ): Promise<SocketResponse> {
-    const { user } = client.data;
-
-    // Validate payload
-    const validationError = validatePayload(payload, ['conversationId']);
-    if (validationError) {
-      return createErrorResponse('VALIDATION_ERROR', validationError);
-    }
-
-    // Rate limiting for typing events
-    const throttleKey = `typing:${user.id}:${payload.conversationId}`;
-    if (this.isThrottled(throttleKey, this.TYPING_THROTTLE_MS)) {
-      // Silently ignore rate-limited typing events but return success
-      // Typing indicators are non-critical and shouldn't error for UX reasons
-      return createSuccessResponse({ throttled: true });
-    }
-
-    const room = RoomNameFactory.conversationRoom(payload.conversationId);
-    this.server.to(room).emit(MessageEventType.USER_TYPING, {
-      conversationId: payload.conversationId,
-      user: {
-        id: user.id,
-        username: user.username,
-      },
-      timestamp: new Date(),
-    });
-
-    return createSuccessResponse();
+    return await this.messageEventHandler.handleTyping(client, payload, server);
   }
 
   @SubscribeMessage(MessageEventType.TYPING_STOP)
@@ -383,23 +313,9 @@ export class MessagingGateway
   async handleStopTyping(
     client: SocketWithUser,
     payload: TypingEventPayload,
+    server: Server,
   ): Promise<SocketResponse> {
-    const { user } = client.data;
-
-    // Validate payload
-    const validationError = validatePayload(payload, ['conversationId']);
-    if (validationError) {
-      return createErrorResponse('VALIDATION_ERROR', validationError);
-    }
-
-    const room = RoomNameFactory.conversationRoom(payload.conversationId);
-    this.server.to(room).emit(MessageEventType.USER_STOPPED_TYPING, {
-      conversationId: payload.conversationId,
-      userId: user.id,
-      timestamp: new Date(),
-    });
-
-    return createSuccessResponse();
+    return await this.messageEventHandler.stopTyping(client, payload, server);
   }
 
   @SubscribeMessage(MessageEventType.MARK_AS_READ)
@@ -407,37 +323,9 @@ export class MessagingGateway
   async handleMarkAsRead(
     client: SocketWithUser,
     payload: ReadReceiptPayload,
+    server: Server,
   ): Promise<SocketResponse> {
-    const { user } = client.data;
-
-    // Validate payload
-    const validationError = validatePayload(payload, [
-      'messageId',
-      'conversationId',
-    ]);
-    if (validationError) {
-      return createErrorResponse('VALIDATION_ERROR', validationError);
-    }
-
-    // Rate limiting for read receipts
-    const throttleKey = `read:${user.id}:${payload.messageId}`;
-    if (this.isThrottled(throttleKey, this.READ_RECEIPT_THROTTLE_MS)) {
-      // Return success but don't process - this is a high frequency event
-      return createSuccessResponse({ throttled: true });
-    }
-
-    await this.messageService.markMessageAsRead(payload.messageId, user.id);
-
-    // Notify other participants
-    const room = RoomNameFactory.conversationRoom(payload.conversationId);
-    this.server.to(room).emit(MessageEventType.MESSAGE_READ, {
-      messageId: payload.messageId,
-      userId: user.id,
-      conversationId: payload.conversationId,
-      readAt: new Date(),
-    });
-
-    return createSuccessResponse();
+    return await this.messageEventHandler.markAsRead(client, payload, server);
   }
 
   @SubscribeMessage(MessageEventType.UPDATE_MESSAGE)
@@ -531,7 +419,7 @@ export class MessagingGateway
     payload: ReactionPayload,
     server: Server,
   ): Promise<SocketResponse> {
-    return await this.messageEventHandler.handleReactionAdded(
+    return await this.messageEventHandler.reactionAdded(
       client,
       payload,
       server,
@@ -545,7 +433,7 @@ export class MessagingGateway
     payload: ReactionPayload,
     server: Server,
   ): Promise<SocketResponse> {
-    return await this.messageEventHandler.handleReactionRemoved(
+    return await this.messageEventHandler.reactionRemoved(
       client,
       payload,
       server,

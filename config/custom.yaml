@@ -62,6 +62,8 @@ platforms:
     redirectUri: TIKTOK_REDIRECT_URI
     apiVersion: TIKTOK_API_VERSION
 websocket:
+  namespace: NAMESPACE
+  transports: WEBSOCKET_TRANSPORTS
   allowedOrigins: 
       __name: ALLOWED_ORIGINS
       __format: json

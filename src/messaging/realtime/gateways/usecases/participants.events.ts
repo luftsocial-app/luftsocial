@@ -129,4 +129,50 @@ export class ParticipantEventHandler {
       message: 'Participants removed successfully',
     });
   }
+
+    async joinConversation(
+      client: SocketWithUser,
+      conversationId: string,
+    ): Promise<SocketResponse> {
+      const { user } = client.data;
+  
+      const hasAccess = await this.conversationService.validateAccess(
+        conversationId,
+        user.id,
+        user.tenantId,
+      );
+  
+      if (hasAccess) {
+        const room = RoomNameFactory.conversationRoom(conversationId);
+        client.join(room);
+  
+        // Update participant's last active timestamp
+        await this.conversationService.updateParticipantLastActive(
+          user.id,
+          conversationId,
+        );
+  
+        return createSuccessResponse({
+          conversationId,
+          message: 'Joined conversation successfully',
+        });
+      } else {
+        return createErrorResponse(
+          'ACCESS_DENIED',
+          'You do not have access to this conversation',
+        );
+      }
+    }
+
+    async leaveConversation(
+      client: SocketWithUser,
+      conversationId: string,
+    ): Promise<SocketResponse> {
+      const room = RoomNameFactory.conversationRoom(conversationId);
+      client.leave(room);
+      return createSuccessResponse({
+        conversationId,
+        message: 'Left conversation successfully',
+      });
+    }
 }

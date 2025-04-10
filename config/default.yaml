@@ -71,5 +71,9 @@ platforms:
     redirectUri: TIKTOK_REDIRECT_URI
     apiVersion: TIKTOK_API_VERSION
 websocket:
+  namespace: 'messaging'
+  transports:
+  - websocket
+  - polling
   allowedOrigins:
   - "*"
