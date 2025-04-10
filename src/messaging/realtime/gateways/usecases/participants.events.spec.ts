@@ -8,7 +8,6 @@ import { MessageEventType } from '../../events/message-events';
 describe('ParticipantEventHandler', () => {
   let handler: ParticipantEventHandler;
   let conversationService: jest.Mocked<ConversationService>;
-  let logger: jest.Mocked<PinoLogger>;
   let mockServer: jest.Mocked<Server>;
 
   const mockUserId = 'user-123';
@@ -61,7 +60,6 @@ describe('ParticipantEventHandler', () => {
     conversationService = module.get(
       ConversationService,
     ) as jest.Mocked<ConversationService>;
-    logger = module.get(PinoLogger) as jest.Mocked<PinoLogger>;
   });
 
   describe('participantAdded', () => {

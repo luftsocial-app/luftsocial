@@ -49,6 +49,8 @@ export class MessageEventHandler {
       payload.emoji,
     );
 
+    console.log({ message });
+
     // Notify participants about the reaction removal
     const room = RoomNameFactory.conversationRoom(message.conversationId);
     server.to(room).emit(MessageEventType.REACTION_REMOVED, {
@@ -71,6 +73,9 @@ export class MessageEventHandler {
     // Validate reaction payload
     const validationError =
       this.messageValidatorService.validateReaction(payload);
+
+    console.log({ validationError });
+
     if (validationError) {
       return createErrorResponse('VALIDATION_ERROR', validationError);
     }
@@ -82,8 +87,12 @@ export class MessageEventHandler {
       payload.emoji,
     );
 
+    console.log({ message });
+
     // Notify participants about the reaction
     const room = RoomNameFactory.conversationRoom(message.conversationId);
+    console.log({ room });
+
     server.to(room).emit(MessageEventType.REACTION_ADDED, {
       messageId: message.id,
       userId: user.id,

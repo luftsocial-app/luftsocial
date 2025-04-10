@@ -25,7 +25,6 @@ import { WsGuard } from '../../../guards/ws.guard';
 
 // Events and payloads
 import {
-  ErrorEvent,
   MessageDeletePayload,
   MessageEventPayload,
   MessageEventType,
@@ -69,7 +68,6 @@ export class MessagingGateway
 {
   @WebSocketServer()
   server: Server;
-  private readonly MAX_CLIENTS_PER_USER: number;
   private readonly clientsPerUser = new Map<string, Set<string>>();
 
   constructor(
@@ -105,11 +103,16 @@ export class MessagingGateway
       const userClients = this.clientsPerUser.get(user.id);
       userClients.add(client.id);
 
+      console.log({
+        userClients: userClients.size,
+        maxClients: this.websoketHelpers.maxClientsPerUser(),
+      });
+
       // Check if too many clients for this user
-      if (userClients.size > this.MAX_CLIENTS_PER_USER) {
+      if (userClients.size > this.websoketHelpers.maxClientsPerUser()) {
         client.emit(MessageEventType.ERROR, {
           code: 'TOO_MANY_CONNECTIONS',
-          message: `Maximum of ${this.MAX_CLIENTS_PER_USER} connections allowed`,
+          message: `Maximum of ${this.websoketHelpers.maxClientsPerUser()} connections allowed`,
         });
         client.disconnect();
         return;
