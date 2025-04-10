@@ -101,6 +101,7 @@ export class ParticipantEventHandler {
         payload.participantIds,
         user.id,
       );
+
     this.logger.debug(
       `handleParticipantRemoved: Removed participants from conversation ${payload.conversationId} ${conversation.participants.map((p) => p.id).join(',')}`,
     );
@@ -130,49 +131,49 @@ export class ParticipantEventHandler {
     });
   }
 
-    async joinConversation(
-      client: SocketWithUser,
-      conversationId: string,
-    ): Promise<SocketResponse> {
-      const { user } = client.data;
-  
-      const hasAccess = await this.conversationService.validateAccess(
-        conversationId,
-        user.id,
-        user.tenantId,
-      );
-  
-      if (hasAccess) {
-        const room = RoomNameFactory.conversationRoom(conversationId);
-        client.join(room);
-  
-        // Update participant's last active timestamp
-        await this.conversationService.updateParticipantLastActive(
-          user.id,
-          conversationId,
-        );
-  
-        return createSuccessResponse({
-          conversationId,
-          message: 'Joined conversation successfully',
-        });
-      } else {
-        return createErrorResponse(
-          'ACCESS_DENIED',
-          'You do not have access to this conversation',
-        );
-      }
-    }
+  async joinConversation(
+    client: SocketWithUser,
+    conversationId: string,
+  ): Promise<SocketResponse> {
+    const { user } = client.data;
 
-    async leaveConversation(
-      client: SocketWithUser,
-      conversationId: string,
-    ): Promise<SocketResponse> {
+    const hasAccess = await this.conversationService.validateAccess(
+      conversationId,
+      user.id,
+      user.tenantId,
+    );
+
+    if (hasAccess) {
       const room = RoomNameFactory.conversationRoom(conversationId);
-      client.leave(room);
+      client.join(room);
+
+      // Update participant's last active timestamp
+      await this.conversationService.updateParticipantLastActive(
+        user.id,
+        conversationId,
+      );
+
       return createSuccessResponse({
         conversationId,
-        message: 'Left conversation successfully',
+        message: 'Joined conversation successfully',
       });
+    } else {
+      return createErrorResponse(
+        'ACCESS_DENIED',
+        'You do not have access to this conversation',
+      );
     }
+  }
+
+  async leaveConversation(
+    client: SocketWithUser,
+    conversationId: string,
+  ): Promise<SocketResponse> {
+    const room = RoomNameFactory.conversationRoom(conversationId);
+    client.leave(room);
+    return createSuccessResponse({
+      conversationId,
+      message: 'Left conversation successfully',
+    });
+  }
 }

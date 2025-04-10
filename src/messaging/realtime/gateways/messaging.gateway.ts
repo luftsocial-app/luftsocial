@@ -69,9 +69,6 @@ export class MessagingGateway
 {
   @WebSocketServer()
   server: Server;
-
-  private readonly MESSAGE_THROTTLE_MS: number;
-  private readonly READ_RECEIPT_THROTTLE_MS: number;
   private readonly MAX_CLIENTS_PER_USER: number;
   private readonly clientsPerUser = new Map<string, Set<string>>();
 
@@ -86,19 +83,6 @@ export class MessagingGateway
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(MessagingGateway.name);
-    this.MESSAGE_THROTTLE_MS = this.configService.get<number>(
-      'messaging.throttle.messageRateMs',
-      500,
-    );
-
-    this.READ_RECEIPT_THROTTLE_MS = this.configService.get<number>(
-      'messaging.throttle.readReceiptRateMs',
-      1000,
-    );
-    this.MAX_CLIENTS_PER_USER = this.configService.get<number>(
-      'messaging.maxClientsPerUser',
-      5,
-    );
   }
 
   afterInit() {
@@ -246,88 +230,6 @@ export class MessagingGateway
     });
   }
 
-  @SubscribeMessage(MessageEventType.JOIN_CONVERSATION)
-  @SocketHandler()
-  async handleJoinConversation(
-    client: SocketWithUser,
-    conversationId: string,
-  ): Promise<SocketResponse> {
-    return await this.participantEventHandler.joinConversation(
-      client,
-      conversationId,
-    );
-  }
-
-  @SubscribeMessage(MessageEventType.PARTICIPANT_ADD)
-  @SocketHandler()
-  async handleParticipantAdded(
-    client: SocketWithUser,
-    payload: ParticipantActionPayload,
-    server: Server,
-  ): Promise<SocketResponse> {
-    return await this.participantEventHandler.participantAdded(
-      client,
-      payload,
-      server,
-    );
-  }
-
-  @SubscribeMessage(MessageEventType.PARTICIPANT_REMOVE)
-  @SocketHandler()
-  async handleParticipantRemoved(
-    client: SocketWithUser,
-    payload: ParticipantActionPayload,
-    server: Server,
-  ): Promise<SocketResponse> {
-    return await this.participantEventHandler.participantRemoved(
-      client,
-      payload,
-      server,
-    );
-  }
-
-  @SubscribeMessage(MessageEventType.LEAVE_CONVERSATION)
-  @SocketHandler()
-  async handleLeaveConversation(
-    client: SocketWithUser,
-    conversationId: string,
-  ): Promise<SocketResponse> {
-    return await this.participantEventHandler.leaveConversation(
-      client,
-      conversationId,
-    );
-  }
-
-  @SubscribeMessage(MessageEventType.TYPING_START)
-  @SocketHandler()
-  async handleTyping(
-    client: SocketWithUser,
-    payload: TypingEventPayload,
-    server: Server,
-  ): Promise<SocketResponse> {
-    return await this.messageEventHandler.handleTyping(client, payload, server);
-  }
-
-  @SubscribeMessage(MessageEventType.TYPING_STOP)
-  @SocketHandler()
-  async handleStopTyping(
-    client: SocketWithUser,
-    payload: TypingEventPayload,
-    server: Server,
-  ): Promise<SocketResponse> {
-    return await this.messageEventHandler.stopTyping(client, payload, server);
-  }
-
-  @SubscribeMessage(MessageEventType.MARK_AS_READ)
-  @SocketHandler()
-  async handleMarkAsRead(
-    client: SocketWithUser,
-    payload: ReadReceiptPayload,
-    server: Server,
-  ): Promise<SocketResponse> {
-    return await this.messageEventHandler.markAsRead(client, payload, server);
-  }
-
   @SubscribeMessage(MessageEventType.UPDATE_MESSAGE)
   @SocketHandler()
   @UsePipes(WebsocketSanitizationPipe)
@@ -410,6 +312,88 @@ export class MessagingGateway
       messageId: payload.messageId,
       conversationId,
     });
+  }
+
+  @SubscribeMessage(MessageEventType.JOIN_CONVERSATION)
+  @SocketHandler()
+  async handleJoinConversation(
+    client: SocketWithUser,
+    conversationId: string,
+  ): Promise<SocketResponse> {
+    return await this.participantEventHandler.joinConversation(
+      client,
+      conversationId,
+    );
+  }
+
+  @SubscribeMessage(MessageEventType.PARTICIPANT_ADD)
+  @SocketHandler()
+  async handleParticipantAdded(
+    client: SocketWithUser,
+    payload: ParticipantActionPayload,
+    server: Server,
+  ): Promise<SocketResponse> {
+    return await this.participantEventHandler.participantAdded(
+      client,
+      payload,
+      server,
+    );
+  }
+
+  @SubscribeMessage(MessageEventType.PARTICIPANT_REMOVE)
+  @SocketHandler()
+  async handleParticipantRemoved(
+    client: SocketWithUser,
+    payload: ParticipantActionPayload,
+    server: Server,
+  ): Promise<SocketResponse> {
+    return await this.participantEventHandler.participantRemoved(
+      client,
+      payload,
+      server,
+    );
+  }
+
+  @SubscribeMessage(MessageEventType.LEAVE_CONVERSATION)
+  @SocketHandler()
+  async handleLeaveConversation(
+    client: SocketWithUser,
+    conversationId: string,
+  ): Promise<SocketResponse> {
+    return await this.participantEventHandler.leaveConversation(
+      client,
+      conversationId,
+    );
+  }
+
+  @SubscribeMessage(MessageEventType.TYPING_START)
+  @SocketHandler()
+  async handleTyping(
+    client: SocketWithUser,
+    payload: TypingEventPayload,
+    server: Server,
+  ): Promise<SocketResponse> {
+    return await this.messageEventHandler.handleTyping(client, payload, server);
+  }
+
+  @SubscribeMessage(MessageEventType.TYPING_STOP)
+  @SocketHandler()
+  async handleStopTyping(
+    client: SocketWithUser,
+    payload: TypingEventPayload,
+    server: Server,
+  ): Promise<SocketResponse> {
+    return await this.messageEventHandler.stopTyping(client, payload, server);
+  }
+
+  @SubscribeMessage(MessageEventType.MARK_AS_READ)
+  @SocketHandler()
+  async handleMarkAsRead(
+    client: SocketWithUser,
+    payload: ReadReceiptPayload,
+    server: Server,
+  ): Promise<SocketResponse> {
+    return await this.messageEventHandler.markAsRead(client, payload, server);
   }
 
   @SubscribeMessage(MessageEventType.ADD_REACTION)

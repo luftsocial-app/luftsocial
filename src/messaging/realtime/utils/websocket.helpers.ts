@@ -19,14 +19,30 @@ export class WebsocketHelpers {
     return false;
   }
 
-  handleError(client: SocketWithUser, errorEvent: ErrorEvent): void {
-    client.emit(MessageEventType.ERROR, errorEvent);
-  }
-
   private typingThrottle(): number {
     return this.configService.get<number>(
       'messaging.throttle.typingRateMs',
       2000,
     );
+  }
+
+  readReceiptThrottle(): number {
+    return this.configService.get<number>(
+      'messaging.throttle.readReceiptRateMs',
+      2000,
+    );
+  }
+  messageThrottle(): number {
+    return this.configService.get<number>(
+      'messaging.throttle.messageRateMs',
+      2000,
+    );
+  }
+  maxClientsPerUser(): number {
+    return this.configService.get<number>('messaging.maxClientsPerUser', 5);
+  }
+
+  handleError(client: SocketWithUser, errorEvent: ErrorEvent): void {
+    client.emit(MessageEventType.ERROR, errorEvent);
   }
 }

@@ -19,6 +19,50 @@ import { SuccessResponse } from '../interfaces/socket.interfaces';
 import { MessageStatus } from '../../../common/enums/messaging';
 import { PinoLogger } from 'nestjs-pino';
 import { ContentSanitizer } from '../../shared/utils/content-sanitizer';
+import { ParticipantEventHandler } from './usecases/participants.events';
+import { MessageEventHandler } from './usecases/message.events';
+import { WebsocketHelpers } from '../utils/websocket.helpers';
+
+jest.mock('./usecases/participants.events', () => {
+  return {
+    ParticipantEventHandler: jest.fn().mockImplementation(() => {
+      return {
+        participantAdded: jest.fn(),
+        joinConversation: jest.fn(),
+        leaveConversation: jest.fn(),
+        participantRemoved: jest.fn(),
+      };
+    }),
+  };
+});
+jest.mock('./usecases/message.events', () => {
+  return {
+    MessageEventHandler: jest.fn().mockImplementation(() => {
+      return {
+        reactionRemoved: jest.fn(),
+        reactionAdded: jest.fn(),
+        handleTyping: jest.fn(),
+        stopTyping: jest.fn(),
+        markAsRead: jest.fn(),
+      };
+    }),
+  };
+});
+
+jest.mock('../utils/websocket.helpers', () => {
+  return {
+    WebsocketHelpers: jest.fn().mockImplementation(() => {
+      return {
+        isThrottled: jest.fn(),
+        typingThrottle: jest.fn(),
+        readReceiptThrottle: jest.fn(),
+        messageThrottle: jest.fn(),
+        maxClientPerUser: jest.fn(),
+        handleError: jest.fn(),
+      };
+    }),
+  };
+});
 
 describe('MessagingGateway', () => {
   let gateway: MessagingGateway;
@@ -128,6 +172,9 @@ describe('MessagingGateway', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MessagingGateway,
+        ParticipantEventHandler,
+        MessageEventHandler,
+        WebsocketHelpers,
         ContentSanitizer,
         {
           provide: PinoLogger,
@@ -197,6 +244,7 @@ describe('MessagingGateway', () => {
       MessageValidatorService,
     ) as jest.Mocked<MessageValidatorService>;
     configService = module.get(ConfigService) as jest.Mocked<ConfigService>;
+    logger = module.get(PinoLogger); // Add this line
 
     // Set the server property
     gateway.server = mockServer;
@@ -657,14 +705,17 @@ describe('MessagingGateway', () => {
       jest.spyOn(gateway as any, 'isThrottled').mockReturnValue(false);
     });
 
-    /*   it('should return error if validation fails', async () => {
+    it('should return error if validation fails', async () => {
       const result = await gateway.handleTyping(mockClient, {
-        conversationId: '',
+        conversationId: '', // Invalid ID
       });
 
-      expect(result.success).toBe(true);
-      expect(result.error.code).toBe('VALIDATION_ERROR');
-    }); */
+      expect(result.success).toBeFalsy();
+      expect(result.error).toEqual({
+        code: 'VALIDATION_ERROR',
+        message: expect.any(String),
+      });
+    });
 
     it('should return success without emitting if throttled', async () => {
       (gateway as any).isThrottled.mockReturnValue(true);
@@ -706,14 +757,17 @@ describe('MessagingGateway', () => {
       conversationId: mockConversationId,
     };
 
-    /*    it('should return error if validation fails', async () => {
+    it('should return error if validation fails', async () => {
       const result = await gateway.handleStopTyping(mockClient, {
-        conversationId: '',
+        conversationId: '', // Invalid ID
       });
 
       expect(result.success).toBeFalsy();
-      expect(result.error.code).toBe('VALIDATION_ERROR');
-    }); */
+      expect(result.error).toEqual({
+        code: 'VALIDATION_ERROR',
+        message: expect.any(String),
+      });
+    });
 
     it('should emit stop typing event on success', async () => {
       const result = await gateway.handleStopTyping(
@@ -748,15 +802,18 @@ describe('MessagingGateway', () => {
       jest.spyOn(gateway as any, 'isThrottled').mockReturnValue(false);
     });
 
-    /*    it('should return error if validation fails', async () => {
+    it('should return error if validation fails', async () => {
       const result = await gateway.handleMarkAsRead(mockClient, {
-        messageId: mockMessageId,
+        messageId: '', // Invalid ID
         conversationId: mockConversationId,
       });
 
-      expect(result.success).toBe(true);
-      expect(result.success).toBe(false);
-    }); */
+      expect(result.success).toBeFalsy();
+      expect(result.error).toEqual({
+        code: 'VALIDATION_ERROR',
+        message: expect.any(String),
+      });
+    });
 
     it('should return success without processing if throttled', async () => {
       (gateway as any).isThrottled.mockReturnValue(true);
