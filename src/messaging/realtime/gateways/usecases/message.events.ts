@@ -49,8 +49,6 @@ export class MessageEventHandler {
       payload.emoji,
     );
 
-    console.log({ message });
-
     // Notify participants about the reaction removal
     const room = RoomNameFactory.conversationRoom(message.conversationId);
     server.to(room).emit(MessageEventType.REACTION_REMOVED, {
@@ -74,8 +72,6 @@ export class MessageEventHandler {
     const validationError =
       this.messageValidatorService.validateReaction(payload);
 
-    console.log({ validationError });
-
     if (validationError) {
       return createErrorResponse('VALIDATION_ERROR', validationError);
     }
@@ -87,12 +83,8 @@ export class MessageEventHandler {
       payload.emoji,
     );
 
-    console.log({ message });
-
     // Notify participants about the reaction
     const room = RoomNameFactory.conversationRoom(message.conversationId);
-    console.log({ room });
-
     server.to(room).emit(MessageEventType.REACTION_ADDED, {
       messageId: message.id,
       userId: user.id,
@@ -124,6 +116,8 @@ export class MessageEventHandler {
       // Typing indicators are non-critical and shouldn't error for UX reasons
       return createSuccessResponse({ throttled: true });
     }
+
+    // client.broadcast.emit("typing", user)
 
     const room = RoomNameFactory.conversationRoom(payload.conversationId);
     server.to(room).emit(MessageEventType.USER_TYPING, {

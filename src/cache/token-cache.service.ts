@@ -99,7 +99,7 @@ export class TokenCacheService {
 
     // If not in Redis, try the file
     if (!data) {
-      console.log('State not found in cache, checking backup file');
+      this.logger.log('State not found in cache, checking backup file');
       data = this.getStateFromFile(key);
     }
 
@@ -183,7 +183,7 @@ export class TokenCacheService {
         if (states[key]) {
           delete states[key];
           fs.writeFileSync(this.stateFilePath, JSON.stringify(states, null, 2));
-          console.log(`Removed state from backup file`);
+        this.logger.log(`Removed state from backup file`);
         }
       }
     } catch (error) {

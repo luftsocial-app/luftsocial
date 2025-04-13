@@ -11,6 +11,7 @@ export class WsGuard implements CanActivate {
   }
 
   canActivate(context: ExecutionContext): boolean {
+
     try {
       const client: Socket = context.switchToWs().getClient<Socket>();
       const token = this.extractToken(client);
@@ -19,7 +20,9 @@ export class WsGuard implements CanActivate {
         throw new WsException('Unauthorized');
       }
 
-      const payload = verify(token, process.env.CLERK_JWT_SECRET);
+      const payload = verify(token, process.env.CLERK_JWT_PUBLIC_KEY, {
+        algorithms: ['RS256'], // Specify the RS256 algorithm
+      });
 
       // const payload = verifyToken(token, {
       //   audience: process.env.CLERK_JWT_KEY,

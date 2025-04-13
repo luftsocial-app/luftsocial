@@ -1,7 +1,9 @@
 import { ConfigService } from '@nestjs/config';
 import { SocketWithUser } from '../interfaces/socket.interfaces';
 import { MessageEventType } from '../events/message-events';
+import { Injectable } from '@nestjs/common';
 
+@Injectable()
 export class WebsocketHelpers {
   private readonly throttleTimers = new Map<string, number>();
 

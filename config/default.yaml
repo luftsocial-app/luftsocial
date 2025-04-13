@@ -11,8 +11,9 @@ logger:
       censor: '***'
 port: 3000
 clerk:
-  perishableKey:
-  secretKey:
+  perishableKey: 
+  secretKey: 
+  clerkPublicKey: ""
 messaging:
   throttle:
     messageRateMs: 500 # Time between messages (ms)

@@ -8,6 +8,10 @@ logger:
         __format: json
       censor: '***'
 port: 3000
+clerk:
+  perishableKey: CLERK_PERISHABLE_KEY
+  secretKey: CLERK_SECRET_KEY
+  clerkPublicKey: CLERK_PUBLIC_KEY
 messaging:
   throttle:
     messageRateMs: MESSAGE_THROTTLE_MS
@@ -64,6 +68,6 @@ platforms:
 websocket:
   namespace: NAMESPACE
   transports: WEBSOCKET_TRANSPORTS
-  allowedOrigins: 
-      __name: ALLOWED_ORIGINS
-      __format: json
+  allowedOrigins:
+    __name: ALLOWED_ORIGINS
+    __format: json

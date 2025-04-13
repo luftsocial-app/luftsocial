@@ -18,13 +18,12 @@ import { LoggerMiddleware } from './middleware/logger.middleware';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TenantMiddleware } from './middleware/tenant.middleware';
 import { ClerkAuthGuard } from './guards/clerk-auth.guard';
-import { RolesGuard } from './guards/role-guard';
+import { RoleGuard } from './guards/role-guard';
 import { TaskModule } from './task/task.module';
 import { MediaStorageModule } from './asset-management/media-storage/media-storage.module';
 import { CacheModule } from './cache/cache.module';
 import { PlatformsModule } from './platforms/platforms.module';
 import { FacebookModule } from './platforms/facebook/facebook.module';
-import { MessagingModule } from './messaging/messaging.module';
 import { BullQueueModule } from './bull-queue/bull-queue.module';
 
 // Entity imports
@@ -54,6 +53,7 @@ import { Notification } from './platforms/entities/notifications/notification.en
 import { TiktokModule } from './webhooks/tiktok/tiktok.module';
 import { PostAsset } from './asset-management/entities/post-asset.entity';
 import { UserManagementModule } from './user-management/user-management.module';
+import { MessageModule } from './messaging/messages/message.module';
 
 @Module({
   imports: [
@@ -98,7 +98,6 @@ import { UserManagementModule } from './user-management/user-management.module';
     ]),
     RealtimeModule,
     ClerkWebhookModule,
-    MessagingModule,
     HealthModule,
     ScheduleModule.forRoot(),
     HealthModule,
@@ -113,6 +112,7 @@ import { UserManagementModule } from './user-management/user-management.module';
     BullQueueModule,
     TaskModule,
     TiktokModule,
+    MessageModule,
   ],
   controllers: [AppController],
   providers: [
@@ -123,7 +123,7 @@ import { UserManagementModule } from './user-management/user-management.module';
     },
     {
       provide: APP_GUARD,
-      useClass: RolesGuard,
+      useClass: RoleGuard,
     },
     {
       provide: APP_GUARD,

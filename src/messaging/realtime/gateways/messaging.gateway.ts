@@ -54,7 +54,7 @@ import { WebsocketSanitizationPipe } from '../pipes/websocket-sanitization.pipe'
 import { ParticipantEventHandler } from './usecases/participants.events';
 import { MessageEventHandler } from './usecases/message.events';
 import { WebsocketHelpers } from '../utils/websocket.helpers';
-
+import * as jwt from 'jsonwebtoken';
 @WebSocketGateway({
   cors: {
     origin: config.get('websocket.allowedOrigins'),
@@ -62,7 +62,7 @@ import { WebsocketHelpers } from '../utils/websocket.helpers';
   namespace: config.get('websocket.namespace'),
   transports: config.get('websocket.transports'),
 })
-@UseGuards(WsGuard)
+// @UseGuards(WsGuard)
 export class MessagingGateway
   implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit
 {
@@ -83,13 +83,39 @@ export class MessagingGateway
     this.logger.setContext(MessagingGateway.name);
   }
 
-  afterInit() {
+  afterInit(server: Server) {
     this.logger.info('WebSocket Gateway initialized');
+    server.use((socket, next) => {
+      const token =
+        socket.handshake.auth?.token || socket.handshake.headers?.authorization;
+
+      if (!token) {
+        return next(new Error('Authentication token is missing'));
+      }
+
+      const isDev = process.env.NODE_ENV === 'development';
+      const publicKey = isDev
+        ? process.env.CLERK_JWT_PUBLIC_KEY.replace(/\\n/g, '\n')
+        : this.configService.get('clerk.clerkPublicKey');
+
+      try {
+        const user = jwt.verify(token, publicKey, {
+          algorithms: ['RS256'], // Specify the RS256 algorithm
+        });
+        socket.data.user = user; // Attach the user object to socket.data
+        next();
+      } catch (error) {
+        this.logger.error({ error });
+        next(new Error('Invalid authentication token'));
+      }
+    });
   }
 
+  @UseGuards(WsGuard)
   async handleConnection(client: SocketWithUser) {
     try {
       const { user } = client.data;
+
       if (!user) {
         client.disconnect();
         return;
@@ -103,7 +129,7 @@ export class MessagingGateway
       const userClients = this.clientsPerUser.get(user.id);
       userClients.add(client.id);
 
-      console.log({
+      this.logger.debug({
         userClients: userClients.size,
         maxClients: this.websoketHelpers.maxClientsPerUser(),
       });
@@ -170,6 +196,8 @@ export class MessagingGateway
     @ConnectedSocket() client: SocketWithUser,
   ): Promise<SocketResponse> {
     const { user } = client.data;
+
+    this.logger.debug({ user }, 'new message');
 
     // Rate limiting
     const throttleKey = `message:${user.id}`;

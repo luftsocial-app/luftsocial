@@ -6,7 +6,6 @@ import { MessageValidatorService } from '../services/message-validator.service';
 import { ConfigService } from '@nestjs/config';
 import { Server } from 'socket.io';
 import { MessageEventType, RoomNameFactory } from '../events/message-events';
-import { WsGuard } from '../../../guards/ws.guard';
 import { MessageEntity } from '../../messages/entities/message.entity';
 import { ConversationEntity } from '../../conversations/entities/conversation.entity';
 import { SuccessResponse } from '../interfaces/socket.interfaces';
@@ -150,6 +149,7 @@ describe('MessagingGateway', () => {
       emitWithAck: jest.fn(),
       serverSideEmit: jest.fn(),
       close: jest.fn(),
+      use: jest.fn(),
     } as unknown as jest.Mocked<Server>;
 
     const module: TestingModule = await Test.createTestingModule({
@@ -214,8 +214,8 @@ describe('MessagingGateway', () => {
         },
       ],
     })
-      .overrideGuard(WsGuard)
-      .useValue({ canActivate: jest.fn().mockReturnValue(true) })
+      // .overrideGuard(WsGuard)
+      // .useValue({ canActivate: jest.fn().mockReturnValue(true) })
       .compile();
 
     gateway = module.get<MessagingGateway>(MessagingGateway);
@@ -247,7 +247,7 @@ describe('MessagingGateway', () => {
     it('should log initialization message', () => {
       logger = gateway['logger'] as PinoLogger; // Assign the mocked logger
       const loggerSpy = jest.spyOn(logger, 'info');
-      gateway.afterInit();
+      gateway.afterInit(mockServer);
       expect(loggerSpy).toHaveBeenCalledWith('WebSocket Gateway initialized');
       loggerSpy.mockRestore();
     });
@@ -699,8 +699,6 @@ describe('MessagingGateway', () => {
         mockReactionPayload,
         mockServer,
       );
-
-      console.log({ result });
 
       // Verify the reactionAdded handler was called with correct arguments
       expect(messageHandler.reactionAdded).toHaveBeenCalledWith(
