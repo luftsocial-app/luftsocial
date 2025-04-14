@@ -79,7 +79,6 @@ export interface DateRange {
 }
 
 export interface PublishPlatformResult {
-  scheduled_for_retry(scheduled_for_retry: any): unknown;
   platform: SocialPlatform;
   accountId: string;
   success: boolean;
