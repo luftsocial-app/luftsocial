@@ -72,8 +72,8 @@ describe('MediaStorageController', () => {
         mockUser.userId,
         fileName,
         fileType,
-        mockUser.orgId,
         platform,
+        undefined,
       );
       expect(result).toEqual(expectedResult);
     });

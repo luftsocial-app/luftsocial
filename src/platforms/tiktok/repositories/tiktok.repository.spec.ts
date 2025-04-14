@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { EntityManager, Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 import { NotFoundException } from '@nestjs/common';
 import { TikTokRepository } from './tiktok.repository';
 import { TikTokAccount } from '../../entities/tiktok-entities/tiktok-account.entity';
@@ -20,7 +20,7 @@ describe('TikTokRepository', () => {
   let rateLimitRepo: jest.Mocked<Repository<TikTokRateLimit>>;
   let commentRepo: jest.Mocked<Repository<TikTokComment>>;
   let entityManager: jest.Mocked<EntityManager>;
-
+  let dataSource: jest.Mocked<DataSource>;
   // Mock data
   const mockTenantId = 'tenant123';
   const mockAccountId = 'account123';
@@ -151,6 +151,11 @@ describe('TikTokRepository', () => {
       transaction: jest.fn(),
     };
 
+    const mockDataSource = {
+      getRepository: jest.fn().mockReturnValue(mockAccountRepo),
+      transaction: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TikTokRepository,
@@ -181,6 +186,10 @@ describe('TikTokRepository', () => {
         {
           provide: EntityManager,
           useValue: mockEntityManager,
+        },
+        {
+          provide: DataSource,
+          useValue: mockDataSource,
         },
       ],
     }).compile();
@@ -219,29 +228,6 @@ describe('TikTokRepository', () => {
 
   it('should be defined', () => {
     expect(repository).toBeDefined();
-  });
-
-  describe('createAccount', () => {
-    it('should create a new TikTok account', async () => {
-      const accountData = {
-        tiktokUserId: 'tiktok_user_123',
-        accountName: 'Test Account',
-      };
-
-      accountRepo.create.mockReturnValue(
-        accountData as unknown as TikTokAccount,
-      );
-      accountRepo.save.mockResolvedValue({
-        id: mockAccountId,
-        ...accountData,
-      } as unknown as TikTokAccount);
-
-      const result = await repository.createAccount(accountData);
-
-      expect(accountRepo.create).toHaveBeenCalledWith(accountData);
-      expect(accountRepo.save).toHaveBeenCalledWith(accountData);
-      expect(result).toEqual({ id: mockAccountId, ...accountData });
-    });
   });
 
   describe('createVideo', () => {

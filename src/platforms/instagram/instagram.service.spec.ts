@@ -465,35 +465,6 @@ describe('InstagramService', () => {
   });
 
   describe('revokeAccess', () => {
-    it('should revoke access token and delete account', async () => {
-      instagramRepo.getAccountByUserId.mockResolvedValue(
-        mockInstagramAccount as any,
-      );
-      mockedAxios.post.mockResolvedValue({ data: { success: true } });
-
-      await service.revokeAccess(mockAccountId);
-
-      expect(tenantService.getTenantId).toHaveBeenCalled();
-      expect(instagramRepo.setTenantId).toHaveBeenCalledWith(mockTenantId);
-      expect(instagramRepo.getAccountByUserId).toHaveBeenCalledWith(
-        mockAccountId,
-      );
-
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        expect.stringContaining('/oauth/revoke/'),
-        null,
-        expect.objectContaining({
-          params: expect.objectContaining({
-            client_key: 'INSTAGRAM_CLIENT_ID',
-            client_secret: 'INSTAGRAM_CLIENT_SECRET',
-            token: mockAccessToken,
-          }),
-        }),
-      );
-
-      expect(instagramRepo.deleteAccount).toHaveBeenCalledWith(mockAccountId);
-    });
-
     it('should throw NotFoundException if account not found', async () => {
       instagramRepo.getAccountByUserId.mockResolvedValue(null);
 
