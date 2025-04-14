@@ -9,12 +9,14 @@ import {
   PublishStatus,
   ScheduleStatus,
 } from './helpers/cross-platform.interface';
+import { PinoLogger } from 'nestjs-pino';
 
 describe('CrossPlatformController', () => {
   let controller: CrossPlatformController;
   let crossPlatformService: jest.Mocked<CrossPlatformService>;
   let contentPublisherService: jest.Mocked<ContentPublisherService>;
   let analyticsService: jest.Mocked<AnalyticsService>;
+  const logger: jest.Mocked<PinoLogger>;
   let schedulerService: jest.Mocked<SchedulerService>;
 
   const mockUserId = 'user123';

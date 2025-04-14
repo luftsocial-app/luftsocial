@@ -7,15 +7,15 @@ import { FacebookService } from './facebook.service';
 import { FacebookPostMetricsJob } from './jobs/post-metrics-collection.job';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MediaStorageModule } from '../../asset-management/media-storage/media-storage.module';
-import { DatabaseModule } from '../../database/database.module';
 import { PlatformAuthModule } from '../../platform-auth/platform-auth.module';
-import { SocialAccount } from '../../entities/notifications/entity/social-account.entity';
-import { AuthState } from '../../entities/socials/facebook-entities/auth-state.entity';
-import { FacebookAccount } from '../../entities/socials/facebook-entities/facebook-account.entity';
-import { FacebookPageMetric } from '../../entities/socials/facebook-entities/facebook-page-metric.entity';
-import { FacebookPage } from '../../entities/socials/facebook-entities/facebook-page.entity';
-import { FacebookPostMetric } from '../../entities/socials/facebook-entities/facebook-post-metric.entity';
-import { FacebookPost } from '../../entities/socials/facebook-entities/facebook-post.entity';
+import { AuthState } from '../entities/facebook-entities/auth-state.entity';
+import { FacebookAccount } from '../entities/facebook-entities/facebook-account.entity';
+import { FacebookPageMetric } from '../entities/facebook-entities/facebook-page-metric.entity';
+import { FacebookPage } from '../entities/facebook-entities/facebook-page.entity';
+import { FacebookPostMetric } from '../entities/facebook-entities/facebook-post-metric.entity';
+import { FacebookPost } from '../entities/facebook-entities/facebook-post.entity';
+import { TenantModule } from '../../user-management/tenant/tenant.module';
+import { SocialAccount } from '../entities/notifications/entity/social-account.entity';
 
 @Module({
   controllers: [FacebookController],
@@ -37,7 +37,7 @@ import { FacebookPost } from '../../entities/socials/facebook-entities/facebook-
       SocialAccount,
       PlatformAuthModule,
     ]),
-    DatabaseModule,
+    TenantModule,
     MediaStorageModule,
   ],
   exports: [FacebookService],

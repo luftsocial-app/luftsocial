@@ -13,12 +13,18 @@ import { InstagramService } from '../platforms/instagram/instagram.service';
 import { LinkedInService } from '../platforms/linkedin/linkedin.service';
 import { TikTokService } from '../platforms/tiktok/tiktok.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AnalyticsRecord } from '../entities/cross-platform-entities/analytics.entity';
-import { PublishRecord } from '../entities/cross-platform-entities/publish.entity';
-import { ScheduledPost } from '../entities/cross-platform-entities/schedule.entity';
+import { AnalyticsRecord } from './entities/analytics.entity';
+import { PublishRecord } from './entities/publish.entity';
+import { ScheduledPost } from './entities/schedule.entity';
 import { MulterModule } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { MediaStorageModule } from '../asset-management/media-storage/media-storage.module';
+import { PinoLogger } from 'nestjs-pino';
+import { BullModule } from '@nestjs/bull';
+import { RetryQueueService } from './services/retry-queue.service';
+import { CrossPlatformValidationPipe } from '../common/pipes/cross-platform-validation.pipe';
+import { APP_FILTER } from '@nestjs/core';
+import { HttpExceptionFilter } from '../common/http/http-exception.filter';
 
 @Module({
   imports: [
@@ -31,9 +37,22 @@ import { MediaStorageModule } from '../asset-management/media-storage/media-stor
     MediaStorageModule,
     TikTokModule,
     TypeOrmModule.forFeature([PublishRecord, AnalyticsRecord, ScheduledPost]),
+    BullModule.registerQueue({
+      name: 'platform-publish',
+      defaultJobOptions: {
+        attempts: 1, // We handle retries ourselves
+        removeOnComplete: false,
+        removeOnFail: false,
+      },
+      settings: {
+        stalledInterval: 300000, // 5 minutes
+        maxStalledCount: 3,
+      },
+    }),
   ],
   providers: [
     // Core services
+    CrossPlatformValidationPipe,
     {
       provide: CrossPlatformService,
       useFactory: (
@@ -47,6 +66,10 @@ import { MediaStorageModule } from '../asset-management/media-storage/media-stor
           instagramService,
           linkedInService,
           tiktokService,
+          new PinoLogger({
+            pinoHttp: { level: 'info' },
+            renameContext: 'CrossPlatformService',
+          }),
         );
       },
       inject: [
@@ -56,7 +79,12 @@ import { MediaStorageModule } from '../asset-management/media-storage/media-stor
         TikTokService,
       ],
     },
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter,
+    },
     ContentPublisherService,
+    RetryQueueService,
     AnalyticsService,
     SchedulerService,
     MediaStorageModule,

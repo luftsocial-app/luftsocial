@@ -5,8 +5,11 @@ import {
   IsOptional,
   ValidateNested,
   MaxLength,
+  IsEnum,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { SocialPlatform } from '../../../common/enums/social-platform.enum';
+import { BasePlatformParams } from '../../../cross-platform/helpers/dtos/base-platform-params.dto';
 
 export class StickerDto {
   @IsString()
@@ -21,7 +24,10 @@ export class StickerDto {
   height: number;
 }
 
-export class CreatePostDto {
+export class CreateInstagramPostDto extends BasePlatformParams {
+  @IsEnum(SocialPlatform)
+  platform: SocialPlatform.INSTAGRAM;
+
   @IsString()
   @MaxLength(2200)
   caption: string;

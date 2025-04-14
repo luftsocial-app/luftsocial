@@ -11,6 +11,8 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { MediaItem } from '../../platform-service.interface';
+import { SocialPlatform } from '../../../common/enums/social-platform.enum';
+import { BasePlatformParams } from '../../../cross-platform/helpers/dtos/base-platform-params.dto';
 
 export enum PrivacyLevel {
   PUBLIC = 'PUBLIC',
@@ -18,10 +20,16 @@ export enum PrivacyLevel {
   ONLY_ME = 'ONLY_ME',
 }
 
-export class CreatePostDto {
+export class CreateFacebookPagePostDto extends BasePlatformParams {
+  @IsEnum(SocialPlatform)
+  platform: SocialPlatform.FACEBOOK;
+
   @IsString()
   @MaxLength(63206)
   content: string;
+
+  @IsString()
+  pageId: string;
 
   @IsOptional()
   @IsArray()
@@ -37,37 +45,23 @@ export class CreatePostDto {
   @IsArray()
   @IsString({ each: true })
   targeting?: string[];
-}
 
-export class SchedulePostDto extends CreatePostDto {
-  @IsDateString()
-  scheduledTime: string;
+  @IsOptional()
+  @IsString()
+  link?: string;
 
   @IsOptional()
   @IsBoolean()
-  draft?: boolean;
+  published?: boolean;
+
+  @IsOptional()
+  @IsDateString()
+  scheduledPublishTime?: Date;
 }
 
-export class SchedulePagePostDto {
-  @IsString()
-  pageId: string;
-
-  @IsString()
-  @MaxLength(63206)
-  content: string;
-
-  @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => MediaItem)
-  media?: MediaItem[];
-
+export class SchedulePostDto extends CreateFacebookPagePostDto {
   @IsDateString()
   scheduledTime: string;
-
-  @IsOptional()
-  @IsEnum(PrivacyLevel)
-  privacyLevel?: PrivacyLevel;
 
   @IsOptional()
   @IsBoolean()

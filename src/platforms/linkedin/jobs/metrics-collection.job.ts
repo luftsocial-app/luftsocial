@@ -1,20 +1,22 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { LinkedInRepository } from '../repositories/linkedin.repository';
 import { LinkedInService } from '../linkedin.service';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class LinkedInMetricsCollectionJob {
-  private readonly logger = new Logger(LinkedInMetricsCollectionJob.name);
-
   constructor(
     private readonly linkedInRepo: LinkedInRepository,
     private readonly linkedInService: LinkedInService,
-  ) {}
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(LinkedInMetricsCollectionJob.name);
+  }
 
-  @Cron(CronExpression.EVERY_30_MINUTES)
+  @Cron(CronExpression.EVERY_12_HOURS)
   async collectMetrics() {
-    this.logger.log('Starting LinkedIn metrics collection job');
+    this.logger.info('Starting LinkedIn metrics collection job');
 
     try {
       const organizations = await this.linkedInRepo.getActiveOrganizations();

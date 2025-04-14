@@ -16,20 +16,15 @@ import { TenantService } from './tenant.service';
 export class TenantController {
   constructor(private readonly tenantService: TenantService) {}
 
-  @Get()
-  getAll() {
-    return this.tenantService.getAll();
-  }
-
   @Post()
   createTodo(@Req() req: Request, @Body() data: CreateTenantDto) {
-    this.tenantService.create(data);
+    this.tenantService.createTodo(data);
     return HttpStatus.CREATED;
   }
 
   @Get('/:uuid')
   getTenant(@Req() req: Request, @Param('uuid') uuid: string) {
-    return this.tenantService.get(uuid);
+    return this.tenantService.getTenant(uuid);
   }
 
   @Put('/:uuid')
@@ -38,7 +33,7 @@ export class TenantController {
     @Param('uuid') uuid: string,
     @Body() data: UpdateTenantDto,
   ) {
-    this.tenantService.update(uuid, data);
+    this.tenantService.updateTodo(uuid, data);
     return HttpStatus.NO_CONTENT;
   }
 

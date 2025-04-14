@@ -1,22 +1,25 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InstagramRepository } from '../repositories/instagram.repository';
 import { InstagramService } from '../instagram.service';
 import { SocialPlatform } from '../../../common/enums/social-platform.enum';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class InstagramTokenRefreshJob {
   [x: string]: any;
-  private readonly logger = new Logger(InstagramTokenRefreshJob.name);
 
   constructor(
     private readonly instagramRepo: InstagramRepository,
     private readonly instagramService: InstagramService,
-  ) {}
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(InstagramTokenRefreshJob.name);
+  }
 
-  @Cron(CronExpression.EVERY_HOUR)
+  @Cron(CronExpression.EVERY_12_HOURS)
   async refreshTokens() {
-    this.logger.log('Starting Instagram token refresh job');
+    this.logger.info('Starting Instagram token refresh job');
 
     try {
       const expiredAccounts =
@@ -24,7 +27,7 @@ export class InstagramTokenRefreshJob {
 
       for (const account of expiredAccounts) {
         try {
-          await this.oauth2Service.refreshToken(
+          await this.PlatformAuthService.refreshToken(
             SocialPlatform.INSTAGRAM,
             account.id,
           );

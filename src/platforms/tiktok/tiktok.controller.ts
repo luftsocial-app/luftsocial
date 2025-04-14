@@ -11,7 +11,7 @@ import {
 import { TikTokErrorInterceptor } from './helpers/tiktok-error.interceptor';
 import { RateLimitInterceptor } from './helpers/rate-limit.interceptor';
 import { TikTokService } from './tiktok.service';
-import { CreateVideoDto } from './helpers/create-video.dto.ts';
+import { CreateTiktokVideoDto } from './helpers/create-video.dto';
 import { FileInterceptor } from '@nestjs/platform-express/multer';
 import { MediaItem } from '../platform-service.interface';
 
@@ -25,7 +25,7 @@ export class TikTokController {
   async uploadVideoFile(
     @Param('accountId') accountId: string,
     @UploadedFile() file: Express.Multer.File,
-    @Body() createVideoDto: CreateVideoDto,
+    @Body() createVideoDto: CreateTiktokVideoDto,
   ) {
     const { videoUrl } = createVideoDto;
     // Combine file uploads and URL-based media
@@ -65,7 +65,7 @@ export class TikTokController {
   @Get(':accountId/analytics')
   async getAnalytics(
     @Param('accountId') accountId: string,
-    @Query('days') days: number = 7,
+    // @Query('days') days: number = 7,
   ) {
     return this.tiktokService.getAccountAnalytics(accountId);
   }

@@ -6,4 +6,5 @@ export enum MediaType {
   STORIES = 'STORIES',
   AUDIO = 'AUDIO',
   FILE = 'FILE',
+  PHOTO = 'PHOTO',
 }

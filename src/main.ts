@@ -79,12 +79,6 @@ async function bootstrap() {
     .addBearerAuth()
     .addTag('lustsocial endpoints')
     .addServer('http://localhost:3000') // Replace with actual server URL
-    .addSecurity('token', {
-      type: 'apiKey',
-      scheme: 'api_key',
-      in: 'header',
-      name: 'auth-token',
-    })
     .build();
 
   const documentFactory = () =>
@@ -113,6 +107,6 @@ async function bootstrap() {
   //   secretKey: config.get('clerk.secretKey'),
   // });
   // const userList = await clerkClient.users.getUserList();
-  // console.log({ userList : userList.data });
+  // this.logger.info({ userList : userList.data });
 }
 bootstrap();

@@ -2,17 +2,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { FacebookController } from './facebook.controller';
 import { FacebookService } from './facebook.service';
 import {
-  CreatePostDto,
-  SchedulePagePostDto,
-  SchedulePostDto,
+  CreateFacebookPagePostDto,
   UpdatePageDto,
   UpdatePostDto,
 } from './helpers/post.dto';
-import { MediaItem } from '../platform-service.interface';
 import { RateLimitInterceptor } from './helpers/rate-limit.interceptor';
 import { ClerkAuthGuard } from '../../guards/clerk-auth.guard';
-import { FacebookPage } from '../../entities/socials/facebook-entities/facebook-page.entity';
-import { FacebookPost } from '../../entities/socials/facebook-entities/facebook-post.entity';
+import { FacebookPage } from '../entities/facebook-entities/facebook-page.entity';
+import { FacebookPost } from '../entities/facebook-entities/facebook-post.entity';
 
 describe('FacebookController', () => {
   let controller: FacebookController;
@@ -28,19 +25,17 @@ describe('FacebookController', () => {
     size: 4,
   } as Express.Multer.File;
 
+  const mockUser = { userId: 'user123' };
   const mockAccountId = 'account123';
   const mockPageId = 'page123';
   const mockPostId = 'post123';
-  const mockUserId = 'user123';
   const mockContent = 'Test content';
   const mockMediaUrls = ['https://example.com/image.jpg'];
   const mockCursor = 'next_page_token';
 
   // Setup mock service
   const mockFacebookService = {
-    post: jest.fn(),
     createPagePost: jest.fn(),
-    schedulePost: jest.fn(),
     schedulePagePost: jest.fn(),
     getComments: jest.fn(),
     getUserPages: jest.fn(),
@@ -79,69 +74,9 @@ describe('FacebookController', () => {
     expect(controller).toBeDefined();
   });
 
-  describe('createPost', () => {
-    it('should create a post with content only', async () => {
-      await controller.createPost(mockAccountId, mockContent);
-
-      expect(facebookService.post).toHaveBeenCalledWith(
-        mockAccountId,
-        mockContent,
-        [],
-      );
-    });
-
-    it('should create a post with content and media URLs', async () => {
-      await controller.createPost(mockAccountId, mockContent, mockMediaUrls);
-
-      const expectedMedia: MediaItem[] = [
-        { url: mockMediaUrls[0], file: undefined },
-      ];
-
-      expect(facebookService.post).toHaveBeenCalledWith(
-        mockAccountId,
-        mockContent,
-        expectedMedia,
-      );
-    });
-
-    it('should create a post with content and file uploads', async () => {
-      const files = [mockFile];
-      await controller.createPost(mockAccountId, mockContent, undefined, files);
-
-      const expectedMedia: MediaItem[] = [{ file: mockFile, url: undefined }];
-
-      expect(facebookService.post).toHaveBeenCalledWith(
-        mockAccountId,
-        mockContent,
-        expectedMedia,
-      );
-    });
-
-    it('should handle both file uploads and media URLs', async () => {
-      const files = [mockFile];
-      await controller.createPost(
-        mockAccountId,
-        mockContent,
-        mockMediaUrls,
-        files,
-      );
-
-      const expectedMedia: MediaItem[] = [
-        { file: mockFile, url: undefined },
-        { url: mockMediaUrls[0], file: undefined },
-      ];
-
-      expect(facebookService.post).toHaveBeenCalledWith(
-        mockAccountId,
-        mockContent,
-        expectedMedia,
-      );
-    });
-  });
-
   describe('createPostForPage', () => {
-    it('should create a post for a page', async () => {
-      const createPostDto: CreatePostDto = {
+    it('should create a post for a page with files', async () => {
+      const createPostDto: CreateFacebookPagePostDto = {
         content: 'Page post content',
         media: [],
       };
@@ -157,13 +92,14 @@ describe('FacebookController', () => {
       );
     });
 
-    it('should handle empty files array', async () => {
-      const createPostDto: CreatePostDto = {
+    it('should create a post for a page without files', async () => {
+      const createPostDto: CreateFacebookPagePostDto = {
         content: 'Page post content',
         media: [{ url: 'https://example.com/image.jpg' }],
       };
+      const files = [];
 
-      await controller.createPostForPage(mockPageId, createPostDto, []);
+      await controller.createPostForPage(mockPageId, createPostDto, files);
 
       // DTO should remain unchanged
       expect(createPostDto.media).toEqual([
@@ -174,51 +110,26 @@ describe('FacebookController', () => {
         createPostDto,
       );
     });
-  });
 
-  describe('schedulePost', () => {
-    it('should schedule a post with files', async () => {
-      const schedulePostDto: SchedulePostDto = {
-        content: 'Scheduled post content',
-        scheduledTime: new Date().toISOString(),
+    it('should handle undefined files', async () => {
+      const createPostDto: CreateFacebookPagePostDto = {
+        content: 'Page post content',
         media: [],
       };
-      const files = [mockFile];
 
-      await controller.schedulePost(mockAccountId, schedulePostDto, files);
+      await controller.createPostForPage(mockPageId, createPostDto, undefined);
 
-      // DTO should be updated with file
-      expect(schedulePostDto.media).toContainEqual({ file: mockFile });
-      expect(facebookService.schedulePost).toHaveBeenCalledWith(
-        mockAccountId,
-        schedulePostDto,
-      );
-    });
-
-    it('should schedule a post without files', async () => {
-      const schedulePostDto: SchedulePostDto = {
-        content: 'Scheduled post content',
-        scheduledTime: new Date().toISOString(),
-        media: [{ url: 'https://example.com/image.jpg' }],
-      };
-
-      await controller.schedulePost(mockAccountId, schedulePostDto);
-
-      // DTO should remain unchanged
-      expect(schedulePostDto.media).toEqual([
-        { url: 'https://example.com/image.jpg' },
-      ]);
-      expect(facebookService.schedulePost).toHaveBeenCalledWith(
-        mockAccountId,
-        schedulePostDto,
+      expect(createPostDto.media).toEqual([]);
+      expect(facebookService.createPagePost).toHaveBeenCalledWith(
+        mockPageId,
+        createPostDto,
       );
     });
   });
 
   describe('schedulePagePost', () => {
     it('should schedule a page post with files', async () => {
-      const scheduleDto: SchedulePagePostDto = {
-        pageId: mockPageId,
+      const scheduleDto: CreateFacebookPagePostDto = {
         content: 'Scheduled page post content',
         scheduledTime: new Date().toISOString(),
         media: [],
@@ -230,25 +141,43 @@ describe('FacebookController', () => {
       // DTO should be updated with file
       expect(scheduleDto.media).toContainEqual({ file: mockFile });
       expect(facebookService.schedulePagePost).toHaveBeenCalledWith(
+        mockPageId,
         scheduleDto,
       );
     });
 
     it('should schedule a page post without files', async () => {
-      const scheduleDto: SchedulePagePostDto = {
-        pageId: mockPageId,
+      const scheduleDto: CreateFacebookPagePostDto = {
         content: 'Scheduled page post content',
         scheduledTime: new Date().toISOString(),
         media: [{ url: 'https://example.com/image.jpg' }],
       };
+      const files = [];
 
-      await controller.schedulePagePost(mockPageId, scheduleDto, []);
+      await controller.schedulePagePost(mockPageId, scheduleDto, files);
 
       // DTO should remain unchanged
       expect(scheduleDto.media).toEqual([
         { url: 'https://example.com/image.jpg' },
       ]);
       expect(facebookService.schedulePagePost).toHaveBeenCalledWith(
+        mockPageId,
+        scheduleDto,
+      );
+    });
+
+    it('should handle undefined files', async () => {
+      const scheduleDto: CreateFacebookPagePostDto = {
+        content: 'Scheduled page post content',
+        scheduledTime: new Date().toISOString(),
+        media: [],
+      };
+
+      await controller.schedulePagePost(mockPageId, scheduleDto, undefined);
+
+      expect(scheduleDto.media).toEqual([]);
+      expect(facebookService.schedulePagePost).toHaveBeenCalledWith(
+        mockPageId,
         scheduleDto,
       );
     });
@@ -256,10 +185,10 @@ describe('FacebookController', () => {
 
   describe('getComments', () => {
     it('should get comments without page token', async () => {
-      await controller.getComments(mockAccountId, mockPostId);
+      await controller.getComments(mockUser, mockPostId);
 
       expect(facebookService.getComments).toHaveBeenCalledWith(
-        mockAccountId,
+        mockUser.userId,
         mockPostId,
         undefined,
       );
@@ -267,10 +196,10 @@ describe('FacebookController', () => {
 
     it('should get comments with page token', async () => {
       const pageToken = 'page_token';
-      await controller.getComments(mockAccountId, mockPostId, pageToken);
+      await controller.getComments(mockUser, mockPostId, pageToken);
 
       expect(facebookService.getComments).toHaveBeenCalledWith(
-        mockAccountId,
+        mockUser.userId,
         mockPostId,
         pageToken,
       );
@@ -279,9 +208,11 @@ describe('FacebookController', () => {
 
   describe('getPages', () => {
     it('should get user pages', async () => {
-      await controller.getPages(mockUserId);
+      await controller.getPages(mockUser);
 
-      expect(facebookService.getUserPages).toHaveBeenCalledWith(mockUserId);
+      expect(facebookService.getUserPages).toHaveBeenCalledWith(
+        mockUser.userId,
+      );
     });
   });
 
@@ -314,17 +245,20 @@ describe('FacebookController', () => {
 
       expect(facebookService.getPageInsights).toHaveBeenCalledWith(
         mockPageId,
-        '30d',
+        'days_28',
+        undefined,
       );
     });
 
-    it('should get page insights with custom period', async () => {
+    it('should get page insights with custom period and metrics', async () => {
       const period = '90d';
-      await controller.getPageInsights(mockPageId, period);
+      const metrics = 'page_impressions,page_engaged_users';
+      await controller.getPageInsights(mockPageId, period, metrics);
 
       expect(facebookService.getPageInsights).toHaveBeenCalledWith(
         mockPageId,
         period,
+        metrics,
       );
     });
   });
@@ -367,16 +301,40 @@ describe('FacebookController', () => {
         content: 'Updated content',
         media: [{ url: 'https://example.com/image.jpg' }],
       };
+      const files = [];
       const mockUpdatedPost = new FacebookPost();
 
       mockFacebookService.editPost.mockResolvedValue(mockUpdatedPost);
 
-      const result = await controller.updatePost(mockPostId, updateDto, []);
+      const result = await controller.updatePost(mockPostId, updateDto, files);
 
       // DTO should remain unchanged
       expect(updateDto.media).toEqual([
         { url: 'https://example.com/image.jpg' },
       ]);
+      expect(facebookService.editPost).toHaveBeenCalledWith(
+        mockPostId,
+        updateDto,
+      );
+      expect(result).toBe(mockUpdatedPost);
+    });
+
+    it('should handle undefined files', async () => {
+      const updateDto: UpdatePostDto = {
+        content: 'Updated content',
+        media: [],
+      };
+      const mockUpdatedPost = new FacebookPost();
+
+      mockFacebookService.editPost.mockResolvedValue(mockUpdatedPost);
+
+      const result = await controller.updatePost(
+        mockPostId,
+        updateDto,
+        undefined,
+      );
+
+      expect(updateDto.media).toEqual([]);
       expect(facebookService.editPost).toHaveBeenCalledWith(
         mockPostId,
         updateDto,

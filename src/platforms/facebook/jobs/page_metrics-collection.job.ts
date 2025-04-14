@@ -1,18 +1,20 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { FacebookRepository } from '../repositories/facebook.repository';
 import { FacebookService } from '../facebook.service';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class FacebookPageMetricsJob {
-  private readonly logger = new Logger(FacebookPageMetricsJob.name);
-
   constructor(
     private readonly facebookRepo: FacebookRepository,
     private readonly facebookService: FacebookService,
-  ) {}
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(FacebookPageMetricsJob.name);
+  }
 
-  @Cron(CronExpression.EVERY_5_MINUTES)
+  @Cron(CronExpression.EVERY_12_HOURS)
   async collectPageMetrics() {
     try {
       const pages = await this.facebookRepo.getActivePages();

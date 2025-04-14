@@ -5,12 +5,12 @@ import * as crypto from 'crypto';
 import { InstagramRepository } from './instagram.repository';
 import { NotFoundException } from '@nestjs/common';
 import { SocialPlatform } from '../../../common/enums/social-platform.enum';
-import { SocialAccount } from '../../../entities/notifications/entity/social-account.entity';
-import { AuthState } from '../../../entities/socials/facebook-entities/auth-state.entity';
-import { InstagramAccount } from '../../../entities/socials/instagram-entities/instagram-account.entity';
-import { InstagramMetric } from '../../../entities/socials/instagram-entities/instagram-metric.entity';
-import { InstagramPost } from '../../../entities/socials/instagram-entities/instagram-post.entity';
-import { InstagramRateLimit } from '../../../entities/socials/instagram-entities/instagram-rate-limit.entity';
+import { SocialAccount } from '../../entities/notifications/entity/social-account.entity';
+import { AuthState } from '../../entities/facebook-entities/auth-state.entity';
+import { InstagramAccount } from '../../entities/instagram-entities/instagram-account.entity';
+import { InstagramMetric } from '../../entities/instagram-entities/instagram-metric.entity';
+import { InstagramPost } from '../../entities/instagram-entities/instagram-post.entity';
+import { InstagramRateLimit } from '../../entities/instagram-entities/instagram-rate-limit.entity';
 
 // Mock crypto.randomBytes
 jest.mock('crypto', () => ({
@@ -26,7 +26,7 @@ describe('InstagramRepository', () => {
   let metricRepository: jest.Mocked<Repository<InstagramMetric>>;
   let authStateRepository: jest.Mocked<Repository<AuthState>>;
   let rateLimitRepository: jest.Mocked<Repository<InstagramRateLimit>>;
-  let socialAccountRepository: jest.Mocked<Repository<SocialAccount>>;
+  // let socialAccountRepository: jest.Mocked<Repository<SocialAccount>>;
   let entityManager: jest.Mocked<EntityManager>;
 
   beforeEach(async () => {
@@ -123,9 +123,9 @@ describe('InstagramRepository', () => {
     rateLimitRepository = module.get(
       getRepositoryToken(InstagramRateLimit),
     ) as jest.Mocked<Repository<InstagramRateLimit>>;
-    socialAccountRepository = module.get(
-      getRepositoryToken(SocialAccount),
-    ) as jest.Mocked<Repository<SocialAccount>>;
+    // socialAccountRepository = module.get(
+    //   getRepositoryToken(SocialAccount),
+    // ) as jest.Mocked<Repository<SocialAccount>>;
     entityManager = module.get(EntityManager) as jest.Mocked<EntityManager>;
 
     // Mock the getTenantId method

@@ -1,11 +1,11 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from '../../entities/users/user.entity';
-import { Role } from '../../entities/roles/role.entity';
 import { TenantService } from '../../database/tenant.service';
 import { clerkClient, User as clerkUser } from '@clerk/express';
 import { UserRole } from '../../common/enums/roles';
+import { User } from '../entities/user.entity';
+import { Role } from '../entities/role.entity';
 
 @Injectable()
 export class UsersService {

@@ -13,19 +13,16 @@ import {
 } from '@nestjs/common';
 import { FacebookService } from './facebook.service';
 import {
-  CreatePostDto,
-  SchedulePagePostDto,
-  SchedulePostDto,
+  CreateFacebookPagePostDto,
   UpdatePageDto,
   UpdatePostDto,
 } from './helpers/post.dto';
 import { RateLimitInterceptor } from './helpers/rate-limit.interceptor';
 import { ClerkAuthGuard } from '../../guards/clerk-auth.guard';
 import { FilesInterceptor } from '@nestjs/platform-express/multer';
-import { MediaItem } from '../platform-service.interface';
 import { CurrentUser } from '../../decorators/current-user.decorator';
-import { FacebookPage } from '../../entities/socials/facebook-entities/facebook-page.entity';
-import { FacebookPost } from '../../entities/socials/facebook-entities/facebook-post.entity';
+import { FacebookPage } from '../entities/facebook-entities/facebook-page.entity';
+import { FacebookPost } from '../entities/facebook-entities/facebook-post.entity';
 
 @Controller('platforms/facebook')
 @UseInterceptors(RateLimitInterceptor)
@@ -33,31 +30,13 @@ import { FacebookPost } from '../../entities/socials/facebook-entities/facebook-
 export class FacebookController {
   constructor(private readonly facebookService: FacebookService) {}
 
-  @Post(':accountId/posts')
-  @UseInterceptors(FilesInterceptor('files'))
-  async createPost(
-    @Param('accountId') accountId: string,
-    @Body('content') content: string,
-    @Body('mediaUrls') mediaUrls?: string[],
-    @UploadedFiles() files?: Express.Multer.File[],
-  ) {
-    // Combine file uploads and URL-based media
-    const media: MediaItem[] = [
-      ...(files?.map((file) => ({ file, url: undefined })) || []),
-      ...(mediaUrls?.map((url) => ({ url, file: undefined })) || []),
-    ];
-
-    return this.facebookService.post(accountId, content, media);
-  }
-
   @Post('pages/:pageId/posts')
   @UseInterceptors(FilesInterceptor('files'))
   async createPostForPage(
     @Param('pageId') pageId: string,
-    @Body() createPostDto: CreatePostDto,
+    @Body() createPostDto: CreateFacebookPagePostDto,
     @UploadedFiles() files: Express.Multer.File[],
   ) {
-    // Associate uploaded files with media in DTO
     if (files?.length) {
       createPostDto.media = createPostDto.media || [];
       files.forEach((file) => {
@@ -68,31 +47,13 @@ export class FacebookController {
     return this.facebookService.createPagePost(pageId, createPostDto);
   }
 
-  @Post(':accountId/posts/schedule')
-  @UseInterceptors(FilesInterceptor('files'))
-  async schedulePost(
-    @Param('accountId') accountId: string,
-    @Body() schedulePostDto: SchedulePostDto,
-    @UploadedFiles() files?: Express.Multer.File[],
-  ) {
-    if (files?.length) {
-      schedulePostDto.media = schedulePostDto.media || [];
-      files.forEach((file) => {
-        schedulePostDto.media.push({ file });
-      });
-    }
-
-    return this.facebookService.schedulePost(accountId, schedulePostDto);
-  }
-
   @Post('pages/:pageId/schedule')
   @UseInterceptors(FilesInterceptor('files'))
   async schedulePagePost(
     @Param('pageId') pageId: string,
-    @Body() scheduleDto: SchedulePagePostDto,
+    @Body() scheduleDto: CreateFacebookPagePostDto,
     @UploadedFiles() files: Express.Multer.File[],
   ) {
-    // Associate uploaded files with media in DTO
     if (files?.length) {
       scheduleDto.media = scheduleDto.media || [];
       files.forEach((file) => {
@@ -100,21 +61,22 @@ export class FacebookController {
       });
     }
 
-    return this.facebookService.schedulePagePost(scheduleDto);
+    return this.facebookService.schedulePagePost(pageId, scheduleDto);
   }
 
   @Get(':accountId/posts/:postId/comments')
   async getComments(
-    @Param('accountId') accountId: string,
+    @CurrentUser() user: any,
     @Param('postId') postId: string,
     @Query('pageToken') pageToken?: string,
   ) {
+    const { userId: accountId } = user;
     return this.facebookService.getComments(accountId, postId, pageToken);
   }
 
   @Get('pages')
-  async getPages(@CurrentUser() userId: string) {
-    return this.facebookService.getUserPages(userId);
+  async getPages(@CurrentUser() user) {
+    return this.facebookService.getUserPages(user.userId);
   }
 
   @Get('pages/:pageId/posts')
@@ -126,12 +88,14 @@ export class FacebookController {
     return this.facebookService.getPagePosts(pageId, limit, cursor);
   }
 
+  // Still need to test
   @Get('pages/:pageId/insights')
   async getPageInsights(
     @Param('pageId') pageId: string,
-    @Query('period') period: string = '30d',
+    @Query('period') period: string = 'days_28',
+    @Query('metrics') metrics?: string,
   ) {
-    return this.facebookService.getPageInsights(pageId, period);
+    return this.facebookService.getPageInsights(pageId, period, metrics);
   }
 
   @Get('posts/:accountId/:postId/metrics')

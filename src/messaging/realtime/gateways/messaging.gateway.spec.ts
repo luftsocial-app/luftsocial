@@ -4,7 +4,6 @@ import { ConversationService } from '../../conversations/services/conversation.s
 import { MessageService } from '../../messages/services/message.service';
 import { MessageValidatorService } from '../services/message-validator.service';
 import { ConfigService } from '@nestjs/config';
-import { Logger } from '@nestjs/common';
 import { Server } from 'socket.io';
 import { MessageEventType, RoomNameFactory } from '../events/message-events';
 import { WsGuard } from '../../../guards/ws.guard';
@@ -14,6 +13,7 @@ import { ParticipantEntity } from '../../conversations/entities/participant.enti
 import { ConversationType } from '../../shared/enums/conversation-type.enum';
 import { SuccessResponse } from '../interfaces/socket.interfaces';
 import { MessageStatus } from '../../../common/enums/messaging';
+import { PinoLogger } from 'nestjs-pino';
 
 describe('MessagingGateway', () => {
   let gateway: MessagingGateway;
@@ -23,6 +23,7 @@ describe('MessagingGateway', () => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let configService: jest.Mocked<ConfigService>;
   let mockServer: jest.Mocked<Server>;
+  let logger: PinoLogger;
 
   // Mock data
   const mockUserId = 'user-123';
@@ -76,10 +77,7 @@ describe('MessagingGateway', () => {
     createdAt: new Date(),
     updatedAt: new Date(),
     isEdited: false,
-    metadata: {
-      editHistory: [],
-    },
-  };
+  } as unknown as MessageEntity;
 
   beforeEach(async () => {
     // Create mock implementations
@@ -126,25 +124,35 @@ describe('MessagingGateway', () => {
       providers: [
         MessagingGateway,
         {
+          provide: PinoLogger,
+          useValue: {
+            info: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+            setContext: jest.fn(),
+          },
+        },
+        {
           provide: ConversationService,
           useValue: {
             validateAccess: jest.fn(),
             getConversationsByUserId: jest.fn(),
             getConversation: jest.fn(),
-            createMessage: jest.fn(),
             updateParticipantLastActive: jest.fn(),
             addParticipantsToGroup: jest.fn(),
             removeParticipantsFromGroup: jest.fn(),
-            markMessageAsRead: jest.fn(),
           },
         },
         {
           provide: MessageService,
           useValue: {
+            createMessage: jest.fn(),
             updateMessage: jest.fn(),
             findMessageById: jest.fn(),
             deleteMessage: jest.fn(),
             addReaction: jest.fn(),
+            markMessageAsRead: jest.fn(),
             removeReaction: jest.fn(),
           },
         },
@@ -166,13 +174,6 @@ describe('MessagingGateway', () => {
               if (key === 'messaging.maxClientsPerUser') return 5;
               return defaultValue;
             }),
-          },
-        },
-        {
-          provide: Logger,
-          useValue: {
-            debug: jest.fn(),
-            error: jest.fn(),
           },
         },
       ],
@@ -204,11 +205,11 @@ describe('MessagingGateway', () => {
 
   describe('afterInit', () => {
     it('should log initialization message', () => {
-      // Mock console.log to verify it's called
-      const consoleSpy = jest.spyOn(console, 'log');
+      logger = gateway['logger'] as PinoLogger; // Assign the mocked logger
+      const loggerSpy = jest.spyOn(logger, 'info');
       gateway.afterInit();
-      expect(consoleSpy).toHaveBeenCalledWith('WebSocket Gateway initialized');
-      consoleSpy.mockRestore();
+      expect(loggerSpy).toHaveBeenCalledWith('WebSocket Gateway initialized');
+      loggerSpy.mockRestore();
     });
   });
 
@@ -400,9 +401,7 @@ describe('MessagingGateway', () => {
       // Setup mocks for success path
       messageValidator.validateNewMessage.mockReturnValue(null);
       conversationService.validateAccess.mockResolvedValue(true);
-      conversationService.createMessage.mockResolvedValue(
-        mockMessage as MessageEntity,
-      );
+      messageService.createMessage.mockResolvedValue(mockMessage);
       conversationService.getConversation.mockResolvedValue(
         mockConversation as ConversationEntity,
       );
@@ -410,7 +409,7 @@ describe('MessagingGateway', () => {
       const result = await gateway.handleMessage(mockClient, mockPayload);
 
       // Verify message was created
-      expect(conversationService.createMessage).toHaveBeenCalledWith(
+      expect(messageService.createMessage).toHaveBeenCalledWith(
         mockPayload.conversationId,
         mockPayload.content,
         mockUserId,
@@ -765,7 +764,7 @@ describe('MessagingGateway', () => {
       expect((result as SuccessResponse).data).toEqual(
         expect.objectContaining({ throttled: true }),
       );
-      expect(conversationService.markMessageAsRead).not.toHaveBeenCalled();
+      expect(messageService.markMessageAsRead).not.toHaveBeenCalled();
     });
 
     it('should mark message as read and emit event on success', async () => {
@@ -775,7 +774,7 @@ describe('MessagingGateway', () => {
       );
 
       // Should mark message as read
-      expect(conversationService.markMessageAsRead).toHaveBeenCalledWith(
+      expect(messageService.markMessageAsRead).toHaveBeenCalledWith(
         mockReadPayload.messageId,
         mockUserId,
       );

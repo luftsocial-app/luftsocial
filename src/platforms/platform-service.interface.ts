@@ -1,4 +1,5 @@
-import { IsOptional, IsString, IsUrl } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
+import { MediaType } from '../common/enums/media-type.enum';
 
 export interface PostResponse {
   platformPostId: string;
@@ -48,7 +49,7 @@ export interface PlatformOAuthConfig {
 }
 
 export interface TokenResponse {
-  accessToken: string;
+  accessToken?: string;
   refreshToken?: string;
   expiresIn: number;
   tokenType: string;
@@ -59,7 +60,15 @@ export interface TokenResponse {
 
 export class MediaItem {
   @IsOptional()
-  @IsUrl()
+  @IsString()
+  type?: MediaType;
+
+  @IsOptional()
+  @IsString()
+  title?: string;
+
+  @IsOptional()
+  @IsString()
   url?: string;
 
   @IsOptional()
@@ -67,5 +76,17 @@ export class MediaItem {
   description?: string;
 
   @IsOptional()
-  file?: Express.Multer.File;
+  file?: Express.Multer.File; // Buffer for direct uploads, string for URLs
+
+  @IsOptional()
+  @IsString()
+  s3Key?: string; // For files already uploaded to S3 via presigned URL
+
+  @IsOptional()
+  @IsString()
+  s3Bucket?: string; // Bucket where file was uploaded
+
+  @IsOptional()
+  @IsString()
+  contentType?: string; // MIME type of the uploaded file
 }

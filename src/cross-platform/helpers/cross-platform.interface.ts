@@ -15,6 +15,7 @@ export enum PublishStatus {
   COMPLETED = 'COMPLETED',
   PARTIALLY_COMPLETED = 'PARTIALLY_COMPLETED',
   FAILED = 'FAILED',
+  CANCELED = 'CANCELED',
 }
 
 export interface PlatformAnalytics {
@@ -84,6 +85,9 @@ export interface PublishPlatformResult {
   postId?: string;
   postedAt?: Date;
   error?: string;
+  retryScheduled?: boolean;
+  retryCount?: number;
+  nextRetryAt?: Date;
 }
 
 export interface PlatformPublishResponse {
@@ -109,4 +113,14 @@ export interface PublishResult {
   status: PublishStatus;
   mediaItems: MediaStorageItem[];
   results: PublishPlatformResult[];
+}
+
+export interface RetryQueueItem {
+  publishRecordId: string;
+  platform: SocialPlatform;
+  accountId: string;
+  content: string;
+  mediaUrls?: string[];
+  platformSpecificParams?: any;
+  retryCount: number;
 }

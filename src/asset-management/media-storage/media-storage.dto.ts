@@ -8,17 +8,19 @@ export class UploadResult {
 
 export class PreSignedUrlResult {
   preSignedUrl: string;
-  contentType: string;
   cdnUrl: string;
   bucket: string;
   key: string;
+  assetId: string;
 }
 
 export interface MediaStorageItem {
-  url: string;
+  id?: string;
+  url?: string;
   key: string;
   type: MediaType;
-  originalFilename: string;
-  size: number;
-  mimeType: string;
+  originalFilename?: string;
+  size?: number;
+  mimeType?: string;
+  hash?: string;
 }

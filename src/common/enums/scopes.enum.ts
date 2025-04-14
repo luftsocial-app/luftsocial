@@ -4,6 +4,8 @@ export enum FACEBOOK_SCOPES {
   PAGES_MANAGE_POSTS = 'pages_manage_posts',
   PAGES_MANAGE_METADATA = 'pages_manage_metadata',
   PAGES_READ_USER_CONTENT = 'pages_read_user_content',
+  PAGES_PUBLISH_VIDEO = 'publish_video',
+  PAGES_BUSINESS_MANAGEMENT = 'business_management',
   // Page Metrics
   PAGE_IMPRESSIONS = 'page_impressions',
   PAGE_ENGAGED_USERS = 'page_engaged_users',

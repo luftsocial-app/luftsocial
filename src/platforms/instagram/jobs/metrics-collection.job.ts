@@ -1,20 +1,23 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InstagramRepository } from '../repositories/instagram.repository';
 import { InstagramService } from '../instagram.service';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class InstagramMetricsCollectionJob {
-  private readonly logger = new Logger(InstagramMetricsCollectionJob.name);
-
   constructor(
     private readonly instagramRepo: InstagramRepository,
     private readonly instagramService: InstagramService,
-  ) {}
 
-  @Cron(CronExpression.EVERY_30_MINUTES)
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(InstagramMetricsCollectionJob.name);
+  }
+
+  @Cron(CronExpression.EVERY_12_HOURS)
   async collectMetrics() {
-    this.logger.log('Starting Instagram metrics collection job');
+    this.logger.info('Starting Instagram metrics collection job');
 
     try {
       const accounts = await this.instagramRepo.getActiveAccounts();

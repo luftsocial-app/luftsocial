@@ -12,7 +12,7 @@ import {
   PlatformMetrics,
   PostMetrics,
 } from '../helpers/cross-platform.interface';
-import { AnalyticsRecord } from '../../entities/cross-platform-entities/analytics.entity';
+import { AnalyticsRecord } from '../entities/analytics.entity';
 import { SocialPlatform } from '../../common/enums/social-platform.enum';
 
 @Injectable()

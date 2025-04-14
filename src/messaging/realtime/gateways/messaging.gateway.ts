@@ -1,5 +1,5 @@
 // External dependencies
-import { Logger, UseGuards, Inject, forwardRef } from '@nestjs/common';
+import { UseGuards } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Server } from 'socket.io';
 import {
@@ -46,6 +46,7 @@ import {
   createSuccessResponse,
   validatePayload,
 } from '../utils/response.utils';
+import { PinoLogger } from 'nestjs-pino';
 
 @WebSocketGateway({
   cors: {
@@ -61,7 +62,6 @@ export class MessagingGateway
   @WebSocketServer()
   server: Server;
 
-  private readonly logger = new Logger(MessagingGateway.name);
   private readonly throttleTimers = new Map<string, number>();
   private readonly MESSAGE_THROTTLE_MS: number;
   private readonly TYPING_THROTTLE_MS: number;
@@ -70,12 +70,13 @@ export class MessagingGateway
   private readonly clientsPerUser = new Map<string, Set<string>>();
 
   constructor(
-    @Inject(forwardRef(() => ConversationService))
     private readonly conversationService: ConversationService,
     private readonly messageService: MessageService,
     private readonly messageValidator: MessageValidatorService,
     private readonly configService: ConfigService,
+    private readonly logger: PinoLogger,
   ) {
+    this.logger.setContext(MessagingGateway.name);
     this.MESSAGE_THROTTLE_MS = this.configService.get<number>(
       'messaging.throttle.messageRateMs',
       500,
@@ -95,7 +96,7 @@ export class MessagingGateway
   }
 
   afterInit() {
-    console.log('WebSocket Gateway initialized');
+    this.logger.info('WebSocket Gateway initialized');
   }
 
   async handleConnection(client: SocketWithUser) {
@@ -222,7 +223,7 @@ export class MessagingGateway
     }
 
     // Save message
-    const message = await this.conversationService.createMessage(
+    const message = await this.messageService.createMessage(
       payload.conversationId,
       payload.content,
       user.id,
@@ -491,10 +492,7 @@ export class MessagingGateway
       return createSuccessResponse({ throttled: true });
     }
 
-    await this.conversationService.markMessageAsRead(
-      payload.messageId,
-      user.id,
-    );
+    await this.messageService.markMessageAsRead(payload.messageId, user.id);
 
     // Notify other participants
     const room = RoomNameFactory.conversationRoom(payload.conversationId);
