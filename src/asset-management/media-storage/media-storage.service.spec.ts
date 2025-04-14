@@ -21,6 +21,7 @@ jest.mock('crypto');
 
 describe('MediaStorageService', () => {
   let service: MediaStorageService;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let postAssetRepository: Repository<PostAsset>;
   let tenantService: TenantService;
   let mockedS3Instance: jest.Mocked<S3>;
@@ -490,7 +491,6 @@ describe('MediaStorageService', () => {
           'https://example.com/bad-url.jpg',
         ),
       ).rejects.toThrow(BadRequestException);
-
     });
   });
 
@@ -853,7 +853,6 @@ describe('MediaStorageService', () => {
         await expect(
           service_any.uploadToS3('test-key.jpg', Buffer.from('test')),
         ).rejects.toThrow(BadRequestException);
-
       });
 
       it('should use custom bucket when provided', async () => {
