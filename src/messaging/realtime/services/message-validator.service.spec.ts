@@ -119,42 +119,12 @@ describe('MessageValidatorService', () => {
       expect(result).toBe('Message content is required');
     });
 
-    it('should return error when content contains forbidden elements', () => {
-      const payload: MessageEventPayload = {
-        conversationId: 'conv-123',
-        content: 'Hello <script>alert("XSS")</script>',
-      };
-
-      contentSanitizer.sanitizeRealtimeMessage.mockReturnValue({
-        isValid: false,
-        sanitized: null,
-      });
-
-      const result = service.validateNewMessage(payload);
-      expect(result).toBe('Message content contains forbidden elements');
-    });
-
     it('should return error message when an exception occurs', () => {
       // Create a payload that will cause an error when accessed
       const payload = null;
 
       const result = service.validateNewMessage(payload);
       expect(result).toBe('Invalid message format');
-    });
-
-    it('should return error when sanitization fails', () => {
-      const payload: MessageEventPayload = {
-        conversationId: 'conv-123',
-        content: '<script>alert("xss")</script>',
-      };
-
-      contentSanitizer.sanitizeRealtimeMessage.mockReturnValueOnce({
-        isValid: false,
-        sanitized: null,
-      });
-
-      const result = service.validateNewMessage(payload);
-      expect(result).toBe('Message content contains forbidden elements');
     });
   });
 

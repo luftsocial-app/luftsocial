@@ -183,7 +183,7 @@ export class TokenCacheService {
         if (states[key]) {
           delete states[key];
           fs.writeFileSync(this.stateFilePath, JSON.stringify(states, null, 2));
-        this.logger.log(`Removed state from backup file`);
+          this.logger.log(`Removed state from backup file`);
         }
       }
     } catch (error) {

@@ -100,13 +100,6 @@ export class UserTenantService {
       });
     }
 
-    // Save the user-tenant relationship first
-    await queryRunner.manager.query(
-      `INSERT INTO tbl_user_tenants (user_id, tenant_id) 
-     VALUES ($1, $2)`,
-      [user.id, tenant.id],
-    );
-
     // Now save/update the user
     if (!user.tenants) user.tenants = [];
     if (!user.tenants.find((t) => t.id === tenant.id)) {

@@ -11,7 +11,6 @@ export class WsGuard implements CanActivate {
   }
 
   canActivate(context: ExecutionContext): boolean {
-
     try {
       const client: Socket = context.switchToWs().getClient<Socket>();
       const token = this.extractToken(client);

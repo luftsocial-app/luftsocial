@@ -55,6 +55,7 @@ import { ParticipantEventHandler } from './usecases/participants.events';
 import { MessageEventHandler } from './usecases/message.events';
 import { WebsocketHelpers } from '../utils/websocket.helpers';
 import * as jwt from 'jsonwebtoken';
+import { TenantService } from '../../../user-management/tenant.service';
 @WebSocketGateway({
   cors: {
     origin: config.get('websocket.allowedOrigins'),
@@ -79,6 +80,7 @@ export class MessagingGateway
     private readonly messageEventHandler: MessageEventHandler,
     private readonly websoketHelpers: WebsocketHelpers,
     private readonly logger: PinoLogger,
+    private readonly tenantService: TenantService,
   ) {
     this.logger.setContext(MessagingGateway.name);
   }
@@ -86,9 +88,11 @@ export class MessagingGateway
   afterInit(server: Server) {
     this.logger.info('WebSocket Gateway initialized');
     server.use((socket, next) => {
+      const tenantId = socket.handshake.headers['x-tenant-id'] as string;
+      this.tenantService.setTenantId(tenantId);
+
       const token =
         socket.handshake.auth?.token || socket.handshake.headers?.authorization;
-
       if (!token) {
         return next(new Error('Authentication token is missing'));
       }
@@ -102,7 +106,7 @@ export class MessagingGateway
         const user = jwt.verify(token, publicKey, {
           algorithms: ['RS256'], // Specify the RS256 algorithm
         });
-        socket.data.user = user; // Attach the user object to socket.data
+        socket.data.user = user; // Attach the user object to socket.dat
         next();
       } catch (error) {
         this.logger.error({ error });
@@ -188,9 +192,9 @@ export class MessagingGateway
     }
   }
 
+  @UsePipes(WebsocketSanitizationPipe)
   @SubscribeMessage(MessageEventType.SEND_MESSAGE)
   @SocketHandler()
-  @UsePipes(WebsocketSanitizationPipe)
   async handleMessage(
     @MessageBody() payload: MessageEventPayload,
     @ConnectedSocket() client: SocketWithUser,
@@ -213,12 +217,11 @@ export class MessagingGateway
     if (validationError) {
       return createErrorResponse('VALIDATION_ERROR', validationError);
     }
-
     // Validate access
     const hasAccess = await this.conversationService.validateAccess(
       payload.conversationId,
       user.id,
-      user.tenantId,
+      this.tenantService.getTenantId(),
     );
 
     if (!hasAccess) {
@@ -232,7 +235,7 @@ export class MessagingGateway
     const message = await this.messageService.createMessage(
       payload.conversationId,
       payload.content,
-      user.id,
+      user.sub,
     );
 
     // Get conversation to ensure we have all participants

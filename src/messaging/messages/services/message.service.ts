@@ -123,6 +123,7 @@ export class MessageService {
 
       // Sanitize content before saving
       const sanitizedContent = this.contentSanitizer.sanitize(content);
+
       if (!sanitizedContent) {
         throw new BadRequestException('Message content is invalid');
       }

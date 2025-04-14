@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
-import sanitizeHtml from 'sanitize-html';
+import * as sanitizeHtml from 'sanitize-html';
 
 @Injectable()
 export class ContentSanitizer {
@@ -78,6 +78,7 @@ export class ContentSanitizer {
     try {
       if (typeof content === 'string') {
         const sanitized = sanitizeHtml(content, this.sanitizeOptions);
+
         return {
           isValid: !!sanitized && sanitized.length <= this.maxLength,
           sanitized: sanitized.slice(0, this.maxLength),
@@ -99,7 +100,29 @@ export class ContentSanitizer {
     }
   }
 
-  private sanitizeMessageObject(obj: any): any {
+  private sanitizeMessageObject(
+    obj: any,
+    visited = new WeakSet(),
+    depth = 0,
+    maxDepth = 10,
+  ): any {
+    if (depth > maxDepth) {
+      this.logger.warn('Maximum depth exceeded during sanitization');
+      return null; // Or handle as needed
+    }
+
+    if (typeof obj !== 'object' || obj === null) {
+      // Skip non-object values
+      return obj;
+    }
+
+    if (visited.has(obj)) {
+      this.logger.warn('Circular reference detected during sanitization');
+      return null; // Or handle as needed
+    }
+
+    visited.add(obj);
+
     const sanitized: any = {};
 
     for (const [key, value] of Object.entries(obj)) {
@@ -109,18 +132,23 @@ export class ContentSanitizer {
         sanitized[key] = value.map((item) =>
           typeof item === 'string'
             ? sanitizeHtml(item, this.sanitizeOptions)
-            : this.sanitizeMessageObject(item),
+            : this.sanitizeMessageObject(item, visited, depth + 1, maxDepth),
         );
       } else if (typeof value === 'object' && value !== null) {
-        sanitized[key] = this.sanitizeMessageObject(value);
+        sanitized[key] = this.sanitizeMessageObject(
+          value,
+          visited,
+          depth + 1,
+          maxDepth,
+        );
       } else {
         sanitized[key] = value;
       }
     }
 
+    visited.delete(obj); // Clean up to avoid memory leaks
     return sanitized;
   }
-
   sanitize(content: string): string {
     try {
       if (!content) return '';

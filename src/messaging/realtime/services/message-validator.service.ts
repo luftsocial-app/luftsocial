@@ -38,14 +38,6 @@ export class MessageValidatorService {
         return 'Message content cannot be empty';
       }
 
-      const sanitizationResult = this.contentSanitizer.sanitizeRealtimeMessage(
-        payload.content,
-      );
-
-      if (!sanitizationResult.isValid) {
-        return 'Message content contains forbidden elements';
-      }
-
       if (payload.metadata) {
         const metadataSanitization =
           this.contentSanitizer.sanitizeRealtimeMessage(payload.metadata);

@@ -133,10 +133,6 @@ describe('UserTenantService', () => {
       // Verify the sequence of operations
       expect(queryRunner.startTransaction).toHaveBeenCalled();
       expect(queryRunner.manager.findOne).toHaveBeenCalledTimes(2);
-      expect(queryRunner.manager.query).toHaveBeenCalledWith(
-        expect.stringContaining('INSERT INTO tbl_user_tenants'),
-        [userData.id, mockTenant.id],
-      );
       expect(queryRunner.manager.save).toHaveBeenCalledWith(User, savedUser);
       expect(queryRunner.commitTransaction).toHaveBeenCalled();
       expect(queryRunner.release).toHaveBeenCalled();

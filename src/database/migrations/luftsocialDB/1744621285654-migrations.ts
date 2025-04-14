@@ -1,9 +1,12 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class Migrations1743813315598 implements MigrationInterface {
-  name = 'Migrations1743813315598';
+export class Migrations1744621285654 implements MigrationInterface {
+  name = 'Migrations1744621285654';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(
+      `CREATE TABLE "teams" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying NOT NULL, "description" character varying, "tenant_id" character varying NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "createdBy" character varying, "updatedBy" character varying, CONSTRAINT "PK_7e5523774a38b08a6236d322403" PRIMARY KEY ("id"))`,
+    );
     await queryRunner.query(
       `CREATE TABLE "tbl_permissions" ("id" SERIAL NOT NULL, "name" character varying(255) NOT NULL, "description" text, "created_at" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_5a13bf078da14cd3e1a02c18f1f" PRIMARY KEY ("id"))`,
     );
@@ -12,6 +15,9 @@ export class Migrations1743813315598 implements MigrationInterface {
     );
     await queryRunner.query(
       `CREATE TABLE "tbl_role" ("id" SERIAL NOT NULL, "name" "public"."tbl_role_name_enum" NOT NULL DEFAULT 'member', "description" text, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "tenant_id" character varying, CONSTRAINT "PK_7fb8c467d6259854a09dd60c109" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "tbl_tenants" ("id" character varying NOT NULL, "name" character varying NOT NULL, "slug" character varying, "logo" character varying, "settings" jsonb NOT NULL DEFAULT '{}', "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "deleted_at" TIMESTAMP, CONSTRAINT "UQ_6a111522b00b81d4125e757f099" UNIQUE ("name"), CONSTRAINT "UQ_a5b22714c4ec8138130f8f1a777" UNIQUE ("slug"), CONSTRAINT "PK_88f19f0c5788411b2deea454c0b" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TYPE "public"."conversation_participants_role_enum" AS ENUM('owner', 'admin', 'member', 'guest')`,
@@ -170,22 +176,7 @@ export class Migrations1743813315598 implements MigrationInterface {
       `CREATE TABLE "tbl_users" ("id" character varying NOT NULL, "clerkId" character varying NOT NULL, "email" character varying NOT NULL, "username" character varying NOT NULL, "first_name" character varying NOT NULL, "last_name" character varying NOT NULL, "profile" character varying, "phone" character varying, "avatar" character varying, "is_active" boolean NOT NULL DEFAULT true, "permissions" jsonb NOT NULL DEFAULT '[]', "lastSeen" TIMESTAMP, "status" character varying, "customStatus" character varying, "activeTenantId" character varying, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "created_by" character varying, "updated_by" character varying, "is_deleted" boolean NOT NULL DEFAULT false, "deleted_at" TIMESTAMP, "deleted_by" character varying, CONSTRAINT "UQ_f8829e6acbf05847782a009e6cb" UNIQUE ("clerkId"), CONSTRAINT "UQ_d74ab662f9d3964f78b3416d5da" UNIQUE ("email"), CONSTRAINT "PK_bb1d884179b3e42514b36c01e4e" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
-      `CREATE TABLE "teams" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "name" character varying NOT NULL, "description" character varying, "tenant_id" character varying NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "createdBy" character varying, "updatedBy" character varying, CONSTRAINT "PK_7e5523774a38b08a6236d322403" PRIMARY KEY ("id"))`,
-    );
-    await queryRunner.query(
-      `CREATE TABLE "tbl_tenants" ("id" character varying NOT NULL, "name" character varying NOT NULL, "slug" character varying, "logo" character varying, "settings" jsonb NOT NULL DEFAULT '{}', "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "deleted_at" TIMESTAMP, CONSTRAINT "UQ_6a111522b00b81d4125e757f099" UNIQUE ("name"), CONSTRAINT "UQ_a5b22714c4ec8138130f8f1a777" UNIQUE ("slug"), CONSTRAINT "PK_88f19f0c5788411b2deea454c0b" PRIMARY KEY ("id"))`,
-    );
-    await queryRunner.query(
-      `CREATE TABLE "tbl_user_tenants" ("id" character varying NOT NULL, "created_at" TIMESTAMP NOT NULL DEFAULT now(), "updated_at" TIMESTAMP NOT NULL DEFAULT now(), "deleted_at" TIMESTAMP, "userId" character varying, "tenantId" character varying, CONSTRAINT "PK_3a67009cbd1b0f96e77286e3400" PRIMARY KEY ("id"))`,
-    );
-    await queryRunner.query(
       `CREATE TABLE "tbl_user_role_change" ("id" SERIAL NOT NULL, "userId" uuid NOT NULL, "changedById" uuid NOT NULL, "previousRole" character varying NOT NULL, "new_role" character varying NOT NULL, "reason" text, CONSTRAINT "PK_0e954ce7cb67395e66a7cfb0765" PRIMARY KEY ("id"))`,
-    );
-    await queryRunner.query(
-      `CREATE TYPE "public"."scheduled_posts_status_enum" AS ENUM('PENDING', 'PROCESSING', 'PUBLISHED', 'PARTIALLY_PUBLISHED', 'FAILED', 'CANCELLED')`,
-    );
-    await queryRunner.query(
-      `CREATE TABLE "scheduled_posts" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "userId" character varying NOT NULL, "content" text NOT NULL, "mediaUrls" text, "mediaItems" jsonb, "platforms" jsonb NOT NULL, "scheduledTime" TIMESTAMP NOT NULL, "status" "public"."scheduled_posts_status_enum" NOT NULL DEFAULT 'PENDING', "results" jsonb, "publishedAt" TIMESTAMP, "error" character varying, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_0408d38eae4ccb97d9bbb148da1" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TYPE "public"."publish_records_status_enum" AS ENUM('PENDING', 'COMPLETED', 'PARTIALLY_COMPLETED', 'FAILED')`,
@@ -194,10 +185,16 @@ export class Migrations1743813315598 implements MigrationInterface {
       `CREATE TABLE "publish_records" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "userId" character varying NOT NULL, "content" text NOT NULL, "mediaItems" jsonb, "platforms" jsonb NOT NULL, "scheduleTime" TIMESTAMP, "status" "public"."publish_records_status_enum" NOT NULL, "results" jsonb, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_fb4622d2f62653f6b7209e098ed" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
-      `CREATE TABLE "analytics_records" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "userId" character varying NOT NULL, "dateRange" jsonb NOT NULL, "platforms" jsonb NOT NULL, "results" jsonb NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_94cace6e56221f9f8848588d4b6" PRIMARY KEY ("id"))`,
+      `CREATE TYPE "public"."scheduled_posts_status_enum" AS ENUM('PENDING', 'PROCESSING', 'PUBLISHED', 'PARTIALLY_PUBLISHED', 'FAILED', 'CANCELLED')`,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "scheduled_posts" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "userId" character varying NOT NULL, "content" text NOT NULL, "mediaUrls" text, "mediaItems" jsonb, "platforms" jsonb NOT NULL, "scheduledTime" TIMESTAMP NOT NULL, "status" "public"."scheduled_posts_status_enum" NOT NULL DEFAULT 'PENDING', "results" jsonb, "publishedAt" TIMESTAMP, "error" character varying, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_0408d38eae4ccb97d9bbb148da1" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TABLE "post_assets" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "tenantId" character varying NOT NULL, "fileKey" character varying NOT NULL, "fileType" character varying NOT NULL, "uploadedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_ed08ca38aaa5e342de73e419b33" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "analytics_records" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "userId" character varying NOT NULL, "dateRange" jsonb NOT NULL, "platforms" jsonb NOT NULL, "results" jsonb NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_94cace6e56221f9f8848588d4b6" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TABLE "tiktok_metrics" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "tenantId" character varying NOT NULL, "viewCount" integer NOT NULL DEFAULT '0', "likeCount" integer NOT NULL DEFAULT '0', "commentCount" integer NOT NULL DEFAULT '0', "shareCount" integer NOT NULL DEFAULT '0', "playCount" integer NOT NULL DEFAULT '0', "downloadCount" integer NOT NULL DEFAULT '0', "engagementRate" numeric(5,2) NOT NULL DEFAULT '0', "averageWatchTime" numeric(10,2), "totalWatchTimeMillis" bigint, "retentionRate" jsonb, "audienceTerritories" jsonb, "collectedAt" TIMESTAMP NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "videoId" uuid, CONSTRAINT "PK_39e2f3ade9bb7fb869dbd004145" PRIMARY KEY ("id"))`,
@@ -230,9 +227,6 @@ export class Migrations1743813315598 implements MigrationInterface {
       `CREATE TABLE "tiktok_accounts" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "tenantId" character varying NOT NULL, "tiktokUserId" character varying NOT NULL, "username" character varying NOT NULL, "displayName" character varying, "followerCount" integer NOT NULL DEFAULT '0', "followingCount" integer NOT NULL DEFAULT '0', "likesCount" integer NOT NULL DEFAULT '0', "videoCount" integer NOT NULL DEFAULT '0', "avatarUrl" character varying, "isVerified" boolean NOT NULL DEFAULT false, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "socialAccountId" uuid, CONSTRAINT "REL_0bfcb0414f0bda0a4f2d70f36f" UNIQUE ("socialAccountId"), CONSTRAINT "PK_78bccdf805fea8f9635bfc4127d" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
-      `CREATE TABLE "tiktok_rate_limits" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "action" character varying NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "accountId" uuid, CONSTRAINT "PK_4129912141ae940afd9220aed1d" PRIMARY KEY ("id"))`,
-    );
-    await queryRunner.query(
       `CREATE TYPE "public"."tiktok_upload_sessions_status_enum" AS ENUM('PENDING', 'COMPLETED', 'FAILED')`,
     );
     await queryRunner.query(
@@ -240,6 +234,9 @@ export class Migrations1743813315598 implements MigrationInterface {
     );
     await queryRunner.query(
       `CREATE TABLE "tiktok_comments" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "tenantId" character varying NOT NULL, "platformCommentId" character varying NOT NULL, "content" character varying NOT NULL, "authorId" character varying NOT NULL, "authorUsername" character varying NOT NULL, "likeCount" integer NOT NULL DEFAULT '0', "replyCount" integer NOT NULL DEFAULT '0', "commentedAt" TIMESTAMP NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "videoId" uuid, CONSTRAINT "PK_017658219ec3c44af1081559a1b" PRIMARY KEY ("id"))`,
+    );
+    await queryRunner.query(
+      `CREATE TABLE "tiktok_rate_limits" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "action" character varying NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "accountId" uuid, CONSTRAINT "PK_4129912141ae940afd9220aed1d" PRIMARY KEY ("id"))`,
     );
     await queryRunner.query(
       `CREATE TABLE "linkedin_accounts" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "tenantId" character varying NOT NULL, "linkedinUserId" character varying NOT NULL, "firstName" character varying NOT NULL, "lastName" character varying NOT NULL, "email" character varying, "profileUrl" character varying, "permissions" jsonb NOT NULL, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), "metadata" jsonb, "socialAccountId" uuid, CONSTRAINT "REL_cc2c691eedc005243051f7b9a4" UNIQUE ("socialAccountId"), CONSTRAINT "PK_f86cde0cd40f8aaa11f6d3e57bb" PRIMARY KEY ("id"))`,
@@ -290,44 +287,13 @@ export class Migrations1743813315598 implements MigrationInterface {
       `CREATE INDEX "IDX_c2bf4967c8c2a6b845dadfbf3d" ON "team_members" ("user_id") `,
     );
     await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" DROP CONSTRAINT "PK_3a67009cbd1b0f96e77286e3400"`,
-    );
-    await queryRunner.query(`ALTER TABLE "tbl_user_tenants" DROP COLUMN "id"`);
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" DROP COLUMN "created_at"`,
+      `CREATE TABLE "tbl_user_tenants" ("user_id" character varying NOT NULL, "tenant_id" character varying NOT NULL, CONSTRAINT "PK_1fad7310e444cacfbb10dfa1835" PRIMARY KEY ("user_id", "tenant_id"))`,
     );
     await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" DROP COLUMN "updated_at"`,
+      `CREATE INDEX "IDX_ad232c61abe108e538b9f5b4f3" ON "tbl_user_tenants" ("user_id") `,
     );
     await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" DROP COLUMN "deleted_at"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" DROP COLUMN "userId"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" DROP COLUMN "tenantId"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" ADD "id" character varying NOT NULL`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" ADD CONSTRAINT "PK_3a67009cbd1b0f96e77286e3400" PRIMARY KEY ("id")`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" ADD "created_at" TIMESTAMP NOT NULL DEFAULT now()`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" ADD "updated_at" TIMESTAMP NOT NULL DEFAULT now()`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" ADD "deleted_at" TIMESTAMP`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" ADD "userId" character varying`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" ADD "tenantId" character varying`,
+      `CREATE INDEX "IDX_bf4173789a56ef26c32acdc0c6" ON "tbl_user_tenants" ("tenant_id") `,
     );
     await queryRunner.query(
       `ALTER TABLE "linkedin_metrics" ADD "tenantId" character varying NOT NULL`,
@@ -340,36 +306,6 @@ export class Migrations1743813315598 implements MigrationInterface {
     );
     await queryRunner.query(
       `ALTER TABLE "linkedin_metrics" ADD "updatedAt" TIMESTAMP NOT NULL DEFAULT now()`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" ADD "user_id" character varying NOT NULL`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" DROP CONSTRAINT "PK_3a67009cbd1b0f96e77286e3400"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" ADD CONSTRAINT "PK_b53cf8535b4fff3249f0bc30e51" PRIMARY KEY ("id", "user_id")`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" ADD "tenant_id" character varying NOT NULL`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" DROP CONSTRAINT "PK_b53cf8535b4fff3249f0bc30e51"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" ADD CONSTRAINT "PK_221bfb984a6d4a010b71c97cc51" PRIMARY KEY ("id", "user_id", "tenant_id")`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" DROP CONSTRAINT "PK_221bfb984a6d4a010b71c97cc51"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" ADD CONSTRAINT "PK_1fad7310e444cacfbb10dfa1835" PRIMARY KEY ("user_id", "tenant_id")`,
-    );
-    await queryRunner.query(
-      `CREATE INDEX "IDX_ad232c61abe108e538b9f5b4f3" ON "tbl_user_tenants" ("user_id") `,
-    );
-    await queryRunner.query(
-      `CREATE INDEX "IDX_bf4173789a56ef26c32acdc0c6" ON "tbl_user_tenants" ("tenant_id") `,
     );
     await queryRunner.query(
       `ALTER TABLE "tbl_role" ADD CONSTRAINT "FK_b3587510ea94fcb64d76be48291" FOREIGN KEY ("tenant_id") REFERENCES "tbl_tenants"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
@@ -391,12 +327,6 @@ export class Migrations1743813315598 implements MigrationInterface {
     );
     await queryRunner.query(
       `ALTER TABLE "messages" ADD CONSTRAINT "FK_72ffa22d68b72a09d5700e4463f" FOREIGN KEY ("parent_message_id") REFERENCES "messages"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" ADD CONSTRAINT "FK_09ff7768b7cfcb668fbb88aecec" FOREIGN KEY ("userId") REFERENCES "tbl_users"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" ADD CONSTRAINT "FK_0ecd80fbb657f772cc37d773218" FOREIGN KEY ("tenantId") REFERENCES "tbl_tenants"("id") ON DELETE CASCADE ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "tiktok_metrics" ADD CONSTRAINT "FK_80ddd93994bd81610ea542bdfbe" FOREIGN KEY ("videoId") REFERENCES "tiktok_videos"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
@@ -426,13 +356,13 @@ export class Migrations1743813315598 implements MigrationInterface {
       `ALTER TABLE "tiktok_accounts" ADD CONSTRAINT "FK_0bfcb0414f0bda0a4f2d70f36f2" FOREIGN KEY ("socialAccountId") REFERENCES "social_accounts"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "tiktok_rate_limits" ADD CONSTRAINT "FK_f4eaaf57d7482597e2b271861e7" FOREIGN KEY ("accountId") REFERENCES "tiktok_accounts"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
-    );
-    await queryRunner.query(
       `ALTER TABLE "tiktok_upload_sessions" ADD CONSTRAINT "FK_bcecedb51cc5b6b5755ec298742" FOREIGN KEY ("accountId") REFERENCES "tiktok_accounts"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "tiktok_comments" ADD CONSTRAINT "FK_2a8e1ed833504c236f6a475b026" FOREIGN KEY ("videoId") REFERENCES "tiktok_videos"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "tiktok_rate_limits" ADD CONSTRAINT "FK_f4eaaf57d7482597e2b271861e7" FOREIGN KEY ("accountId") REFERENCES "tiktok_accounts"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
       `ALTER TABLE "linkedin_accounts" ADD CONSTRAINT "FK_cc2c691eedc005243051f7b9a41" FOREIGN KEY ("socialAccountId") REFERENCES "social_accounts"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
@@ -468,31 +398,31 @@ export class Migrations1743813315598 implements MigrationInterface {
       `ALTER TABLE "facebook_page_metrics" ADD CONSTRAINT "FK_85c9838fd5165ca5f89453f7bc4" FOREIGN KEY ("pageId") REFERENCES "facebook_pages"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
     await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" ADD CONSTRAINT "FK_ad232c61abe108e538b9f5b4f33" FOREIGN KEY ("user_id") REFERENCES "tbl_users"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" ADD CONSTRAINT "FK_bf4173789a56ef26c32acdc0c6a" FOREIGN KEY ("tenant_id") REFERENCES "tbl_tenants"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
-    );
-    await queryRunner.query(
       `ALTER TABLE "team_members" ADD CONSTRAINT "FK_fdad7d5768277e60c40e01cdcea" FOREIGN KEY ("team_id") REFERENCES "teams"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
     );
     await queryRunner.query(
       `ALTER TABLE "team_members" ADD CONSTRAINT "FK_c2bf4967c8c2a6b845dadfbf3d4" FOREIGN KEY ("user_id") REFERENCES "tbl_users"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
     );
+    await queryRunner.query(
+      `ALTER TABLE "tbl_user_tenants" ADD CONSTRAINT "FK_ad232c61abe108e538b9f5b4f33" FOREIGN KEY ("user_id") REFERENCES "tbl_users"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "tbl_user_tenants" ADD CONSTRAINT "FK_bf4173789a56ef26c32acdc0c6a" FOREIGN KEY ("tenant_id") REFERENCES "tbl_tenants"("id") ON DELETE NO ACTION ON UPDATE NO ACTION`,
+    );
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(
-      `ALTER TABLE "team_members" DROP CONSTRAINT "FK_c2bf4967c8c2a6b845dadfbf3d4"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "team_members" DROP CONSTRAINT "FK_fdad7d5768277e60c40e01cdcea"`,
-    );
     await queryRunner.query(
       `ALTER TABLE "tbl_user_tenants" DROP CONSTRAINT "FK_bf4173789a56ef26c32acdc0c6a"`,
     );
     await queryRunner.query(
       `ALTER TABLE "tbl_user_tenants" DROP CONSTRAINT "FK_ad232c61abe108e538b9f5b4f33"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "team_members" DROP CONSTRAINT "FK_c2bf4967c8c2a6b845dadfbf3d4"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "team_members" DROP CONSTRAINT "FK_fdad7d5768277e60c40e01cdcea"`,
     );
     await queryRunner.query(
       `ALTER TABLE "facebook_page_metrics" DROP CONSTRAINT "FK_85c9838fd5165ca5f89453f7bc4"`,
@@ -528,13 +458,13 @@ export class Migrations1743813315598 implements MigrationInterface {
       `ALTER TABLE "linkedin_accounts" DROP CONSTRAINT "FK_cc2c691eedc005243051f7b9a41"`,
     );
     await queryRunner.query(
+      `ALTER TABLE "tiktok_rate_limits" DROP CONSTRAINT "FK_f4eaaf57d7482597e2b271861e7"`,
+    );
+    await queryRunner.query(
       `ALTER TABLE "tiktok_comments" DROP CONSTRAINT "FK_2a8e1ed833504c236f6a475b026"`,
     );
     await queryRunner.query(
       `ALTER TABLE "tiktok_upload_sessions" DROP CONSTRAINT "FK_bcecedb51cc5b6b5755ec298742"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tiktok_rate_limits" DROP CONSTRAINT "FK_f4eaaf57d7482597e2b271861e7"`,
     );
     await queryRunner.query(
       `ALTER TABLE "tiktok_accounts" DROP CONSTRAINT "FK_0bfcb0414f0bda0a4f2d70f36f2"`,
@@ -564,12 +494,6 @@ export class Migrations1743813315598 implements MigrationInterface {
       `ALTER TABLE "tiktok_metrics" DROP CONSTRAINT "FK_80ddd93994bd81610ea542bdfbe"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" DROP CONSTRAINT "FK_0ecd80fbb657f772cc37d773218"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" DROP CONSTRAINT "FK_09ff7768b7cfcb668fbb88aecec"`,
-    );
-    await queryRunner.query(
       `ALTER TABLE "messages" DROP CONSTRAINT "FK_72ffa22d68b72a09d5700e4463f"`,
     );
     await queryRunner.query(
@@ -591,36 +515,6 @@ export class Migrations1743813315598 implements MigrationInterface {
       `ALTER TABLE "tbl_role" DROP CONSTRAINT "FK_b3587510ea94fcb64d76be48291"`,
     );
     await queryRunner.query(
-      `DROP INDEX "public"."IDX_bf4173789a56ef26c32acdc0c6"`,
-    );
-    await queryRunner.query(
-      `DROP INDEX "public"."IDX_ad232c61abe108e538b9f5b4f3"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" DROP CONSTRAINT "PK_1fad7310e444cacfbb10dfa1835"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" ADD CONSTRAINT "PK_221bfb984a6d4a010b71c97cc51" PRIMARY KEY ("id", "user_id", "tenant_id")`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" DROP CONSTRAINT "PK_221bfb984a6d4a010b71c97cc51"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" ADD CONSTRAINT "PK_b53cf8535b4fff3249f0bc30e51" PRIMARY KEY ("id", "user_id")`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" DROP COLUMN "tenant_id"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" DROP CONSTRAINT "PK_b53cf8535b4fff3249f0bc30e51"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" ADD CONSTRAINT "PK_3a67009cbd1b0f96e77286e3400" PRIMARY KEY ("id")`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" DROP COLUMN "user_id"`,
-    );
-    await queryRunner.query(
       `ALTER TABLE "linkedin_metrics" DROP COLUMN "updatedAt"`,
     );
     await queryRunner.query(
@@ -633,45 +527,12 @@ export class Migrations1743813315598 implements MigrationInterface {
       `ALTER TABLE "linkedin_metrics" DROP COLUMN "tenantId"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" DROP COLUMN "tenantId"`,
+      `DROP INDEX "public"."IDX_bf4173789a56ef26c32acdc0c6"`,
     );
     await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" DROP COLUMN "userId"`,
+      `DROP INDEX "public"."IDX_ad232c61abe108e538b9f5b4f3"`,
     );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" DROP COLUMN "deleted_at"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" DROP COLUMN "updated_at"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" DROP COLUMN "created_at"`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" DROP CONSTRAINT "PK_3a67009cbd1b0f96e77286e3400"`,
-    );
-    await queryRunner.query(`ALTER TABLE "tbl_user_tenants" DROP COLUMN "id"`);
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" ADD "tenantId" character varying`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" ADD "userId" character varying`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" ADD "deleted_at" TIMESTAMP`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" ADD "updated_at" TIMESTAMP NOT NULL DEFAULT now()`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" ADD "created_at" TIMESTAMP NOT NULL DEFAULT now()`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" ADD "id" character varying NOT NULL`,
-    );
-    await queryRunner.query(
-      `ALTER TABLE "tbl_user_tenants" ADD CONSTRAINT "PK_3a67009cbd1b0f96e77286e3400" PRIMARY KEY ("id")`,
-    );
+    await queryRunner.query(`DROP TABLE "tbl_user_tenants"`);
     await queryRunner.query(
       `DROP INDEX "public"."IDX_c2bf4967c8c2a6b845dadfbf3d"`,
     );
@@ -692,12 +553,12 @@ export class Migrations1743813315598 implements MigrationInterface {
     await queryRunner.query(`DROP TABLE "linkedin_metrics"`);
     await queryRunner.query(`DROP TABLE "linkedin_posts"`);
     await queryRunner.query(`DROP TABLE "linkedin_accounts"`);
+    await queryRunner.query(`DROP TABLE "tiktok_rate_limits"`);
     await queryRunner.query(`DROP TABLE "tiktok_comments"`);
     await queryRunner.query(`DROP TABLE "tiktok_upload_sessions"`);
     await queryRunner.query(
       `DROP TYPE "public"."tiktok_upload_sessions_status_enum"`,
     );
-    await queryRunner.query(`DROP TABLE "tiktok_rate_limits"`);
     await queryRunner.query(`DROP TABLE "tiktok_accounts"`);
     await queryRunner.query(`DROP TABLE "social_accounts"`);
     await queryRunner.query(
@@ -710,16 +571,13 @@ export class Migrations1743813315598 implements MigrationInterface {
     await queryRunner.query(`DROP TABLE "tiktok_videos"`);
     await queryRunner.query(`DROP TYPE "public"."tiktok_videos_status_enum"`);
     await queryRunner.query(`DROP TABLE "tiktok_metrics"`);
-    await queryRunner.query(`DROP TABLE "post_assets"`);
     await queryRunner.query(`DROP TABLE "analytics_records"`);
-    await queryRunner.query(`DROP TABLE "publish_records"`);
-    await queryRunner.query(`DROP TYPE "public"."publish_records_status_enum"`);
+    await queryRunner.query(`DROP TABLE "post_assets"`);
     await queryRunner.query(`DROP TABLE "scheduled_posts"`);
     await queryRunner.query(`DROP TYPE "public"."scheduled_posts_status_enum"`);
+    await queryRunner.query(`DROP TABLE "publish_records"`);
+    await queryRunner.query(`DROP TYPE "public"."publish_records_status_enum"`);
     await queryRunner.query(`DROP TABLE "tbl_user_role_change"`);
-    await queryRunner.query(`DROP TABLE "tbl_user_tenants"`);
-    await queryRunner.query(`DROP TABLE "tbl_tenants"`);
-    await queryRunner.query(`DROP TABLE "teams"`);
     await queryRunner.query(`DROP TABLE "tbl_users"`);
     await queryRunner.query(`DROP INDEX "public"."idx_msg_search"`);
     await queryRunner.query(`DROP INDEX "public"."idx_msg_tenant_created"`);
@@ -780,8 +638,10 @@ export class Migrations1743813315598 implements MigrationInterface {
     await queryRunner.query(
       `DROP TYPE "public"."conversation_participants_role_enum"`,
     );
+    await queryRunner.query(`DROP TABLE "tbl_tenants"`);
     await queryRunner.query(`DROP TABLE "tbl_role"`);
     await queryRunner.query(`DROP TYPE "public"."tbl_role_name_enum"`);
     await queryRunner.query(`DROP TABLE "tbl_permissions"`);
+    await queryRunner.query(`DROP TABLE "teams"`);
   }
 }

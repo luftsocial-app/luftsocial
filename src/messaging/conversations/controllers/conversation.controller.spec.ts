@@ -15,6 +15,14 @@ import {
 } from '@nestjs/common';
 import { ParticipantRole } from '../../shared/enums/participant-role.enum';
 import { AuthObject } from '@clerk/express';
+import { TenantService } from '../../../user-management/tenant.service';
+
+jest.mock('../../../user-management/tenant.service', () => ({
+  TenantService: jest.fn().mockImplementation(() => ({
+    getTenantId: jest.fn(),
+    setTenantId: jest.fn(),
+  })),
+}));
 
 describe('ConversationController', () => {
   let controller: ConversationController;
@@ -87,6 +95,7 @@ describe('ConversationController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ConversationController],
       providers: [
+        TenantService,
         {
           provide: ConversationService,
           useValue: mockConversationService,

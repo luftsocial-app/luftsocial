@@ -6,7 +6,6 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class WebsocketHelpers {
   private readonly throttleTimers = new Map<string, number>();
-
   constructor(private readonly configService: ConfigService) {}
 
   isThrottled(key: string): boolean {

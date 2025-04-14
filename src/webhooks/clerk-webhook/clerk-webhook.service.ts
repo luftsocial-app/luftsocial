@@ -77,10 +77,10 @@ export class ClerkWebhookService {
         await this.handleMembershipCreated(event);
         break;
       case 'organizationMembership.updated':
-        await this.handleMembershipCreated(event);
+        await this.handleMembershipUpdated(event);
         break;
       case 'organizationMembership.deleted':
-        await this.handleMembershipCreated(event);
+        await this.handleMembershipDeleted(event);
         break;
       default:
         this.logger.warn(`Unhandled webhook event type: ${event.type}`);
@@ -162,7 +162,7 @@ export class ClerkWebhookService {
   async handleMembershipDeleted(
     membershipDeletedEvent: OrganizationMembershipWebhookEvent,
   ): Promise<void> {
-    this.logger.info('Processing organizationMembership.created event', {
+    this.logger.info('Processing organizationMembership.deleted event', {
       userId: membershipDeletedEvent.data.public_user_data?.user_id,
       tenantId: membershipDeletedEvent.data.organization?.id,
     });
@@ -181,7 +181,7 @@ export class ClerkWebhookService {
   async handleMembershipUpdated(
     membershipUpdatedEvent: OrganizationMembershipWebhookEvent,
   ): Promise<void> {
-    this.logger.info('Processing organizationMembership.created event', {
+    this.logger.info('Processing organizationMembership.updated event', {
       userId: membershipUpdatedEvent.data.public_user_data?.user_id,
       tenantId: membershipUpdatedEvent.data.organization?.id,
     });

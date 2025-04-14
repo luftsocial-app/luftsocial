@@ -15,6 +15,7 @@ import { ContentSanitizer } from '../../shared/utils/content-sanitizer';
 import { ParticipantEventHandler } from './usecases/participants.events';
 import { MessageEventHandler } from './usecases/message.events';
 import { WebsocketHelpers } from '../utils/websocket.helpers';
+import { TenantService } from '../../../user-management/tenant.service';
 
 jest.mock('./usecases/participants.events', () => ({
   ParticipantEventHandler: jest.fn().mockImplementation(() => ({
@@ -43,6 +44,12 @@ jest.mock('../utils/websocket.helpers', () => ({
   })),
 }));
 
+jest.mock('../../../user-management/tenant.service', () => ({
+  TenantService: jest.fn().mockImplementation(() => ({
+    getTenantId: jest.fn(),
+    setTenantId: jest.fn(),
+  })),
+}));
 describe('MessagingGateway', () => {
   let gateway: MessagingGateway;
   let participantHandler: jest.Mocked<ParticipantEventHandler>;
@@ -159,6 +166,7 @@ describe('MessagingGateway', () => {
         MessageEventHandler,
         WebsocketHelpers,
         ContentSanitizer,
+        TenantService,
         {
           provide: PinoLogger,
           useValue: {

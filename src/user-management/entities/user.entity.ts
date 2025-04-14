@@ -50,15 +50,17 @@ export class User {
   @Column({ type: 'jsonb', default: [] })
   permissions: Permission[];
 
-  @OneToMany(() => Role, (role) => role.id)
+  @OneToMany(() => Role, (role) => role.id, {
+    cascade: true,
+  })
   @JoinTable({
     name: 'tbl_user_roles',
     joinColumn: {
-      name: 'userId',
+      name: 'user_id',
       referencedColumnName: 'id',
     },
     inverseJoinColumn: {
-      name: 'roleId',
+      name: 'role_id',
       referencedColumnName: 'id',
     },
   })
@@ -75,7 +77,7 @@ export class User {
 
   // User belongs to multiple tenants
   @ManyToMany(() => Tenant, (tenant) => tenant.users, {
-    cascade: ['insert', 'update'],
+    cascade: true,
   })
   @JoinTable({
     name: 'tbl_user_tenants',
