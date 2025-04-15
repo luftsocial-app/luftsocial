@@ -29,8 +29,8 @@ describe('FacebookController', () => {
   const mockAccountId = 'account123';
   const mockPageId = 'page123';
   const mockPostId = 'post123';
-  const mockContent = 'Test content';
-  const mockMediaUrls = ['https://example.com/image.jpg'];
+  // const mockContent = 'Test content';
+  // const mockMediaUrls = ['https://example.com/image.jpg'];
   const mockCursor = 'next_page_token';
 
   // Setup mock service
@@ -79,7 +79,7 @@ describe('FacebookController', () => {
       const createPostDto: CreateFacebookPagePostDto = {
         content: 'Page post content',
         media: [],
-      };
+      } as unknown as CreateFacebookPagePostDto;
       const files = [mockFile];
 
       await controller.createPostForPage(mockPageId, createPostDto, files);
@@ -96,7 +96,7 @@ describe('FacebookController', () => {
       const createPostDto: CreateFacebookPagePostDto = {
         content: 'Page post content',
         media: [{ url: 'https://example.com/image.jpg' }],
-      };
+      } as unknown as CreateFacebookPagePostDto;
       const files = [];
 
       await controller.createPostForPage(mockPageId, createPostDto, files);
@@ -115,7 +115,7 @@ describe('FacebookController', () => {
       const createPostDto: CreateFacebookPagePostDto = {
         content: 'Page post content',
         media: [],
-      };
+      } as unknown as CreateFacebookPagePostDto;
 
       await controller.createPostForPage(mockPageId, createPostDto, undefined);
 
@@ -131,9 +131,8 @@ describe('FacebookController', () => {
     it('should schedule a page post with files', async () => {
       const scheduleDto: CreateFacebookPagePostDto = {
         content: 'Scheduled page post content',
-        scheduledTime: new Date().toISOString(),
         media: [],
-      };
+      } as unknown as CreateFacebookPagePostDto;
       const files = [mockFile];
 
       await controller.schedulePagePost(mockPageId, scheduleDto, files);
@@ -147,11 +146,10 @@ describe('FacebookController', () => {
     });
 
     it('should schedule a page post without files', async () => {
-      const scheduleDto: CreateFacebookPagePostDto = {
+      const scheduleDto = {
         content: 'Scheduled page post content',
-        scheduledTime: new Date().toISOString(),
         media: [{ url: 'https://example.com/image.jpg' }],
-      };
+      } as unknown as CreateFacebookPagePostDto;
       const files = [];
 
       await controller.schedulePagePost(mockPageId, scheduleDto, files);
@@ -167,11 +165,10 @@ describe('FacebookController', () => {
     });
 
     it('should handle undefined files', async () => {
-      const scheduleDto: CreateFacebookPagePostDto = {
+      const scheduleDto = {
         content: 'Scheduled page post content',
-        scheduledTime: new Date().toISOString(),
         media: [],
-      };
+      } as unknown as CreateFacebookPagePostDto;
 
       await controller.schedulePagePost(mockPageId, scheduleDto, undefined);
 

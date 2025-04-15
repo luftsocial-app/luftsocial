@@ -11,7 +11,7 @@ import { RetryQueueService } from './retry-queue.service';
 import { PinoLogger } from 'nestjs-pino';
 import { getQueueToken } from '@nestjs/bull';
 import { PublishStatus } from '../helpers/cross-platform.interface';
-import { HttpException, HttpStatus, NotFoundException } from '@nestjs/common';
+import { HttpException, NotFoundException } from '@nestjs/common';
 import { SocialPlatform } from '../../common/enums/social-platform.enum';
 import { CreateCrossPlatformPostDto } from '../helpers/dtos/cross-platform.dto';
 import axios from 'axios';
@@ -22,15 +22,6 @@ const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 describe('ContentPublisherService', () => {
   let service: ContentPublisherService;
-  let publishRepo: any;
-  let facebookService: any;
-  let instagramService: any;
-  let linkedinService: any;
-  let tiktokService: any;
-  let mediaStorageService: any;
-  let retryQueueService: any;
-  let publishQueue: any;
-  let logger: any;
 
   const mockPublishRepo = {
     save: jest.fn(),
@@ -128,15 +119,6 @@ describe('ContentPublisherService', () => {
     }).compile();
 
     service = module.get<ContentPublisherService>(ContentPublisherService);
-    publishRepo = module.get(getRepositoryToken(PublishRecord));
-    facebookService = module.get(FacebookService);
-    instagramService = module.get(InstagramService);
-    linkedinService = module.get(LinkedInService);
-    tiktokService = module.get(TikTokService);
-    mediaStorageService = module.get(MediaStorageService);
-    retryQueueService = module.get(RetryQueueService);
-    publishQueue = module.get(getQueueToken('platform-publish'));
-    logger = module.get(PinoLogger);
 
     // Reset all mocks before each test
     jest.clearAllMocks();
@@ -428,11 +410,13 @@ describe('ContentPublisherService', () => {
 
       const result = await service.publishContentWithMedia(params);
 
+      console.log({ testResult: result.results });
+
       // Verify retry queue was called
       expect(mockRetryQueueService.addToRetryQueue).toHaveBeenCalled();
       expect(result.status).toBe(PublishStatus.FAILED);
       expect(result.results[0].success).toBe(false);
-      expect(result.results[0].scheduled_for_retry).toBe(true);
+      expect(result.results[0]['scheduled_for_retry']).toBe(true);
     });
 
     it('should reuse existing media with same hash', async () => {

@@ -70,6 +70,10 @@ export class CrossPlatformValidationPipe implements PipeTransform {
       // Direct constraints at the property level
       if (error.constraints) {
         for (const [key, message] of Object.entries(error.constraints)) {
+          this.logger.log(
+            { key, message },
+            '[CrossPlatformValidationPipe] - extractSimpleErrors',
+          );
           simplifiedErrors.push(`${property}: ${message}`);
         }
       }
@@ -94,6 +98,11 @@ export class CrossPlatformValidationPipe implements PipeTransform {
       // Add constraints
       if (child.constraints) {
         for (const [key, message] of Object.entries(child.constraints)) {
+          this.logger.log(
+            { key, message },
+            '[CrossPlatformValidationPipe] - processNestedErrors',
+          );
+
           errors.push(`${path}: ${message}`);
         }
       }
@@ -120,6 +129,10 @@ export class CrossPlatformValidationPipe implements PipeTransform {
 
       if (child.constraints) {
         for (const [key, message] of Object.entries(child.constraints)) {
+          this.logger.log(
+            { key, message },
+            '[CrossPlatformValidationPipe] - processPlatformErrors',
+          );
           errors.push(`${path}: ${message}`);
         }
       }

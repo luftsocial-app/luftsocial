@@ -10,15 +10,10 @@ import {
   UpdatePageDto,
   UpdatePostDto,
 } from './helpers/post.dto';
-import {
-  BadRequestException,
-  NotFoundException,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { FacebookPage } from '../entities/facebook-entities/facebook-page.entity';
 import { FacebookPost } from '../entities/facebook-entities/facebook-post.entity';
 import { MediaType } from '../../common/enums/media-type.enum';
-import { SocialPlatform } from '../../common/enums/social-platform.enum';
 import * as config from 'config';
 
 // Mock axios
@@ -37,10 +32,6 @@ jest.mock('config', () => ({
 
 describe('FacebookService', () => {
   let service: FacebookService;
-  let facebookRepo: FacebookRepository;
-  let mediaStorageService: MediaStorageService;
-  let tenantService: TenantService;
-  let logger: PinoLogger;
 
   // Mock data
   const mockTenantId = 'tenant123';
@@ -49,13 +40,13 @@ describe('FacebookService', () => {
   const mockPostId = 'post123';
   const mockFbPostId = 'fb_post_123';
   const mockAccessToken = 'mock-access-token';
-  const mockFile = {
-    fieldname: 'file',
-    originalname: 'test.jpg',
-    buffer: Buffer.from('test-file-content'),
-    mimetype: 'image/jpeg',
-    size: 1024,
-  } as Express.Multer.File;
+  // const mockFile = {
+  //   fieldname: 'file',
+  //   originalname: 'test.jpg',
+  //   buffer: Buffer.from('test-file-content'),
+  //   mimetype: 'image/jpeg',
+  //   size: 1024,
+  // } as Express.Multer.File;
 
   // Mock repository methods
   const mockFacebookRepo = {
@@ -115,10 +106,6 @@ describe('FacebookService', () => {
     }).compile();
 
     service = module.get<FacebookService>(FacebookService);
-    facebookRepo = module.get<FacebookRepository>(FacebookRepository);
-    mediaStorageService = module.get<MediaStorageService>(MediaStorageService);
-    tenantService = module.get<TenantService>(TenantService);
-    logger = module.get<PinoLogger>(PinoLogger);
 
     // Reset all mocks before each test
     jest.clearAllMocks();
@@ -570,7 +557,7 @@ describe('FacebookService', () => {
       const createPostDto: CreateFacebookPagePostDto = {
         content: 'Test post content',
         published: true,
-      };
+      } as any as CreateFacebookPagePostDto;
 
       // Mock Facebook API response
       const mockPostResponse = {
@@ -639,7 +626,7 @@ describe('FacebookService', () => {
         content: 'Check out this link',
         link: 'https://example.com',
         published: true,
-      };
+      } as unknown as CreateFacebookPagePostDto;
 
       // Mock Facebook API response
       const mockPostResponse = {
@@ -703,7 +690,7 @@ describe('FacebookService', () => {
             url: 'https://example.com/image.jpg',
           },
         ],
-      };
+      } as unknown as CreateFacebookPagePostDto;
 
       // Mock Facebook API photo response
       const mockPhotoResponse = {
@@ -775,8 +762,8 @@ describe('FacebookService', () => {
       // Mock DTO
       const scheduleDto: CreateFacebookPagePostDto = {
         content: 'Scheduled post content',
-        scheduledPublishTime: futureDate.toISOString(),
-      };
+        scheduledPublishTime: futureDate,
+      } as unknown as CreateFacebookPagePostDto;
 
       // Mock createPagePost method
       jest
@@ -800,7 +787,7 @@ describe('FacebookService', () => {
     it('should throw BadRequestException if scheduledPublishTime is missing', async () => {
       const scheduleDto: CreateFacebookPagePostDto = {
         content: 'Scheduled post content',
-      };
+      } as unknown as CreateFacebookPagePostDto;
 
       await expect(
         service.schedulePagePost(mockPageId, scheduleDto),
@@ -814,8 +801,8 @@ describe('FacebookService', () => {
 
       const scheduleDto: CreateFacebookPagePostDto = {
         content: 'Scheduled post content',
-        scheduledPublishTime: tooSoonDate.toISOString(),
-      };
+        scheduledPublishTime: tooSoonDate,
+      } as unknown as CreateFacebookPagePostDto;
 
       await expect(
         service.schedulePagePost(mockPageId, scheduleDto),
@@ -1147,7 +1134,18 @@ describe('FacebookService', () => {
       };
 
       // Mock an API error
-      const mockError = new Error('API error');
+
+      interface ApiError extends Error {
+        response?: {
+          data?: {
+            error?: {
+              message: string;
+              code: number;
+            };
+          };
+        };
+      }
+      const mockError = new Error('API error') as ApiError;
       mockError.response = {
         data: {
           error: {

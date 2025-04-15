@@ -57,6 +57,8 @@ describe('MediaStorageController', () => {
         cdnUrl: 'https://cdn-url.com',
       };
 
+      const fileHash = undefined;
+
       mockMediaStorageService.generatePreSignedUrl.mockResolvedValue(
         expectedResult,
       );
@@ -65,6 +67,7 @@ describe('MediaStorageController', () => {
         mockUser,
         fileName,
         fileType,
+        fileHash,
         platform,
       );
 
@@ -72,8 +75,8 @@ describe('MediaStorageController', () => {
         mockUser.userId,
         fileName,
         fileType,
+        fileHash,
         platform,
-        undefined,
       );
       expect(result).toEqual(expectedResult);
     });

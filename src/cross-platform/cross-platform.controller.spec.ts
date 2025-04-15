@@ -9,15 +9,13 @@ import { PinoLogger } from 'nestjs-pino';
 import { HttpException, HttpStatus } from '@nestjs/common';
 import { SocialPlatform } from '../common/enums/social-platform.enum';
 import { PublishStatus } from './helpers/cross-platform.interface';
-import { CreateCrossPlatformPostDto } from './helpers/dtos/cross-platform.dto';
+import {
+  AnalyticsDto,
+  CreateCrossPlatformPostDto,
+} from './helpers/dtos/cross-platform.dto';
 
 describe('CrossPlatformController', () => {
   let controller: CrossPlatformController;
-  let crossPlatformService: CrossPlatformService;
-  let contentPublisherService: ContentPublisherService;
-  let analyticsService: AnalyticsService;
-  let schedulerService: SchedulerService;
-  let retryQueueService: RetryQueueService;
   let logger: PinoLogger;
 
   // Mock services
@@ -77,14 +75,6 @@ describe('CrossPlatformController', () => {
     }).compile();
 
     controller = module.get<CrossPlatformController>(CrossPlatformController);
-    crossPlatformService =
-      module.get<CrossPlatformService>(CrossPlatformService);
-    contentPublisherService = module.get<ContentPublisherService>(
-      ContentPublisherService,
-    );
-    analyticsService = module.get<AnalyticsService>(AnalyticsService);
-    schedulerService = module.get<SchedulerService>(SchedulerService);
-    retryQueueService = module.get<RetryQueueService>(RetryQueueService);
     logger = module.get<PinoLogger>(PinoLogger);
 
     // Reset all mocks before each test
@@ -780,7 +770,7 @@ describe('CrossPlatformController', () => {
         accountId: 'fb-123',
         startDate: '2023-12-01',
         endDate: '2023-12-31',
-      };
+      } as unknown as AnalyticsDto;
 
       const userId = 'user-123';
 
@@ -828,14 +818,14 @@ describe('CrossPlatformController', () => {
 
       // Act
       const result = await controller.getContentPerformance(
-        contentPerformanceDto,
+        { postIds: [contentPerformanceDto] },
         userId,
       );
 
       // Assert
       expect(mockAnalyticsService.getContentPerformance).toHaveBeenCalledWith({
         userId,
-        ...contentPerformanceDto,
+        postIds: [contentPerformanceDto],
       });
       expect(result).toEqual(mockPerformance);
     });
