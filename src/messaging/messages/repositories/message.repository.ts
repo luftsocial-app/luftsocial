@@ -151,8 +151,8 @@ export class MessageRepository extends Repository<MessageEntity> {
         .where('message.conversationId = :conversationId', { conversationId })
         .andWhere('message.isDeleted = :isDeleted', { isDeleted: false });
 
-      // Use JSON path query to check if user hasn't read the message
-      queryBuilder.andWhere(`NOT (message.readBy::jsonb ? :userId)`, {
+      // Use the correct column name 'read_by' for the JSONB query
+      queryBuilder.andWhere(`NOT (message.read_by::jsonb ? :userId)`, {
         userId,
       });
 

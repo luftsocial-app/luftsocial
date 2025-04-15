@@ -33,6 +33,7 @@ import { ConversationEntity } from '../entities/conversation.entity';
 
 // Services
 import { ConversationService } from '../services/conversation.service';
+import { AuthObject } from '@clerk/express';
 
 @ApiTags('Conversations')
 @ApiBearerAuth()
@@ -50,11 +51,11 @@ export class ConversationController {
   })
   @Post('direct/:userId')
   async createOrGetDirectChat(
-    @CurrentUser() user,
+    @CurrentUser() user: AuthObject,
     @Param('userId') otherUserId: string,
   ) {
     return await this.conversationService.createOrGetDirectChat(
-      user.id,
+      user.userId,
       otherUserId,
     );
   }
@@ -68,13 +69,13 @@ export class ConversationController {
   })
   @Post('group')
   async createGroupChat(
-    @CurrentUser() user,
+    @CurrentUser() user: AuthObject,
     @Body() createGroupDto: CreateConversationDto,
   ) {
     return await this.conversationService.createGroupChat(
       createGroupDto.name,
       createGroupDto.participantIds,
-      user.id,
+      user.userId,
     );
   }
 
@@ -85,8 +86,8 @@ export class ConversationController {
     type: [ConversationEntity],
   })
   @Get()
-  async getMyConversations(@CurrentUser() user) {
-    return await this.conversationService.getConversationsByUserId(user.id);
+  async getMyConversations(@CurrentUser() user: AuthObject) {
+    return await this.conversationService.getConversationsByUserId(user.userId);
   }
 
   @ApiOperation({ summary: 'Get a specific conversation by ID' })
@@ -117,14 +118,14 @@ export class ConversationController {
   })
   @Post(':id/participants')
   async addParticipantsToConversation(
-    @CurrentUser() user,
+    @CurrentUser() user: AuthObject,
     @Param('id') conversationId: string,
     @Body() body: AddParticipantsDto,
   ) {
     return await this.conversationService.addParticipantsToGroup(
       conversationId,
       body.participantIds,
-      user.id,
+      user.userId,
     );
   }
 
@@ -142,14 +143,14 @@ export class ConversationController {
   })
   @Patch(':id/settings')
   async updateConversationSettings(
-    @CurrentUser() user,
+    @CurrentUser() user: AuthObject,
     @Param('id') conversationId: string,
     @Body() settings: UpdateConversationSettingsDto,
   ) {
     return await this.conversationService.updateConversationSettings(
       conversationId,
       settings,
-      user.id,
+      user.userId,
     );
   }
 }

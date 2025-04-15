@@ -19,7 +19,7 @@ import { Repository } from 'typeorm';
 import { PinoLogger } from 'nestjs-pino';
 import { PostAsset } from '../entities/post-asset.entity';
 import { SocialPlatform } from '../../common/enums/social-platform.enum';
-import { TenantService } from '../../user-management/tenant/tenant.service';
+import { TenantService } from '../../user-management/tenant.service';
 
 @Injectable()
 export class MediaStorageService {

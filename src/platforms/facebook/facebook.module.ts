@@ -16,6 +16,7 @@ import { FacebookPostMetric } from '../entities/facebook-entities/facebook-post-
 import { FacebookPost } from '../entities/facebook-entities/facebook-post.entity';
 import { TenantModule } from '../../user-management/tenant/tenant.module';
 import { SocialAccount } from '../entities/notifications/entity/social-account.entity';
+import { UserManagementModule } from '../../user-management/user-management.module';
 
 @Module({
   controllers: [FacebookController],
@@ -39,6 +40,7 @@ import { SocialAccount } from '../entities/notifications/entity/social-account.e
     ]),
     TenantModule,
     MediaStorageModule,
+    UserManagementModule,
   ],
   exports: [FacebookService],
 })

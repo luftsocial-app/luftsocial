@@ -3,21 +3,27 @@ import { MessageService } from './message.service';
 import { MessageRepository } from '../repositories/message.repository';
 import { AttachmentRepository } from '../repositories/attachment.repository';
 import { ConversationService } from '../../conversations/services/conversation.service';
-import { TenantService } from '../../../user-management/tenant/tenant.service';
 import {
   MessageStatus,
   MessageType,
 } from '../../shared/enums/message-type.enum';
-import { NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  NotFoundException,
+  ForbiddenException,
+  BadRequestException,
+} from '@nestjs/common';
 import { MessageEntity } from '../entities/message.entity';
 import { AttachmentEntity } from '../entities/attachment.entity';
 import { PinoLogger } from 'nestjs-pino';
+import { TenantService } from '../../../user-management/tenant.service';
+import { ContentSanitizer } from '../../shared/utils/content-sanitizer';
 
 describe('MessageService', () => {
   let service: MessageService;
   let messageRepository: jest.Mocked<MessageRepository>;
   let attachmentRepository: jest.Mocked<AttachmentRepository>;
   let conversationService: jest.Mocked<ConversationService>;
+  let contentSanitizer: ContentSanitizer;
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let tenantService: jest.Mocked<TenantService>;
@@ -109,6 +115,17 @@ describe('MessageService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MessageService,
+        ContentSanitizer,
+        {
+          provide: PinoLogger,
+          useValue: {
+            info: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+            setContext: jest.fn(),
+          },
+        },
         {
           provide: PinoLogger,
           useValue: {
@@ -131,6 +148,7 @@ describe('MessageService', () => {
             update: jest.fn(),
             markAsDeleted: jest.fn(),
             count: jest.fn(),
+            getUnreadCount: jest.fn(),
           },
         },
         {
@@ -152,6 +170,21 @@ describe('MessageService', () => {
             getTenantId: jest.fn().mockReturnValue(mockTenantId),
           },
         },
+        {
+          provide: ContentSanitizer,
+          useValue: {
+            sanitize: jest.fn().mockImplementation((content) => content),
+            sanitizeRealtimeMessage: jest
+              .fn()
+              .mockImplementation((content) => ({
+                isValid: true,
+                sanitized: content,
+              })),
+            sanitizeMetadata: jest
+              .fn()
+              .mockImplementation((metadata) => metadata),
+          },
+        },
       ],
     }).compile();
 
@@ -160,6 +193,7 @@ describe('MessageService', () => {
     attachmentRepository = module.get(AttachmentRepository);
     conversationService = module.get(ConversationService);
     tenantService = module.get(TenantService);
+    contentSanitizer = module.get(ContentSanitizer);
   });
 
   describe('createMessage', () => {
@@ -182,6 +216,18 @@ describe('MessageService', () => {
       expect(
         conversationService.updateLastMessageTimestamp,
       ).toHaveBeenCalledWith(mockConversationId);
+    });
+
+    it('should handle sanitization failure', async () => {
+      jest.spyOn(contentSanitizer, 'sanitize').mockReturnValue('');
+
+      await expect(
+        service.createMessage(
+          mockConversationId,
+          '<script>alert("xss")</script>',
+          mockUserId,
+        ),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw ForbiddenException when user has no access', async () => {
@@ -223,6 +269,19 @@ describe('MessageService', () => {
       expect(result).toBeDefined();
       expect(result.content).toBe('Updated content');
       expect(result.isEdited).toBe(true);
+    });
+
+    it('should handle sanitization failure during update', async () => {
+      messageRepository.findByIdAndTenant.mockResolvedValue(mockMessage);
+      jest.spyOn(contentSanitizer, 'sanitize').mockReturnValue('');
+
+      await expect(
+        service.updateMessage(
+          mockMessageId,
+          { content: '<script>alert("xss")</script>' },
+          mockUserId,
+        ),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('should throw ForbiddenException when user is not message sender', async () => {
@@ -267,7 +326,11 @@ describe('MessageService', () => {
   describe('getMessages', () => {
     it('should return messages with pagination', async () => {
       const mockMessages = [mockMessage];
+      const totalMessages = 1;
+
       messageRepository.findByConversation.mockResolvedValue(mockMessages);
+      messageRepository.count.mockResolvedValue(totalMessages);
+      conversationService.validateAccess.mockResolvedValue(true);
 
       const result = await service.getMessages(mockConversationId, {
         conversationId: mockConversationId,
@@ -277,8 +340,40 @@ describe('MessageService', () => {
       });
 
       expect(result.messages).toHaveLength(1);
-      expect(result.total).toBe(1);
+      expect(result.total).toBe(totalMessages);
       expect(result.page).toBe(1);
+      expect(messageRepository.findByConversation).toHaveBeenCalledWith(
+        mockConversationId,
+        expect.objectContaining({
+          page: 1,
+          limit: 20,
+        }),
+      );
+      expect(conversationService.validateAccess).toHaveBeenCalledWith(
+        mockConversationId,
+        mockUserId,
+        mockTenantId,
+      );
+    });
+
+    it('should throw ForbiddenException when user has no access', async () => {
+      conversationService.validateAccess.mockResolvedValue(false);
+      messageRepository.findByConversation.mockResolvedValue([mockMessage]);
+
+      await expect(
+        service.getMessages(mockConversationId, {
+          conversationId: mockConversationId,
+          page: 1,
+          limit: 20,
+          userId: mockUserId,
+        }),
+      ).rejects.toThrow(ForbiddenException);
+
+      expect(conversationService.validateAccess).toHaveBeenCalledWith(
+        mockConversationId,
+        mockUserId,
+        mockTenantId,
+      );
     });
   });
 
@@ -328,6 +423,48 @@ describe('MessageService', () => {
       await service.markMessageAsRead(mockMessageId, mockUserId);
 
       expect(messageRepository.save).toHaveBeenCalled();
+    });
+  });
+
+  describe('getUnreadCount', () => {
+    it('should return unread count for conversation', async () => {
+      conversationService.validateAccess.mockResolvedValue(true);
+      messageRepository.getUnreadCount.mockResolvedValue(5);
+
+      const result = await service.getUnreadCount(
+        mockConversationId,
+        mockUserId,
+      );
+
+      expect(result).toBe(5);
+      expect(conversationService.validateAccess).toHaveBeenCalledWith(
+        mockConversationId,
+        mockUserId,
+        mockTenantId,
+      );
+      expect(messageRepository.getUnreadCount).toHaveBeenCalledWith(
+        mockConversationId,
+        mockUserId,
+      );
+    });
+
+    it('should throw ForbiddenException when user has no access', async () => {
+      conversationService.validateAccess.mockResolvedValue(false);
+
+      await expect(
+        service.getUnreadCount(mockConversationId, mockUserId),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should wrap unknown errors in BadRequestException', async () => {
+      conversationService.validateAccess.mockResolvedValue(true);
+      messageRepository.getUnreadCount.mockRejectedValue(
+        new Error('Database error'),
+      );
+
+      await expect(
+        service.getUnreadCount(mockConversationId, mockUserId),
+      ).rejects.toThrow(BadRequestException);
     });
   });
 });

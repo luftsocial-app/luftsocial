@@ -1,8 +1,12 @@
-import { Injectable, NestMiddleware } from '@nestjs/common';
+import {
+  Injectable,
+  NestMiddleware,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
-import { TenantService } from '../user-management/tenant/tenant.service';
 import { PinoLogger } from 'nestjs-pino';
 import { ConfigService } from '@nestjs/config';
+import { TenantService } from '../user-management/tenant.service';
 
 async function createSessionToken( // this function is for testing only, should be removed in production
   sessionId: string,
@@ -21,7 +25,7 @@ async function createSessionToken( // this function is for testing only, should 
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          expires_in_seconds: 3600,
+          expires_in_seconds: 9600,
         }),
       },
     );
@@ -47,9 +51,8 @@ export class TenantMiddleware implements NestMiddleware {
     private readonly logger: PinoLogger,
     private configService: ConfigService,
   ) {}
-  async use(req: Request, res: Response, next: NextFunction) {
-    console.log('TenantMiddleware initialized');
 
+  async use(req: Request, res: Response, next: NextFunction) {
     const sessionId = req.auth?.sessionId;
     const clerkSecretKey = this.configService.get('clerk.secretKey');
 
@@ -59,19 +62,29 @@ export class TenantMiddleware implements NestMiddleware {
       clerkSecretKey,
       this.logger,
     );
-    console.log('Custom JWT:', customJWT);
     req.headers['authorization'] = `Bearer ${customJWT}`;
     const tenantId =
       (req.headers['X-TENANT-ID'] as string) ||
       (req.headers['x-tenant-id'] as string);
-    console.log('Tenant_ID', tenantId);
-    if (!tenantId) {
+
+    const isLuftSocialAdmin =
+      req.headers['X-LUFTSOCIAL-ADMIN'] === 'true' ||
+      req.headers['x-luftsocial-admin'] === 'true';
+
+    if (!tenantId && !isLuftSocialAdmin) {
       this.logger.warn('`X-TENANT-ID` not provided');
       req['tenantId'] = null;
-      return next();
+      req['isLuftSocialAdmin'] = null;
+
+      // throw error neither tenantId nor isLuftSocialAdmin is provided
+      throw new UnauthorizedException(
+        'Either `X-TENANT-ID` or `X-LUFTSOCIAL-ADMIN` header is required',
+      );
     }
+
     this.tenantService.setTenantId(tenantId);
     req['tenantId'] = tenantId;
+    req['isLuftSocialAdmin'] = isLuftSocialAdmin;
     next();
   }
 }

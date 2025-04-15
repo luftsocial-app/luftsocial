@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ClerkWebhookController } from './clerk-webhook.controller';
-import { TenantModule } from '../../user-management/tenant/tenant.module';
 import { ClerkWebhookService } from './clerk-webhook.service';
-import { UserModule } from '../../user-management/user/user.module';
+import { UserManagementModule } from '../../user-management/user-management.module';
+import { ClerkWebhookProcessor } from './clerk-webhook.processor';
+import { BullQueueModule } from '../../bull-queue/bull-queue.module';
 
 @Module({
-  imports: [UserModule, TenantModule],
-  providers: [ClerkWebhookService],
+  imports: [UserManagementModule, BullQueueModule],
+  providers: [ClerkWebhookService, ClerkWebhookProcessor],
   controllers: [ClerkWebhookController],
   exports: [ClerkWebhookService],
 })

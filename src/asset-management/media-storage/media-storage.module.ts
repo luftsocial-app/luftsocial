@@ -3,10 +3,10 @@ import { MediaStorageService } from './media-storage.service';
 import { MediaStorageController } from './media-storage.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PostAsset } from '../entities/post-asset.entity';
-import { TenantModule } from '../../user-management/tenant/tenant.module';
+import { UserManagementModule } from '../../user-management/user-management.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([PostAsset]), TenantModule],
+  imports: [TypeOrmModule.forFeature([PostAsset]), UserManagementModule],
   providers: [MediaStorageService],
   exports: [MediaStorageService],
   controllers: [MediaStorageController],

@@ -13,12 +13,12 @@ import { Reflector } from '@nestjs/core';
 import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
-export class RolesGuard implements CanActivate {
+export class RoleGuard implements CanActivate {
   constructor(
     private reflector: Reflector,
     private readonly logger: PinoLogger,
   ) {
-    this.logger.setContext(RolesGuard.name);
+    this.logger.setContext(RoleGuard.name);
   }
 
   canActivate(context: ExecutionContext): boolean {

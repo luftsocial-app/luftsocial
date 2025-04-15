@@ -1,10 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { CreateTenantDto, UpdateTenantDto } from './dto/TenantDto';
 import { OrganizationWebhookEvent } from '@clerk/express';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Tenant } from '../entities/tenant.entity';
 import { PinoLogger } from 'nestjs-pino';
+import { Tenant } from './entities/tenant.entity';
 
 @Injectable()
 export class TenantService {
@@ -27,28 +26,7 @@ export class TenantService {
     return this.tenantId;
   }
 
-  createTenant(createOrgData: OrganizationWebhookEvent): void {
-    // save organization to tenant table
-    const tenant = this.tenantRepo.create({
-      id: createOrgData.data.id,
-      name: createOrgData.data['name'],
-      createdAt: new Date(createOrgData.data['created_at']),
-    });
-
-    this.tenantRepo
-      .save(tenant)
-      .then(() => {
-        this.logger.info('Tenant saved successfully');
-      })
-      .catch((error) => {
-        console.error('Error saving tenant:', error);
-        throw new Error('Failed to save tenant');
-      });
-  }
-
-  async handleTenantCreation(
-    createOrgData: OrganizationWebhookEvent,
-  ): Promise<void> {
+  async createTenant(createOrgData: OrganizationWebhookEvent): Promise<void> {
     const tenant = this.tenantRepo.create({
       id: createOrgData.data.id,
       name: createOrgData.data['name'],
@@ -59,25 +37,25 @@ export class TenantService {
     await this.tenantRepo.save(tenant);
   }
 
-  async handleTenantUpdate(
-    updateOrgData: OrganizationWebhookEvent,
-  ): Promise<void> {
+  async updateTenant(updateOrgData: OrganizationWebhookEvent): Promise<void> {
     const tenant = await this.tenantRepo.findOne({
       where: { id: updateOrgData.data.id },
     });
 
+    // create a new tenant if it doesn't exist
     if (!tenant) {
-      throw new NotFoundException('Tenant not found');
+      this.logger.info('Tenant not found, creating a new one');
+      this.createTenant(updateOrgData);
+      return;
     }
 
     tenant.name = updateOrgData.data['name'];
+    tenant.slug = updateOrgData.data['slug'];
     tenant.updatedAt = new Date(updateOrgData.data['updated_at']);
     await this.tenantRepo.save(tenant);
   }
 
-  async handleTenantDeletion(
-    deleteOrgData: OrganizationWebhookEvent,
-  ): Promise<void> {
+  async deleteTenant(deleteOrgData: OrganizationWebhookEvent): Promise<void> {
     const tenant = await this.tenantRepo.findOne({
       where: { id: deleteOrgData.data.id },
     });
@@ -87,30 +65,5 @@ export class TenantService {
     }
 
     await this.tenantRepo.delete(tenant.id);
-  }
-
-  updateTodo(uuid: string, data: UpdateTenantDto): void {
-    this.logger.info({
-      uuid,
-      data,
-    });
-  }
-
-  delete(uuid: string): void {
-    this.logger.info({
-      uuid,
-    });
-  }
-
-  getTenant(id: string): void {
-    this.logger.info({
-      id,
-    });
-  }
-
-  createTodo(data: CreateTenantDto): void {
-    this.logger.info({
-      data,
-    });
   }
 }

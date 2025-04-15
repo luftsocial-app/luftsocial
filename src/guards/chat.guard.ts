@@ -1,9 +1,13 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { ConversationService } from '../messaging/conversations/services/conversation.service';
+import { TenantService } from '../user-management/tenant.service';
 
 @Injectable()
 export class ChatGuard implements CanActivate {
-  constructor(private conversationService: ConversationService) {}
+  constructor(
+    private conversationService: ConversationService,
+    private readonly tenantService: TenantService,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
@@ -19,7 +23,7 @@ export class ChatGuard implements CanActivate {
     return this.conversationService.validateAccess(
       conversationId,
       user.id,
-      user.tenantId,
+      this.tenantService.getTenantId(),
     );
   }
 }

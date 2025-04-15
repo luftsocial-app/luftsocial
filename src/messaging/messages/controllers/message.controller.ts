@@ -26,7 +26,6 @@ import {
 import { ThrottlerGuard } from '@nestjs/throttler';
 
 // Internal dependencies
-import { ChatGuard } from '../../../guards/chat.guard';
 import { CurrentUser } from '../../../decorators/current-user.decorator';
 import { ResponseInterceptor } from '../../shared/interceptors/response.interceptor';
 
@@ -46,11 +45,11 @@ import {
 
 // Services
 import { MessageService } from '../services/message.service';
+import { AuthObject } from '@clerk/express';
 
 @ApiTags('Messages')
 @ApiBearerAuth()
 @Controller('messages')
-@UseGuards(ChatGuard)
 @UseInterceptors(ResponseInterceptor)
 export class MessageController {
   constructor(private readonly messageService: MessageService) {}
@@ -88,13 +87,13 @@ export class MessageController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   createMessage(
-    @CurrentUser() user,
+    @CurrentUser() user: AuthObject,
     @Body() messageDto: CreateMessageDto,
   ): Promise<MessageResponseDto> {
     return this.messageService.createMessage(
       messageDto.conversationId,
       messageDto.content,
-      user.id,
+      user.userId,
       messageDto.parentMessageId,
     );
   }
@@ -109,8 +108,8 @@ export class MessageController {
   })
   @Get('history/:userId')
   getMessageHistory(
-    @CurrentUser() user,
-    @Param('userId', ParseUUIDPipe) userId: string,
+    @CurrentUser() user: AuthObject,
+    @Param('userId') userId: string,
   ): Promise<MessageResponseDto[]> {
     // We use the requested userId, but authenticate via the current user
     return this.messageService.getMessageHistory(userId);
@@ -125,10 +124,10 @@ export class MessageController {
   })
   @Get(':id')
   getMessage(
-    @CurrentUser() user,
+    @CurrentUser() user: AuthObject,
     @Param('id', ParseUUIDPipe) messageId: string,
   ): Promise<MessageWithRelationsDto> {
-    return this.messageService.findMessageById(messageId, user.id);
+    return this.messageService.findMessageById(messageId, user.userId);
   }
 
   @ApiOperation({ summary: 'Update a message' })
@@ -149,14 +148,14 @@ export class MessageController {
   })
   @Patch(':id')
   updateMessage(
-    @CurrentUser() user,
+    @CurrentUser() user: AuthObject,
     @Param('id', ParseUUIDPipe) messageId: string,
     @Body() updateMessageDto: UpdateMessageDto,
   ): Promise<MessageResponseDto> {
     return this.messageService.updateMessage(
       messageId,
       updateMessageDto,
-      user.id,
+      user.userId,
     );
   }
 
@@ -177,10 +176,10 @@ export class MessageController {
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   deleteMessage(
-    @CurrentUser() user,
+    @CurrentUser() user: AuthObject,
     @Param('id', ParseUUIDPipe) messageId: string,
   ): Promise<void> {
-    return this.messageService.deleteMessage(messageId, user.id);
+    return this.messageService.deleteMessage(messageId, user.userId);
   }
 
   @ApiOperation({ summary: 'Add a reaction to a message' })
@@ -193,13 +192,13 @@ export class MessageController {
   })
   @Post(':id/reactions')
   addReaction(
-    @CurrentUser() user,
+    @CurrentUser() user: AuthObject,
     @Param('id', ParseUUIDPipe) messageId: string,
     @Body() reactionDto: ReactionDto,
   ): Promise<MessageResponseDto> {
     return this.messageService.addReaction(
       messageId,
-      user.id,
+      user.userId,
       reactionDto.emoji,
     );
   }
@@ -214,13 +213,13 @@ export class MessageController {
   })
   @Delete(':id/reactions')
   removeReaction(
-    @CurrentUser() user,
+    @CurrentUser() user: AuthObject,
     @Param('id', ParseUUIDPipe) messageId: string,
     @Body() reactionDto: ReactionDto,
   ): Promise<MessageResponseDto> {
     return this.messageService.removeReaction(
       messageId,
-      user.id,
+      user.userId,
       reactionDto.emoji,
     );
   }
@@ -262,10 +261,10 @@ export class MessageController {
   @Post(':id/read')
   @HttpCode(HttpStatus.NO_CONTENT)
   markAsRead(
-    @CurrentUser() user,
+    @CurrentUser() user: AuthObject,
     @Param('id', ParseUUIDPipe) messageId: string,
   ): Promise<void> {
-    return this.messageService.markMessageAsRead(messageId, user.id);
+    return this.messageService.markMessageAsRead(messageId, user.userId);
   }
 
   @ApiOperation({ summary: 'Get unread message count' })
@@ -279,9 +278,9 @@ export class MessageController {
   })
   @Get('unread/:conversationId')
   getUnreadCount(
-    @CurrentUser() user,
+    @CurrentUser() user: AuthObject,
     @Param('conversationId', ParseUUIDPipe) conversationId: string,
   ): Promise<number> {
-    return this.messageService.getUnreadCount(conversationId, user.id);
+    return this.messageService.getUnreadCount(conversationId, user.userId);
   }
 }

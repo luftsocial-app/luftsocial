@@ -75,7 +75,7 @@ describe('MediaStorageService', () => {
     } as unknown as jest.Mocked<S3>;
 
     // Mock the S3 constructor
-    (S3 as jest.Mock).mockImplementation(() => mockedS3Instance);
+    (S3 as unknown as jest.Mock).mockImplementation(() => mockedS3Instance);
 
     // Mock crypto implementation
     const mockHash = {
@@ -496,9 +496,6 @@ describe('MediaStorageService', () => {
 
   describe('generatePreSignedUrl', () => {
     it('should generate pre-signed URL with valid parameters', async () => {
-      // Mock tenant ID
-      tenantService.getTenantId.mockReturnValue('tenant-123');
-
       // Mock saved file metadata
       mockPostAssetRepository.save.mockResolvedValue({
         id: 'presigned-asset-123',

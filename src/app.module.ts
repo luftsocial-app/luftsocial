@@ -1,4 +1,9 @@
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  RequestMethod,
+} from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { HealthModule } from './health/health.module';
@@ -13,15 +18,12 @@ import { LoggerMiddleware } from './middleware/logger.middleware';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TenantMiddleware } from './middleware/tenant.middleware';
 import { ClerkAuthGuard } from './guards/clerk-auth.guard';
-import { RolesGuard } from './guards/role-guard';
-import { PostsModule } from './post-management/posts/posts.module';
-import { TenantModule } from './user-management/tenant/tenant.module';
 import { TaskModule } from './task/task.module';
 import { MediaStorageModule } from './asset-management/media-storage/media-storage.module';
 import { CacheModule } from './cache/cache.module';
 import { PlatformsModule } from './platforms/platforms.module';
 import { FacebookModule } from './platforms/facebook/facebook.module';
-import { MessagingModule } from './messaging/messaging.module';
+import { BullQueueModule } from './bull-queue/bull-queue.module';
 
 // Entity imports
 import { User } from './user-management/entities/user.entity';
@@ -31,7 +33,6 @@ import { Role as RoleEntity } from './user-management/entities/role.entity';
 import { ConversationEntity } from './messaging/conversations/entities/conversation.entity';
 import { MessageEntity } from './messaging/messages/entities/message.entity';
 import { AttachmentEntity } from './messaging/messages/entities/attachment.entity';
-import { Post as PostEntity } from './post-management/entities/posts/post.entity';
 
 import { InstagramModule } from './platforms/instagram/instagram.module';
 import { AuthState } from './platforms/entities/facebook-entities/auth-state.entity';
@@ -41,19 +42,21 @@ import { FacebookPage } from './platforms/entities/facebook-entities/facebook-pa
 import { FacebookPostMetric } from './platforms/entities/facebook-entities/facebook-post-metric.entity';
 import { FacebookPost } from './platforms/entities/facebook-entities/facebook-post.entity';
 import { ParticipantEntity } from './messaging/conversations/entities/participant.entity';
+import { UserManagementModule } from './user-management/user-management.module';
+import { MessageModule } from './messaging/messages/message.module';
+
 import { CrossPlatformModule } from './cross-platform/cross-platform.module';
 import { ConversationModule } from './messaging/conversations/conversation.module';
 import { RealtimeModule } from './messaging/realtime/realtime.module';
-import { UserModule } from './user-management/user/user.module';
 import { ClerkWebhookModule } from './webhooks/clerk-webhook/clerk-webhook.module';
 import { SocialAccount } from './platforms/entities/notifications/entity/social-account.entity';
 import { Team } from './user-management/entities/team.entity';
 import { Tenant } from './user-management/entities/tenant.entity';
-import { UserTenant } from './user-management/entities/user-tenant.entity';
 import { Notification } from './platforms/entities/notifications/notification.entity';
 import { TiktokModule } from './webhooks/tiktok/tiktok.module';
 import { PostAsset } from './asset-management/entities/post-asset.entity';
 import { PublishRecord } from './cross-platform/entities/publish.entity';
+import { RoleGuard } from './guards/role-guard';
 
 @Module({
   imports: [
@@ -74,9 +77,7 @@ import { PublishRecord } from './cross-platform/entities/publish.entity';
         ConversationEntity,
         MessageEntity,
         AttachmentEntity,
-        PostEntity,
         Team,
-        UserTenant,
         Notification,
         FacebookPostMetric,
         FacebookPost,
@@ -88,6 +89,7 @@ import { PublishRecord } from './cross-platform/entities/publish.entity';
         SocialAccount,
         PostAsset,
         PublishRecord,
+        PostAsset,
       ],
     }),
     LoggerModule.forRoot({
@@ -101,14 +103,11 @@ import { PublishRecord } from './cross-platform/entities/publish.entity';
     ]),
     RealtimeModule,
     ClerkWebhookModule,
-    MessagingModule,
+    RealtimeModule,
+    ClerkWebhookModule,
     HealthModule,
     ScheduleModule.forRoot(),
-    UserModule,
     HealthModule,
-    PostsModule,
-    TenantModule,
-    TaskModule,
     MediaStorageModule,
     CacheModule,
     FacebookModule,
@@ -116,7 +115,13 @@ import { PublishRecord } from './cross-platform/entities/publish.entity';
     PlatformsModule,
     CrossPlatformModule,
     ConversationModule,
-    TenantModule,
+    UserManagementModule,
+    BullQueueModule,
+    TaskModule,
+    TiktokModule,
+    MessageModule,
+    CrossPlatformModule,
+    ConversationModule,
     TiktokModule,
   ],
   controllers: [AppController],
@@ -128,7 +133,7 @@ import { PublishRecord } from './cross-platform/entities/publish.entity';
     },
     {
       provide: APP_GUARD,
-      useClass: RolesGuard,
+      useClass: RoleGuard,
     },
     {
       provide: APP_GUARD,
@@ -138,6 +143,11 @@ import { PublishRecord } from './cross-platform/entities/publish.entity';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(LoggerMiddleware, TenantMiddleware).forRoutes('*');
+    consumer.apply(LoggerMiddleware).forRoutes('*');
+    consumer
+      .apply(TenantMiddleware)
+      .exclude({ path: 'webhooks', method: RequestMethod.ALL })
+      .exclude({ path: 'webhooks/*', method: RequestMethod.ALL })
+      .forRoutes('*');
   }
 }

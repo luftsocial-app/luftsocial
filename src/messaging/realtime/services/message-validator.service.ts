@@ -5,10 +5,14 @@ import {
   ReactionPayload,
 } from '../events/message-events';
 import { PinoLogger } from 'nestjs-pino';
+import { ContentSanitizer } from '../../shared/utils/content-sanitizer';
 
 @Injectable()
 export class MessageValidatorService {
-  constructor(private readonly logger: PinoLogger) {
+  constructor(
+    private readonly logger: PinoLogger,
+    private readonly contentSanitizer: ContentSanitizer,
+  ) {
     this.logger.setContext(MessageValidatorService.name);
   }
   private readonly MAX_MESSAGE_LENGTH = 5000;
@@ -34,9 +38,12 @@ export class MessageValidatorService {
         return 'Message content cannot be empty';
       }
 
-      // Sanitize content for XSS (simplified - in a real app use a proper sanitizer)
-      if (payload.content.includes('<script>')) {
-        return 'Message contains forbidden content';
+      if (payload.metadata) {
+        const metadataSanitization =
+          this.contentSanitizer.sanitizeRealtimeMessage(payload.metadata);
+        if (!metadataSanitization.isValid) {
+          return 'Message metadata contains forbidden elements';
+        }
       }
 
       return null;
@@ -59,13 +66,29 @@ export class MessageValidatorService {
         return 'Updated content is required';
       }
 
-      if (payload.content.length > this.MAX_MESSAGE_LENGTH) {
+      // Sanitize the content
+      const sanitizedContent = this.contentSanitizer.sanitize(payload.content);
+      if (!sanitizedContent) {
+        return 'Message contains forbidden content';
+      }
+
+      if (sanitizedContent.length > this.MAX_MESSAGE_LENGTH) {
         return `Message exceeds maximum length of ${this.MAX_MESSAGE_LENGTH} characters`;
       }
 
-      if (payload.content.length < this.MIN_MESSAGE_LENGTH) {
+      if (sanitizedContent.length < this.MIN_MESSAGE_LENGTH) {
         return 'Message content cannot be empty';
       }
+
+      // Sanitize metadata if present
+      if (payload.metadata) {
+        payload.metadata = this.contentSanitizer.sanitizeMetadata(
+          payload.metadata,
+        );
+      }
+
+      // Update the payload with sanitized content
+      payload.content = sanitizedContent;
 
       return null;
     } catch (error) {

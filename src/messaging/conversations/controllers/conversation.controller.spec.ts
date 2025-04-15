@@ -14,6 +14,15 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { ParticipantRole } from '../../shared/enums/participant-role.enum';
+import { AuthObject } from '@clerk/express';
+import { TenantService } from '../../../user-management/tenant.service';
+
+jest.mock('../../../user-management/tenant.service', () => ({
+  TenantService: jest.fn().mockImplementation(() => ({
+    getTenantId: jest.fn(),
+    setTenantId: jest.fn(),
+  })),
+}));
 
 describe('ConversationController', () => {
   let controller: ConversationController;
@@ -21,10 +30,10 @@ describe('ConversationController', () => {
 
   // Mock test data
   const mockUser = {
-    id: 'user-123',
+    userId: 'user-123',
     username: 'testuser',
     tenantId: 'tenant-123',
-  };
+  } as unknown as AuthObject;
   const mockOtherUserId = 'user-456';
   const mockConversationId = 'conv-123';
 
@@ -86,6 +95,7 @@ describe('ConversationController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ConversationController],
       providers: [
+        TenantService,
         {
           provide: ConversationService,
           useValue: mockConversationService,
@@ -116,7 +126,7 @@ describe('ConversationController', () => {
       );
 
       expect(service.createOrGetDirectChat).toHaveBeenCalledWith(
-        mockUser.id,
+        mockUser.userId,
         mockOtherUserId,
       );
       expect(result).toEqual(mockDirectConversation);
@@ -147,7 +157,7 @@ describe('ConversationController', () => {
       expect(service.createGroupChat).toHaveBeenCalledWith(
         mockCreateGroupDto.name,
         mockCreateGroupDto.participantIds,
-        mockUser.id,
+        mockUser.userId,
       );
       expect(result).toEqual(mockConversation);
     });
@@ -176,7 +186,7 @@ describe('ConversationController', () => {
       const result = await controller.getMyConversations(mockUser);
 
       expect(service.getConversationsByUserId).toHaveBeenCalledWith(
-        mockUser.id,
+        mockUser.userId,
       );
       expect(result).toEqual(mockConversations);
     });
@@ -210,7 +220,7 @@ describe('ConversationController', () => {
       mockConversationService.addParticipantsToGroup.mockResolvedValue({
         ...mockConversation,
         participants: [
-          { userId: mockUser.id, role: ParticipantRole.OWNER },
+          { userId: mockUser.userId, role: ParticipantRole.OWNER },
           { userId: 'user-789', role: ParticipantRole.MEMBER },
           { userId: 'user-101', role: ParticipantRole.MEMBER },
         ],
@@ -225,7 +235,7 @@ describe('ConversationController', () => {
       expect(service.addParticipantsToGroup).toHaveBeenCalledWith(
         mockConversationId,
         mockAddParticipantsDto.participantIds,
-        mockUser.id,
+        mockUser.userId,
       );
       expect(result).toHaveProperty('participants');
       expect(result.participants.length).toBe(3);
@@ -252,7 +262,11 @@ describe('ConversationController', () => {
 
       await expect(
         controller.addParticipantsToConversation(
-          { id: 'non-admin-user', username: 'regular', tenantId: 'tenant-123' },
+          {
+            userId: 'non-admin-user',
+            orgId: 'regular',
+            sessionId: 'tenant-123',
+          } as unknown as AuthObject,
           mockConversationId,
           mockAddParticipantsDto,
         ),
@@ -279,7 +293,7 @@ describe('ConversationController', () => {
       expect(service.updateConversationSettings).toHaveBeenCalledWith(
         mockConversationId,
         mockUpdateSettingsDto,
-        mockUser.id,
+        mockUser.userId,
       );
       expect(result).toEqual(updatedConversation);
     });

@@ -1,7 +1,9 @@
 // External dependencies
-import { UseGuards } from '@nestjs/common';
+import { UseGuards, UsePipes } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Server } from 'socket.io';
+import * as config from 'config';
+
 import {
   WebSocketGateway,
   WebSocketServer,
@@ -9,6 +11,8 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
   OnGatewayInit,
+  MessageBody,
+  ConnectedSocket,
 } from '@nestjs/websockets';
 
 // Internal services
@@ -21,7 +25,6 @@ import { WsGuard } from '../../../guards/ws.guard';
 
 // Events and payloads
 import {
-  ErrorEvent,
   MessageDeletePayload,
   MessageEventPayload,
   MessageEventType,
@@ -47,26 +50,25 @@ import {
   validatePayload,
 } from '../utils/response.utils';
 import { PinoLogger } from 'nestjs-pino';
-
+import { WebsocketSanitizationPipe } from '../pipes/websocket-sanitization.pipe';
+import { ParticipantEventHandler } from './usecases/participants.events';
+import { MessageEventHandler } from './usecases/message.events';
+import { WebsocketHelpers } from '../utils/websocket.helpers';
+import * as jwt from 'jsonwebtoken';
+import { TenantService } from '../../../user-management/tenant.service';
 @WebSocketGateway({
   cors: {
-    origin: '*', // In production, specify exact origins
+    origin: config.get('websocket.allowedOrigins'),
   },
-  namespace: 'messaging',
-  transports: ['websocket', 'polling'],
+  namespace: config.get('websocket.namespace'),
+  transports: config.get('websocket.transports'),
 })
-@UseGuards(WsGuard)
+// @UseGuards(WsGuard)
 export class MessagingGateway
   implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit
 {
   @WebSocketServer()
   server: Server;
-
-  private readonly throttleTimers = new Map<string, number>();
-  private readonly MESSAGE_THROTTLE_MS: number;
-  private readonly TYPING_THROTTLE_MS: number;
-  private readonly READ_RECEIPT_THROTTLE_MS: number;
-  private readonly MAX_CLIENTS_PER_USER: number;
   private readonly clientsPerUser = new Map<string, Set<string>>();
 
   constructor(
@@ -74,34 +76,50 @@ export class MessagingGateway
     private readonly messageService: MessageService,
     private readonly messageValidator: MessageValidatorService,
     private readonly configService: ConfigService,
+    private readonly participantEventHandler: ParticipantEventHandler,
+    private readonly messageEventHandler: MessageEventHandler,
+    private readonly websoketHelpers: WebsocketHelpers,
     private readonly logger: PinoLogger,
+    private readonly tenantService: TenantService,
   ) {
     this.logger.setContext(MessagingGateway.name);
-    this.MESSAGE_THROTTLE_MS = this.configService.get<number>(
-      'messaging.throttle.messageRateMs',
-      500,
-    );
-    this.TYPING_THROTTLE_MS = this.configService.get<number>(
-      'messaging.throttle.typingRateMs',
-      2000,
-    );
-    this.READ_RECEIPT_THROTTLE_MS = this.configService.get<number>(
-      'messaging.throttle.readReceiptRateMs',
-      1000,
-    );
-    this.MAX_CLIENTS_PER_USER = this.configService.get<number>(
-      'messaging.maxClientsPerUser',
-      5,
-    );
   }
 
-  afterInit() {
+  afterInit(server: Server) {
     this.logger.info('WebSocket Gateway initialized');
+    server.use((socket, next) => {
+      const tenantId = socket.handshake.headers['x-tenant-id'] as string;
+      this.tenantService.setTenantId(tenantId);
+
+      const token =
+        socket.handshake.auth?.token || socket.handshake.headers?.authorization;
+      if (!token) {
+        return next(new Error('Authentication token is missing'));
+      }
+
+      const isDev = process.env.NODE_ENV === 'development';
+      const publicKey = isDev
+        ? process.env.CLERK_JWT_PUBLIC_KEY.replace(/\\n/g, '\n')
+        : this.configService.get('clerk.clerkPublicKey');
+
+      try {
+        const user = jwt.verify(token, publicKey, {
+          algorithms: ['RS256'], // Specify the RS256 algorithm
+        });
+        socket.data.user = user; // Attach the user object to socket.dat
+        next();
+      } catch (error) {
+        this.logger.error({ error });
+        next(new Error('Invalid authentication token'));
+      }
+    });
   }
 
+  @UseGuards(WsGuard)
   async handleConnection(client: SocketWithUser) {
     try {
       const { user } = client.data;
+
       if (!user) {
         client.disconnect();
         return;
@@ -115,11 +133,16 @@ export class MessagingGateway
       const userClients = this.clientsPerUser.get(user.id);
       userClients.add(client.id);
 
+      this.logger.debug({
+        userClients: userClients.size,
+        maxClients: this.websoketHelpers.maxClientsPerUser(),
+      });
+
       // Check if too many clients for this user
-      if (userClients.size > this.MAX_CLIENTS_PER_USER) {
+      if (userClients.size > this.websoketHelpers.maxClientsPerUser()) {
         client.emit(MessageEventType.ERROR, {
           code: 'TOO_MANY_CONNECTIONS',
-          message: `Maximum of ${this.MAX_CLIENTS_PER_USER} connections allowed`,
+          message: `Maximum of ${this.websoketHelpers.maxClientsPerUser()} connections allowed`,
         });
         client.disconnect();
         return;
@@ -169,33 +192,20 @@ export class MessagingGateway
     }
   }
 
-  private isThrottled(key: string, throttleTimeMs: number): boolean {
-    const now = Date.now();
-    const lastTime = this.throttleTimers.get(key) || 0;
-
-    if (now - lastTime < throttleTimeMs) {
-      return true;
-    }
-
-    this.throttleTimers.set(key, now);
-    return false;
-  }
-
-  private handleError(client: SocketWithUser, errorEvent: ErrorEvent): void {
-    client.emit(MessageEventType.ERROR, errorEvent);
-  }
-
+  @UsePipes(WebsocketSanitizationPipe)
   @SubscribeMessage(MessageEventType.SEND_MESSAGE)
   @SocketHandler()
   async handleMessage(
-    client: SocketWithUser,
-    payload: MessageEventPayload,
+    @MessageBody() payload: MessageEventPayload,
+    @ConnectedSocket() client: SocketWithUser,
   ): Promise<SocketResponse> {
     const { user } = client.data;
 
+    this.logger.debug({ user }, 'new message');
+
     // Rate limiting
     const throttleKey = `message:${user.id}`;
-    if (this.isThrottled(throttleKey, this.MESSAGE_THROTTLE_MS)) {
+    if (this.websoketHelpers.isThrottled(throttleKey)) {
       return createErrorResponse(
         'RATE_LIMITED',
         'You are sending messages too quickly',
@@ -207,12 +217,11 @@ export class MessagingGateway
     if (validationError) {
       return createErrorResponse('VALIDATION_ERROR', validationError);
     }
-
     // Validate access
     const hasAccess = await this.conversationService.validateAccess(
       payload.conversationId,
       user.id,
-      user.tenantId,
+      this.tenantService.getTenantId(),
     );
 
     if (!hasAccess) {
@@ -226,7 +235,7 @@ export class MessagingGateway
     const message = await this.messageService.createMessage(
       payload.conversationId,
       payload.content,
-      user.id,
+      user.sub,
     );
 
     // Get conversation to ensure we have all participants
@@ -255,262 +264,12 @@ export class MessagingGateway
     });
   }
 
-  @SubscribeMessage(MessageEventType.JOIN_CONVERSATION)
-  @SocketHandler()
-  async handleJoinConversation(
-    client: SocketWithUser,
-    conversationId: string,
-  ): Promise<SocketResponse> {
-    const { user } = client.data;
-
-    const hasAccess = await this.conversationService.validateAccess(
-      conversationId,
-      user.id,
-      user.tenantId,
-    );
-
-    if (hasAccess) {
-      const room = RoomNameFactory.conversationRoom(conversationId);
-      client.join(room);
-
-      // Update participant's last active timestamp
-      await this.conversationService.updateParticipantLastActive(
-        user.id,
-        conversationId,
-      );
-
-      return createSuccessResponse({
-        conversationId,
-        message: 'Joined conversation successfully',
-      });
-    } else {
-      return createErrorResponse(
-        'ACCESS_DENIED',
-        'You do not have access to this conversation',
-      );
-    }
-  }
-
-  @SubscribeMessage(MessageEventType.PARTICIPANT_ADD)
-  @SocketHandler()
-  async handleParticipantAdded(
-    client: SocketWithUser,
-    payload: ParticipantActionPayload,
-  ): Promise<SocketResponse> {
-    const { user } = client.data;
-
-    // Validate payload
-    const validationError = validatePayload(payload, [
-      'conversationId',
-      'participantIds',
-    ]);
-    if (validationError || !payload.participantIds.length) {
-      return createErrorResponse(
-        'VALIDATION_ERROR',
-        'Invalid participant data',
-      );
-    }
-
-    // Add participants
-    const conversation = await this.conversationService.addParticipantsToGroup(
-      payload.conversationId,
-      payload.participantIds,
-      user.id,
-    );
-
-    // Notify existing participants
-    const room = RoomNameFactory.conversationRoom(conversation.id);
-    this.server.to(room).emit(MessageEventType.PARTICIPANTS_UPDATED, {
-      conversationId: conversation.id,
-      action: 'added',
-      actorId: user.id,
-      participants: payload.participantIds.map((id) => ({ id })),
-      timestamp: new Date(),
-    });
-
-    // Add new participants to the conversation room
-    for (const participantId of payload.participantIds) {
-      const userRoom = RoomNameFactory.userRoom(participantId);
-      this.server.to(userRoom).socketsJoin(room);
-    }
-
-    return createSuccessResponse({
-      message: 'Participants added successfully',
-    });
-  }
-
-  @SubscribeMessage(MessageEventType.PARTICIPANT_REMOVE)
-  @SocketHandler()
-  async handleParticipantRemoved(
-    client: SocketWithUser,
-    payload: ParticipantActionPayload,
-  ): Promise<SocketResponse> {
-    const { user } = client.data;
-
-    // Validate payload
-    const validationError = validatePayload(payload, [
-      'conversationId',
-      'participantIds',
-    ]);
-    if (validationError || !payload.participantIds.length) {
-      return createErrorResponse(
-        'VALIDATION_ERROR',
-        'Invalid participant data',
-      );
-    }
-
-    // Remove participants
-    const conversation =
-      await this.conversationService.removeParticipantsFromGroup(
-        payload.conversationId,
-        payload.participantIds,
-        user.id,
-      );
-    this.logger.debug(
-      `handleParticipantRemoved: Removed participants from conversation ${payload.conversationId} ${conversation.participants.map((p) => p.id).join(',')}`,
-    );
-
-    // Notify remaining participants about the removal
-    const room = RoomNameFactory.conversationRoom(payload.conversationId);
-    this.server.to(room).emit(MessageEventType.PARTICIPANTS_UPDATED, {
-      conversationId: payload.conversationId,
-      action: 'removed',
-      actorId: user.id,
-      participants: payload.participantIds.map((id) => ({ id })),
-      timestamp: new Date(),
-    });
-
-    // Remove sockets of removed participants from the conversation room
-    for (const participantId of payload.participantIds) {
-      const userRoom = RoomNameFactory.userRoom(participantId);
-      // Find all client sockets for this user and make them leave the room
-      const socketsInRoom = await this.server.in(userRoom).fetchSockets();
-      for (const socket of socketsInRoom) {
-        socket.leave(room);
-      }
-    }
-
-    return createSuccessResponse({
-      message: 'Participants removed successfully',
-    });
-  }
-
-  @SubscribeMessage(MessageEventType.LEAVE_CONVERSATION)
-  @SocketHandler()
-  async handleLeaveConversation(
-    client: SocketWithUser,
-    conversationId: string,
-  ): Promise<SocketResponse> {
-    const room = RoomNameFactory.conversationRoom(conversationId);
-    client.leave(room);
-    return createSuccessResponse({
-      conversationId,
-      message: 'Left conversation successfully',
-    });
-  }
-
-  @SubscribeMessage(MessageEventType.TYPING_START)
-  @SocketHandler()
-  async handleTyping(
-    client: SocketWithUser,
-    payload: TypingEventPayload,
-  ): Promise<SocketResponse> {
-    const { user } = client.data;
-
-    // Validate payload
-    const validationError = validatePayload(payload, ['conversationId']);
-    if (validationError) {
-      return createErrorResponse('VALIDATION_ERROR', validationError);
-    }
-
-    // Rate limiting for typing events
-    const throttleKey = `typing:${user.id}:${payload.conversationId}`;
-    if (this.isThrottled(throttleKey, this.TYPING_THROTTLE_MS)) {
-      // Silently ignore rate-limited typing events but return success
-      // Typing indicators are non-critical and shouldn't error for UX reasons
-      return createSuccessResponse({ throttled: true });
-    }
-
-    const room = RoomNameFactory.conversationRoom(payload.conversationId);
-    this.server.to(room).emit(MessageEventType.USER_TYPING, {
-      conversationId: payload.conversationId,
-      user: {
-        id: user.id,
-        username: user.username,
-      },
-      timestamp: new Date(),
-    });
-
-    return createSuccessResponse();
-  }
-
-  @SubscribeMessage(MessageEventType.TYPING_STOP)
-  @SocketHandler()
-  async handleStopTyping(
-    client: SocketWithUser,
-    payload: TypingEventPayload,
-  ): Promise<SocketResponse> {
-    const { user } = client.data;
-
-    // Validate payload
-    const validationError = validatePayload(payload, ['conversationId']);
-    if (validationError) {
-      return createErrorResponse('VALIDATION_ERROR', validationError);
-    }
-
-    const room = RoomNameFactory.conversationRoom(payload.conversationId);
-    this.server.to(room).emit(MessageEventType.USER_STOPPED_TYPING, {
-      conversationId: payload.conversationId,
-      userId: user.id,
-      timestamp: new Date(),
-    });
-
-    return createSuccessResponse();
-  }
-
-  @SubscribeMessage(MessageEventType.MARK_AS_READ)
-  @SocketHandler()
-  async handleMarkAsRead(
-    client: SocketWithUser,
-    payload: ReadReceiptPayload,
-  ): Promise<SocketResponse> {
-    const { user } = client.data;
-
-    // Validate payload
-    const validationError = validatePayload(payload, [
-      'messageId',
-      'conversationId',
-    ]);
-    if (validationError) {
-      return createErrorResponse('VALIDATION_ERROR', validationError);
-    }
-
-    // Rate limiting for read receipts
-    const throttleKey = `read:${user.id}:${payload.messageId}`;
-    if (this.isThrottled(throttleKey, this.READ_RECEIPT_THROTTLE_MS)) {
-      // Return success but don't process - this is a high frequency event
-      return createSuccessResponse({ throttled: true });
-    }
-
-    await this.messageService.markMessageAsRead(payload.messageId, user.id);
-
-    // Notify other participants
-    const room = RoomNameFactory.conversationRoom(payload.conversationId);
-    this.server.to(room).emit(MessageEventType.MESSAGE_READ, {
-      messageId: payload.messageId,
-      userId: user.id,
-      conversationId: payload.conversationId,
-      readAt: new Date(),
-    });
-
-    return createSuccessResponse();
-  }
-
   @SubscribeMessage(MessageEventType.UPDATE_MESSAGE)
   @SocketHandler()
+  @UsePipes(WebsocketSanitizationPipe)
   async handleMessageUpdated(
-    client: SocketWithUser,
-    payload: MessageUpdatePayload,
+    @MessageBody() payload: MessageUpdatePayload,
+    @ConnectedSocket() client: SocketWithUser,
   ): Promise<SocketResponse> {
     const { user } = client.data;
 
@@ -589,38 +348,100 @@ export class MessagingGateway
     });
   }
 
+  @SubscribeMessage(MessageEventType.JOIN_CONVERSATION)
+  @SocketHandler()
+  async handleJoinConversation(
+    client: SocketWithUser,
+    conversationId: string,
+  ): Promise<SocketResponse> {
+    return await this.participantEventHandler.joinConversation(
+      client,
+      conversationId,
+    );
+  }
+
+  @SubscribeMessage(MessageEventType.PARTICIPANT_ADD)
+  @SocketHandler()
+  async handleParticipantAdded(
+    client: SocketWithUser,
+    payload: ParticipantActionPayload,
+    server: Server,
+  ): Promise<SocketResponse> {
+    return await this.participantEventHandler.participantAdded(
+      client,
+      payload,
+      server,
+    );
+  }
+
+  @SubscribeMessage(MessageEventType.PARTICIPANT_REMOVE)
+  @SocketHandler()
+  async handleParticipantRemoved(
+    client: SocketWithUser,
+    payload: ParticipantActionPayload,
+    server: Server,
+  ): Promise<SocketResponse> {
+    return await this.participantEventHandler.participantRemoved(
+      client,
+      payload,
+      server,
+    );
+  }
+
+  @SubscribeMessage(MessageEventType.LEAVE_CONVERSATION)
+  @SocketHandler()
+  async handleLeaveConversation(
+    client: SocketWithUser,
+    conversationId: string,
+  ): Promise<SocketResponse> {
+    return await this.participantEventHandler.leaveConversation(
+      client,
+      conversationId,
+    );
+  }
+
+  @SubscribeMessage(MessageEventType.TYPING_START)
+  @SocketHandler()
+  async handleTyping(
+    client: SocketWithUser,
+    payload: TypingEventPayload,
+    server: Server,
+  ): Promise<SocketResponse> {
+    return await this.messageEventHandler.handleTyping(client, payload, server);
+  }
+
+  @SubscribeMessage(MessageEventType.TYPING_STOP)
+  @SocketHandler()
+  async handleStopTyping(
+    client: SocketWithUser,
+    payload: TypingEventPayload,
+    server: Server,
+  ): Promise<SocketResponse> {
+    return await this.messageEventHandler.stopTyping(client, payload, server);
+  }
+
+  @SubscribeMessage(MessageEventType.MARK_AS_READ)
+  @SocketHandler()
+  async handleMarkAsRead(
+    client: SocketWithUser,
+    payload: ReadReceiptPayload,
+    server: Server,
+  ): Promise<SocketResponse> {
+    return await this.messageEventHandler.markAsRead(client, payload, server);
+  }
+
   @SubscribeMessage(MessageEventType.ADD_REACTION)
   @SocketHandler()
   async handleReactionAdded(
     client: SocketWithUser,
     payload: ReactionPayload,
+    server: Server,
   ): Promise<SocketResponse> {
-    const { user } = client.data;
-
-    // Validate reaction payload
-    const validationError = this.messageValidator.validateReaction(payload);
-    if (validationError) {
-      return createErrorResponse('VALIDATION_ERROR', validationError);
-    }
-
-    // Add reaction to message
-    const message = await this.messageService.addReaction(
-      payload.messageId,
-      user.id,
-      payload.emoji,
+    return await this.messageEventHandler.reactionAdded(
+      client,
+      payload,
+      server,
     );
-
-    // Notify participants about the reaction
-    const room = RoomNameFactory.conversationRoom(message.conversationId);
-    this.server.to(room).emit(MessageEventType.REACTION_ADDED, {
-      messageId: message.id,
-      userId: user.id,
-      username: user.username,
-      emoji: payload.emoji,
-      timestamp: new Date(),
-    });
-
-    return createSuccessResponse();
   }
 
   @SubscribeMessage(MessageEventType.REMOVE_REACTION)
@@ -628,31 +449,12 @@ export class MessagingGateway
   async handleReactionRemoved(
     client: SocketWithUser,
     payload: ReactionPayload,
+    server: Server,
   ): Promise<SocketResponse> {
-    const { user } = client.data;
-
-    // Validate reaction payload
-    const validationError = this.messageValidator.validateReaction(payload);
-    if (validationError) {
-      return createErrorResponse('VALIDATION_ERROR', validationError);
-    }
-
-    // Remove reaction from message
-    const message = await this.messageService.removeReaction(
-      payload.messageId,
-      user.id,
-      payload.emoji,
+    return await this.messageEventHandler.reactionRemoved(
+      client,
+      payload,
+      server,
     );
-
-    // Notify participants about the reaction removal
-    const room = RoomNameFactory.conversationRoom(message.conversationId);
-    this.server.to(room).emit(MessageEventType.REACTION_REMOVED, {
-      messageId: message.id,
-      userId: user.id,
-      emoji: payload.emoji,
-      timestamp: new Date(),
-    });
-
-    return createSuccessResponse();
   }
 }

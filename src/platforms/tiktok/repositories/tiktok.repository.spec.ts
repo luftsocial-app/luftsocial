@@ -233,12 +233,6 @@ describe('TikTokRepository', () => {
       Repository<TikTokComment>
     >;
     entityManager = module.get(EntityManager) as jest.Mocked<EntityManager>;
-
-    // Mock setTenantId method
-    jest.spyOn(repository, 'setTenantId').mockImplementation((tenantId) => {
-      jest.spyOn(repository, 'getTenantId').mockReturnValue(tenantId);
-    });
-    repository.setTenantId(mockTenantId);
   });
 
   afterEach(() => {
@@ -247,6 +241,29 @@ describe('TikTokRepository', () => {
 
   it('should be defined', () => {
     expect(repository).toBeDefined();
+  });
+
+  describe('createAccount', () => {
+    it('should create a new TikTok account', async () => {
+      const accountData = {
+        tiktokUserId: 'tiktok_user_123',
+        accountName: 'Test Account',
+      };
+
+      accountRepo.create.mockReturnValue(
+        accountData as unknown as TikTokAccount,
+      );
+      accountRepo.save.mockResolvedValue({
+        id: mockAccountId,
+        ...accountData,
+      } as unknown as TikTokAccount);
+
+      const result = await repository.createAccount(accountData);
+
+      expect(accountRepo.create).toHaveBeenCalledWith(accountData);
+      expect(accountRepo.save).toHaveBeenCalledWith(accountData);
+      expect(result).toEqual({ id: mockAccountId, ...accountData });
+    });
   });
 
   describe('createVideo', () => {

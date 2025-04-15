@@ -8,6 +8,10 @@ logger:
         __format: json
       censor: '***'
 port: 3000
+clerk:
+  perishableKey: CLERK_PERISHABLE_KEY
+  secretKey: CLERK_SECRET_KEY
+  clerkPublicKey: CLERK_PUBLIC_KEY
 messaging:
   throttle:
     messageRateMs: MESSAGE_THROTTLE_MS
@@ -61,3 +65,9 @@ platforms:
     clientSecret: TIKTOK_CLIENT_SECRET
     redirectUri: TIKTOK_REDIRECT_URI
     apiVersion: TIKTOK_API_VERSION
+websocket:
+  namespace: NAMESPACE
+  transports: WEBSOCKET_TRANSPORTS
+  allowedOrigins:
+    __name: ALLOWED_ORIGINS
+    __format: json

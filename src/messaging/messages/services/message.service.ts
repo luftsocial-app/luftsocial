@@ -4,7 +4,6 @@ import {
   ForbiddenException,
   BadRequestException,
 } from '@nestjs/common';
-import { TenantService } from '../../../user-management/tenant/tenant.service';
 import { MessageRepository } from '../repositories/message.repository';
 import { AttachmentRepository } from '../repositories/attachment.repository';
 import { MessageStatus } from '../../shared/enums/message-type.enum';
@@ -18,8 +17,9 @@ import {
   MessageListResponseDto,
   AttachmentResponseDto,
 } from '../dto/message-response.dto';
-import { Not, Like } from 'typeorm';
 import { PinoLogger } from 'nestjs-pino';
+import { TenantService } from '../../../user-management/tenant.service';
+import { ContentSanitizer } from '../../shared/utils/content-sanitizer';
 
 @Injectable()
 export class MessageService {
@@ -28,9 +28,10 @@ export class MessageService {
     private readonly attachmentRepository: AttachmentRepository,
     private readonly conversationService: ConversationService,
     private readonly tenantService: TenantService,
+    private readonly contentSanitizer: ContentSanitizer,
     private readonly logger: PinoLogger,
   ) {
-    this.logger.setContext('MessageService');
+    this.logger.setContext(MessageService.name);
   }
 
   // Helper method to map entity to DTO
@@ -120,6 +121,13 @@ export class MessageService {
     try {
       const tenantId = this.tenantService.getTenantId();
 
+      // Sanitize content before saving
+      const sanitizedContent = this.contentSanitizer.sanitize(content);
+
+      if (!sanitizedContent) {
+        throw new BadRequestException('Message content is invalid');
+      }
+
       const hasAccess = await this.conversationService.validateAccess(
         conversationId,
         senderId,
@@ -149,7 +157,7 @@ export class MessageService {
 
       const message = this.messageRepository.create({
         conversationId,
-        content,
+        content: sanitizedContent,
         senderId,
         parentMessageId,
         tenantId,
@@ -288,9 +296,17 @@ export class MessageService {
         throw new BadRequestException('Cannot edit deleted messages');
       }
 
+      // Sanitize updated content
+      const sanitizedContent = this.contentSanitizer.sanitize(
+        updateData.content,
+      );
+      if (!sanitizedContent) {
+        throw new BadRequestException('Message content is invalid');
+      }
+
       // Use entity helper method for edit history
       message.addEditHistoryEntry(message.content, userId);
-      message.content = updateData.content;
+      message.content = sanitizedContent;
       message.updatedAt = new Date();
 
       const updatedMessage = await this.messageRepository.save(message);
@@ -390,7 +406,7 @@ export class MessageService {
       message.removeReaction(userId, emoji);
       const updatedMessage = await this.messageRepository.save(message);
 
-      this.logger.debug(
+      this.logger.info(
         `Reaction removed from message ${messageId} by user: ${userId}`,
       );
       return this.mapToMessageDto(updatedMessage, userId);
@@ -527,13 +543,23 @@ export class MessageService {
     userId: string,
   ): Promise<number> {
     try {
-      const count = await this.messageRepository.count({
-        where: {
-          conversationId,
-          isDeleted: false,
-          readBy: Not(Like(`%${userId}%`)),
-        },
-      });
+      const tenantId = this.tenantService.getTenantId();
+
+      // Validate conversation access
+      const hasAccess = await this.conversationService.validateAccess(
+        conversationId,
+        userId,
+        tenantId,
+      );
+
+      if (!hasAccess) {
+        throw new ForbiddenException('No access to this conversation');
+      }
+
+      const count = await this.messageRepository.getUnreadCount(
+        conversationId,
+        userId,
+      );
 
       this.logger.debug(
         `Retrieved unread count for user ${userId} in conversation ${conversationId}: ${count}`,
@@ -544,7 +570,14 @@ export class MessageService {
         `Failed to get unread count: ${error.message}`,
         error.stack,
       );
-      throw error;
+      // Rethrow specific exceptions
+      if (error instanceof ForbiddenException) {
+        throw error;
+      }
+      // Wrap unknown errors
+      throw new BadRequestException(
+        `Failed to get unread count: ${error.message}`,
+      );
     }
   }
 }

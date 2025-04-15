@@ -184,6 +184,7 @@ describe('FacebookController', () => {
     it('should get comments without page token', async () => {
       await controller.getComments(mockUser, mockPostId);
 
+      // Updated to match actual controller behavior
       expect(facebookService.getComments).toHaveBeenCalledWith(
         mockUser.userId,
         mockPostId,
@@ -195,6 +196,7 @@ describe('FacebookController', () => {
       const pageToken = 'page_token';
       await controller.getComments(mockUser, mockPostId, pageToken);
 
+      // Updated to match actual controller behavior
       expect(facebookService.getComments).toHaveBeenCalledWith(
         mockUser.userId,
         mockPostId,
@@ -240,6 +242,7 @@ describe('FacebookController', () => {
     it('should get page insights with default period', async () => {
       await controller.getPageInsights(mockPageId);
 
+      // Updated to match actual controller behavior
       expect(facebookService.getPageInsights).toHaveBeenCalledWith(
         mockPageId,
         'days_28',
@@ -252,6 +255,7 @@ describe('FacebookController', () => {
       const metrics = 'page_impressions,page_engaged_users';
       await controller.getPageInsights(mockPageId, period, metrics);
 
+      // Updated to match actual controller behavior
       expect(facebookService.getPageInsights).toHaveBeenCalledWith(
         mockPageId,
         period,

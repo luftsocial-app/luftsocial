@@ -4,7 +4,6 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
-import { TenantService } from '../../../user-management/tenant/tenant.service';
 import { ConversationRepository } from '../repositories/conversation.repository';
 import { ParticipantRepository } from '../repositories/participant.repository';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -19,6 +18,8 @@ import { ConversationType } from '../../shared/enums/conversation-type.enum';
 import { ParticipantRole } from '../../shared/enums/participant-role.enum';
 import {} from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
+import { UserService } from '../../../user-management/user.service';
+import { TenantService } from '../../../user-management/tenant.service';
 
 @Injectable()
 export class ConversationService {
@@ -26,6 +27,7 @@ export class ConversationService {
     private tenantService: TenantService,
     private conversationRepository: ConversationRepository,
     private participantRepository: ParticipantRepository,
+    private userService: UserService,
 
     private readonly logger: PinoLogger,
 
@@ -103,6 +105,7 @@ export class ConversationService {
         userId,
         conversationId,
       );
+
     return (
       !!participant &&
       participant.status === 'member' &&
@@ -116,9 +119,8 @@ export class ConversationService {
   ): Promise<ConversationEntity> {
     const tenantId = this.tenantService.getTenantId();
 
-    const checkUser2TenantId = await this.userRepository.findOne({
-      where: { id: userId2, userTenants: { id: tenantId } },
-    });
+    const checkUser2TenantId = await this.userService.findById(userId2);
+
     if (!checkUser2TenantId) {
       throw new NotFoundException('User 2 not found in the tenant');
     }
