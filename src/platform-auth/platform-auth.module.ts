@@ -7,8 +7,7 @@ import { FacebookRepository } from '../platforms/facebook/repositories/facebook.
 import { InstagramRepository } from '../platforms/instagram/repositories/instagram.repository';
 import { LinkedInRepository } from '../platforms/linkedin/repositories/linkedin.repository';
 import { TikTokRepository } from '../platforms/tiktok/repositories/tiktok.repository';
-import { LinkedInAccount } from '../platforms/entities/linkedin-entities/linkedin-account.entity';
-import { LinkedInOrganization } from '../platforms/entities/linkedin-entities/linkedin-organization.entity';
+
 import {
   LinkedInPost,
   LinkedInMetric,
@@ -31,7 +30,8 @@ import { InstagramMetric } from '../platforms/entities/instagram-entities/instag
 import { InstagramPost } from '../platforms/entities/instagram-entities/instagram-post.entity';
 import { InstagramRateLimit } from '../platforms/entities/instagram-entities/instagram-rate-limit.entity';
 import { SocialAccount } from '../platforms/entities/notifications/entity/social-account.entity';
-import { UserManagementModule } from '../user-management/user-management.module';
+import { LinkedInAccount } from '../platforms/entities/linkedin-entities/linkedin-account.entity';
+import { LinkedInOrganization } from '../platforms/entities/linkedin-entities/linkedin-organization.entity';
 
 @Module({
   providers: [
@@ -70,6 +70,7 @@ import { UserManagementModule } from '../user-management/user-management.module'
   ],
   exports: [
     PlatformAuthService,
+    PlatformAuthService,
     PlatformConfigsProvider,
     'PLATFORM_REPOSITORIES',
 
@@ -82,7 +83,6 @@ import { UserManagementModule } from '../user-management/user-management.module'
   controllers: [PlatformAuthController],
   imports: [
     CacheModule,
-    UserManagementModule, // Assuming this module is defined elsewhere
     TypeOrmModule.forFeature([
       // Include any necessary entities
       FacebookAccount,

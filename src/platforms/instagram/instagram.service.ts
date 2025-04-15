@@ -16,7 +16,10 @@ import {
   SocialAccountDetails,
 } from '../platform-service.interface';
 import { AccountInsights } from './helpers/instagram-account.interface';
-import { CreatePostDto, CreateStoryDto } from './helpers/create-content.dto';
+import {
+  CreateInstagramPostDto,
+  CreateStoryDto,
+} from './helpers/create-content.dto';
 import {
   AccountMetrics,
   DateRange,
@@ -25,9 +28,9 @@ import {
 import { MediaStorageItem } from '../../asset-management/media-storage/media-storage.dto';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
 import { MediaType } from '../../common/enums/media-type.enum';
+import { TenantService } from '../../user-management/tenant/tenant.service';
 import { InstagramAccount } from '../entities/instagram-entities/instagram-account.entity';
 import { PinoLogger } from 'nestjs-pino';
-import { TenantService } from '../../user-management/tenant.service';
 
 @Injectable()
 export class InstagramService implements PlatformService {
@@ -150,7 +153,7 @@ export class InstagramService implements PlatformService {
   // TODO: add caption, hastags and mentions to posting
   async post(
     accountId: string,
-    content: CreatePostDto,
+    content: CreateInstagramPostDto,
     media?: MediaItem[],
   ): Promise<PostResponse> {
     try {

@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { EntityManager, Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository, UpdateResult } from 'typeorm';
 import { NotFoundException } from '@nestjs/common';
 import { TikTokRepository } from './tiktok.repository';
 import { TikTokAccount } from '../../entities/tiktok-entities/tiktok-account.entity';
@@ -8,8 +8,12 @@ import { TikTokVideo } from '../../entities/tiktok-entities/tiktok-video.entity'
 import { TikTokMetric } from '../../entities/tiktok-entities/tiktok-metric.entity';
 import { TikTokRateLimit } from '../../entities/tiktok-entities/tiktok_rate_limits.entity';
 import { TikTokComment } from '../../entities/tiktok-entities/tiktok_comments.entity';
-import { TikTokVideoPrivacyLevel } from '../helpers/tiktok.interfaces';
+import {
+  TikTokPostVideoStatus,
+  TikTokVideoPrivacyLevel,
+} from '../helpers/tiktok.interfaces';
 import { SocialAccount } from '../../../platforms/entities/notifications/entity/social-account.entity';
+import { IsolationLevel } from 'typeorm/driver/types/IsolationLevel';
 
 describe('TikTokRepository', () => {
   let repository: TikTokRepository;
@@ -20,7 +24,6 @@ describe('TikTokRepository', () => {
   let rateLimitRepo: jest.Mocked<Repository<TikTokRateLimit>>;
   let commentRepo: jest.Mocked<Repository<TikTokComment>>;
   let entityManager: jest.Mocked<EntityManager>;
-
   // Mock data
   const mockTenantId = 'tenant123';
   const mockAccountId = 'account123';
@@ -93,7 +96,7 @@ describe('TikTokRepository', () => {
     uploadParams: {},
     status: 'PENDING',
     expiresAt: new Date(Date.now() + 7200000), // 2 hours from now
-  };
+  } as any;
 
   beforeEach(async () => {
     // Create mock repositories
@@ -148,6 +151,27 @@ describe('TikTokRepository', () => {
       update: jest.fn(),
       delete: jest.fn(),
       remove: jest.fn(),
+      transaction: jest.fn(
+        async (
+          isolationLevelOrCallback:
+            | IsolationLevel
+            | ((manager: EntityManager) => Promise<any>),
+          maybeCallback?: (manager: EntityManager) => Promise<any>,
+        ) => {
+          const callback =
+            typeof isolationLevelOrCallback === 'function'
+              ? isolationLevelOrCallback
+              : maybeCallback;
+
+          if (callback) {
+            await callback(mockEntityManager as unknown as EntityManager);
+          }
+        },
+      ),
+    };
+
+    const mockDataSource = {
+      getRepository: jest.fn().mockReturnValue(mockAccountRepo),
       transaction: jest.fn(),
     };
 
@@ -182,6 +206,10 @@ describe('TikTokRepository', () => {
           provide: EntityManager,
           useValue: mockEntityManager,
         },
+        {
+          provide: DataSource,
+          useValue: mockDataSource,
+        },
       ],
     }).compile();
 
@@ -205,12 +233,6 @@ describe('TikTokRepository', () => {
       Repository<TikTokComment>
     >;
     entityManager = module.get(EntityManager) as jest.Mocked<EntityManager>;
-
-    // Mock setTenantId method
-    jest.spyOn(repository, 'setTenantId').mockImplementation((tenantId) => {
-      jest.spyOn(repository, 'getTenantId').mockReturnValue(tenantId);
-    });
-    repository.setTenantId(mockTenantId);
   });
 
   afterEach(() => {
@@ -391,7 +413,7 @@ describe('TikTokRepository', () => {
       metricRepo.create.mockReturnValue({
         ...metricData,
         video: { id: mockVideoId },
-      } as TikTokMetric);
+      } as unknown as TikTokMetric);
       metricRepo.save.mockResolvedValue({
         id: 'new_metric',
         ...metricData,
@@ -580,7 +602,7 @@ describe('TikTokRepository', () => {
 
   describe('getRecentVideos', () => {
     it('should return recent videos with default limit', async () => {
-      videoRepo.find.mockResolvedValue([mockVideo] as TikTokVideo[]);
+      videoRepo.find.mockResolvedValue([mockVideo] as unknown as TikTokVideo[]);
 
       const result = await repository.getRecentVideos(mockAccountId);
 
@@ -595,7 +617,7 @@ describe('TikTokRepository', () => {
     });
 
     it('should return recent videos with specified limit', async () => {
-      videoRepo.find.mockResolvedValue([mockVideo] as TikTokVideo[]);
+      videoRepo.find.mockResolvedValue([mockVideo] as unknown as TikTokVideo[]);
 
       const result = await repository.getRecentVideos(mockAccountId, 5);
 
@@ -612,7 +634,9 @@ describe('TikTokRepository', () => {
 
   describe('getActiveAccounts', () => {
     it('should return active accounts', async () => {
-      accountRepo.find.mockResolvedValue([mockAccount] as TikTokAccount[]);
+      accountRepo.find.mockResolvedValue([
+        mockAccount,
+      ] as unknown as TikTokAccount[]);
 
       const result = await repository.getActiveAccounts();
 
@@ -635,14 +659,15 @@ describe('TikTokRepository', () => {
       const metricsData = {
         videoId: mockVideoId,
         metrics: {
-          views: 1000,
-          likes: 500,
-          comments: 100,
-          shares: 50,
+          viewCount: 1000,
+          likeCount: 500,
+          commentCount: 100,
+          sharesCount: 50,
         },
-      } as unknown as TikTokMetric;
+      };
 
       metricRepo.create.mockReturnValue({
+        id: mockMetricId,
         video: { id: metricsData.videoId },
         ...metricsData.metrics,
         collectedAt: expect.any(Date),
@@ -670,7 +695,9 @@ describe('TikTokRepository', () => {
 
   describe('getAccountsWithExpiringTokens', () => {
     it('should return accounts with expiring tokens', async () => {
-      accountRepo.find.mockResolvedValue([mockAccount] as TikTokAccount[]);
+      accountRepo.find.mockResolvedValue([
+        mockAccount,
+      ] as unknown as TikTokAccount[]);
 
       const result = await repository.getAccountsWithExpiringTokens();
 
@@ -690,7 +717,9 @@ describe('TikTokRepository', () => {
 
   describe('updateUploadSession', () => {
     it('should update upload session status', async () => {
-      entityManager.update.mockResolvedValue({ affected: 1 });
+      entityManager.update.mockResolvedValue({
+        affected: 1,
+      } as unknown as UpdateResult);
 
       await repository.updateUploadSession(mockSessionId, 'COMPLETED');
 
@@ -766,7 +795,9 @@ describe('TikTokRepository', () => {
 
   describe('getById', () => {
     it('should return account by id', async () => {
-      accountRepo.findOne.mockResolvedValue(mockAccount as TikTokAccount);
+      accountRepo.findOne.mockResolvedValue(
+        mockAccount as unknown as TikTokAccount,
+      );
 
       const result = await repository.getById(mockAccountId);
 
@@ -786,7 +817,7 @@ describe('TikTokRepository', () => {
         publishId: mockPublishId,
         uploadUrl: 'https://upload.tiktok.com/video',
         uploadParams: {},
-        status: 'PENDING',
+        status: TikTokPostVideoStatus.PENDING,
         expiresAt: new Date(Date.now() + 7200000), // 2 hours from now
       };
 
@@ -837,12 +868,9 @@ describe('TikTokRepository', () => {
 
   describe('deleteAccount', () => {
     it('should delete account and associated data', async () => {
-      accountRepo.findOne.mockResolvedValue(mockAccount as TikTokAccount);
-
-      // Mock transaction execution
-      entityManager.transaction.mockImplementation(async (callback) => {
-        await callback(entityManager);
-      });
+      accountRepo.findOne.mockResolvedValue(
+        mockAccount as unknown as TikTokAccount,
+      );
 
       await repository.deleteAccount(mockAccountId);
 
@@ -874,13 +902,8 @@ describe('TikTokRepository', () => {
     it('should skip social account removal if not present', async () => {
       const accountWithoutSocial = { ...mockAccount, socialAccount: null };
       accountRepo.findOne.mockResolvedValue(
-        accountWithoutSocial as TikTokAccount,
+        accountWithoutSocial as unknown as TikTokAccount,
       );
-
-      // Mock transaction execution
-      entityManager.transaction.mockImplementation(async (callback) => {
-        await callback(entityManager);
-      });
 
       await repository.deleteAccount(mockAccountId);
 

@@ -11,14 +11,16 @@ export class PreSignedUrlResult {
   cdnUrl: string;
   bucket: string;
   key: string;
+  assetId: string;
 }
 
 export interface MediaStorageItem {
   id?: string;
-  url: string;
+  url?: string;
   key: string;
   type: MediaType;
-  originalFilename: string;
-  size: number;
-  mimeType: string;
+  originalFilename?: string;
+  size?: number;
+  mimeType?: string;
+  hash?: string;
 }

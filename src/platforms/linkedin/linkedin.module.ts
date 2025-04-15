@@ -16,13 +16,13 @@ import { ConfigModule } from '@nestjs/config';
 import { PlatformAuthModule } from '../../platform-auth/platform-auth.module';
 import { MediaStorageModule } from '../../asset-management/media-storage/media-storage.module';
 import { AuthState } from '../entities/facebook-entities/auth-state.entity';
-import { UserManagementModule } from '../../user-management/user-management.module';
+import { TenantModule } from '../../user-management/tenant/tenant.module';
 
 @Module({
   controllers: [LinkedInController],
   imports: [
     ConfigModule,
-    UserManagementModule,
+    TenantModule,
     MediaStorageModule,
     PlatformAuthModule,
     TypeOrmModule.forFeature([

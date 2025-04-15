@@ -3,22 +3,48 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
+  UpdateDateColumn,
+  Index,
 } from 'typeorm';
 
-@Entity({ name: 'post_assets' })
+@Entity('post_assets')
 export class PostAsset {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
+  @Column({ nullable: false })
+  @Index()
   tenantId: string;
 
-  @Column()
+  @Column({ nullable: true })
+  @Index()
+  postId: string;
+
+  @Column({ nullable: false })
   fileKey: string;
 
-  @Column()
+  @Column({ nullable: false })
   fileType: string;
+
+  @Column({ nullable: true })
+  fileName: string;
+
+  @Column({ nullable: true, type: 'bigint' })
+  fileSize: number;
+
+  @Column({ nullable: true })
+  @Index()
+  fileHash: string;
+
+  @Column({ default: false })
+  isPending: boolean;
 
   @CreateDateColumn()
   uploadedAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @Column({ nullable: true })
+  deletedAt: Date;
 }

@@ -3,9 +3,9 @@ import { LinkedInRepository } from '../repositories/linkedin.repository';
 import { LinkedInService } from '../linkedin.service';
 import { LinkedInMetricsCollectionJob } from './metrics-collection.job';
 import { PinoLogger } from 'nestjs-pino';
-import { LinkedInOrganization } from 'src/platforms/entities/linkedin-entities/linkedin-organization.entity';
-import { LinkedInPost } from 'src/platforms/entities/linkedin-entities/linkedin-post.entity';
-import { PostMetrics } from 'src/cross-platform/helpers/cross-platform.interface';
+import { LinkedInOrganization } from '../../../platforms/entities/linkedin-entities/linkedin-organization.entity';
+import { LinkedInPost } from '../../../platforms/entities/linkedin-entities/linkedin-post.entity';
+import { PostMetrics } from '../../../cross-platform/helpers/cross-platform.interface';
 
 describe('LinkedInMetricsCollectionJob', () => {
   let job: LinkedInMetricsCollectionJob;

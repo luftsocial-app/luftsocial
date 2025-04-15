@@ -3,6 +3,7 @@ import { WsException } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
 import { PinoLogger } from 'nestjs-pino';
 import { verify } from 'jsonwebtoken';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class WsGuard implements CanActivate {

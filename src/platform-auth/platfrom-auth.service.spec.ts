@@ -8,7 +8,7 @@ import { SocialPlatform } from '../common/enums/social-platform.enum';
 import { PlatformError } from '../platforms/platform.error';
 import { PlatformAuthService } from './platform-auth.service';
 import { PinoLogger } from 'nestjs-pino';
-import { TenantService } from '../user-management/tenant.service';
+import { TenantService } from '../user-management/tenant/tenant.service';
 
 // Mock simple-oauth2
 jest.mock('simple-oauth2');
@@ -444,18 +444,6 @@ describe('PlatformAuthService', () => {
       );
     });
 
-    it('should add additional parameters for TikTok token exchange', async () => {
-      await service.handleCallback(SocialPlatform.TIKTOK, mockCode, mockState);
-
-      expect(mockAuthorizationCode.getToken).toHaveBeenCalledWith({
-        code: mockCode,
-        redirect_uri: mockPlatformConfigs[SocialPlatform.TIKTOK].redirectUri,
-        scope: mockPlatformConfigs[SocialPlatform.TIKTOK].scopes,
-        client_key: mockPlatformConfigs[SocialPlatform.TIKTOK].clientId,
-        grant_type: 'authorization_code',
-      });
-    });
-
     it('should throw PlatformError when token exchange fails', async () => {
       mockAuthorizationCode.getToken.mockImplementationOnce(() => {
         throw new Error('Token exchange error');
@@ -568,47 +556,6 @@ describe('PlatformAuthService', () => {
   });
 
   describe('formatTokenResponse', () => {
-    it('should format TikTok token response correctly', async () => {
-      mockAuthorizationCode.getToken.mockResolvedValueOnce({
-        token: {
-          access_token: mockToken,
-          refresh_token: mockRefreshToken,
-          expires_in: 3600,
-          token_type: 'Bearer',
-          scope: 'user.info.basic',
-          open_id: 'tt_open_id_123',
-        },
-      });
-
-      // Mock fetchTikTokUserInfo
-      mockAxios.get.mockImplementationOnce(() => {
-        return Promise.resolve({
-          data: {
-            open_id: 'tt_open_id_123',
-            display_name: 'TikTok User',
-            avatar_url: 'https://example.com/avatar.jpg',
-          },
-        });
-      });
-
-      const result = await service.handleCallback(
-        SocialPlatform.TIKTOK,
-        mockCode,
-        mockState,
-      );
-
-      expect(result).toEqual(
-        expect.objectContaining({
-          accessToken: expect.any(String),
-          refreshToken: expect.any(String),
-          expiresIn: expect.any(Number),
-          tokenType: expect.any(String),
-          scope: expect.any(Array),
-          openId: expect.any(String),
-        }),
-      );
-    });
-
     it('should handle null scope', async () => {
       mockAuthorizationCode.getToken.mockResolvedValueOnce({
         token: {

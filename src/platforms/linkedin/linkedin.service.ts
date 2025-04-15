@@ -22,11 +22,11 @@ import {
   PostMetrics,
 } from '../../cross-platform/helpers/cross-platform.interface';
 import { LinkedInAccount } from '../entities/linkedin-entities/linkedin-account.entity';
+import { TenantService } from '../../user-management/tenant/tenant.service';
 import { CreateLinkedInPostDto } from './helpers/create-post.dto';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
 import { MediaStorageItem } from '../../asset-management/media-storage/media-storage.dto';
 import { PinoLogger } from 'nestjs-pino';
-import { TenantService } from '../../user-management/tenant.service';
 
 @Injectable()
 export class LinkedInService implements PlatformService {

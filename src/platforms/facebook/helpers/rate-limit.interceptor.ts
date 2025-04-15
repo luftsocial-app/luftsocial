@@ -21,6 +21,7 @@ export class RateLimitInterceptor implements NestInterceptor {
     const pageId = request.params.pageId;
 
     if (pageId) {
+      console.log('Page_ID:', pageId);
       const canProceed = await this.checkRateLimit(pageId);
       if (!canProceed) {
         throw new HttpException(

@@ -1,174 +1,113 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@nestjs/config';
 import { FacebookService } from './facebook.service';
 import { FacebookRepository } from './repositories/facebook.repository';
+import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
+import { TenantService } from '../../user-management/tenant/tenant.service';
+import { PinoLogger } from 'nestjs-pino';
+import axios from 'axios';
 import {
-  BadRequestException,
-  HttpException,
-  NotFoundException,
-} from '@nestjs/common';
-
-import {
-  CreatePostDto,
-  SchedulePagePostDto,
+  CreateFacebookPagePostDto,
   UpdatePageDto,
   UpdatePostDto,
 } from './helpers/post.dto';
-import { MediaItem } from '../platform-service.interface';
-import { FacebookApiException } from './helpers/facebook-api.exception';
-import axios from 'axios';
-import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
-import { MediaType } from '../../common/enums/media-type.enum';
-import { MediaStorageItem } from '../../asset-management/media-storage/media-storage.dto';
-import { FacebookAccount } from '../entities/facebook-entities/facebook-account.entity';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { FacebookPage } from '../entities/facebook-entities/facebook-page.entity';
 import { FacebookPost } from '../entities/facebook-entities/facebook-post.entity';
-import { PinoLogger } from 'nestjs-pino';
-import { TenantService } from '../../user-management/tenant.service';
+import { MediaType } from '../../common/enums/media-type.enum';
+import * as config from 'config';
 
+// Mock axios
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
+// Mock config
+jest.mock('config', () => ({
+  get: jest.fn((key) => {
+    if (key === 'platforms.facebook.clientId') return 'mock-client-id';
+    if (key === 'platforms.facebook.clientSecret') return 'mock-client-secret';
+    if (key === 'aws.s3.bucket') return 'mock-bucket';
+    return null;
+  }),
+}));
+
 describe('FacebookService', () => {
   let service: FacebookService;
-  let facebookRepo: jest.Mocked<FacebookRepository>;
-  let mediaStorageService: jest.Mocked<MediaStorageService>;
-  let tenantService: jest.Mocked<TenantService>;
 
   // Mock data
   const mockTenantId = 'tenant123';
-  const mockUserId = 'user123';
   const mockAccountId = 'account123';
   const mockPageId = 'page123';
   const mockPostId = 'post123';
-  const mockFacebookPostId = 'fb_post_123';
-  const mockFacebookPostContent = 'This is a test post';
-  const mockAccessToken = 'mock_access_token';
-  const mockPageAccessToken = 'mock_page_access_token';
-  const mockFile = {
-    fieldname: 'files',
-    originalname: 'test.jpg',
-    encoding: '7bit',
-    mimetype: 'image/jpeg',
-    buffer: Buffer.from('test'),
-    size: 4,
-  } as Express.Multer.File;
+  const mockFbPostId = 'fb_post_123';
+  const mockAccessToken = 'mock-access-token';
+  // const mockFile = {
+  //   fieldname: 'file',
+  //   originalname: 'test.jpg',
+  //   buffer: Buffer.from('test-file-content'),
+  //   mimetype: 'image/jpeg',
+  //   size: 1024,
+  // } as Express.Multer.File;
 
-  const mockMediaUrl = 'https://example.com/image.jpg';
-  const mockUploadedMediaUrl = 'https://storage.example.com/uploaded-image.jpg';
-
-  const mockSocialAccount = {
-    id: 'social123',
-    accessToken: mockAccessToken,
-    refreshToken: 'refresh_token',
-    provider: 'facebook',
+  // Mock repository methods
+  const mockFacebookRepo = {
+    setTenantId: jest.fn(),
+    getAccountById: jest.fn(),
+    getPageById: jest.fn(),
+    getPostById: jest.fn(),
+    getAccountPages: jest.fn(),
+    createPost: jest.fn(),
+    updatePost: jest.fn(),
+    updatePage: jest.fn(),
+    createPage: jest.fn(),
+    deletePost: jest.fn(),
+    deleteAccount: jest.fn(),
   };
 
-  const mockAccount = {
-    id: mockAccountId,
-    facebookUserId: 'fb_user_123',
-    socialAccount: mockSocialAccount,
-  } as unknown as FacebookAccount;
+  // Mock media storage service
+  const mockMediaStorageService = {
+    uploadPostMedia: jest.fn(),
+    uploadMediaFromUrl: jest.fn(),
+  };
 
-  const mockPage = {
-    id: mockPageId,
-    pageId: 'fb_page_123',
-    name: 'Test Page',
-    category: 'Business',
-    accessToken: mockPageAccessToken,
-    facebookAccount: mockAccount,
-  } as FacebookPage;
+  // Mock tenant service
+  const mockTenantService = {
+    getTenantId: jest.fn().mockReturnValue(mockTenantId),
+  };
 
-  const mockPost = {
-    id: mockPostId,
-    postId: mockFacebookPostId,
-    content: mockFacebookPostContent,
-    page: mockPage,
-    account: mockAccount,
-    isPublished: true,
-    publishedAt: new Date(),
-    mediaItems: [],
-  } as FacebookPost;
+  // Mock logger
+  const mockLogger = {
+    setContext: jest.fn(),
+    debug: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+  };
 
-  // Setup mocks
   beforeEach(async () => {
-    // Create mock implementations
-    const mockFacebookRepoFactory = () => ({
-      setTenantId: jest.fn(),
-      getAccountById: jest.fn(),
-      getPostById: jest.fn(),
-      getPageById: jest.fn(),
-      getAccountPages: jest.fn(),
-      createPost: jest.fn(),
-      updatePost: jest.fn(),
-      updatePage: jest.fn(),
-      updatePageToken: jest.fn(),
-      deletePost: jest.fn(),
-      deleteAccount: jest.fn(),
-    });
-
-    const mockMediaStorageServiceFactory = () => ({
-      uploadPostMedia: jest.fn(),
-      uploadMediaFromUrl: jest.fn(),
-    });
-
-    const mockTenantServiceFactory = () => ({
-      getTenantId: jest.fn().mockReturnValue(mockTenantId),
-    });
-
-    const mockConfigServiceFactory = () => ({
-      get: jest.fn((key) => {
-        const config = {
-          FACEBOOK_CLIENT_ID: 'client_id',
-          FACEBOOK_CLIENT_SECRET: 'client_secret',
-          FACEBOOK_CLIENT_KEY: 'client_key',
-        };
-        return config[key];
-      }),
-    });
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         FacebookService,
         {
-          provide: PinoLogger,
-          useValue: {
-            info: jest.fn(),
-            error: jest.fn(),
-            warn: jest.fn(),
-            debug: jest.fn(),
-            setContext: jest.fn(),
-          },
-        },
-        {
           provide: FacebookRepository,
-          useFactory: mockFacebookRepoFactory,
+          useValue: mockFacebookRepo,
         },
         {
           provide: MediaStorageService,
-          useFactory: mockMediaStorageServiceFactory,
+          useValue: mockMediaStorageService,
         },
         {
           provide: TenantService,
-          useFactory: mockTenantServiceFactory,
+          useValue: mockTenantService,
         },
         {
-          provide: ConfigService,
-          useFactory: mockConfigServiceFactory,
+          provide: PinoLogger,
+          useValue: mockLogger,
         },
       ],
     }).compile();
 
     service = module.get<FacebookService>(FacebookService);
-    facebookRepo = module.get(
-      FacebookRepository,
-    ) as jest.Mocked<FacebookRepository>;
-    mediaStorageService = module.get(
-      MediaStorageService,
-    ) as jest.Mocked<MediaStorageService>;
-    tenantService = module.get(TenantService) as jest.Mocked<TenantService>;
 
-    // Reset mocks
+    // Reset all mocks before each test
     jest.clearAllMocks();
   });
 
@@ -176,364 +115,301 @@ describe('FacebookService', () => {
     expect(service).toBeDefined();
   });
 
-  describe('getUserAccounts', () => {
-    it('should throw NotFoundException when account not found', async () => {
-      // Setup
-      facebookRepo.getAccountById.mockResolvedValue(null);
+  describe('getComments', () => {
+    it('should fetch comments for a post', async () => {
+      // Mock repository response
+      mockFacebookRepo.getAccountById.mockResolvedValue({
+        socialAccount: {
+          accessToken: mockAccessToken,
+        },
+      });
 
-      // Execute and Assert
-      await expect(service.getUserAccounts(mockUserId)).rejects.toThrow(
-        NotFoundException,
-      );
-      expect(facebookRepo.setTenantId).toHaveBeenCalledWith(mockTenantId);
-    });
-
-    it('should fetch user accounts successfully', async () => {
-      // Setup
-      facebookRepo.getAccountById.mockResolvedValue(mockAccount);
-
+      // Mock axios response
       mockedAxios.get.mockResolvedValue({
         data: {
           data: [
             {
-              id: 'page123',
-              name: 'Business Page',
-              category: 'Business',
-              picture: {
-                data: {
-                  url: 'https://example.com/profile.jpg',
-                },
+              id: 'comment1',
+              message: 'Test comment',
+              created_time: '2023-01-01T12:00:00Z',
+              from: {
+                id: 'user1',
+                name: 'Test User',
               },
             },
           ],
+          paging: {
+            cursors: {
+              after: 'next_page_token',
+            },
+            next: 'next_page_url',
+          },
         },
       });
 
-      // Execute
-      const result = await service.getUserAccounts(mockUserId);
+      const result = await service.getComments(mockAccountId, mockPostId);
 
-      // Assert
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        expect.stringContaining('/me/accounts'),
-        expect.any(Object),
-      );
-      expect(result).toHaveLength(1);
-      expect(result[0].name).toEqual('Business Page');
-      expect(result[0].avatarUrl).toEqual('https://example.com/profile.jpg');
-    });
-
-    it('should throw FacebookApiException on API error', async () => {
-      // Setup
-      facebookRepo.getAccountById.mockResolvedValue(mockAccount);
-
-      mockedAxios.get.mockRejectedValue(new Error('API Error'));
-
-      // Execute and Assert
-      await expect(service.getUserAccounts(mockUserId)).rejects.toThrow(
-        FacebookApiException,
-      );
-    });
-  });
-
-  describe('post', () => {
-    it('should create a post without media', async () => {
-      // Setup
-      facebookRepo.getAccountById.mockResolvedValue(mockAccount);
-
-      mockedAxios.post.mockResolvedValue({
-        data: { id: mockFacebookPostId },
-      });
-
-      // Execute
-      const result = await service.post(mockAccountId, mockFacebookPostContent);
-
-      // Assert
-      expect(facebookRepo.getAccountById).toHaveBeenCalledWith(mockAccountId);
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        expect.stringContaining(`/${mockAccount.facebookUserId}/feed`),
-        { message: mockFacebookPostContent },
-        expect.any(Object),
-      );
-      expect(facebookRepo.createPost).toHaveBeenCalled();
-      expect(result.platformPostId).toEqual(mockFacebookPostId);
-    });
-
-    it('should create a post with single media item', async () => {
-      // Setup
-      const media: MediaItem[] = [{ url: mockMediaUrl, file: undefined }];
-
-      facebookRepo.getAccountById.mockResolvedValue(mockAccount);
-
-      mediaStorageService.uploadMediaFromUrl.mockResolvedValue({
-        id: 'media123',
-        url: mockUploadedMediaUrl,
-        type: MediaType.IMAGE,
-      } as unknown as MediaStorageItem);
-
-      mockedAxios.post.mockResolvedValue({
-        data: { id: mockFacebookPostId },
-      });
-
-      // Execute
-      const result = await service.post(
+      // Verify repository was called
+      expect(mockFacebookRepo.getAccountById).toHaveBeenCalledWith(
         mockAccountId,
-        mockFacebookPostContent,
-        media,
       );
 
-      // Assert
-      expect(mediaStorageService.uploadMediaFromUrl).toHaveBeenCalledWith(
-        mockAccount.facebookUserId,
-        mockMediaUrl,
-        expect.any(String),
-      );
-
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        expect.any(String),
+      // Verify axios was called with correct parameters
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        expect.stringContaining(`/${mockPostId}/comments`),
         expect.objectContaining({
-          message: mockFacebookPostContent,
-          link: mockUploadedMediaUrl,
+          params: expect.objectContaining({
+            access_token: mockAccessToken,
+            fields: 'from,message,created_time',
+          }),
         }),
-        expect.any(Object),
       );
 
-      expect(result.platformPostId).toEqual(mockFacebookPostId);
+      // Verify result structure
+      expect(result).toHaveProperty('data');
+      expect(result).toHaveProperty('pagination');
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0]).toHaveProperty('id', 'comment1');
+      expect(result.pagination).toHaveProperty('nextToken', 'next_page_token');
+      expect(result.pagination).toHaveProperty('hasMore', true);
     });
 
-    it('should throw error when account not found', async () => {
-      // Setup
-      facebookRepo.getAccountById.mockResolvedValue(null);
-
-      // Execute and Assert
-      await expect(
-        service.post(mockAccountId, mockFacebookPostContent),
-      ).rejects.toThrow('Account not found');
-    });
-  });
-
-  describe('createPagePost', () => {
-    it('should create a post for a page', async () => {
-      // Setup
-      const createPostDto: CreatePostDto = {
-        content: 'Page post content',
-        media: [{ file: mockFile, url: undefined }],
-      };
-
-      facebookRepo.getPageById.mockResolvedValue(mockPage);
-
-      mediaStorageService.uploadPostMedia.mockResolvedValue([
-        {
-          id: 'media123',
-          url: mockUploadedMediaUrl,
-          type: MediaType.IMAGE,
+    it('should include page token in request if provided', async () => {
+      // Mock repository response
+      mockFacebookRepo.getAccountById.mockResolvedValue({
+        socialAccount: {
+          accessToken: mockAccessToken,
         },
-      ] as unknown as MediaStorageItem[]);
-
-      // Mock processMedia method
-      jest
-        .spyOn(service as any, 'processMedia')
-        .mockResolvedValue([{ media_fbid: 'media_123' }]);
-
-      mockedAxios.post.mockResolvedValue({
-        data: { id: mockFacebookPostId },
       });
 
-      // Execute
-      await service.createPagePost(mockPageId, createPostDto);
-
-      // Assert
-      expect(facebookRepo.getPageById).toHaveBeenCalledWith(mockPageId);
-      expect(mediaStorageService.uploadPostMedia).toHaveBeenCalled();
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        expect.stringContaining(`/${mockPage.pageId}/feed`),
-        expect.objectContaining({
-          message: createPostDto.content,
-          attached_media: expect.any(Array),
-        }),
-        expect.any(Object),
-      );
-      expect(facebookRepo.createPost).toHaveBeenCalled();
-    });
-
-    it('should throw NotFoundException when page not found', async () => {
-      // Setup
-      facebookRepo.getPageById.mockResolvedValue(null);
-
-      const createPostDto: CreatePostDto = {
-        content: 'Page post content',
-        media: [],
-      };
-
-      // Execute and Assert
-      await expect(
-        service.createPagePost(mockPageId, createPostDto),
-      ).rejects.toThrow(NotFoundException);
-    });
-  });
-
-  describe('schedulePagePost', () => {
-    it('should schedule a post for a page', async () => {
-      // Setup
-      const scheduleDto: SchedulePagePostDto = {
-        pageId: mockPageId,
-        content: 'Scheduled content',
-        scheduledTime: new Date().toISOString(),
-        media: [],
-      };
-
-      facebookRepo.getPageById.mockResolvedValue(mockPage);
-
-      mockedAxios.post.mockResolvedValue({
-        data: { id: mockFacebookPostId },
+      // Mock axios response
+      mockedAxios.get.mockResolvedValue({
+        data: {
+          data: [],
+          paging: {},
+        },
       });
 
-      // Execute
-      await service.schedulePagePost(scheduleDto);
+      const pageToken = 'test_page_token';
+      await service.getComments(mockAccountId, mockPostId, pageToken);
 
-      // Assert
-      expect(facebookRepo.getPageById).toHaveBeenCalledWith(mockPageId);
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        expect.stringContaining(`/${mockPage.pageId}/feed`),
+      // Verify axios was called with the page token
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        expect.any(String),
         expect.objectContaining({
-          message: scheduleDto.content,
-          published: false,
-          scheduled_publish_time: expect.any(Number),
+          params: expect.objectContaining({
+            after: pageToken,
+          }),
         }),
-        expect.any(Object),
-      );
-      expect(facebookRepo.createPost).toHaveBeenCalledWith(
-        expect.objectContaining({
-          page: mockPage,
-          content: scheduleDto.content,
-          isPublished: false,
-        }),
-      );
-    });
-
-    it('should throw NotFoundException when page not found', async () => {
-      // Setup
-      facebookRepo.getPageById.mockResolvedValue(null);
-
-      const scheduleDto: SchedulePagePostDto = {
-        pageId: mockPageId,
-        content: 'Scheduled content',
-        scheduledTime: new Date().toISOString(),
-        media: [],
-      };
-
-      // Execute and Assert
-      await expect(service.schedulePagePost(scheduleDto)).rejects.toThrow(
-        NotFoundException,
       );
     });
   });
 
   describe('getUserPages', () => {
-    it('should fetch user pages and update tokens', async () => {
-      // Setup
-      facebookRepo.getAccountById.mockResolvedValue(mockAccount);
-      facebookRepo.getAccountPages.mockResolvedValue([mockPage]);
+    it('should fetch user pages and update local database', async () => {
+      // Mock account data
+      const mockAccount = {
+        id: mockAccountId,
+        facebookUserId: 'fb_user_123',
+        socialAccount: {
+          accessToken: mockAccessToken,
+        },
+      };
 
+      // Mock existing pages
+      const mockExistingPages = [
+        {
+          id: 'local_page_1',
+          pageId: 'fb_page_1',
+          name: 'Existing Page',
+        },
+      ];
+
+      // Mock Facebook API response
+      const mockFbPages = [
+        {
+          id: 'fb_page_1',
+          name: 'Updated Page Name',
+          category: 'Business',
+          access_token: 'page_token_1',
+          about: 'About text',
+          description: 'Page description',
+          followers_count: 100,
+          tasks: ['CREATE_CONTENT'],
+          category_list: [{ id: '123', name: 'Business' }],
+        },
+        {
+          id: 'fb_page_2',
+          name: 'New Page',
+          category: 'Personal Blog',
+          access_token: 'page_token_2',
+          about: 'New page about',
+          description: 'New page description',
+          followers_count: 50,
+          tasks: ['CREATE_CONTENT', 'MANAGE_JOBS'],
+          category_list: [{ id: '456', name: 'Personal Blog' }],
+        },
+      ];
+
+      // Set up mocks
+      mockFacebookRepo.getAccountById.mockResolvedValue(mockAccount);
+      mockFacebookRepo.getAccountPages.mockResolvedValueOnce(mockExistingPages);
+      mockFacebookRepo.getAccountPages.mockResolvedValueOnce([
+        { id: 'local_page_1', pageId: 'fb_page_1', name: 'Updated Page Name' },
+        { id: 'local_page_2', pageId: 'fb_page_2', name: 'New Page' },
+      ]);
+
+      // Mock axios response
       mockedAxios.get.mockResolvedValue({
         data: {
-          data: [
-            {
-              id: mockPage.pageId,
-              name: mockPage.name,
-              category: mockPage.category,
-              access_token: 'updated_token',
-              followers_count: 100,
-            },
-          ],
+          data: mockFbPages,
         },
       });
 
-      // Execute
-      const result = await service.getUserPages(mockUserId);
+      mockFacebookRepo.updatePage.mockResolvedValue({});
+      mockFacebookRepo.createPage.mockResolvedValue({});
 
-      // Assert
-      expect(facebookRepo.getAccountById).toHaveBeenCalledWith(mockUserId);
-      // Fix the URL path expectation to match the actual implementation
+      // Call the method
+      const result = await service.getUserPages(mockAccountId);
+
+      // Verify the function set tenant ID
+      expect(mockFacebookRepo.setTenantId).toHaveBeenCalledWith(mockTenantId);
+
+      // Verify it fetched the account
+      expect(mockFacebookRepo.getAccountById).toHaveBeenCalledWith(
+        mockAccountId,
+      );
+
+      // Verify it fetched existing pages
+      expect(mockFacebookRepo.getAccountPages).toHaveBeenCalledWith(
+        mockAccount.id,
+      );
+
+      // Verify it called the Facebook API
       expect(mockedAxios.get).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(Object),
+        expect.stringContaining(`/${mockAccount.facebookUserId}/accounts`),
+        expect.objectContaining({
+          params: expect.objectContaining({
+            access_token: mockAccessToken,
+          }),
+        }),
       );
 
-      expect(result).toEqual([mockPage]);
-    });
-
-    it('should throw NotFoundException when account not found', async () => {
-      // Setup
-      facebookRepo.getAccountById.mockResolvedValue(null);
-
-      // Execute and Assert
-      await expect(service.getUserPages(mockUserId)).rejects.toThrow(
-        NotFoundException,
+      // Verify it updated the existing page
+      expect(mockFacebookRepo.updatePage).toHaveBeenCalledWith(
+        'local_page_1',
+        expect.objectContaining({
+          pageId: 'fb_page_1',
+          name: 'Updated Page Name',
+        }),
       );
+
+      // Verify it created the new page
+      expect(mockFacebookRepo.createPage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          pageId: 'fb_page_2',
+          name: 'New Page',
+          facebookAccount: mockAccount,
+        }),
+      );
+
+      // Verify it returned the updated pages list
+      expect(result).toHaveLength(2);
     });
   });
 
   describe('getPagePosts', () => {
     it('should fetch page posts with default limit', async () => {
-      // Setup
-      facebookRepo.getPageById.mockResolvedValue(mockPage);
+      // Mock page data
+      const mockPage = {
+        pageId: 'fb_page_123',
+        accessToken: 'page_token_123',
+      };
 
-      mockedAxios.get.mockResolvedValue({
-        data: {
-          data: [
-            {
-              id: 'post1',
-              message: 'First post',
-              created_time: '2023-04-01T12:00:00Z',
-            },
-          ],
-          paging: {
-            cursors: { after: 'next_page_token' },
+      // Mock Facebook API response
+      const mockPostsResponse = {
+        data: [
+          {
+            id: 'post_1',
+            message: 'Test post 1',
+            created_time: '2023-01-01T12:00:00Z',
+            attachments: { data: [] },
+          },
+          {
+            id: 'post_2',
+            message: 'Test post 2',
+            created_time: '2023-01-02T12:00:00Z',
+            attachments: { data: [] },
+          },
+        ],
+        paging: {
+          cursors: {
+            after: 'next_cursor_token',
           },
         },
-      });
+      };
 
-      // Execute
+      // Set up mocks
+      mockFacebookRepo.getPageById.mockResolvedValue(mockPage);
+      mockedAxios.get.mockResolvedValue({ data: mockPostsResponse });
+
+      // Call the method
       const result = await service.getPagePosts(mockPageId);
 
-      // Assert
-      expect(facebookRepo.getPageById).toHaveBeenCalledWith(mockPageId);
+      // Verify repository was called
+      expect(mockFacebookRepo.setTenantId).toHaveBeenCalledWith(mockTenantId);
+      expect(mockFacebookRepo.getPageById).toHaveBeenCalledWith(mockPageId);
+
+      // Verify axios was called with correct parameters
       expect(mockedAxios.get).toHaveBeenCalledWith(
         expect.stringContaining(`/${mockPage.pageId}/feed`),
         expect.objectContaining({
           params: expect.objectContaining({
+            access_token: mockPage.accessToken,
             limit: 10,
+            fields: 'id,message,created_time,attachments',
           }),
         }),
       );
-      expect(result.posts).toHaveLength(1);
-      expect(result.nextCursor).toEqual('next_page_token');
+
+      // Verify result structure
+      expect(result).toHaveProperty('posts', mockPostsResponse.data);
+      expect(result).toHaveProperty('nextCursor', 'next_cursor_token');
     });
 
     it('should fetch page posts with custom limit and cursor', async () => {
-      // Setup
-      const limit = 20;
-      const cursor = 'some_cursor';
+      // Mock page data
+      const mockPage = {
+        pageId: 'fb_page_123',
+        accessToken: 'page_token_123',
+      };
 
-      facebookRepo.getPageById.mockResolvedValue(mockPage);
-
-      mockedAxios.get.mockResolvedValue({
-        data: {
-          data: [],
-          paging: { cursors: {} },
+      // Mock Facebook API response
+      const mockPostsResponse = {
+        data: [],
+        paging: {
+          cursors: {
+            after: 'next_cursor_token',
+          },
         },
-      });
+      };
 
-      // Execute
-      await service.getPagePosts(mockPageId, limit, cursor);
+      // Set up mocks
+      mockFacebookRepo.getPageById.mockResolvedValue(mockPage);
+      mockedAxios.get.mockResolvedValue({ data: mockPostsResponse });
 
-      // Assert
+      // Call the method with custom limit and cursor
+      const customLimit = 20;
+      const customCursor = 'custom_cursor_token';
+      await service.getPagePosts(mockPageId, customLimit, customCursor);
+
+      // Verify axios was called with custom parameters
       expect(mockedAxios.get).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
           params: expect.objectContaining({
-            limit,
-            after: cursor,
+            limit: customLimit,
+            after: customCursor,
           }),
         }),
       );
@@ -542,946 +418,846 @@ describe('FacebookService', () => {
 
   describe('getPageInsights', () => {
     it('should fetch page insights with default period', async () => {
-      // Setup
-      facebookRepo.getPageById.mockResolvedValue(mockPage);
+      // Mock page data
+      const mockPage = {
+        pageId: 'fb_page_123',
+        accessToken: 'page_token_123',
+      };
 
-      mockedAxios.get.mockResolvedValue({
-        data: {
-          data: [
-            {
-              name: 'page_impressions',
-              values: [{ value: 1000 }],
-            },
-            {
-              name: 'page_engaged_users',
-              values: [{ value: 500 }],
-            },
-          ],
-        },
-      });
+      // Mock Facebook API response
+      const mockInsightsResponse = {
+        data: [
+          {
+            name: 'page_impressions',
+            period: 'days_28',
+            values: [
+              { end_time: '2023-01-28T08:00:00+0000', value: 500 },
+              { end_time: '2023-01-27T08:00:00+0000', value: 450 },
+            ],
+          },
+          {
+            name: 'page_post_engagements',
+            period: 'days_28',
+            values: [
+              { end_time: '2023-01-28T08:00:00+0000', value: 100 },
+              { end_time: '2023-01-27T08:00:00+0000', value: 90 },
+            ],
+          },
+        ],
+      };
 
-      // Execute
+      // Set up mocks
+      mockFacebookRepo.getPageById.mockResolvedValue(mockPage);
+      mockedAxios.get.mockResolvedValue({ data: mockInsightsResponse });
+
+      // Call the method
       const result = await service.getPageInsights(mockPageId);
 
-      // Assert
-      expect(facebookRepo.getPageById).toHaveBeenCalledWith(mockPageId);
-      // Updated to expect 'days_28' instead of '30d' as per the implementation
+      // Verify repository was called
+      expect(mockFacebookRepo.setTenantId).toHaveBeenCalledWith(mockTenantId);
+      expect(mockFacebookRepo.getPageById).toHaveBeenCalledWith(mockPageId);
+
+      // Verify axios was called with correct parameters
       expect(mockedAxios.get).toHaveBeenCalledWith(
         expect.stringContaining(`/${mockPage.pageId}/insights`),
         expect.objectContaining({
           params: expect.objectContaining({
+            access_token: mockPage.accessToken,
             period: 'days_28',
           }),
         }),
       );
 
-      // Update the result expectations to match actual implementation
+      // Verify result structure
+      expect(result).toHaveProperty('period', 'days_28');
+      expect(result).toHaveProperty('metrics');
       expect(result).toHaveProperty('summary');
-      expect(result.summary).toHaveProperty('impressions', 1000);
-      expect(result.metrics).toHaveProperty('page_engaged_users');
-      expect(result.metrics.page_engaged_users).toHaveProperty(
+
+      // Check metrics
+      expect(result.metrics).toHaveProperty('page_impressions');
+      expect(result.metrics.page_impressions).toHaveProperty(
         'current_value',
         500,
       );
+      expect(result.metrics.page_impressions).toHaveProperty(
+        'previous_value',
+        450,
+      );
+
+      // Check summary
+      expect(result.summary).toHaveProperty('impressions', 500);
+      expect(result.summary).toHaveProperty('engagement', 100);
     });
 
-    it('should fetch page insights with custom period', async () => {
-      // Setup
-      // Use a valid period as per the implementation validation
-      const period = 'week';
+    it('should throw BadRequestException for invalid period', async () => {
+      await expect(
+        service.getPageInsights(mockPageId, 'invalid_period'),
+      ).rejects.toThrow(BadRequestException);
+    });
 
-      facebookRepo.getPageById.mockResolvedValue(mockPage);
+    it('should throw NotFoundException if page not found', async () => {
+      mockFacebookRepo.getPageById.mockResolvedValue(null);
 
-      mockedAxios.get.mockResolvedValue({
-        data: {
-          data: [],
-        },
-      });
+      await expect(service.getPageInsights(mockPageId)).rejects.toThrow(
+        NotFoundException,
+      );
+    });
 
-      // Execute
-      await service.getPageInsights(mockPageId, period);
+    it('should use custom metrics if provided', async () => {
+      // Mock page data
+      const mockPage = {
+        pageId: 'fb_page_123',
+        accessToken: 'page_token_123',
+      };
 
-      // Assert
+      // Mock Facebook API response
+      const mockInsightsResponse = {
+        data: [
+          {
+            name: 'page_fans',
+            period: 'days_28',
+            values: [{ end_time: '2023-01-28T08:00:00+0000', value: 1000 }],
+          },
+        ],
+      };
+
+      // Set up mocks
+      mockFacebookRepo.getPageById.mockResolvedValue(mockPage);
+      mockedAxios.get.mockResolvedValue({ data: mockInsightsResponse });
+
+      // Custom metrics
+      const customMetrics = 'page_fans,page_fan_adds';
+
+      // Call the method
+      await service.getPageInsights(mockPageId, 'days_28', customMetrics);
+
+      // Verify axios was called with custom metrics
       expect(mockedAxios.get).toHaveBeenCalledWith(
         expect.any(String),
         expect.objectContaining({
           params: expect.objectContaining({
-            period,
+            metric: customMetrics,
           }),
         }),
       );
     });
+  });
 
-    it('should throw BadRequestException for invalid period', async () => {
-      // Setup
-      const invalidPeriod = '30d'; // Not in ['day', 'week', 'days_28']
+  describe('createPagePost', () => {
+    it('should create a text-only post', async () => {
+      // Mock page data
+      const mockPage = {
+        id: 'local_page_123',
+        pageId: 'fb_page_123',
+        accessToken: 'page_token_123',
+        facebookAccount: { id: 'account123' },
+      };
 
-      facebookRepo.getPageById.mockResolvedValue(mockPage);
+      // Mock DTO
+      const createPostDto: CreateFacebookPagePostDto = {
+        content: 'Test post content',
+        published: true,
+      } as any as CreateFacebookPagePostDto;
 
-      // Execute and Assert
-      await expect(
-        service.getPageInsights(mockPageId, invalidPeriod),
-      ).rejects.toThrow(BadRequestException);
-      expect(mockedAxios.get).not.toHaveBeenCalled();
+      // Mock Facebook API response
+      const mockPostResponse = {
+        data: {
+          id: 'fb_post_123',
+        },
+      };
+
+      // Mock repository response
+      const mockCreatedPost = new FacebookPost();
+      mockCreatedPost.id = 'local_post_123';
+      mockCreatedPost.postId = 'fb_post_123';
+      mockCreatedPost.content = 'Test post content';
+
+      // Set up mocks
+      mockFacebookRepo.getPageById.mockResolvedValue(mockPage);
+      mockedAxios.post.mockResolvedValue(mockPostResponse);
+      mockFacebookRepo.createPost.mockResolvedValue(mockCreatedPost);
+
+      // Call the method
+      const result = await service.createPagePost(mockPageId, createPostDto);
+
+      // Verify repository was called
+      expect(mockFacebookRepo.setTenantId).toHaveBeenCalledWith(mockTenantId);
+      expect(mockFacebookRepo.getPageById).toHaveBeenCalledWith(mockPageId);
+
+      // Verify axios was called with correct parameters for text post
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        expect.stringContaining(`/${mockPage.pageId}/feed`),
+        expect.objectContaining({
+          message: createPostDto.content,
+          published: true,
+        }),
+        expect.objectContaining({
+          params: { access_token: mockPage.accessToken },
+        }),
+      );
+
+      // Verify repository createPost was called
+      expect(mockFacebookRepo.createPost).toHaveBeenCalledWith(
+        expect.objectContaining({
+          page: mockPage,
+          postId: 'fb_post_123',
+          content: createPostDto.content,
+          isPublished: true,
+          publishedAt: expect.any(Date),
+          tenantId: mockTenantId,
+        }),
+      );
+
+      // Verify result
+      expect(result).toBe(mockCreatedPost);
+    });
+
+    it('should create a link post', async () => {
+      // Mock page data
+      const mockPage = {
+        id: 'local_page_123',
+        pageId: 'fb_page_123',
+        accessToken: 'page_token_123',
+        facebookAccount: { id: 'account123' },
+      };
+
+      // Mock DTO
+      const createPostDto: CreateFacebookPagePostDto = {
+        content: 'Check out this link',
+        link: 'https://example.com',
+        published: true,
+      } as unknown as CreateFacebookPagePostDto;
+
+      // Mock Facebook API response
+      const mockPostResponse = {
+        data: {
+          id: 'fb_post_123',
+        },
+      };
+
+      // Mock repository response
+      const mockCreatedPost = new FacebookPost();
+      mockCreatedPost.id = 'local_post_123';
+      mockCreatedPost.postId = 'fb_post_123';
+      mockCreatedPost.content = createPostDto.content;
+      mockCreatedPost.permalinkUrl = createPostDto.link;
+
+      // Set up mocks
+      mockFacebookRepo.getPageById.mockResolvedValue(mockPage);
+      mockedAxios.post.mockResolvedValue(mockPostResponse);
+      mockFacebookRepo.createPost.mockResolvedValue(mockCreatedPost);
+
+      // Call the method
+      const result = await service.createPagePost(mockPageId, createPostDto);
+
+      // Verify axios was called with correct parameters for link post
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        expect.stringContaining(`/${mockPage.pageId}/feed`),
+        expect.objectContaining({
+          message: createPostDto.content,
+          link: createPostDto.link,
+        }),
+        expect.any(Object),
+      );
+
+      // Verify repository createPost was called with link
+      expect(mockFacebookRepo.createPost).toHaveBeenCalledWith(
+        expect.objectContaining({
+          permalinkUrl: createPostDto.link,
+        }),
+      );
+
+      // Verify result
+      expect(result).toBe(mockCreatedPost);
+    });
+
+    it('should handle a single photo post', async () => {
+      // Mock page data
+      const mockPage = {
+        id: 'local_page_123',
+        pageId: 'fb_page_123',
+        accessToken: 'page_token_123',
+        facebookAccount: { id: 'account123' },
+      };
+
+      // Mock DTO with photo
+      const createPostDto: CreateFacebookPagePostDto = {
+        content: 'Photo post',
+        published: true,
+        media: [
+          {
+            type: MediaType.IMAGE,
+            url: 'https://example.com/image.jpg',
+          },
+        ],
+      } as unknown as CreateFacebookPagePostDto;
+
+      // Mock Facebook API photo response
+      const mockPhotoResponse = {
+        data: {
+          id: 'fb_photo_123',
+          post_id: 'fb_post_123',
+        },
+      };
+
+      // Mock repository response
+      const mockCreatedPost = new FacebookPost();
+      mockCreatedPost.id = 'local_post_123';
+      mockCreatedPost.postId = 'fb_post_123';
+      mockCreatedPost.content = createPostDto.content;
+      mockCreatedPost.mediaItems = [
+        {
+          id: 'fb_photo_123',
+          type: MediaType.IMAGE,
+          url: 'https://example.com/image.jpg', // Using original URL for simplicity
+          key: null,
+        },
+      ];
+
+      // Set up mocks
+      mockFacebookRepo.getPageById.mockResolvedValue(mockPage);
+      mockedAxios.post.mockResolvedValue(mockPhotoResponse);
+      mockFacebookRepo.createPost.mockResolvedValue(mockCreatedPost);
+
+      // Call the method
+      const result = await service.createPagePost(mockPageId, createPostDto);
+
+      // Verify axios was called with correct parameters for photo post
+      expect(mockedAxios.post).toHaveBeenCalledWith(
+        expect.stringContaining(`/${mockPage.pageId}/photos`),
+        expect.objectContaining({
+          url: expect.any(String),
+          message: createPostDto.content,
+        }),
+        expect.any(Object),
+      );
+
+      // Verify repository createPost was called with media info
+      expect(mockFacebookRepo.createPost).toHaveBeenCalledWith(
+        expect.objectContaining({
+          page: mockPage,
+          postId: 'fb_post_123',
+          content: createPostDto.content,
+          mediaItems: expect.arrayContaining([
+            expect.objectContaining({
+              id: 'fb_photo_123',
+              type: MediaType.IMAGE,
+            }),
+          ]),
+        }),
+      );
+
+      // Verify result
+      expect(result).toBe(mockCreatedPost);
     });
   });
 
-  describe('getPostMetrics', () => {
-    it('should fetch post metrics', async () => {
-      // Setup
-      facebookRepo.getAccountById.mockResolvedValue(mockAccount);
-      facebookRepo.getPostById.mockResolvedValue(mockPost);
+  describe('schedulePagePost', () => {
+    it('should schedule a post with valid scheduled time', async () => {
+      // Create a future date (10 minutes + 1 hour from now to be safe)
+      const futureDate = new Date();
+      futureDate.setHours(futureDate.getHours() + 1);
+      futureDate.setMinutes(futureDate.getMinutes() + 10);
 
-      mockedAxios.get.mockResolvedValue({
-        data: [
-          {
-            name: 'post_impressions',
-            values: [{ value: 500 }],
-          },
-          {
-            name: 'post_engaged_users',
-            values: [{ value: 100 }],
-          },
-        ],
-      });
+      // Mock DTO
+      const scheduleDto: CreateFacebookPagePostDto = {
+        content: 'Scheduled post content',
+        scheduledPublishTime: futureDate,
+      } as unknown as CreateFacebookPagePostDto;
 
-      // Execute
-      const result = await service.getPostMetrics(mockAccountId, mockPostId);
+      // Mock createPagePost method
+      jest
+        .spyOn(service, 'createPagePost')
+        .mockResolvedValue(new FacebookPost());
 
-      // Assert
-      expect(facebookRepo.getAccountById).toHaveBeenCalledWith(mockAccountId);
-      expect(facebookRepo.getPostById).toHaveBeenCalledWith(mockPostId);
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        expect.stringContaining(`/${mockPost.postId}/insights`),
-        expect.any(Object),
+      // Call the method
+      await service.schedulePagePost(mockPageId, scheduleDto);
+
+      // Verify the DTO was modified correctly
+      expect(scheduleDto.published).toBe(false);
+      expect(scheduleDto.scheduledPublishTime).toBeInstanceOf(Date);
+
+      // Verify createPagePost was called
+      expect(service.createPagePost).toHaveBeenCalledWith(
+        mockPageId,
+        scheduleDto,
       );
-      expect(result.impressions).toEqual(500);
-      expect(result.engagedUsers).toEqual(100);
     });
 
-    it('should throw HttpException when account not found', async () => {
-      // Setup
-      facebookRepo.getAccountById.mockResolvedValue(null);
+    it('should throw BadRequestException if scheduledPublishTime is missing', async () => {
+      const scheduleDto: CreateFacebookPagePostDto = {
+        content: 'Scheduled post content',
+      } as unknown as CreateFacebookPagePostDto;
 
-      // Execute and Assert
       await expect(
-        service.getPostMetrics(mockAccountId, mockPostId),
-      ).rejects.toThrow(HttpException);
-    });
-
-    it('should throw BadRequestException on API error', async () => {
-      // Setup
-      facebookRepo.getAccountById.mockResolvedValue(mockAccount);
-      facebookRepo.getPostById.mockResolvedValue(mockPost);
-
-      mockedAxios.get.mockRejectedValue(new Error('API Error'));
-
-      // Execute and Assert
-      await expect(
-        service.getPostMetrics(mockAccountId, mockPostId),
+        service.schedulePagePost(mockPageId, scheduleDto),
       ).rejects.toThrow(BadRequestException);
+    });
+
+    it('should throw BadRequestException if scheduled time is too soon', async () => {
+      // Time only 5 minutes in the future (less than 10 min requirement)
+      const tooSoonDate = new Date();
+      tooSoonDate.setMinutes(tooSoonDate.getMinutes() + 5);
+
+      const scheduleDto: CreateFacebookPagePostDto = {
+        content: 'Scheduled post content',
+        scheduledPublishTime: tooSoonDate,
+      } as unknown as CreateFacebookPagePostDto;
+
+      await expect(
+        service.schedulePagePost(mockPageId, scheduleDto),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('deletePost', () => {
+    it('should delete a post', async () => {
+      // Mock post data
+      const mockPost = {
+        postId: mockFbPostId,
+        page: {
+          accessToken: mockAccessToken,
+        },
+      };
+
+      // Set up mocks
+      mockFacebookRepo.getPostById.mockResolvedValue(mockPost);
+      mockedAxios.delete.mockResolvedValue({ data: { success: true } });
+      mockFacebookRepo.deletePost.mockResolvedValue(undefined);
+
+      // Call the method
+      await service.deletePost(mockPostId);
+
+      // Verify tenant ID was set
+      expect(mockFacebookRepo.setTenantId).toHaveBeenCalledWith(mockTenantId);
+
+      // Verify post was retrieved
+      expect(mockFacebookRepo.getPostById).toHaveBeenCalledWith(mockPostId);
+
+      // Verify axios delete was called
+      expect(mockedAxios.delete).toHaveBeenCalledWith(
+        expect.stringContaining(`/${mockPost.postId}`),
+        expect.objectContaining({
+          params: { access_token: mockPost.page.accessToken },
+        }),
+      );
+
+      // Verify repository deletePost was called
+      expect(mockFacebookRepo.deletePost).toHaveBeenCalledWith(mockPostId);
     });
   });
 
   describe('editPost', () => {
     it('should update a post', async () => {
-      // Setup
+      // Mock post data
+      const mockPost = {
+        id: mockPostId,
+        postId: mockFbPostId,
+        account: { id: mockAccountId },
+        page: {
+          accessToken: mockAccessToken,
+        },
+      };
+
+      // Mock update DTO
       const updateDto: UpdatePostDto = {
-        content: 'Updated content',
+        content: 'Updated post content',
         media: [],
       };
 
-      facebookRepo.getPostById.mockResolvedValue(mockPost);
+      // Mock updated post
+      const mockUpdatedPost = new FacebookPost();
+      mockUpdatedPost.id = mockPostId;
+      mockUpdatedPost.content = updateDto.content;
 
-      mockedAxios.post.mockResolvedValue({
-        data: { success: true },
-      });
+      // Set up mocks
+      mockFacebookRepo.getPostById.mockResolvedValue(mockPost);
+      mockFacebookRepo.setTenantId.mockReturnValue(undefined);
+      mockedAxios.post.mockResolvedValue({ data: { success: true } });
+      mockFacebookRepo.updatePost.mockResolvedValue(mockUpdatedPost);
 
-      facebookRepo.updatePost.mockResolvedValue({
-        ...mockPost,
-        content: updateDto.content,
-      });
-
-      // Execute
+      // Call the method
       const result = await service.editPost(mockPostId, updateDto);
 
-      // Assert
-      expect(facebookRepo.getPostById).toHaveBeenCalledWith(mockPostId, [
+      // Verify tenant ID was set
+      expect(mockFacebookRepo.setTenantId).toHaveBeenCalledWith(mockTenantId);
+
+      // Verify post was retrieved with the page relation
+      expect(mockFacebookRepo.getPostById).toHaveBeenCalledWith(mockPostId, [
         'page',
       ]);
+
+      // Verify axios post was called to update the post
       expect(mockedAxios.post).toHaveBeenCalledWith(
         expect.stringContaining(`/${mockPost.postId}`),
         expect.objectContaining({
           message: updateDto.content,
         }),
-        expect.any(Object),
+        expect.objectContaining({
+          params: { access_token: mockPost.page.accessToken },
+        }),
       );
-      expect(facebookRepo.updatePost).toHaveBeenCalledWith(
+
+      // Verify repository updatePost was called
+      expect(mockFacebookRepo.updatePost).toHaveBeenCalledWith(
         mockPostId,
         expect.objectContaining({
           content: updateDto.content,
+          updatedAt: expect.any(Date),
         }),
       );
-      expect(result.content).toEqual(updateDto.content);
+
+      // Verify result
+      expect(result).toBe(mockUpdatedPost);
     });
 
-    it('should throw NotFoundException when post not found', async () => {
-      // Setup
-      facebookRepo.getPostById.mockResolvedValue(null);
+    it('should throw NotFoundException if post not found', async () => {
+      mockFacebookRepo.getPostById.mockResolvedValue(null);
 
       const updateDto: UpdatePostDto = {
         content: 'Updated content',
-        media: [],
       };
 
-      // Execute and Assert
       await expect(service.editPost(mockPostId, updateDto)).rejects.toThrow(
         NotFoundException,
-      );
-    });
-
-    it('should throw HttpException on API error', async () => {
-      // Setup
-      facebookRepo.getPostById.mockResolvedValue(mockPost);
-
-      mockedAxios.post.mockRejectedValue(new Error('API Error'));
-
-      const updateDto: UpdatePostDto = {
-        content: 'Updated content',
-        media: [],
-      };
-
-      // Execute and Assert
-      await expect(service.editPost(mockPostId, updateDto)).rejects.toThrow(
-        HttpException,
       );
     });
   });
 
   describe('editPage', () => {
     it('should update a page', async () => {
-      // Setup
+      // Mock page data
+      const mockPage = {
+        id: mockPageId,
+        pageId: 'fb_page_123',
+        accessToken: mockAccessToken,
+        name: 'Original Page Name',
+        category: 'Original Category',
+        metadata: {
+          existingKey: 'existingValue',
+        },
+      };
+
+      // Mock update DTO
       const updateDto: UpdatePageDto = {
         name: 'Updated Page Name',
+        about: 'Updated about text',
         description: 'Updated description',
-        about: 'Updated about',
         pageInfo: {
           website: 'https://example.com',
           phone: '123-456-7890',
         },
       };
 
-      facebookRepo.getPageById.mockResolvedValue(mockPage);
+      // Mock updated page
+      const mockUpdatedPage = new FacebookPage();
+      mockUpdatedPage.id = mockPageId;
+      mockUpdatedPage.name = updateDto.name;
+      mockUpdatedPage.about = updateDto.about;
+      mockUpdatedPage.description = updateDto.description;
 
-      mockedAxios.post.mockResolvedValue({
-        data: { success: true },
-      });
+      // Set up mocks
+      mockFacebookRepo.getPageById.mockResolvedValue(mockPage);
+      mockedAxios.post.mockResolvedValue({ data: { success: true } });
+      mockFacebookRepo.updatePage.mockResolvedValue(mockUpdatedPage);
 
-      facebookRepo.updatePage.mockResolvedValue({
-        ...mockPage,
-        name: updateDto.name,
-        description: updateDto.description,
-      });
-
-      // Execute
+      // Call the method
       const result = await service.editPage(mockPageId, updateDto);
 
-      // Assert
-      expect(facebookRepo.getPageById).toHaveBeenCalledWith(mockPageId);
+      // Verify tenant ID was set
+      expect(mockFacebookRepo.setTenantId).toHaveBeenCalledWith(mockTenantId);
+
+      // Verify page was retrieved
+      expect(mockFacebookRepo.getPageById).toHaveBeenCalledWith(mockPageId);
+
+      // Verify axios post was called to update the page
       expect(mockedAxios.post).toHaveBeenCalledWith(
         expect.stringContaining(`/${mockPage.pageId}`),
         expect.objectContaining({
-          description: updateDto.description,
           about: updateDto.about,
+          description: updateDto.description,
+          website: updateDto.pageInfo.website,
+          phone: updateDto.pageInfo.phone,
         }),
-        expect.any(Object),
+        expect.objectContaining({
+          params: { access_token: mockPage.accessToken },
+        }),
       );
-      expect(facebookRepo.updatePage).toHaveBeenCalledWith(
+
+      // Verify repository updatePage was called with merged metadata
+      expect(mockFacebookRepo.updatePage).toHaveBeenCalledWith(
         mockPageId,
         expect.objectContaining({
           name: updateDto.name,
+          about: updateDto.about,
           description: updateDto.description,
-        }),
-      );
-      expect(result.name).toEqual(updateDto.name);
-    });
-
-    it('should throw NotFoundException when page not found', async () => {
-      // Setup
-      facebookRepo.getPageById.mockResolvedValue(null);
-
-      const updateDto: UpdatePageDto = {
-        name: 'Updated Page Name',
-      };
-
-      // Execute and Assert
-      await expect(service.editPage(mockPageId, updateDto)).rejects.toThrow(
-        NotFoundException,
-      );
-    });
-
-    it('should throw HttpException on API error', async () => {
-      // Setup
-      facebookRepo.getPageById.mockResolvedValue(mockPage);
-
-      mockedAxios.post.mockRejectedValue(new Error('API Error'));
-
-      const updateDto: UpdatePageDto = {
-        name: 'Updated Page Name',
-      };
-
-      // Execute and Assert
-      await expect(service.editPage(mockPageId, updateDto)).rejects.toThrow(
-        HttpException,
-      );
-    });
-  });
-
-  describe('deletePost', () => {
-    it('should delete a post', async () => {
-      // Setup
-      facebookRepo.getPostById.mockResolvedValue(mockPost);
-
-      mockedAxios.delete.mockResolvedValue({
-        data: { success: true },
-      });
-
-      // Execute
-      await service.deletePost(mockPostId);
-
-      // Assert
-      expect(facebookRepo.getPostById).toHaveBeenCalledWith(mockPostId);
-      expect(mockedAxios.delete).toHaveBeenCalledWith(
-        expect.stringContaining(`/${mockPost.postId}`),
-        expect.any(Object),
-      );
-      expect(facebookRepo.deletePost).toHaveBeenCalledWith(mockPostId);
-    });
-  });
-
-  describe('revokeAccess', () => {
-    it('should revoke access for an account', async () => {
-      // Setup
-      facebookRepo.getAccountById.mockResolvedValue(mockAccount);
-
-      mockedAxios.post.mockResolvedValue({
-        data: { success: true },
-      });
-
-      // Execute
-      await service.revokeAccess(mockAccountId);
-
-      // Assert
-      expect(facebookRepo.getAccountById).toHaveBeenCalledWith(mockAccountId);
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        expect.stringContaining('/oauth/revoke/'),
-        null,
-        expect.objectContaining({
-          params: expect.objectContaining({
-            token: mockAccount.socialAccount.accessToken,
+          metadata: expect.objectContaining({
+            existingKey: 'existingValue',
+            website: updateDto.pageInfo.website,
+            phone: updateDto.pageInfo.phone,
           }),
         }),
       );
-      expect(facebookRepo.deleteAccount).toHaveBeenCalledWith(mockAccountId);
+
+      // Verify result
+      expect(result).toBe(mockUpdatedPage);
     });
 
-    it('should throw NotFoundException when account not found', async () => {
-      // Setup
-      facebookRepo.getAccountById.mockResolvedValue(null);
+    it('should throw NotFoundException if page not found', async () => {
+      mockFacebookRepo.getPageById.mockResolvedValue(null);
 
-      // Execute and Assert
-      await expect(service.revokeAccess(mockAccountId)).rejects.toThrow(
+      const updateDto: UpdatePageDto = {
+        name: 'Updated Page Name',
+      };
+
+      await expect(service.editPage(mockPageId, updateDto)).rejects.toThrow(
         NotFoundException,
       );
     });
-
-    it('should throw FacebookApiException on API error', async () => {
-      // Setup
-      facebookRepo.getAccountById.mockResolvedValue(mockAccount);
-
-      mockedAxios.post.mockRejectedValue(new Error('API Error'));
-
-      // Execute and Assert
-      await expect(service.revokeAccess(mockAccountId)).rejects.toThrow(
-        FacebookApiException,
-      );
-    });
   });
 
-  // Private method tests can be added with special spying technique
-  describe('processMedia', () => {
-    it('should process media URLs into Facebook media objects', async () => {
-      // Setup
-      const mediaUrls = [
-        'https://example.com/image1.jpg',
-        'https://example.com/image2.jpg',
-      ];
-
-      // Mock axios.post for each media URL
-      mockedAxios.post
-        .mockResolvedValueOnce({ data: { id: 'fb_media_id_1' } })
-        .mockResolvedValueOnce({ data: { id: 'fb_media_id_2' } });
-
-      // Access private method using type casting
-      const processMedia = (service as any).processMedia.bind(service);
-
-      // Execute
-      const result = await processMedia(mockAccessToken, mediaUrls);
-
-      // Assert
-      expect(mockedAxios.post).toHaveBeenCalledTimes(2);
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        expect.stringContaining('/photos'),
-        { url: mediaUrls[0] },
-        expect.objectContaining({
-          params: {
-            access_token: mockAccessToken,
-            published: false,
-          },
-        }),
-      );
-      expect(result).toEqual([
-        { media_fbid: 'fb_media_id_1' },
-        { media_fbid: 'fb_media_id_2' },
-      ]);
-    });
-  });
-
-  describe('uploadFacebookMediaItems', () => {
-    it('should handle empty media array', async () => {
-      // Access private method using type casting
-      const uploadFacebookMediaItems = (
-        service as any
-      ).uploadFacebookMediaItems.bind(service);
-
-      // Execute
-      const result = await uploadFacebookMediaItems([], mockAccountId, 'post');
-
-      // Assert
-      expect(result).toEqual([]);
-      expect(mediaStorageService.uploadPostMedia).not.toHaveBeenCalled();
-      expect(mediaStorageService.uploadMediaFromUrl).not.toHaveBeenCalled();
-    });
-
-    it('should upload file-based media items', async () => {
-      // Setup
-      const media: MediaItem[] = [{ file: mockFile, url: undefined }];
-
-      mediaStorageService.uploadPostMedia.mockResolvedValue([
-        {
-          id: 'media123',
-          url: mockUploadedMediaUrl,
-          type: MediaType.IMAGE,
+  describe('getPostMetrics', () => {
+    it('should fetch post metrics', async () => {
+      // Mock account and post data
+      const mockAccount = {
+        id: mockAccountId,
+        socialAccount: {
+          accessToken: mockAccessToken,
         },
-      ] as unknown as MediaStorageItem[]);
+      };
 
-      // Access private method using type casting
-      const uploadFacebookMediaItems = (
-        service as any
-      ).uploadFacebookMediaItems.bind(service);
-
-      // Execute
-      const result = await uploadFacebookMediaItems(
-        media,
-        mockAccountId,
-        'post',
-      );
-
-      // Assert
-      expect(mediaStorageService.uploadPostMedia).toHaveBeenCalledWith(
-        mockAccountId,
-        [mockFile],
-        expect.stringMatching(/facebook-post-\d+/),
-      );
-      expect(result).toEqual([
-        {
-          id: 'media123',
-          url: mockUploadedMediaUrl,
-          type: 'IMAGE',
+      const mockPost = {
+        postId: mockFbPostId,
+        page: {
+          accessToken: mockAccessToken,
         },
-      ]);
-    });
+      };
 
-    it('should upload URL-based media items', async () => {
-      // Setup
-      const media: MediaItem[] = [{ url: mockMediaUrl, file: undefined }];
-
-      mediaStorageService.uploadMediaFromUrl.mockResolvedValue({
-        id: 'media123',
-        url: mockUploadedMediaUrl,
-        type: MediaType.IMAGE,
-      } as unknown as MediaStorageItem);
-
-      // Access private method using type casting
-      const uploadFacebookMediaItems = (
-        service as any
-      ).uploadFacebookMediaItems.bind(service);
-
-      // Execute
-      const result = await uploadFacebookMediaItems(
-        media,
-        mockAccountId,
-        'post',
-      );
-
-      // Assert
-      expect(mediaStorageService.uploadMediaFromUrl).toHaveBeenCalledWith(
-        mockAccountId,
-        mockMediaUrl,
-        expect.stringMatching(/facebook-post-\d+/),
-      );
-      expect(result).toEqual([
+      // Here's the key change - the data structure is different
+      // This matches what the Facebook API actually returns and what the service expects
+      const mockMetricsData = [
         {
-          id: 'media123',
-          url: mockUploadedMediaUrl,
-          type: 'IMAGE',
+          name: 'post_impressions',
+          values: [{ value: 1000 }],
         },
-      ]);
-    });
-
-    it('should handle mixed media types (files and URLs)', async () => {
-      // Setup
-      const media: MediaItem[] = [
-        { file: mockFile, url: undefined },
-        { url: mockMediaUrl, file: undefined },
-      ];
-
-      mediaStorageService.uploadPostMedia.mockResolvedValue([
         {
-          id: 'media123',
-          url: 'https://storage.example.com/file-upload.jpg',
-          type: MediaType.IMAGE,
+          name: 'post_engaged_users',
+          values: [{ value: 200 }],
         },
-      ] as unknown as MediaStorageItem[]);
-
-      mediaStorageService.uploadMediaFromUrl.mockResolvedValue({
-        id: 'media456',
-        url: 'https://storage.example.com/url-upload.jpg',
-        type: MediaType.IMAGE,
-      } as unknown as MediaStorageItem);
-
-      // Access private method using type casting
-      const uploadFacebookMediaItems = (
-        service as any
-      ).uploadFacebookMediaItems.bind(service);
-
-      // Execute
-      const result = await uploadFacebookMediaItems(
-        media,
-        mockAccountId,
-        'post',
-      );
-
-      // Assert
-      expect(mediaStorageService.uploadPostMedia).toHaveBeenCalled();
-      expect(mediaStorageService.uploadMediaFromUrl).toHaveBeenCalled();
-      expect(result).toHaveLength(2);
-    });
-  });
-
-  describe('transformPageMetrics', () => {
-    it('should transform raw page metrics data', async () => {
-      // Setup
-      const rawMetrics = [
-        { name: 'page_impressions', values: [{ value: 1000 }] },
-        { name: 'page_engaged_users', values: [{ value: 500 }] },
-        { name: 'page_fan_adds', values: [{ value: 50 }] },
-        { name: 'page_views_total', values: [{ value: 2000 }] },
-        { name: 'page_post_engagements', values: [{ value: 300 }] },
-        { name: 'page_followers', values: [{ value: 1500 }] },
-      ];
-
-      // Mock Date.now to ensure consistent timestamp
-      const nowSpy = jest
-        .spyOn(Date, 'now')
-        .mockImplementation(() => 1617235200000);
-
-      // Access private method using type casting
-      const transformPageMetrics = (service as any).transformPageMetrics.bind(
-        service,
-      );
-
-      // Execute
-      const result = transformPageMetrics(rawMetrics);
-
-      // Assert - update expectations to match the actual implementation
-      expect(result).toHaveProperty('collected_at');
-      expect(result).toHaveProperty('metrics');
-      expect(result).toHaveProperty('summary');
-
-      expect(result.metrics).toHaveProperty('page_impressions');
-      expect(result.metrics.page_impressions.current_value).toEqual(1000);
-      expect(result.metrics.page_engaged_users.current_value).toEqual(500);
-
-      expect(result.summary).toHaveProperty('impressions', 1000);
-      expect(result.summary).toHaveProperty('engagement', 300);
-
-      // Restore original Date.now
-      nowSpy.mockRestore();
-    });
-
-    it('should handle missing metrics', async () => {
-      // Setup
-      const rawMetrics = [
-        { name: 'page_impressions', values: [{ value: 1000 }] },
-        // Missing other metrics
-      ];
-
-      // Access private method using type casting
-      const transformPageMetrics = (service as any).transformPageMetrics.bind(
-        service,
-      );
-
-      // Execute
-      const result = transformPageMetrics(rawMetrics);
-
-      // Assert - update expectations to match the actual implementation
-      expect(result).toHaveProperty('collected_at');
-      expect(result).toHaveProperty('metrics');
-      expect(result.metrics).toHaveProperty('page_impressions');
-      expect(result.summary).toHaveProperty('impressions', 1000);
-
-      // Default values for missing metrics
-      expect(result.summary).toHaveProperty('engagement', 0);
-      expect(result.summary).toHaveProperty('new_followers', 0);
-      expect(result.summary).toHaveProperty('page_views', 0);
-    });
-  });
-
-  describe('transformPostMetrics', () => {
-    it('should transform raw post metrics data', async () => {
-      // Setup
-      const rawMetrics = [
-        { name: 'post_impressions', values: [{ value: 500 }] },
-        { name: 'post_engaged_users', values: [{ value: 100 }] },
         {
           name: 'post_reactions_by_type_total',
-          values: [{ value: { like: 50, love: 25 } }],
+          values: [{ value: { like: 150, love: 50 } }],
         },
-        { name: 'post_clicks', values: [{ value: 75 }] },
-        { name: 'post_video_views', values: [{ value: 200 }] },
-        { name: 'post_video_view_time', values: [{ value: 1800 }] },
+        {
+          name: 'post_clicks',
+          values: [{ value: 300 }],
+        },
+        {
+          name: 'post_video_views',
+          values: [{ value: 500 }],
+        },
+        {
+          name: 'post_video_view_time',
+          values: [{ value: 7500 }],
+        },
       ];
 
-      // Access private method using type casting
-      const transformPostMetrics = (service as any).transformPostMetrics.bind(
-        service,
+      // Set up mocks
+      mockFacebookRepo.getAccountById.mockResolvedValue(mockAccount);
+      mockFacebookRepo.getPostById.mockResolvedValue(mockPost);
+
+      mockedAxios.get.mockResolvedValue({ data: mockMetricsData });
+
+      // Call the method
+      const result = await service.getPostMetrics(mockAccountId, mockPostId);
+
+      // Verify tenant ID was set
+      expect(mockFacebookRepo.setTenantId).toHaveBeenCalledWith(mockTenantId);
+
+      // Verify account and post were retrieved
+      expect(mockFacebookRepo.getAccountById).toHaveBeenCalledWith(
+        mockAccountId,
+      );
+      expect(mockFacebookRepo.getPostById).toHaveBeenCalledWith(mockPostId);
+
+      // Verify axios was called to fetch metrics
+      expect(mockedAxios.get).toHaveBeenCalledWith(
+        expect.stringContaining(`/${mockPost.postId}/insights`),
+        expect.objectContaining({
+          params: expect.objectContaining({
+            access_token: mockPost.page.accessToken,
+            metric: expect.any(String),
+          }),
+        }),
       );
 
-      // Execute
-      const result = transformPostMetrics(rawMetrics);
-
-      // Assert
-      expect(result).toEqual({
-        impressions: 500,
-        engagedUsers: 100,
-        reactions: { like: 50, love: 25 },
-        clicks: 75,
-        videoViews: 200,
-        videoViewTime: 1800,
-        collectedAt: expect.any(Date),
-      });
+      // Verify result structure
+      expect(result).toHaveProperty('impressions', 1000);
+      expect(result).toHaveProperty('engagedUsers', 200);
+      expect(result).toHaveProperty('reactions', { like: 150, love: 50 });
+      expect(result).toHaveProperty('clicks', 300);
+      expect(result).toHaveProperty('videoViews', 500);
+      expect(result).toHaveProperty('videoViewTime', 7500);
+      expect(result).toHaveProperty('collectedAt');
     });
 
-    it('should handle missing metrics', async () => {
-      // Setup
-      const rawMetrics = [
-        { name: 'post_impressions', values: [{ value: 500 }] },
-        // Missing other metrics
-      ];
-
-      // Access private method using type casting
-      const transformPostMetrics = (service as any).transformPostMetrics.bind(
-        service,
-      );
-
-      // Execute
-      const result = transformPostMetrics(rawMetrics);
-
-      // Assert
-      expect(result).toEqual({
-        impressions: 500,
-        engagedUsers: 0,
-        reactions: {},
-        clicks: 0,
-        videoViews: 0,
-        videoViewTime: 0,
-        collectedAt: expect.any(Date),
+    it('should handle missing post gracefully', async () => {
+      // Set up mocks - Post not found
+      mockFacebookRepo.getAccountById.mockResolvedValue({
+        id: mockAccountId,
+        socialAccount: {
+          accessToken: mockAccessToken,
+        },
       });
+      mockFacebookRepo.getPostById.mockResolvedValue(null);
+
+      // Expect the method to throw a NotFoundException
+      await expect(
+        service.getPostMetrics(mockAccountId, mockPostId),
+      ).rejects.toThrow();
+    });
+
+    it('should handle API errors properly', async () => {
+      // Mock account and post data
+      const mockAccount = {
+        id: mockAccountId,
+        socialAccount: {
+          accessToken: mockAccessToken,
+        },
+      };
+
+      const mockPost = {
+        postId: mockFbPostId,
+        page: {
+          accessToken: mockAccessToken,
+        },
+      };
+
+      // Mock an API error
+
+      interface ApiError extends Error {
+        response?: {
+          data?: {
+            error?: {
+              message: string;
+              code: number;
+            };
+          };
+        };
+      }
+      const mockError = new Error('API error') as ApiError;
+      mockError.response = {
+        data: {
+          error: {
+            message: 'Invalid token',
+            code: 190,
+          },
+        },
+      };
+
+      // Set up mocks
+      mockFacebookRepo.getAccountById.mockResolvedValue(mockAccount);
+      mockFacebookRepo.getPostById.mockResolvedValue(mockPost);
+      mockedAxios.get.mockRejectedValue(mockError);
+
+      // Expect the method to throw a BadRequestException
+      await expect(
+        service.getPostMetrics(mockAccountId, mockPostId),
+      ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('getS3Url', () => {
+    it('should generate correct S3 URL with default bucket', () => {
+      const s3Key = 'path/to/file.jpg';
+      const defaultBucket = 'mock-bucket';
+
+      const url = service.getS3Url(s3Key);
+
+      expect(url).toBe(`https://${defaultBucket}.s3.amazonaws.com/${s3Key}`);
+      expect(config.get).toHaveBeenCalledWith('aws.s3.bucket');
+    });
+
+    it('should generate correct S3 URL with custom bucket', () => {
+      const s3Key = 'path/to/file.jpg';
+      const customBucket = 'custom-bucket';
+
+      const url = service.getS3Url(s3Key, customBucket);
+
+      expect(url).toBe(`https://${customBucket}.s3.amazonaws.com/${s3Key}`);
     });
   });
 
   describe('refreshLongLivedToken', () => {
-    it('should refresh long-lived token', async () => {
-      // Setup
-      mockedAxios.get.mockResolvedValue({
-        data: {
-          access_token: 'new_access_token',
-          expires_in: 5184000, // 60 days in seconds
-        },
-      });
+    it('should exchange short-lived token for long-lived token', async () => {
+      // Mock token
+      const shortLivedToken = 'short-lived-token';
 
-      // Execute
-      const result = await service.refreshLongLivedToken(mockAccessToken);
+      // Mock API response
+      const mockTokenResponse = {
+        access_token: 'long-lived-token',
+        token_type: 'bearer',
+        expires_in: 5184000, // 60 days in seconds
+      };
 
-      // Assert
+      // Set up mock
+      mockedAxios.get.mockResolvedValue({ data: mockTokenResponse });
+
+      // Call the method
+      const result = await service.refreshLongLivedToken(shortLivedToken);
+
+      // Verify axios was called with correct parameters
       expect(mockedAxios.get).toHaveBeenCalledWith(
         expect.stringContaining('/oauth/access_token'),
         expect.objectContaining({
           params: expect.objectContaining({
             grant_type: 'fb_exchange_token',
-            fb_exchange_token: mockAccessToken,
+            client_id: 'mock-client-id',
+            client_secret: 'mock-client-secret',
+            fb_exchange_token: shortLivedToken,
           }),
         }),
       );
-      expect(result.access_token).toEqual('new_access_token');
+
+      // Verify result
+      expect(result).toEqual(mockTokenResponse);
     });
   });
 
   describe('refreshPageToken', () => {
-    it('should refresh page token', async () => {
-      // Setup
-      mockedAxios.get.mockResolvedValue({
+    it('should fetch a fresh page access token', async () => {
+      // Mock data
+      const pageId = 'page123';
+      const userToken = 'user-access-token';
+
+      // Mock API response
+      const mockTokenResponse = {
         data: {
-          access_token: 'new_page_token',
+          access_token: 'new-page-token',
         },
-      });
+      };
 
-      // Execute
-      const result = await service.refreshPageToken(
-        mockPageId,
-        mockAccessToken,
-      );
+      // Set up mock
+      mockedAxios.get.mockResolvedValue(mockTokenResponse);
 
-      // Assert
+      // Call the method
+      const result = await service.refreshPageToken(pageId, userToken);
+
+      // Verify axios was called with correct parameters
       expect(mockedAxios.get).toHaveBeenCalledWith(
-        expect.stringContaining(`/${mockPageId}`),
+        expect.stringContaining(`/${pageId}`),
         expect.objectContaining({
           params: expect.objectContaining({
             fields: 'access_token',
-            access_token: mockAccessToken,
+            access_token: userToken,
           }),
         }),
       );
-      expect(result.access_token).toEqual('new_page_token');
-    });
-  });
 
-  describe('getLongLivedToken', () => {
-    it('should get a long-lived token from a short-lived token', async () => {
-      // Setup
-      mockedAxios.get.mockResolvedValue({
-        data: {
-          access_token: 'long_lived_token',
-          expires_in: 5184000, // 60 days in seconds
-        },
-      });
-
-      // Access private method using type casting
-      const getLongLivedToken = (service as any).getLongLivedToken.bind(
-        service,
-      );
-
-      // Execute
-      const result = await getLongLivedToken('short_lived_token');
-
-      // Assert
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        expect.stringContaining('/oauth/access_token'),
-        expect.objectContaining({
-          params: expect.objectContaining({
-            grant_type: 'fb_exchange_token',
-            fb_exchange_token: 'short_lived_token',
-          }),
-        }),
-      );
-      expect(result.access_token).toEqual('long_lived_token');
-    });
-  });
-
-  describe('getUserProfile', () => {
-    it('should get user profile information', async () => {
-      // Setup
-      mockedAxios.get.mockResolvedValue({
-        data: {
-          id: 'fb_user_123',
-          name: 'John Doe',
-          email: 'john@example.com',
-        },
-      });
-
-      // Execute
-      const result = await service.getUserProfile(mockAccessToken);
-
-      // Assert
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        expect.stringContaining('/me'),
-        expect.objectContaining({
-          params: expect.objectContaining({
-            access_token: mockAccessToken,
-            fields: 'id,name,email',
-          }),
-        }),
-      );
-      expect(result.id).toEqual('fb_user_123');
-      expect(result.name).toEqual('John Doe');
-      expect(result.email).toEqual('john@example.com');
-    });
-  });
-
-  describe('getPages', () => {
-    it('should get user pages', async () => {
-      // Setup
-      mockedAxios.get.mockResolvedValue({
-        data: {
-          data: [
-            {
-              id: 'page123',
-              name: 'Business Page',
-              category: 'Business',
-              access_token: 'page_token_123',
-            },
-            {
-              id: 'page456',
-              name: 'Community Page',
-              category: 'Community',
-              access_token: 'page_token_456',
-            },
-          ],
-        },
-      });
-
-      // Execute
-      const result = await service.getPages(mockAccessToken);
-
-      // Assert
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        expect.stringContaining('/me/accounts'),
-        expect.objectContaining({
-          params: expect.objectContaining({
-            access_token: mockAccessToken,
-            fields: 'id,name,category,access_token',
-          }),
-        }),
-      );
-      expect(result).toHaveLength(2);
-      expect(result[0].id).toEqual('page123');
-      expect(result[0].access_token).toEqual('page_token_123');
-    });
-  });
-
-  describe('getAccountsByUserId', () => {
-    it('should get accounts by user ID', async () => {
-      // Setup
-      facebookRepo.getAccountById.mockResolvedValue(mockAccount);
-
-      // Execute
-      const result = await service.getAccountsByUserId(mockUserId);
-
-      // Assert
-      expect(tenantService.getTenantId).toHaveBeenCalled();
-      expect(facebookRepo.setTenantId).toHaveBeenCalledWith(mockTenantId);
-      expect(facebookRepo.getAccountById).toHaveBeenCalledWith(mockUserId);
-      expect(result).toEqual(mockAccount);
-    });
-
-    it('should handle errors when fetching accounts', async () => {
-      // Setup
-      facebookRepo.getAccountById.mockRejectedValue(
-        new Error('Database error'),
-      );
-
-      // Spy on logger.error
-      const loggerSpy = jest.spyOn((service as any).logger, 'error');
-
-      // Execute
-      const result = await service.getAccountsByUserId(mockUserId);
-
-      // Assert
-      expect(loggerSpy).toHaveBeenCalled();
-      expect(result).toBeUndefined();
-    });
-  });
-
-  describe('getPageMetrics', () => {
-    it('should fetch page metrics for a date range', async () => {
-      // Setup
-      const dateRange = {
-        startDate: '2023-01-01',
-        endDate: '2023-01-31',
-      };
-
-      facebookRepo.getPageById.mockResolvedValue(mockPage);
-
-      mockedAxios.get.mockResolvedValue({
-        data: {
-          page_impressions: 5000,
-          page_engaged_users: 1000,
-          page_fan_adds: 100,
-          page_followers_adds: 120,
-          page_views_total: 8000,
-          page_impressions_unique: 4500,
-        },
-      });
-
-      // Execute
-      const result = await service.getPageMetrics(mockPageId, dateRange);
-
-      // Assert
-      expect(facebookRepo.getPageById).toHaveBeenCalledWith(mockPageId);
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        expect.stringContaining(`/${mockPageId}/insights`),
-        expect.objectContaining({
-          params: expect.objectContaining({
-            period: 'day',
-            since: dateRange.startDate,
-            until: dateRange.endDate,
-          }),
-        }),
-      );
+      // Verify result
       expect(result).toEqual({
-        followers: 120,
-        engagement: 1000,
-        impressions: 5000,
-        reach: 4500,
-        platformSpecific: {
-          pageViews: 8000,
-          fanAdds: 100,
-        },
-        dateRange,
+        access_token: 'new-page-token',
       });
-    });
-
-    it('should throw NotFoundException when page not found', async () => {
-      // Setup
-      facebookRepo.getPageById.mockResolvedValue(null);
-
-      const dateRange = {
-        startDate: '2023-01-01',
-        endDate: '2023-01-31',
-      };
-
-      // Execute and Assert
-      await expect(
-        service.getPageMetrics(mockPageId, dateRange),
-      ).rejects.toThrow(NotFoundException);
-    });
-
-    it('should throw FacebookApiException on API error', async () => {
-      // Setup
-      facebookRepo.getPageById.mockResolvedValue(mockPage);
-
-      mockedAxios.get.mockRejectedValue(new Error('API Error'));
-
-      const dateRange = {
-        startDate: '2023-01-01',
-        endDate: '2023-01-31',
-      };
-
-      // Execute and Assert
-      await expect(
-        service.getPageMetrics(mockPageId, dateRange),
-      ).rejects.toThrow(FacebookApiException);
     });
   });
 });

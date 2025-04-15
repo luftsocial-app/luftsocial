@@ -8,13 +8,12 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import axios from 'axios';
+import * as FormData from 'form-data';
 import * as config from 'config';
 import { FacebookRepository } from './repositories/facebook.repository';
 
 import {
-  CreatePostDto,
-  SchedulePagePostDto,
-  SchedulePostDto,
+  CreateFacebookPagePostDto,
   UpdatePageDto,
   UpdatePostDto,
 } from './helpers/post.dto';
@@ -22,7 +21,6 @@ import {
 import {
   MediaItem,
   PlatformService,
-  PostResponse,
   SocialAccountDetails,
 } from '../platform-service.interface';
 import {
@@ -38,17 +36,20 @@ import {
 
 import { MediaStorageItem } from '../../asset-management/media-storage/media-storage.dto';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
+import { TenantService } from '../../user-management/tenant/tenant.service';
 import { FACEBOOK_SCOPES } from '../../common/enums/scopes.enum';
 import { FacebookAccount } from '../entities/facebook-entities/facebook-account.entity';
 import { FacebookPage } from '../entities/facebook-entities/facebook-page.entity';
 import { FacebookPost } from '../entities/facebook-entities/facebook-post.entity';
 import { PinoLogger } from 'nestjs-pino';
-import { TenantService } from '../../user-management/tenant.service';
+import { SocialPlatform } from '../../common/enums/social-platform.enum';
+import { MediaType } from '../../common/enums/media-type.enum';
 
 @Injectable()
 export class FacebookService implements PlatformService {
-  private readonly apiVersion = 'v18.0';
+  private readonly apiVersion = 'v22.0';
   private readonly baseUrl = 'https://graph.facebook.com';
+  private readonly videoUrl = 'https://graph-video.facebook.com';
 
   constructor(
     private readonly facebookRepo: FacebookRepository,
@@ -200,105 +201,75 @@ export class FacebookService implements PlatformService {
     }
   }
 
+  /**
+   * Get S3 URL from key and bucket
+   */
+  getS3Url(s3Key: string, s3Bucket?: string): string {
+    const bucket = s3Bucket || config.get('aws.s3.bucket');
+    return `https://${bucket}.s3.amazonaws.com/${s3Key}`;
+  }
+
+  /**
+   * Upload and process media items for Facebook posts
+   * Supports direct file uploads, URL references, and presigned URLs
+   */
   private async uploadFacebookMediaItems(
     media: MediaItem[],
     facebookAccountId: string,
     context: 'post' | 'scheduled',
   ): Promise<MediaStorageItem[]> {
-    const mediaItems: MediaStorageItem[] = [];
-
     if (!media?.length) {
-      return mediaItems;
+      return [];
     }
 
-    for (const mediaItem of media) {
+    const uploadPromises = media.map(async (mediaItem) => {
       const timestamp = Date.now();
       const prefix = `facebook-${context}-${timestamp}`;
 
+      // Handle different media source types
       if (mediaItem.file) {
-        // For uploaded files
+        // Case 1: Direct file upload
         const uploadedMedia = await this.mediaStorageService.uploadPostMedia(
           facebookAccountId,
           [mediaItem.file],
           prefix,
+          SocialPlatform.FACEBOOK,
         );
-        mediaItems.push(...uploadedMedia);
+        return uploadedMedia;
+      } else if (mediaItem.s3Key) {
+        // Case 2: Already uploaded to S3 via presigned URL
+        const storageItem: MediaStorageItem = {
+          url: this.getS3Url(mediaItem.s3Key, mediaItem.s3Bucket),
+          key: mediaItem.s3Key,
+          type: mediaItem.type,
+          mimeType: mediaItem.contentType,
+        };
+        return [storageItem];
       } else if (mediaItem.url) {
-        // For media URLs
+        // Case 3: Media from URL
         const uploadedMedia = await this.mediaStorageService.uploadMediaFromUrl(
           facebookAccountId,
           mediaItem.url,
           prefix,
+          SocialPlatform.FACEBOOK,
         );
-
-        mediaItems.push(uploadedMedia);
-      }
-    }
-
-    return mediaItems;
-  }
-
-  async post(
-    accountId: string,
-    content: string,
-    media?: MediaItem[],
-  ): Promise<PostResponse> {
-    const tenantId = this.tenantService.getTenantId();
-    this.facebookRepo.setTenantId(tenantId);
-
-    const account = await this.facebookRepo.getAccountById(accountId);
-    if (!account) {
-      throw new Error('Account not found');
-    }
-
-    // Store media in S3 first if there are any media items
-    const mediaItems = await this.uploadFacebookMediaItems(
-      media,
-      account.facebookUserId,
-      'post',
-    );
-
-    // Prepare post data
-    const postData: any = { message: content };
-
-    // Handle media attachments
-    if (mediaItems?.length) {
-      if (mediaItems.length === 1) {
-        // If only one media item, use its URL as a link
-        postData.link = mediaItems[0].url;
+        return uploadedMedia;
       } else {
-        // For multiple media items, upload to Facebook and attach
-        const attachments = await Promise.all(
-          mediaItems.map((mediaItem) =>
-            this.uploadMedia(account.socialAccount.accessToken, mediaItem.url),
-          ),
+        this.logger.warn('Invalid media item provided', mediaItem);
+        throw new BadRequestException(
+          'Invalid media item: must provide file, url, or s3Key',
         );
-        postData.attached_media = attachments;
       }
-    }
-
-    // Post to Facebook
-    const response = await axios.post(
-      `${this.baseUrl}/${this.apiVersion}/${account.facebookUserId}/feed`,
-      postData,
-      {
-        params: { access_token: account.socialAccount.accessToken },
-      },
-    );
-
-    await this.facebookRepo.createPost({
-      account: account,
-      postId: response.data.id,
-      content: postData.message,
-      mediaItems, // S3 media items
-      isPublished: true,
-      publishedAt: new Date(),
     });
 
-    return {
-      platformPostId: response.data.id,
-      postedAt: new Date(),
-    };
+    const results = await Promise.all(uploadPromises);
+
+    const mediaItems = results.flat();
+
+    this.logger.debug('Media items processed successfully', {
+      count: mediaItems.length,
+    });
+    return mediaItems;
   }
 
   async refreshLongLivedToken(token: string): Promise<any> {
@@ -400,9 +371,13 @@ export class FacebookService implements PlatformService {
     return { media_fbid: response.data.id };
   }
 
+  /**
+   * Unified method to create a post on a Facebook Page
+   * Handles text posts, link posts, photo posts, video posts, and scheduled posts
+   */
   async createPagePost(
     pageId: string,
-    createPostDto: CreatePostDto,
+    createPostDto: CreateFacebookPagePostDto,
   ): Promise<any> {
     const tenantId = this.tenantService.getTenantId();
     this.facebookRepo.setTenantId(tenantId);
@@ -412,23 +387,75 @@ export class FacebookService implements PlatformService {
       throw new NotFoundException('Page not found');
     }
 
-    // Store media in S3 first if there are any media items
-    const mediaItems = await this.uploadFacebookMediaItems(
-      createPostDto.media,
-      page.facebookAccount.id,
-      'post',
-    );
+    try {
+      // Check if we have any media to handle
+      if (createPostDto.media && createPostDto.media.length > 0) {
+        // Determine if we have photos, videos, or both
+        const photos = createPostDto.media.filter(
+          (m) => m.type === MediaType.IMAGE,
+        );
+        const videos = createPostDto.media.filter(
+          (m) => m.type === MediaType.VIDEO,
+        );
 
-    // Use S3 URLs for Facebook post
-    const mediaUrls = mediaItems.map((item) => item.url);
+        // Special case: if we have only a single video, use the video API
+        if (videos.length === 1 && photos.length === 0) {
+          return this.handleSingleVideoPost(
+            page,
+            createPostDto,
+            videos[0],
+            tenantId,
+          );
+        }
 
-    // Post to Facebook
+        // Special case: if we have only a single photo, use the photo API
+        if (photos.length === 1 && videos.length === 0) {
+          return this.handleSinglePhotoPost(
+            page,
+            createPostDto,
+            photos[0],
+            tenantId,
+          );
+        }
+
+        // For mixed media or multiple media items, handle as a feed post with attachments
+        return this.handleMultiMediaPost(page, createPostDto, tenantId);
+      }
+
+      // If we have a link but no media, handle as a link post
+      if (createPostDto.link) {
+        return this.handleLinkPost(page, createPostDto, tenantId);
+      }
+
+      // Simple text post with no media or links
+      return this.handleTextPost(page, createPostDto, tenantId);
+    } catch (error) {
+      console.error(
+        'Error creating Facebook post:',
+        error.response?.data || error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Handle a simple text post with no media
+   */
+  private async handleTextPost(
+    page: any,
+    createPostDto: CreateFacebookPagePostDto,
+    tenantId: string,
+  ): Promise<any> {
     const postData = await axios.post(
       `${this.baseUrl}/${this.apiVersion}/${page.pageId}/feed`,
       {
         message: createPostDto.content,
-        ...(mediaUrls.length && {
-          attached_media: await this.processMedia(page.accessToken, mediaUrls),
+        published: createPostDto.published ?? true,
+        ...(createPostDto.scheduledPublishTime && {
+          scheduled_publish_time: createPostDto.scheduledPublishTime,
+        }),
+        ...(createPostDto.targeting && {
+          targeting: this.formatTargeting(createPostDto.targeting),
         }),
       },
       {
@@ -440,102 +467,34 @@ export class FacebookService implements PlatformService {
       page,
       postId: postData.data.id,
       content: createPostDto.content,
-      mediaItems, // S3 media items
-      isPublished: true,
-      publishedAt: new Date(),
+      isPublished: createPostDto.published ?? true,
+      publishedAt: createPostDto.published ? new Date() : null,
+      scheduledPublishTime: !createPostDto.published
+        ? createPostDto.scheduledPublishTime
+        : null,
+      tenantId,
     });
   }
 
-  async schedulePost(
-    postId: string,
-    scheduleDto: SchedulePostDto,
-  ): Promise<FacebookPost> {
-    const tenantId = this.tenantService.getTenantId();
-    this.facebookRepo.setTenantId(tenantId);
-    // Retrieve the post and associated page
-    const post = await this.facebookRepo.getPostById(postId, ['page']);
-    if (!post) {
-      throw new NotFoundException('Post not found');
-    }
-
-    const page = await this.facebookRepo.getPageById(post.page.id);
-    if (!page) {
-      throw new NotFoundException('Page not found');
-    }
-
-    // Upload media to S3 first
-    const mediaItems = await this.uploadFacebookMediaItems(
-      scheduleDto.media,
-      page.facebookAccount.id,
-      'scheduled',
-    );
-
-    // Prepare media for Facebook scheduling
-    const attachedMedia =
-      mediaItems.length > 0
-        ? await this.processMedia(
-            page.accessToken,
-            mediaItems.map((m) => m.url),
-          )
-        : undefined;
-
-    // Schedule the post on Facebook
+  /**
+   * Handle a link post with no media
+   */
+  private async handleLinkPost(
+    page: any,
+    createPostDto: CreateFacebookPagePostDto,
+    tenantId: string,
+  ): Promise<any> {
     const postData = await axios.post(
       `${this.baseUrl}/${this.apiVersion}/${page.pageId}/feed`,
       {
-        message: scheduleDto.content,
-        published: false,
-        scheduled_publish_time: Math.floor(
-          new Date(scheduleDto.scheduledTime).getTime() / 1000,
-        ),
-        ...(attachedMedia && { attached_media: attachedMedia }),
-      },
-      {
-        params: { access_token: page.accessToken },
-      },
-    );
-
-    // Create post record in repository
-    return this.facebookRepo.createPost({
-      page,
-      postId: postData.data.id,
-      content: scheduleDto.content,
-      mediaItems: mediaItems,
-      isPublished: false,
-      scheduledTime: new Date(scheduleDto.scheduledTime),
-    });
-  }
-
-  async schedulePagePost(scheduleDto: SchedulePagePostDto): Promise<any> {
-    const tenantId = this.tenantService.getTenantId();
-    this.facebookRepo.setTenantId(tenantId);
-
-    const page = await this.facebookRepo.getPageById(scheduleDto.pageId);
-    if (!page) {
-      throw new NotFoundException('Page not found');
-    }
-
-    // Store media in S3 first
-    const mediaItems = await this.uploadFacebookMediaItems(
-      scheduleDto.media,
-      page.facebookAccount.id,
-      'scheduled',
-    );
-
-    // Use S3 URLs for Facebook post
-    const mediaUrls = mediaItems.map((item) => item.url);
-
-    // Post to Facebook
-    const postData = await axios.post(
-      `${this.baseUrl}/${this.apiVersion}/${page.pageId}/feed`,
-      {
-        message: scheduleDto.content,
-        published: false,
-        scheduled_publish_time:
-          new Date(scheduleDto.scheduledTime).getTime() / 1000,
-        privacy: scheduleDto.privacyLevel,
-        ...(mediaUrls.length && {
-          attached_media: await this.processMedia(page.accessToken, mediaUrls),
+        message: createPostDto.content,
+        link: createPostDto.link,
+        published: createPostDto.published ?? true,
+        ...(createPostDto.scheduledPublishTime && {
+          scheduled_publish_time: createPostDto.scheduledPublishTime,
+        }),
+        ...(createPostDto.targeting && {
+          targeting: this.formatTargeting(createPostDto.targeting),
         }),
       },
       {
@@ -543,15 +502,329 @@ export class FacebookService implements PlatformService {
       },
     );
 
-    // Save the post with S3 media details
     return this.facebookRepo.createPost({
       page,
       postId: postData.data.id,
-      content: scheduleDto.content,
-      mediaItems, // Store full media items
-      isPublished: false,
-      scheduledTime: new Date(scheduleDto.scheduledTime),
+      content: createPostDto.content,
+      permalinkUrl: createPostDto.link,
+      isPublished: createPostDto.published ?? true,
+      publishedAt: createPostDto.published ? new Date() : null,
+      scheduledPublishTime: !createPostDto.published
+        ? createPostDto.scheduledPublishTime
+        : null,
+      tenantId,
     });
+  }
+
+  /**
+   * Handle a single photo post
+   */
+  private async handleSinglePhotoPost(
+    page: any,
+    createPostDto: CreateFacebookPagePostDto,
+    photoItem: MediaItem,
+    tenantId: string,
+  ): Promise<any> {
+    // Upload the photo to S3 first if it's not a URL
+    const mediaItem = !photoItem.url
+      ? await this.mediaStorageService.uploadPostMedia(
+          page.facebookAccount.id,
+          [photoItem.file],
+          page.id,
+          SocialPlatform.FACEBOOK,
+        )
+      : [{ url: photoItem.url, key: photoItem.s3Key }];
+
+    // Post to Facebook
+    console.log('createPostDto', createPostDto);
+    const photoData = await axios.post(
+      `${this.baseUrl}/${this.apiVersion}/${page.pageId}/photos`,
+      {
+        url: mediaItem[0].url,
+        message: createPostDto.content,
+        published: createPostDto.published ?? true,
+        ...(createPostDto.scheduledPublishTime && {
+          scheduled_publish_time: createPostDto.scheduledPublishTime,
+        }),
+        ...(createPostDto.targeting && {
+          targeting: this.formatTargeting(createPostDto.targeting),
+        }),
+      },
+      {
+        params: { access_token: page.accessToken },
+      },
+    );
+
+    return this.facebookRepo.createPost({
+      page,
+      postId: photoData.data.post_id,
+      content: createPostDto.content,
+      mediaItems: [
+        {
+          id: photoData.data.id,
+          type: MediaType.IMAGE,
+          url: mediaItem[0].url,
+          key: mediaItem[0].key,
+        },
+      ],
+      isPublished: createPostDto.published ?? true,
+      publishedAt: createPostDto.published ? new Date() : null,
+      scheduledPublishTime: !createPostDto.published
+        ? createPostDto.scheduledPublishTime
+        : null,
+      tenantId,
+    });
+  }
+
+  /**
+   * Handle a single video post
+   */
+  private async handleSingleVideoPost(
+    page: any,
+    createPostDto: CreateFacebookPagePostDto,
+    videoItem: MediaItem,
+    tenantId: string,
+  ): Promise<any> {
+    // For videos, we need to use the Resumable Upload API first to get a file handle
+    let fileHandle;
+
+    // If it's not already a URL, we need to upload it
+    if (!videoItem.url) {
+      // First, store in S3 for our records
+      await this.mediaStorageService.uploadPostMedia(
+        page.facebookAccount.id,
+        [videoItem.file],
+        page.id,
+        SocialPlatform.FACEBOOK,
+      );
+
+      // Then, use Resumable Upload API to get a handle for Facebook
+      fileHandle = await this.uploadVideoToFacebook(
+        videoItem.file.buffer,
+        page.accessToken,
+      );
+    } else {
+      // If it's already a URL, we still need to download it and upload to Facebook
+      const videoBuffer = await this.downloadFileFromUrl(videoItem.url);
+      fileHandle = await this.uploadVideoToFacebook(
+        videoBuffer,
+        page.accessToken,
+      );
+    }
+
+    const formData = new FormData();
+    formData.append('access_token', page.accessToken);
+    formData.append('description', createPostDto.content);
+
+    if (videoItem.title) {
+      formData.append('title', videoItem.title);
+    }
+
+    if (videoItem.description) {
+      formData.append('description', videoItem.description);
+    }
+
+    formData.append('fbuploader_video_file_chunk', fileHandle);
+
+    if (createPostDto.published === false) {
+      formData.append('published', 'false');
+      if (createPostDto.scheduledPublishTime) {
+        formData.append(
+          'scheduled_publish_time',
+          createPostDto.scheduledPublishTime.toString(),
+        );
+      }
+    }
+
+    const videoPostResponse = await axios.post(
+      `${this.videoUrl}/${this.apiVersion}/${page.pageId}/videos`,
+      formData,
+      {
+        headers: {
+          ...formData.getHeaders(),
+        },
+      },
+    );
+
+    return this.facebookRepo.createPost({
+      page,
+      postId: videoPostResponse.data.id, // For videos, the post ID is the same as the video ID
+      content: createPostDto.content,
+      mediaItems: [
+        {
+          type: MediaType.VIDEO,
+          url: videoItem.url ? videoItem.url : null, // Original URL if available
+          key: videoItem.url ? null : videoItem.s3Key,
+          id: videoPostResponse.data.id,
+        },
+      ],
+      isPublished: createPostDto.published ?? true,
+      publishedAt: createPostDto.published ? new Date() : null,
+      scheduledPublishTime: !createPostDto.published
+        ? createPostDto.scheduledPublishTime
+        : null,
+      tenantId,
+    });
+  }
+
+  /**
+   * Handle a post with multiple media items (photos/videos) as a feed post with attachments
+   */
+  private async handleMultiMediaPost(
+    page: any,
+    createPostDto: CreateFacebookPagePostDto,
+    tenantId: string,
+  ): Promise<any> {
+    // First, upload all media to S3 and get media IDs from Facebook
+    const mediaItems = await this.uploadFacebookMediaItems(
+      createPostDto.media,
+      page.id,
+      'post',
+    );
+
+    // Now create a feed post with attached media
+    const attachedMedia = await this.processMedia(page.accessToken, mediaItems);
+
+    const postData = await axios.post(
+      `${this.baseUrl}/${this.apiVersion}/${page.pageId}/feed`,
+      {
+        message: createPostDto.content,
+        attached_media: attachedMedia,
+        published: createPostDto.published ?? true,
+        ...(createPostDto.scheduledPublishTime && {
+          scheduled_publish_time: createPostDto.scheduledPublishTime,
+        }),
+        ...(createPostDto.targeting && {
+          targeting: this.formatTargeting(createPostDto.targeting),
+        }),
+      },
+      {
+        params: { access_token: page.accessToken },
+      },
+    );
+
+    return this.facebookRepo.createPost({
+      page,
+      postId: postData.data.id,
+      content: createPostDto.content,
+      mediaItems,
+      isPublished: createPostDto.published ?? true,
+      publishedAt: createPostDto.published ? new Date() : null,
+      scheduledPublishTime: !createPostDto.published
+        ? createPostDto.scheduledPublishTime
+        : null,
+      tenantId,
+    });
+  }
+
+  /**
+   * Upload a video to Facebook using the Resumable Upload API
+   */
+  private async uploadVideoToFacebook(
+    videoBuffer: Buffer | string,
+    accessToken: string,
+  ): Promise<string> {
+    const appId = config.get('platforms.facebook.clientId');
+
+    const buffer =
+      typeof videoBuffer === 'string'
+        ? await this.downloadFileFromUrl(videoBuffer)
+        : videoBuffer;
+
+    // Step 1: Start an upload session
+    const sessionResponse = await axios.post(
+      `${this.baseUrl}/${this.apiVersion}/${appId}/uploads`,
+      null,
+      {
+        params: {
+          file_name: `video-${Date.now()}.mp4`,
+          file_length: buffer.length,
+          file_type: 'video/mp4',
+          access_token: accessToken,
+        },
+      },
+    );
+
+    const uploadSessionId = sessionResponse.data.id.replace('upload:', '');
+
+    // Step 2: Upload the file
+    const uploadResponse = await axios.post(
+      `${this.baseUrl}/${this.apiVersion}/upload:${uploadSessionId}`,
+      buffer,
+      {
+        headers: {
+          Authorization: `OAuth ${accessToken}`,
+          file_offset: '0',
+          'Content-Type': 'application/octet-stream',
+        },
+      },
+    );
+
+    return uploadResponse.data.h;
+  }
+
+  /**
+   * Download a file from a URL and return as a Buffer
+   */
+  private async downloadFileFromUrl(url: string): Promise<Buffer> {
+    const response = await axios.get(url, { responseType: 'arraybuffer' });
+    return Buffer.from(response.data);
+  }
+
+  /**
+   * Format targeting object for Facebook API
+   */
+  private formatTargeting(targeting: any): any {
+    const formattedTargeting = { ...targeting };
+
+    // Convert geoLocations to geo_locations if needed
+    if (targeting.geoLocations) {
+      formattedTargeting.geo_locations = targeting.geoLocations;
+      delete formattedTargeting.geoLocations;
+    }
+
+    return formattedTargeting;
+  }
+
+  /**
+   * Schedule a post on a Facebook Page
+   */
+  async schedulePagePost(
+    pageId: string,
+    createPostDto: CreateFacebookPagePostDto,
+  ): Promise<any> {
+    // Always ensure the post isn't published immediately
+    createPostDto.published = false;
+
+    const nowInSeconds = Math.floor(Date.now() / 1000);
+    let scheduledTime: number | null = null;
+
+    if (createPostDto.scheduledPublishTime) {
+      const inputTime = createPostDto.scheduledPublishTime;
+
+      scheduledTime =
+        typeof inputTime === 'string'
+          ? Math.floor(new Date(inputTime).getTime() / 1000)
+          : Math.floor(inputTime.getTime() / 1000);
+
+      const tenMinutes = 600; // in seconds
+      const thirtyDays = 30 * 24 * 60 * 60; // in seconds
+
+      if (
+        scheduledTime < nowInSeconds + tenMinutes ||
+        scheduledTime > nowInSeconds + thirtyDays
+      ) {
+        throw new BadRequestException(
+          'Scheduled publish time must be between 10 minutes and 30 days from now',
+        );
+      }
+    } else {
+      throw new BadRequestException('Scheduled publish time is required');
+    }
+
+    createPostDto.scheduledPublishTime = new Date(scheduledTime * 1000);
+
+    return this.createPagePost(pageId, createPostDto);
   }
 
   async getUserPages(userId: string): Promise<FacebookPage[]> {
@@ -693,7 +966,6 @@ export class FacebookService implements PlatformService {
           'page_fan_adds_unique', // New Page likes (unique accounts)
           'page_views_total', // Total Page views
           'page_daily_follows_unique', // New followers (unique accounts)
-          'page_engaged_users', // Users who engaged with your Page
           'page_posts_impressions_unique', // Unique users who saw your Page's posts
           'page_actions_post_reactions_total', // Total reactions on Page posts
         ];
@@ -885,7 +1157,7 @@ export class FacebookService implements PlatformService {
 
       return this.transformPostMetrics(response.data);
     } catch (error) {
-      throw new BadRequestException('Failed to fetch Instagram metrics', error);
+      throw new BadRequestException('Failed to fetch Facebook metrics', error);
     }
   }
 
@@ -959,10 +1231,7 @@ export class FacebookService implements PlatformService {
       // Prepare media for Facebook update
       const attachedMedia =
         mediaItems.length > 0
-          ? await this.processMedia(
-              post.page.accessToken,
-              mediaItems.map((m) => m.url),
-            )
+          ? await this.processMedia(post.page.accessToken, mediaItems)
           : undefined;
 
       // Update post on Facebook
@@ -1077,22 +1346,87 @@ export class FacebookService implements PlatformService {
     await this.facebookRepo.deletePost(postId);
   }
 
+  /**
+   * Process media items to get Facebook media IDs for attachment
+   * This method uploads each media URL to Facebook to get a media_fbid
+   */
   private async processMedia(
     accessToken: string,
-    mediaUrls: string[],
-  ): Promise<any[]> {
-    const mediaPromises = mediaUrls.map(async (url) => {
-      const uploadResponse = await axios.post(
-        `${this.baseUrl}/${this.apiVersion}/photos`,
-        { url },
-        {
-          params: {
-            access_token: accessToken,
-            published: false,
-          },
-        },
-      );
-      return { media_fbid: uploadResponse.data.id };
+    mediaItems: MediaStorageItem[],
+  ): Promise<Array<{ media_fbid: string }>> {
+    const mediaPromises = mediaItems.map(async (item) => {
+      try {
+        // Different handling based on media type
+        if (
+          item.type === MediaType.PHOTO ||
+          (item.mimeType && item.mimeType.startsWith('image/'))
+        ) {
+          // For photos, use the photos endpoint
+          const uploadResponse = await axios.post(
+            `${this.baseUrl}/me/photos`,
+            {
+              url: item.url,
+              published: false, // Important: Don't publish as a separate post
+              temporary: true, // Mark as temporary for attachment purpose
+            },
+            {
+              params: {
+                access_token: accessToken,
+              },
+            },
+          );
+
+          this.logger.debug('Successfully got photo fbid', {
+            id: uploadResponse.data.id,
+          });
+          return { media_fbid: uploadResponse.data.id };
+        } else if (
+          item.type === MediaType.VIDEO ||
+          (item.mimeType && item.mimeType.startsWith('video/'))
+        ) {
+          // For videos, we need to handle differently
+          // Since videos can't use the simple URL upload like photos
+          const videoBuffer = await this.downloadFileFromUrl(item.url);
+          const fileHandle = await this.uploadVideoToFacebook(
+            videoBuffer,
+            accessToken,
+          );
+
+          // Upload the video but don't publish it
+          const formData = new FormData();
+          formData.append('access_token', accessToken);
+          formData.append('published', 'false');
+          formData.append('temporary', 'true');
+          formData.append('fbuploader_video_file_chunk', fileHandle);
+
+          const videoResponse = await axios.post(
+            `${this.videoUrl}/${this.apiVersion}/me/videos`,
+            formData,
+            {
+              headers: {
+                ...formData.getHeaders(),
+              },
+            },
+          );
+
+          this.logger.debug('Successfully got video fbid', {
+            id: videoResponse.data.id,
+          });
+          return { media_fbid: videoResponse.data.id };
+        } else {
+          throw new Error(`Unsupported media type: ${item.type}`);
+        }
+      } catch (error) {
+        this.logger.error('Failed to process media item', {
+          url: item.url,
+          error: error.response?.data || error.message,
+        });
+
+        // Re-throw with more context
+        throw new Error(
+          `Failed to process media: ${error.response?.data?.error?.message || error.message}`,
+        );
+      }
     });
 
     return Promise.all(mediaPromises);

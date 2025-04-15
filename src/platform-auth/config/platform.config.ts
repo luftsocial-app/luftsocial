@@ -1,7 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { PlatformOAuthConfig } from '../../platforms/platform-service.interface';
 import { SocialPlatform } from '../../common/enums/social-platform.enum';
-import { FACEBOOK_SCOPES } from 'src/common/enums/scopes.enum';
+import { FACEBOOK_SCOPES } from '../../common/enums/scopes.enum';
 
 export const PlatformConfigsProvider = {
   provide: 'PLATFORM_CONFIGS',
@@ -68,11 +68,17 @@ export const PlatformConfigsProvider = {
       clientId: configService.get('TIKTOK_CLIENT_KEY'),
       clientSecret: configService.get('TIKTOK_CLIENT_SECRET'),
       redirectUri: configService.get('TIKTOK_REDIRECT_URI'),
-      tokenHost: 'https://open.tiktokapis.com',
-      tokenPath: '/v2/oauth2/token/',
-      authorizePath: '/v2/oauth2/authorize/',
+      tokenHost: 'https://www.tiktok.com',
+      tokenPath: '/v2/auth/authorize/',
+      authorizePath: '/v2/auth/authorize/',
       revokePath: '/v2/oauth/revoke/',
-      scopes: ['user.info.basic', 'video.list', 'video.publish'],
+      scopes: [
+        'user.info.profile',
+        // 'user.info.basic',
+        // 'video.list',
+        // 'video.publish',
+        // 'video.upload',
+      ],
       cacheOptions: {
         tokenTTL: 3600,
         refreshTokenTTL: 7200,

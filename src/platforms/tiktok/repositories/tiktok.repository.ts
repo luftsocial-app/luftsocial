@@ -1,6 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
-import { EntityManager, LessThan, MoreThan, Repository } from 'typeorm';
+import {
+  DataSource,
+  EntityManager,
+  LessThan,
+  MoreThan,
+  Repository,
+} from 'typeorm';
 import { TikTokAccount } from '../../entities/tiktok-entities/tiktok-account.entity';
 import { TikTokVideo } from '../../entities/tiktok-entities/tiktok-video.entity';
 import { TikTokMetric } from '../../entities/tiktok-entities/tiktok-metric.entity';
@@ -10,7 +16,7 @@ import {
   CreateUploadSessionParams,
   TikTokVideoPrivacyLevel,
 } from '../helpers/tiktok.interfaces';
-import { TenantAwareRepository } from '../../../user-management/tenant-aware.repository';
+import { TenantAwareRepository } from '../../../user-management/tenant/tenant-aware.repository';
 import { SocialAccount } from '../../../platforms/entities/notifications/entity/social-account.entity';
 
 @Injectable()
@@ -30,13 +36,34 @@ export class TikTokRepository extends TenantAwareRepository {
     private readonly commentRepo: Repository<TikTokComment>,
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
+    private dataSource: DataSource,
   ) {
     super(accountRepo);
   }
 
   async createAccount(data: Partial<TikTokAccount>): Promise<TikTokAccount> {
-    const account = this.accountRepo.create(data);
-    return this.accountRepo.save(account);
+    const socialAccountData = data.socialAccount;
+
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { socialAccount, ...tiktokAccountData } = data;
+
+    return this.dataSource.transaction(async (manager) => {
+      // First create the social account
+      const socialAccount = this.socialAccountRepo.create({
+        ...socialAccountData,
+        tenantId: data.tenantId, // Ensure tenantId is set
+      });
+
+      const savedSocialAccount = await manager.save(socialAccount);
+
+      // Now create the TikTok account with a reference to the social account
+      const tiktokAccount = this.accountRepo.create({
+        ...tiktokAccountData,
+        socialAccount: savedSocialAccount,
+      });
+
+      return await manager.save(tiktokAccount);
+    });
   }
 
   async createVideo(data: {

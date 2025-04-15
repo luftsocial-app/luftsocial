@@ -4,20 +4,21 @@ import {
   IsDateString,
   IsEnum,
   IsNotEmpty,
-  IsObject,
   IsOptional,
   IsString,
   IsUrl,
+  MaxLength,
   MinLength,
   ValidateNested,
 } from 'class-validator';
-import { DateRange, ScheduleStatus } from './cross-platform.interface';
-import { IsNotPastDate } from '../../utils/IsNotPastDate';
-import { SocialPlatform } from '../../common/enums/social-platform.enum';
-
+import { DateRange, ScheduleStatus } from '../cross-platform.interface';
+import { IsNotPastDate } from '../../../utils/IsNotPastDate';
+import { SocialPlatform } from '../../../common/enums/social-platform.enum';
+import { PlatformPostDto } from './platform-post.dto';
 export class CreateCrossPlatformPostDto {
   @IsString()
   @MinLength(1)
+  @MaxLength(63206)
   content: string;
 
   @IsOptional()
@@ -28,19 +29,8 @@ export class CreateCrossPlatformPostDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => PlatformPostDto)
+  @IsNotEmpty({ message: 'At least one platform must be specified' })
   platforms: PlatformPostDto[];
-}
-
-export class PlatformPostDto {
-  @IsEnum(SocialPlatform)
-  platform: SocialPlatform;
-
-  @IsString()
-  accountId: string;
-
-  @IsOptional()
-  @IsObject()
-  platformSpecificParams?: any;
 }
 
 export class ScheduleCrossPlatformPostDto extends CreateCrossPlatformPostDto {

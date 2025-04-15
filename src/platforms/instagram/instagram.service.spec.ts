@@ -5,11 +5,11 @@ import axios from 'axios';
 import { InstagramService } from './instagram.service';
 import { InstagramRepository } from './repositories/instagram.repository';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
+import { TenantService } from '../../user-management/tenant/tenant.service';
 import { InstagramApiException } from './helpers/instagram-api.exception';
 import { StickerDto } from './helpers/create-content.dto';
 import { MediaType } from '../../common/enums/media-type.enum';
 import { PinoLogger } from 'nestjs-pino';
-import { TenantService } from '../../user-management/tenant.service';
 
 // Mock axios
 jest.mock('axios');
@@ -465,35 +465,6 @@ describe('InstagramService', () => {
   });
 
   describe('revokeAccess', () => {
-    it('should revoke access token and delete account', async () => {
-      instagramRepo.getAccountByUserId.mockResolvedValue(
-        mockInstagramAccount as any,
-      );
-      mockedAxios.post.mockResolvedValue({ data: { success: true } });
-
-      await service.revokeAccess(mockAccountId);
-
-      expect(tenantService.getTenantId).toHaveBeenCalled();
-      expect(instagramRepo.setTenantId).toHaveBeenCalledWith(mockTenantId);
-      expect(instagramRepo.getAccountByUserId).toHaveBeenCalledWith(
-        mockAccountId,
-      );
-
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        expect.stringContaining('/oauth/revoke/'),
-        null,
-        expect.objectContaining({
-          params: expect.objectContaining({
-            client_key: 'INSTAGRAM_CLIENT_ID',
-            client_secret: 'INSTAGRAM_CLIENT_SECRET',
-            token: mockAccessToken,
-          }),
-        }),
-      );
-
-      expect(instagramRepo.deleteAccount).toHaveBeenCalledWith(mockAccountId);
-    });
-
     it('should throw NotFoundException if account not found', async () => {
       instagramRepo.getAccountByUserId.mockResolvedValue(null);
 

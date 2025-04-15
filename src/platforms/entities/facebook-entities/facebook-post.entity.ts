@@ -42,7 +42,7 @@ export class FacebookPost {
   isPublished: boolean;
 
   @Column({ type: 'timestamp', nullable: true })
-  scheduledTime: Date;
+  scheduledPublishTime: Date;
 
   @Column({ type: 'timestamp', nullable: true })
   publishedAt: Date;

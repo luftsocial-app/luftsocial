@@ -1,9 +1,10 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, ParseEnumPipe, Query } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { MediaStorageService } from './media-storage.service';
 import { AuthObject } from '@clerk/express';
 import { CurrentUser } from '../../decorators/current-user.decorator';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { SocialPlatform } from '../../common/enums/social-platform.enum';
 
 @ApiTags('Media Storage')
 @ApiBearerAuth()
@@ -21,13 +22,16 @@ export class MediaStorageController {
     @CurrentUser() user: AuthObject,
     @Query('fileName') fileName: string,
     @Query('mimeType') fileType: string,
+    @Query('fileHash') fileHash: string,
+    @Query('platform', new ParseEnumPipe(SocialPlatform))
+    platform: SocialPlatform,
   ) {
-    const tenantId = user.orgId;
-
     return await this.mediaStorageService.generatePreSignedUrl(
+      user.userId,
       fileName,
       fileType,
-      tenantId,
+      fileHash,
+      platform,
     );
   }
 

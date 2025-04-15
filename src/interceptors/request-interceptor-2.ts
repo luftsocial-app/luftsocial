@@ -3,6 +3,7 @@ import {
   NestInterceptor,
   ExecutionContext,
   CallHandler,
+  Logger,
 } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { Observable } from 'rxjs';

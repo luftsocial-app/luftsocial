@@ -29,7 +29,7 @@ db:
     host: localhost
     port: 5434
     database: luftsocial
-    synchronize: false
+    synchronize: true
 cache:
   redis:
     host: localhost
@@ -55,7 +55,7 @@ platforms:
     clientId: ${FACEBOOK_CLIENT_ID}
     clientSecret: ${FACEBOOK_CLIENT_SECRET}
     redirectUri: ${FACEBOOK_REDIRECT_URI}
-    apiVersion: v18.0
+    apiVersion: v22.0
   instagram:
     clientId: INSTAGRAM_CLIENT_ID
     clientSecret: INSTAGRAM_CLIENT_SECRET

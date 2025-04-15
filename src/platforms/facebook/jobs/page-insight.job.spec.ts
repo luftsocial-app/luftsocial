@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { FacebookService } from '../facebook.service';
 import { FacebookRepository } from '../repositories/facebook.repository';
 import { FacebookPageInsightsJob } from './page-insight.job';
-import { FacebookPage } from 'src/platforms/entities/facebook-entities/facebook-page.entity';
+import { FacebookPage } from '../../../platforms/entities/facebook-entities/facebook-page.entity';
 import { PinoLogger } from 'nestjs-pino';
 
 describe('FacebookPageInsightsJob', () => {

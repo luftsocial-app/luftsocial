@@ -15,7 +15,7 @@ import { PlatformError } from '../platforms/platform.error';
 import { TokenCacheService } from '../cache/token-cache.service';
 import { SocialPlatform } from '../common/enums/social-platform.enum';
 import { PinoLogger } from 'nestjs-pino';
-import { TenantService } from '../user-management/tenant.service';
+import { TenantService } from '../user-management/tenant/tenant.service';
 
 @Injectable()
 export class PlatformAuthService {
@@ -129,18 +129,14 @@ export class PlatformAuthService {
       // Handle token exchange based on platform
       if (platform === SocialPlatform.FACEBOOK) {
         accessToken = await this.exchangeFacebookToken(code, config);
+      } else if (platform === SocialPlatform.TIKTOK) {
+        accessToken = await this.exchangeTikTokToken(code, config);
       } else {
         const tokenParams = {
           code,
           redirect_uri: config.redirectUri,
           scope: config.scopes,
         };
-
-        // Special case for TikTok
-        if (platform === SocialPlatform.TIKTOK) {
-          tokenParams['client_key'] = config.clientId;
-          tokenParams['grant_type'] = 'authorization_code';
-        }
 
         try {
           // Exchange authorization code for token
@@ -555,6 +551,40 @@ export class PlatformAuthService {
     } catch (error) {
       this.logger.error(
         'Facebook token exchange error:',
+        error.response?.data || error.message,
+      );
+      throw error;
+    }
+  }
+
+  private async exchangeTikTokToken(
+    code: string,
+    config: PlatformOAuthConfig,
+  ): Promise<any> {
+    try {
+      const response = await axios.post(
+        'https://open.tiktokapis.com/v2/oauth/token/',
+        new URLSearchParams({
+          client_key: config.clientId,
+          client_secret: config.clientSecret,
+          code: code,
+          grant_type: 'authorization_code',
+          redirect_uri: config.redirectUri,
+        }).toString(),
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            Accept: 'application/json',
+          },
+        },
+      );
+
+      return {
+        token: response.data,
+      };
+    } catch (error) {
+      this.logger.error(
+        'TikTok token exchange error:',
         error.response?.data || error.message,
       );
       throw error;

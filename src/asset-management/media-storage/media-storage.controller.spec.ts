@@ -3,6 +3,7 @@ import { MediaStorageController } from './media-storage.controller';
 import { MediaStorageService } from './media-storage.service';
 import { PinoLogger } from 'nestjs-pino';
 import { AuthObject } from '@clerk/express';
+import { SocialPlatform } from '../../common/enums/social-platform.enum';
 
 describe('MediaStorageController', () => {
   let controller: MediaStorageController;
@@ -43,13 +44,20 @@ describe('MediaStorageController', () => {
 
   describe('getPresignedUrl', () => {
     it('should return presigned url', async () => {
-      const mockUser = { orgId: 'org123' } as unknown as AuthObject;
+      const mockUser = {
+        orgId: 'org123',
+        userId: 'user_123',
+      } as unknown as AuthObject;
+      const platform = SocialPlatform.FACEBOOK;
+      // const tenantId = 'tenant123';
       const fileName = 'test.jpg';
       const fileType = 'image/jpeg';
       const expectedResult = {
         preSignedUrl: 'https://test-url.com',
         cdnUrl: 'https://cdn-url.com',
       };
+
+      const fileHash = undefined;
 
       mockMediaStorageService.generatePreSignedUrl.mockResolvedValue(
         expectedResult,
@@ -59,12 +67,16 @@ describe('MediaStorageController', () => {
         mockUser,
         fileName,
         fileType,
+        fileHash,
+        platform,
       );
 
       expect(mediaStorageService.generatePreSignedUrl).toHaveBeenCalledWith(
+        mockUser.userId,
         fileName,
         fileType,
-        mockUser.orgId,
+        fileHash,
+        platform,
       );
       expect(result).toEqual(expectedResult);
     });
