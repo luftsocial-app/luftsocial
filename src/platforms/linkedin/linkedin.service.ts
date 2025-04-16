@@ -26,7 +26,6 @@ import { CreateLinkedInPostDto } from './helpers/create-post.dto';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
 import { MediaStorageItem } from '../../asset-management/media-storage/media-storage.dto';
 import { PinoLogger } from 'nestjs-pino';
-import { TenantService } from '../../user-management/tenant.service';
 
 @Injectable()
 export class LinkedInService implements PlatformService {

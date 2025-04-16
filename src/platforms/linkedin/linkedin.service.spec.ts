@@ -22,15 +22,20 @@ jest.mock('config', () => ({
   }),
 }));
 
+jest.mock('../../user-management/tenant.service', () => ({
+  TenantService: jest.fn().mockImplementation(() => ({
+    getTenantId: jest.fn(),
+    setTenantId: jest.fn(),
+  })),
+}));
+
 describe('LinkedInService', () => {
   let service: LinkedInService;
   let linkedInRepo: jest.Mocked<LinkedInRepository>;
-  let tenantService: jest.Mocked<TenantService>;
   let mediaStorageService: jest.Mocked<MediaStorageService>;
   let mockedAxios;
 
   // Mock data
-  const mockTenantId = 'tenant123';
   const mockUserId = 'user123';
   const mockAccountId = 'account123';
   const mockPostId = 'post123';
@@ -101,10 +106,6 @@ describe('LinkedInService', () => {
       deleteAccount: jest.fn().mockResolvedValue({}),
     };
 
-    const mockTenantService = {
-      getTenantId: jest.fn().mockReturnValue(mockTenantId),
-    };
-
     const mockMediaStorageService = {
       uploadPostMedia: jest.fn().mockResolvedValue([mockUploadedMedia]),
       uploadMediaFromUrl: jest.fn().mockResolvedValue(mockUploadedMedia),
@@ -114,6 +115,7 @@ describe('LinkedInService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         LinkedInService,
+        TenantService,
         {
           provide: PinoLogger,
           useValue: {
@@ -129,10 +131,6 @@ describe('LinkedInService', () => {
           useValue: mockLinkedInRepo,
         },
         {
-          provide: TenantService,
-          useValue: mockTenantService,
-        },
-        {
           provide: MediaStorageService,
           useValue: mockMediaStorageService,
         },
@@ -143,7 +141,6 @@ describe('LinkedInService', () => {
     linkedInRepo = module.get(
       LinkedInRepository,
     ) as jest.Mocked<LinkedInRepository>;
-    tenantService = module.get(TenantService) as jest.Mocked<TenantService>;
     mediaStorageService = module.get(
       MediaStorageService,
     ) as jest.Mocked<MediaStorageService>;

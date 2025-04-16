@@ -33,7 +33,6 @@ describe('TikTokRepository', () => {
   let commentRepo: jest.Mocked<Repository<TikTokComment>>;
   let entityManager: jest.Mocked<EntityManager>;
   let tenantService: TenantService;
-  let dataSource: DataSource;
 
   // Mock data
   const mockTenantId = 'tenant123';
@@ -246,7 +245,6 @@ describe('TikTokRepository', () => {
     >;
     entityManager = module.get(EntityManager) as jest.Mocked<EntityManager>;
     tenantService = module.get<TenantService>(TenantService);
-    dataSource = module.get<DataSource>(DataSource);
   });
 
   afterEach(() => {

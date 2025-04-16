@@ -26,10 +26,16 @@ jest.mock('config', () => ({
   }),
 }));
 
+jest.mock('../../user-management/tenant.service', () => ({
+  TenantService: jest.fn().mockImplementation(() => ({
+    getTenantId: jest.fn(),
+    setTenantId: jest.fn(),
+  })),
+}));
+
 describe('TikTokService', () => {
   let service: TikTokService;
   let tiktokRepo: jest.Mocked<TikTokRepository>;
-  let tenantService: jest.Mocked<TenantService>;
   let mediaStorageService: jest.Mocked<MediaStorageService>;
   // let tiktokConfig: TikTokConfig;
   let mockedAxios;
@@ -37,7 +43,6 @@ describe('TikTokService', () => {
   let logger: PinoLogger;
 
   // Mock data
-  const mockTenantId = 'tenant123';
   const mockUserId = 'user123';
   const mockAccountId = 'account123';
   const mockVideoId = 'video123';
@@ -137,11 +142,6 @@ describe('TikTokService', () => {
       baseUrl: mockBaseUrl,
     };
 
-    // Create mock tenant service
-    const mockTenantService = {
-      getTenantId: jest.fn().mockReturnValue(mockTenantId),
-    };
-
     // Create mock media storage service
     const mockMediaStorageService = {
       uploadPostMedia: jest.fn().mockResolvedValue([mockUploadedMedia]),
@@ -152,6 +152,7 @@ describe('TikTokService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TikTokService,
+        TenantService,
         {
           provide: PinoLogger,
           useValue: {
@@ -169,10 +170,6 @@ describe('TikTokService', () => {
         {
           provide: TikTokConfig,
           useValue: mockTikTokConfig,
-        },
-        {
-          provide: TenantService,
-          useValue: mockTenantService,
         },
         {
           provide: MediaStorageService,
@@ -193,7 +190,6 @@ describe('TikTokService', () => {
 
     service = module.get<TikTokService>(TikTokService);
     tiktokRepo = module.get(TikTokRepository) as jest.Mocked<TikTokRepository>;
-    tenantService = module.get(TenantService) as jest.Mocked<TenantService>;
     mediaStorageService = module.get(
       MediaStorageService,
     ) as jest.Mocked<MediaStorageService>;
