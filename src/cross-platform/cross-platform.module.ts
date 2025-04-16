@@ -20,11 +20,11 @@ import { MulterModule } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { MediaStorageModule } from '../asset-management/media-storage/media-storage.module';
 import { PinoLogger } from 'nestjs-pino';
-import { BullModule } from '@nestjs/bull';
 import { RetryQueueService } from './services/retry-queue.service';
 import { CrossPlatformValidationPipe } from '../common/pipes/cross-platform-validation.pipe';
 import { APP_FILTER } from '@nestjs/core';
 import { HttpExceptionFilter } from '../common/http/http-exception.filter';
+import { BullQueueModule } from '../bull-queue/bull-queue.module';
 
 @Module({
   imports: [
@@ -37,18 +37,7 @@ import { HttpExceptionFilter } from '../common/http/http-exception.filter';
     MediaStorageModule,
     TikTokModule,
     TypeOrmModule.forFeature([PublishRecord, AnalyticsRecord, ScheduledPost]),
-    BullModule.registerQueue({
-      name: 'platform-publish',
-      defaultJobOptions: {
-        attempts: 1, // We handle retries ourselves
-        removeOnComplete: false,
-        removeOnFail: false,
-      },
-      settings: {
-        stalledInterval: 300000, // 5 minutes
-        maxStalledCount: 3,
-      },
-    }),
+    BullQueueModule,
   ],
   providers: [
     // Core services

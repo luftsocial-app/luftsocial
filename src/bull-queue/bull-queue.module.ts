@@ -2,7 +2,10 @@ import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { BullConfigService } from './bull-config.service';
-import { CLERK_WEBHOOK_QUEUE_NAME } from './constants';
+import {
+  CLERK_WEBHOOK_QUEUE_NAME,
+  CONTENT_PLATFORM_PUBLISH,
+} from './constants';
 
 @Module({
   imports: [
@@ -20,6 +23,18 @@ import { CLERK_WEBHOOK_QUEUE_NAME } from './constants';
     BullModule.registerQueue(
       {
         name: CLERK_WEBHOOK_QUEUE_NAME,
+        defaultJobOptions: {
+          attempts: 3,
+          backoff: {
+            type: 'exponential',
+            delay: 1000,
+          },
+          removeOnComplete: true,
+          removeOnFail: false,
+        },
+      },
+      {
+        name: CONTENT_PLATFORM_PUBLISH,
         defaultJobOptions: {
           attempts: 3,
           backoff: {

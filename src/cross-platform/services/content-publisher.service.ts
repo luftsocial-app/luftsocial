@@ -5,9 +5,9 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bull';
+import { InjectQueue } from '@nestjs/bullmq';
 import axios from 'axios';
-import { Queue } from 'bull';
+import { Queue } from 'bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FacebookService } from '../../platforms/facebook/facebook.service';
 import { InstagramService } from '../../platforms/instagram/instagram.service';
@@ -28,6 +28,10 @@ import { MediaStorageItem } from '../../asset-management/media-storage/media-sto
 import { RetryQueueService } from './retry-queue.service';
 import { PinoLogger } from 'nestjs-pino';
 import { CreateCrossPlatformPostDto } from '../helpers/dtos/cross-platform.dto';
+import {
+  CONTENT_PLATFORM_PUBLISH,
+  CONTENT_PLATFORM_RETRY_PUBLISH,
+} from '../../bull-queue/constants';
 
 @Injectable()
 export class ContentPublisherService {
@@ -41,7 +45,7 @@ export class ContentPublisherService {
     private readonly tiktokService: TikTokService,
     private readonly retryQueueService: RetryQueueService,
     private readonly logger: PinoLogger,
-    @InjectQueue('platform-publish') private publishQueue: Queue,
+    @InjectQueue(CONTENT_PLATFORM_PUBLISH) private publishQueue: Queue,
   ) {
     this.logger.setContext(PublishRecord.name);
   }
@@ -552,7 +556,7 @@ export class ContentPublisherService {
 
       // Add to retry queue with increased priority
       await this.publishQueue.add(
-        'retry-platform-publish',
+        CONTENT_PLATFORM_RETRY_PUBLISH,
         {
           publishRecordId: publishId,
           platform: platformId,

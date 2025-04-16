@@ -9,12 +9,16 @@ import { TikTokService } from '../../platforms/tiktok/tiktok.service';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
 import { RetryQueueService } from './retry-queue.service';
 import { PinoLogger } from 'nestjs-pino';
-import { getQueueToken } from '@nestjs/bull';
+import { getQueueToken } from '@nestjs/bullmq';
 import { PublishStatus } from '../helpers/cross-platform.interface';
 import { HttpException, NotFoundException } from '@nestjs/common';
 import { SocialPlatform } from '../../common/enums/social-platform.enum';
 import { CreateCrossPlatformPostDto } from '../helpers/dtos/cross-platform.dto';
 import axios from 'axios';
+import {
+  CONTENT_PLATFORM_PUBLISH,
+  CONTENT_PLATFORM_RETRY_PUBLISH,
+} from '../../bull-queue/constants';
 
 // Mock the axios module
 jest.mock('axios');
@@ -112,7 +116,7 @@ describe('ContentPublisherService', () => {
           useValue: mockLogger,
         },
         {
-          provide: getQueueToken('platform-publish'),
+          provide: getQueueToken(CONTENT_PLATFORM_PUBLISH),
           useValue: mockPublishQueue,
         },
       ],
@@ -577,7 +581,7 @@ describe('ContentPublisherService', () => {
 
       expect(result).toBe(true);
       expect(mockPublishQueue.add).toHaveBeenCalledWith(
-        'retry-platform-publish',
+        CONTENT_PLATFORM_RETRY_PUBLISH,
         expect.objectContaining({
           publishRecordId: 'publish-123',
           platform: 'facebook',
