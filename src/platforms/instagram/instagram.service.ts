@@ -28,9 +28,9 @@ import {
 import { MediaStorageItem } from '../../asset-management/media-storage/media-storage.dto';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
 import { MediaType } from '../../common/enums/media-type.enum';
-import { TenantService } from '../../user-management/tenant/tenant.service';
 import { InstagramAccount } from '../entities/instagram-entities/instagram-account.entity';
 import { PinoLogger } from 'nestjs-pino';
+import { TenantService } from '../../user-management/tenant.service';
 
 @Injectable()
 export class InstagramService implements PlatformService {
@@ -108,9 +108,6 @@ export class InstagramService implements PlatformService {
 
   async getAccountsByUserId(userId: string): Promise<InstagramAccount> {
     try {
-      const tenantId = this.tenantService.getTenantId();
-      this.instagramRepo.setTenantId(tenantId);
-
       return await this.instagramRepo.getAccountByUserId(userId);
     } catch (error) {
       this.logger.error(
@@ -121,8 +118,6 @@ export class InstagramService implements PlatformService {
   }
 
   async getUserAccounts(userId: string): Promise<SocialAccountDetails[]> {
-    const tenantId = this.tenantService.getTenantId();
-    this.instagramRepo.setTenantId(tenantId);
     const account = await this.instagramRepo.getAccountByUserId(userId);
     if (!account) {
       throw new NotFoundException('No Instagram accounts found for user');
@@ -157,9 +152,6 @@ export class InstagramService implements PlatformService {
     media?: MediaItem[],
   ): Promise<PostResponse> {
     try {
-      const tenantId = this.tenantService.getTenantId();
-      this.instagramRepo.setTenantId(tenantId);
-
       const account = await this.instagramRepo.getAccountByUserId(accountId);
       if (!account) {
         throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
@@ -241,9 +233,6 @@ export class InstagramService implements PlatformService {
     pageToken?: string,
   ): Promise<CommentResponse> {
     try {
-      const tenantId = this.tenantService.getTenantId();
-      this.instagramRepo.setTenantId(tenantId);
-
       const account = await this.instagramRepo.getAccountByUserId(accountId);
       if (!account) {
         throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
@@ -280,9 +269,6 @@ export class InstagramService implements PlatformService {
     postId: string,
   ): Promise<PostMetrics> {
     try {
-      const tenantId = this.tenantService.getTenantId();
-      this.instagramRepo.setTenantId(tenantId);
-
       const account = await this.instagramRepo.getAccountByUserId(accountId);
       if (!account) {
         throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
@@ -330,9 +316,6 @@ export class InstagramService implements PlatformService {
     accountId: string,
     dateRange: DateRange,
   ): Promise<AccountMetrics> {
-    const tenantId = this.tenantService.getTenantId();
-    this.instagramRepo.setTenantId(tenantId);
-
     const account = await this.instagramRepo.getAccountByUserId(accountId);
     if (!account) {
       throw new NotFoundException('Account not found');
@@ -508,9 +491,6 @@ export class InstagramService implements PlatformService {
 
   async getAccountInsights(accountId: string): Promise<AccountInsights> {
     try {
-      const tenantId = this.tenantService.getTenantId();
-      this.instagramRepo.setTenantId(tenantId);
-
       const account = await this.instagramRepo.getAccountByUserId(accountId);
       if (!account) {
         throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
@@ -559,9 +539,6 @@ export class InstagramService implements PlatformService {
     stickers?: CreateStoryDto['stickers'],
   ): Promise<PostResponse> {
     try {
-      const tenantId = this.tenantService.getTenantId();
-      this.instagramRepo.setTenantId(tenantId);
-
       const account = await this.instagramRepo.getAccountByUserId(accountId);
       if (!account) {
         throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
@@ -609,9 +586,6 @@ export class InstagramService implements PlatformService {
   }
 
   async revokeAccess(accountId: string): Promise<void> {
-    const tenantId = this.tenantService.getTenantId();
-    this.instagramRepo.setTenantId(tenantId);
-
     const account = await this.instagramRepo.getAccountByUserId(accountId);
     if (!account) {
       throw new NotFoundException('Account not found');

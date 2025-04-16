@@ -19,6 +19,7 @@ import { FacebookPage } from '../../entities/facebook-entities/facebook-page.ent
 import { FacebookPostMetric } from '../../entities/facebook-entities/facebook-post-metric.entity';
 import { FacebookPost } from '../../entities/facebook-entities/facebook-post.entity';
 import { SocialAccount } from '../../../platforms/entities/notifications/entity/social-account.entity';
+import { TenantService } from '../../../user-management/tenant.service';
 
 //TODO: FIX TESTS
 
@@ -27,6 +28,13 @@ jest.mock('crypto', () => ({
   randomBytes: jest.fn().mockReturnValue({
     toString: jest.fn().mockReturnValue('mocked-random-state'),
   }),
+}));
+
+jest.mock('../../../user-management/tenant.service', () => ({
+  TenantService: jest.fn().mockImplementation(() => ({
+    getTenantId: jest.fn(),
+    setTenantId: jest.fn(),
+  })),
 }));
 
 describe('FacebookRepository', () => {
@@ -40,6 +48,7 @@ describe('FacebookRepository', () => {
   let socialAccountRepo: Repository<SocialAccount>;
   let entityManager: EntityManager;
   let dataSource: DataSource;
+  let tenantService: TenantService;
 
   const mockTenantId = 'test-tenant-id';
 
@@ -187,6 +196,7 @@ describe('FacebookRepository', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         FacebookRepository,
+        TenantService,
         {
           provide: getRepositoryToken(FacebookAccount),
           useValue: mockAccountRepo,
@@ -250,9 +260,10 @@ describe('FacebookRepository', () => {
     );
     entityManager = module.get<EntityManager>(EntityManager);
     dataSource = module.get<DataSource>(DataSource);
+    tenantService = module.get<TenantService>(TenantService);
 
     // Mock the getTenantId method
-    jest.spyOn(repository as any, 'getTenantId').mockReturnValue(mockTenantId);
+    // jest.spyOn(repository as any, 'getTenantId').mockReturnValue(mockTenantId);
 
     // Reset all mocks before each test
     jest.clearAllMocks();
@@ -358,6 +369,7 @@ describe('FacebookRepository', () => {
 
       mockAccountRepo.update.mockResolvedValue({ affected: 1 });
       mockAccountRepo.findOne.mockResolvedValue(updatedAccount);
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
       // Act
       const result = await repository.updateAccount(id, updateData);
@@ -433,6 +445,8 @@ describe('FacebookRepository', () => {
       const userId = 'test-user-id';
       mockAccountRepo.findOne.mockResolvedValue(mockAccountData);
 
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
+
       // Act
       const result = await repository.getAccountById(userId);
 
@@ -463,6 +477,7 @@ describe('FacebookRepository', () => {
     it('should return a Facebook page by ID', async () => {
       // Arrange
       mockPageRepo.findOne.mockResolvedValue(mockPageData);
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
       // Act
       const result = await repository.getPageById('fb-page-id');
@@ -483,6 +498,8 @@ describe('FacebookRepository', () => {
       mockPageRepo.findOne.mockResolvedValue(mockPageData);
       const relations = ['facebookAccount', 'posts'];
 
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
+
       // Act
       const result = await repository.getPageById('fb-page-id', relations);
 
@@ -502,6 +519,7 @@ describe('FacebookRepository', () => {
     it('should return a Facebook post by ID', async () => {
       // Arrange
       mockPostRepo.findOne.mockResolvedValue(mockPostData);
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
       // Act
       const result = await repository.getPostById('fb-post-id');
@@ -518,6 +536,8 @@ describe('FacebookRepository', () => {
       // Arrange
       mockPostRepo.findOne.mockResolvedValue(mockPostData);
       const relations = ['page', 'metrics'];
+
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
       // Act
       const result = await repository.getPostById('fb-post-id', relations);
@@ -539,6 +559,7 @@ describe('FacebookRepository', () => {
         { ...mockPostData, id: 'fb-post-id-2' },
       ];
       mockPostRepo.find.mockResolvedValue(recentPosts);
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
       // Act
       const result = await repository.getRecentPosts(24);
@@ -582,6 +603,8 @@ describe('FacebookRepository', () => {
       const pages = [mockPageData, { ...mockPageData, id: 'fb-page-id-2' }];
       mockPageRepo.find.mockResolvedValue(pages);
 
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
+
       // Act
       const result = await repository.getAccountPages('fb-account-id');
 
@@ -610,6 +633,8 @@ describe('FacebookRepository', () => {
       mockAccountRepo.findOne.mockResolvedValue(mockAccountData);
       mockEntityManager.update.mockResolvedValue({ affected: 1 });
 
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
+
       // Mock getAccountById to return updated account
       const updatedAccount = {
         ...mockAccountData,
@@ -626,6 +651,8 @@ describe('FacebookRepository', () => {
         .spyOn(repository, 'getAccountById')
         .mockResolvedValue(updatedAccount as FacebookAccount);
 
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
+
       // Act
       const result = await repository.updateAccountTokens(accountId, tokens);
 
@@ -634,6 +661,7 @@ describe('FacebookRepository', () => {
         where: { id: accountId, tenantId: mockTenantId },
         relations: ['socialAccount'],
       });
+
       expect(mockEntityManager.update).toHaveBeenCalledWith(
         SocialAccount,
         mockAccountData.socialAccount.id,
@@ -697,6 +725,7 @@ describe('FacebookRepository', () => {
       const pageId = 'fb-page-id';
       const posts = [mockPostData, { ...mockPostData, id: 'fb-post-id-2' }];
       mockPostRepo.find.mockResolvedValue(posts);
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
       // Act
       const result = await repository.getPagePosts(pageId);
@@ -716,6 +745,7 @@ describe('FacebookRepository', () => {
       const pageId = 'fb-page-id';
       const limit = 5;
       mockPostRepo.find.mockResolvedValue([mockPostData]);
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
       // Act
       await repository.getPagePosts(pageId, limit);
@@ -737,6 +767,7 @@ describe('FacebookRepository', () => {
       const timeframe = 'hour';
       const expectedCount = 5;
       mockPostRepo.count.mockResolvedValue(expectedCount);
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
       // Act
       const result = await repository.getRecentPostCount(pageId, timeframe);
@@ -758,6 +789,7 @@ describe('FacebookRepository', () => {
       const timeframe = 'day';
       const expectedCount = 10;
       mockPostRepo.count.mockResolvedValue(expectedCount);
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
       // Act
       const result = await repository.getRecentPostCount(pageId, timeframe);
@@ -783,6 +815,7 @@ describe('FacebookRepository', () => {
 
       mockPageRepo.update.mockResolvedValue({ affected: 1 });
       mockPageRepo.findOne.mockResolvedValue(updatedPage);
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
       // Act
       const result = await repository.updatePageToken(pageId, newToken);
@@ -822,6 +855,7 @@ describe('FacebookRepository', () => {
         page: { id: pageId },
         ...metrics,
       });
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
       // Act
       const result = await repository.updatePageMetrics(pageId, metrics);
@@ -890,6 +924,8 @@ describe('FacebookRepository', () => {
         .mockResolvedValueOnce(existingMetric)
         .mockResolvedValueOnce({ ...existingMetric, likes: metrics.likes });
 
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
+
       // Act
       const result = await repository.upsertPostMetrics({ postId, metrics });
 
@@ -944,6 +980,7 @@ describe('FacebookRepository', () => {
       mockEntityManager.findOne.mockResolvedValue(null);
       mockEntityManager.create.mockReturnValue(newMetric);
       mockEntityManager.save.mockResolvedValue(newMetric);
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
       // Act
       const result = await repository.upsertPostMetrics({ postId, metrics });
@@ -984,6 +1021,8 @@ describe('FacebookRepository', () => {
       mockPostRepo.update.mockResolvedValue({ affected: 1 });
       mockPostRepo.findOne.mockResolvedValue(updatedPost);
 
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
+
       // Act
       const result = await repository.updatePost(postId, updateData);
 
@@ -1007,6 +1046,8 @@ describe('FacebookRepository', () => {
 
       mockPageRepo.findOne.mockResolvedValue(page);
       mockPageRepo.save.mockResolvedValue(updatedPage);
+
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
       // Act
       const result = await repository.updatePage(pageId, updateData);
@@ -1149,6 +1190,8 @@ describe('FacebookRepository', () => {
         .mockResolvedValueOnce(existingMetric)
         .mockResolvedValueOnce(updatedMetric);
 
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
+
       // Act
       const result = await repository.upsertPageMetrics(metricData);
 
@@ -1192,6 +1235,8 @@ describe('FacebookRepository', () => {
       mockPageMetricRepo.create.mockReturnValue(newMetric);
       mockPageMetricRepo.save.mockResolvedValue(newMetric);
 
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
+
       // Act
       const result = await repository.upsertPageMetrics(metricData);
 
@@ -1225,6 +1270,8 @@ describe('FacebookRepository', () => {
       mockEntityManager.transaction.mockImplementation(async (callback) => {
         return callback(mockEntityManager);
       });
+
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
       // Act
       await repository.deletePost(postId);
@@ -1260,6 +1307,8 @@ describe('FacebookRepository', () => {
       mockEntityManager.transaction.mockImplementation(async (callback) => {
         return callback(mockEntityManager);
       });
+
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
       // Act
       await repository.deleteAccount(accountId);
@@ -1384,7 +1433,7 @@ describe('FacebookRepository', () => {
       // Arrange
       const differentTenantId = 'different-tenant-id';
       jest
-        .spyOn(repository as any, 'getTenantId')
+        .spyOn(tenantService, 'getTenantId')
         .mockReturnValue(differentTenantId);
 
       mockAccountRepo.findOne.mockResolvedValue(null);
@@ -1416,6 +1465,7 @@ describe('FacebookRepository', () => {
         }));
 
       mockPageRepo.find.mockResolvedValue(largePageSet);
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
       // Act
       const result = await repository.getAccountPages(accountId);

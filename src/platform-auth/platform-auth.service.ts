@@ -15,7 +15,7 @@ import { PlatformError } from '../platforms/platform.error';
 import { TokenCacheService } from '../cache/token-cache.service';
 import { SocialPlatform } from '../common/enums/social-platform.enum';
 import { PinoLogger } from 'nestjs-pino';
-import { TenantService } from '../user-management/tenant/tenant.service';
+import { TenantService } from '../user-management/tenant.service';
 
 @Injectable()
 export class PlatformAuthService {

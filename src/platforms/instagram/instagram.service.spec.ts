@@ -5,11 +5,11 @@ import axios from 'axios';
 import { InstagramService } from './instagram.service';
 import { InstagramRepository } from './repositories/instagram.repository';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
-import { TenantService } from '../../user-management/tenant/tenant.service';
 import { InstagramApiException } from './helpers/instagram-api.exception';
 import { StickerDto } from './helpers/create-content.dto';
 import { MediaType } from '../../common/enums/media-type.enum';
 import { PinoLogger } from 'nestjs-pino';
+import { TenantService } from '../../user-management/tenant.service';
 
 // Mock axios
 jest.mock('axios');
@@ -20,7 +20,6 @@ describe('InstagramService', () => {
   let instagramRepo: jest.Mocked<InstagramRepository>;
   // let configService: jest.Mocked<ConfigService>;
   let mediaStorageService: jest.Mocked<MediaStorageService>;
-  let tenantService: jest.Mocked<TenantService>;
   let logger: PinoLogger;
 
   const mockTenantId = 'test-tenant-id';
@@ -111,7 +110,6 @@ describe('InstagramService', () => {
     mediaStorageService = module.get(
       MediaStorageService,
     ) as jest.Mocked<MediaStorageService>;
-    tenantService = module.get(TenantService) as jest.Mocked<TenantService>;
     logger = module.get<PinoLogger>(PinoLogger);
 
     // Mock Logger to avoid console outputs during tests
@@ -202,8 +200,6 @@ describe('InstagramService', () => {
       );
       await service.getAccountsByUserId(mockAccountId);
 
-      expect(tenantService.getTenantId).toHaveBeenCalled();
-      expect(instagramRepo.setTenantId).toHaveBeenCalledWith(mockTenantId);
       expect(instagramRepo.getAccountByUserId).toHaveBeenCalledWith(
         mockAccountId,
       );
@@ -230,9 +226,6 @@ describe('InstagramService', () => {
       mockedAxios.get.mockResolvedValue(mockInsightsResponse);
 
       const result = await service.getAccountInsights(mockAccountId);
-
-      expect(tenantService.getTenantId).toHaveBeenCalled();
-      expect(instagramRepo.setTenantId).toHaveBeenCalledWith(mockTenantId);
       expect(instagramRepo.getAccountByUserId).toHaveBeenCalledWith(
         mockAccountId,
       );
@@ -354,9 +347,6 @@ describe('InstagramService', () => {
         mockMediaUrl,
         stickers,
       );
-
-      expect(tenantService.getTenantId).toHaveBeenCalled();
-      expect(instagramRepo.setTenantId).toHaveBeenCalledWith(mockTenantId);
       expect(instagramRepo.getAccountByUserId).toHaveBeenCalledWith(
         mockAccountId,
       );

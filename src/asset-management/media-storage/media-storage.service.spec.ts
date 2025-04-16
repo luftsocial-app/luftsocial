@@ -5,13 +5,13 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { S3 } from 'aws-sdk';
 import { PostAsset } from '../entities/post-asset.entity';
 import { PinoLogger } from 'nestjs-pino';
-import { TenantService } from '../../user-management/tenant/tenant.service';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { MediaType } from '../../common/enums/media-type.enum';
 import { SocialPlatform } from '../../common/enums/social-platform.enum';
 import axios from 'axios';
 import * as config from 'config';
 import * as crypto from 'crypto';
+import { TenantService } from '../../user-management/tenant.service';
 
 // Mocking external modules
 jest.mock('aws-sdk');
@@ -23,7 +23,6 @@ describe('MediaStorageService', () => {
   let service: MediaStorageService;
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let postAssetRepository: Repository<PostAsset>;
-  let tenantService: TenantService;
   let mockedS3Instance: jest.Mocked<S3>;
   let mockedCrypto: jest.Mocked<typeof crypto>;
   let mockedConfig: jest.Mocked<typeof config>;
@@ -122,7 +121,6 @@ describe('MediaStorageService', () => {
     postAssetRepository = module.get<Repository<PostAsset>>(
       getRepositoryToken(PostAsset),
     );
-    tenantService = module.get<TenantService>(TenantService);
   });
 
   it('should be defined', () => {

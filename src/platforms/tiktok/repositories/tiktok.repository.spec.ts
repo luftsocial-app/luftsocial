@@ -14,6 +14,14 @@ import {
 } from '../helpers/tiktok.interfaces';
 import { SocialAccount } from '../../../platforms/entities/notifications/entity/social-account.entity';
 import { IsolationLevel } from 'typeorm/driver/types/IsolationLevel';
+import { TenantService } from '../../../user-management/tenant.service';
+
+jest.mock('../../../user-management/tenant.service', () => ({
+  TenantService: jest.fn().mockImplementation(() => ({
+    getTenantId: jest.fn(),
+    setTenantId: jest.fn(),
+  })),
+}));
 
 describe('TikTokRepository', () => {
   let repository: TikTokRepository;
@@ -24,6 +32,9 @@ describe('TikTokRepository', () => {
   let rateLimitRepo: jest.Mocked<Repository<TikTokRateLimit>>;
   let commentRepo: jest.Mocked<Repository<TikTokComment>>;
   let entityManager: jest.Mocked<EntityManager>;
+  let tenantService: TenantService;
+  let dataSource: DataSource;
+
   // Mock data
   const mockTenantId = 'tenant123';
   const mockAccountId = 'account123';
@@ -98,86 +109,87 @@ describe('TikTokRepository', () => {
     expiresAt: new Date(Date.now() + 7200000), // 2 hours from now
   } as any;
 
+  // Create mock repositories
+  const mockAccountRepo = {
+    create: jest.fn(),
+    save: jest.fn(),
+    findOne: jest.fn(),
+    find: jest.fn(),
+    update: jest.fn(),
+    remove: jest.fn(),
+  };
+
+  const mockSocialAccountRepo = {
+    create: jest.fn(),
+    save: jest.fn(),
+    findOne: jest.fn(),
+    update: jest.fn(),
+    remove: jest.fn(),
+  };
+
+  const mockVideoRepo = {
+    create: jest.fn(),
+    save: jest.fn(),
+    findOne: jest.fn(),
+    find: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+  };
+
+  const mockMetricRepo = {
+    create: jest.fn(),
+    save: jest.fn(),
+    findOne: jest.fn(),
+    update: jest.fn(),
+  };
+
+  const mockRateLimitRepo = {
+    create: jest.fn(),
+    save: jest.fn(),
+    count: jest.fn(),
+  };
+
+  const mockCommentRepo = {
+    create: jest.fn(),
+    save: jest.fn(),
+  };
+
+  const mockEntityManager = {
+    create: jest.fn(),
+    save: jest.fn(),
+    findOne: jest.fn(),
+    update: jest.fn(),
+    delete: jest.fn(),
+    remove: jest.fn(),
+    transaction: jest.fn(
+      async (
+        isolationLevelOrCallback:
+          | IsolationLevel
+          | ((manager: EntityManager) => Promise<any>),
+        maybeCallback?: (manager: EntityManager) => Promise<any>,
+      ) => {
+        const callback =
+          typeof isolationLevelOrCallback === 'function'
+            ? isolationLevelOrCallback
+            : maybeCallback;
+
+        if (callback) {
+          await callback(mockEntityManager as unknown as EntityManager);
+        }
+      },
+    ),
+  };
+
+  const mockDataSource = {
+    getRepository: jest.fn().mockReturnValue(mockAccountRepo),
+    transaction: jest.fn(),
+  };
+
   beforeEach(async () => {
-    // Create mock repositories
-    const mockAccountRepo = {
-      create: jest.fn(),
-      save: jest.fn(),
-      findOne: jest.fn(),
-      find: jest.fn(),
-      update: jest.fn(),
-      remove: jest.fn(),
-    };
-
-    const mockSocialAccountRepo = {
-      create: jest.fn(),
-      save: jest.fn(),
-      findOne: jest.fn(),
-      update: jest.fn(),
-      remove: jest.fn(),
-    };
-
-    const mockVideoRepo = {
-      create: jest.fn(),
-      save: jest.fn(),
-      findOne: jest.fn(),
-      find: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-    };
-
-    const mockMetricRepo = {
-      create: jest.fn(),
-      save: jest.fn(),
-      findOne: jest.fn(),
-      update: jest.fn(),
-    };
-
-    const mockRateLimitRepo = {
-      create: jest.fn(),
-      save: jest.fn(),
-      count: jest.fn(),
-    };
-
-    const mockCommentRepo = {
-      create: jest.fn(),
-      save: jest.fn(),
-    };
-
-    const mockEntityManager = {
-      create: jest.fn(),
-      save: jest.fn(),
-      findOne: jest.fn(),
-      update: jest.fn(),
-      delete: jest.fn(),
-      remove: jest.fn(),
-      transaction: jest.fn(
-        async (
-          isolationLevelOrCallback:
-            | IsolationLevel
-            | ((manager: EntityManager) => Promise<any>),
-          maybeCallback?: (manager: EntityManager) => Promise<any>,
-        ) => {
-          const callback =
-            typeof isolationLevelOrCallback === 'function'
-              ? isolationLevelOrCallback
-              : maybeCallback;
-
-          if (callback) {
-            await callback(mockEntityManager as unknown as EntityManager);
-          }
-        },
-      ),
-    };
-
-    const mockDataSource = {
-      getRepository: jest.fn().mockReturnValue(mockAccountRepo),
-      transaction: jest.fn(),
-    };
-
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TikTokRepository,
+        TenantService,
         {
           provide: getRepositoryToken(TikTokAccount),
           useValue: mockAccountRepo,
@@ -233,6 +245,8 @@ describe('TikTokRepository', () => {
       Repository<TikTokComment>
     >;
     entityManager = module.get(EntityManager) as jest.Mocked<EntityManager>;
+    tenantService = module.get<TenantService>(TenantService);
+    dataSource = module.get<DataSource>(DataSource);
   });
 
   afterEach(() => {
@@ -248,21 +262,60 @@ describe('TikTokRepository', () => {
       const accountData = {
         tiktokUserId: 'tiktok_user_123',
         accountName: 'Test Account',
+        tenantId: mockTenantId,
+        socialAccount: {
+          accessToken: 'access_token_123',
+          refreshToken: 'refresh_token_123',
+          tokenExpiresAt: new Date(Date.now() + 3600000), // 1 hour from now
+        },
+      } as unknown as TikTokAccount;
+
+      const mockSavedSocialAccount = {
+        id: 'social123',
+        ...accountData.socialAccount,
+        tenantId: mockTenantId,
       };
 
-      accountRepo.create.mockReturnValue(
-        accountData as unknown as TikTokAccount,
-      );
-      accountRepo.save.mockResolvedValue({
+      const mockSavedTikTokAccount = {
         id: mockAccountId,
-        ...accountData,
-      } as unknown as TikTokAccount);
+        tiktokUserId: accountData.tiktokUserId,
+        tenantId: mockTenantId,
+        socialAccount: mockSavedSocialAccount,
+      };
 
+      // Mock the repository methods
+      socialAccountRepo.create.mockReturnValue(mockSavedSocialAccount as any);
+      accountRepo.create.mockReturnValue(mockSavedTikTokAccount as any);
+
+      // Mock the transaction behavior
+      // mockDataSource.transaction.mockImplementation(async (callback) => {
+      //   return callback(mockEntityManager)
+      // });
+
+      mockDataSource.transaction.mockImplementation(async (callback) => {
+        const manager = {
+          save: jest
+            .fn()
+            .mockResolvedValueOnce(mockSavedSocialAccount)
+            .mockResolvedValueOnce(mockSavedTikTokAccount),
+        };
+        return callback(manager);
+      });
+      // Call the method under test
       const result = await repository.createAccount(accountData);
 
-      expect(accountRepo.create).toHaveBeenCalledWith(accountData);
-      expect(accountRepo.save).toHaveBeenCalledWith(accountData);
-      expect(result).toEqual({ id: mockAccountId, ...accountData });
+      // Assertions
+      expect(socialAccountRepo.create).toHaveBeenCalledWith({
+        ...accountData.socialAccount,
+        tenantId: mockTenantId,
+      });
+      expect(accountRepo.create).toHaveBeenCalledWith({
+        tiktokUserId: accountData.tiktokUserId,
+        accountName: 'Test Account',
+        tenantId: mockTenantId,
+        socialAccount: mockSavedSocialAccount,
+      });
+      expect(result).toEqual(mockSavedTikTokAccount);
     });
   });
 
@@ -313,6 +366,7 @@ describe('TikTokRepository', () => {
           tokenExpiresAt: tokenData.expiresAt,
         },
       } as unknown as TikTokAccount);
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
       const result = await repository.updateAccountTokens(
         mockAccountId,
@@ -384,6 +438,7 @@ describe('TikTokRepository', () => {
           ...mockMetric,
           ...metricData,
         } as unknown as TikTokMetric);
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
       const result = await repository.updateMetrics(mockVideoId, metricData);
 
@@ -545,6 +600,7 @@ describe('TikTokRepository', () => {
         ...mockVideo,
         status: newStatus,
       } as unknown as TikTokVideo);
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
       const result = await repository.updateVideoStatus(
         mockPublishId,
@@ -572,6 +628,7 @@ describe('TikTokRepository', () => {
       accountRepo.findOne.mockResolvedValue(
         mockAccount as unknown as TikTokAccount,
       );
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
       const result = await repository.getAccountById(mockAccountId);
 
@@ -588,6 +645,7 @@ describe('TikTokRepository', () => {
       accountRepo.findOne.mockResolvedValue(
         mockAccount as unknown as TikTokAccount,
       );
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
       const result = await repository.getAccountById(mockAccountId, relations);
 
@@ -603,6 +661,7 @@ describe('TikTokRepository', () => {
   describe('getRecentVideos', () => {
     it('should return recent videos with default limit', async () => {
       videoRepo.find.mockResolvedValue([mockVideo] as unknown as TikTokVideo[]);
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
       const result = await repository.getRecentVideos(mockAccountId);
 
@@ -618,6 +677,7 @@ describe('TikTokRepository', () => {
 
     it('should return recent videos with specified limit', async () => {
       videoRepo.find.mockResolvedValue([mockVideo] as unknown as TikTokVideo[]);
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
       const result = await repository.getRecentVideos(mockAccountId, 5);
 
@@ -637,6 +697,7 @@ describe('TikTokRepository', () => {
       accountRepo.find.mockResolvedValue([
         mockAccount,
       ] as unknown as TikTokAccount[]);
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
       const result = await repository.getActiveAccounts();
 
@@ -698,6 +759,7 @@ describe('TikTokRepository', () => {
       accountRepo.find.mockResolvedValue([
         mockAccount,
       ] as unknown as TikTokAccount[]);
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
       const result = await repository.getAccountsWithExpiringTokens();
 
@@ -798,6 +860,7 @@ describe('TikTokRepository', () => {
       accountRepo.findOne.mockResolvedValue(
         mockAccount as unknown as TikTokAccount,
       );
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
       const result = await repository.getById(mockAccountId);
 
@@ -852,6 +915,7 @@ describe('TikTokRepository', () => {
   describe('getUploadSession', () => {
     it('should return upload session by id', async () => {
       entityManager.findOne.mockResolvedValue(mockUploadSession);
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
       const result = await repository.getUploadSession(mockSessionId);
 
@@ -871,6 +935,7 @@ describe('TikTokRepository', () => {
       accountRepo.findOne.mockResolvedValue(
         mockAccount as unknown as TikTokAccount,
       );
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
       await repository.deleteAccount(mockAccountId);
 

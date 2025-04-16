@@ -32,6 +32,7 @@ import { InstagramRateLimit } from '../platforms/entities/instagram-entities/ins
 import { SocialAccount } from '../platforms/entities/notifications/entity/social-account.entity';
 import { LinkedInAccount } from '../platforms/entities/linkedin-entities/linkedin-account.entity';
 import { LinkedInOrganization } from '../platforms/entities/linkedin-entities/linkedin-organization.entity';
+import { UserManagementModule } from '../user-management/user-management.module';
 
 @Module({
   providers: [
@@ -83,6 +84,7 @@ import { LinkedInOrganization } from '../platforms/entities/linkedin-entities/li
   controllers: [PlatformAuthController],
   imports: [
     CacheModule,
+    UserManagementModule,
     TypeOrmModule.forFeature([
       // Include any necessary entities
       FacebookAccount,

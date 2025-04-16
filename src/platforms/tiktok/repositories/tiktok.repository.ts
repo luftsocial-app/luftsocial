@@ -16,11 +16,11 @@ import {
   CreateUploadSessionParams,
   TikTokVideoPrivacyLevel,
 } from '../helpers/tiktok.interfaces';
-import { TenantAwareRepository } from '../../../user-management/tenant/tenant-aware.repository';
 import { SocialAccount } from '../../../platforms/entities/notifications/entity/social-account.entity';
+import { TenantService } from '../../../user-management/tenant.service';
 
 @Injectable()
-export class TikTokRepository extends TenantAwareRepository {
+export class TikTokRepository {
   constructor(
     @InjectRepository(TikTokAccount)
     private readonly accountRepo: Repository<TikTokAccount>,
@@ -36,18 +36,21 @@ export class TikTokRepository extends TenantAwareRepository {
     private readonly commentRepo: Repository<TikTokComment>,
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
+
+    private readonly tenantService: TenantService,
     private dataSource: DataSource,
-  ) {
-    super(accountRepo);
-  }
+  ) {}
 
   async createAccount(data: Partial<TikTokAccount>): Promise<TikTokAccount> {
     const socialAccountData = data.socialAccount;
 
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { socialAccount, ...tiktokAccountData } = data;
 
+    console.log({ socialAccount, tiktokAccountData });
+
     return this.dataSource.transaction(async (manager) => {
+      console.log('here');
+
       // First create the social account
       const socialAccount = this.socialAccountRepo.create({
         ...socialAccountData,
@@ -55,6 +58,8 @@ export class TikTokRepository extends TenantAwareRepository {
       });
 
       const savedSocialAccount = await manager.save(socialAccount);
+
+      console.log({ savedSocialAccount });
 
       // Now create the TikTok account with a reference to the social account
       const tiktokAccount = this.accountRepo.create({
@@ -94,7 +99,7 @@ export class TikTokRepository extends TenantAwareRepository {
     },
   ): Promise<TikTokAccount> {
     const account = await this.accountRepo.findOne({
-      where: { id: accountId, tenantId: this.getTenantId() },
+      where: { id: accountId, tenantId: this.tenantService.getTenantId() },
       relations: ['socialAccount'],
     });
 
@@ -121,14 +126,14 @@ export class TikTokRepository extends TenantAwareRepository {
       where: {
         video: { id: videoId },
         collectedAt: data.collectedAt,
-        tenantId: this.getTenantId(),
+        tenantId: this.tenantService.getTenantId(),
       },
     });
 
     if (existing) {
       await this.metricRepo.update(existing.id, data);
       return this.metricRepo.findOne({
-        where: { id: existing.id, tenantId: this.getTenantId() },
+        where: { id: existing.id, tenantId: this.tenantService.getTenantId() },
       });
     }
 
@@ -172,7 +177,7 @@ export class TikTokRepository extends TenantAwareRepository {
       },
     );
     return this.videoRepo.findOne({
-      where: { publishId, tenantId: this.getTenantId() },
+      where: { publishId, tenantId: this.tenantService.getTenantId() },
     });
   }
 
@@ -181,7 +186,7 @@ export class TikTokRepository extends TenantAwareRepository {
     relations: string[] = [],
   ): Promise<TikTokAccount> {
     return this.accountRepo.findOne({
-      where: { id, tenantId: this.getTenantId() },
+      where: { id, tenantId: this.tenantService.getTenantId() },
       relations,
     });
   }
@@ -191,7 +196,9 @@ export class TikTokRepository extends TenantAwareRepository {
     limit: number = 10,
   ): Promise<TikTokVideo[]> {
     return this.videoRepo.find({
-      where: { account: { id: accountId, tenantId: this.getTenantId() } },
+      where: {
+        account: { id: accountId, tenantId: this.tenantService.getTenantId() },
+      },
       order: { createdAt: 'DESC' },
       take: limit,
       relations: ['metrics'],
@@ -201,7 +208,7 @@ export class TikTokRepository extends TenantAwareRepository {
   async getActiveAccounts(): Promise<TikTokAccount[]> {
     return this.accountRepo.find({
       where: {
-        tenantId: this.getTenantId(),
+        tenantId: this.tenantService.getTenantId(),
         socialAccount: {
           tokenExpiresAt: MoreThan(new Date()),
         },
@@ -229,7 +236,7 @@ export class TikTokRepository extends TenantAwareRepository {
 
     return this.accountRepo.find({
       where: {
-        tenantId: this.getTenantId(),
+        tenantId: this.tenantService.getTenantId(),
         socialAccount: {
           tokenExpiresAt: LessThan(expirationThreshold),
         },
@@ -281,7 +288,7 @@ export class TikTokRepository extends TenantAwareRepository {
 
   async getById(id: string): Promise<TikTokAccount> {
     return this.accountRepo.findOne({
-      where: { id, tenantId: this.getTenantId() },
+      where: { id, tenantId: this.tenantService.getTenantId() },
       relations: ['socialAccount'],
     });
   }
@@ -301,13 +308,13 @@ export class TikTokRepository extends TenantAwareRepository {
 
   async getUploadSession(sessionId: string): Promise<any> {
     return this.entityManager.findOne('tiktok_upload_sessions', {
-      where: { id: sessionId, tenantId: this.getTenantId() },
+      where: { id: sessionId, tenantId: this.tenantService.getTenantId() },
     });
   }
 
   async deleteAccount(accountId: string): Promise<void> {
     const account = await this.accountRepo.findOne({
-      where: { id: accountId, tenantId: this.getTenantId() },
+      where: { id: accountId, tenantId: this.tenantService.getTenantId() },
       relations: ['socialAccount'],
     });
 
@@ -318,7 +325,7 @@ export class TikTokRepository extends TenantAwareRepository {
     await this.entityManager.transaction(async (transactionalEntityManager) => {
       // Delete associated videos first
       await transactionalEntityManager.delete(TikTokVideo, {
-        account: { id: accountId, tenantId: this.getTenantId() },
+        account: { id: accountId, tenantId: this.tenantService.getTenantId() },
       });
 
       // Delete the social account (this will cascade to the TikTok account)

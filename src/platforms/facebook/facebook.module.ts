@@ -14,7 +14,6 @@ import { FacebookPageMetric } from '../entities/facebook-entities/facebook-page-
 import { FacebookPage } from '../entities/facebook-entities/facebook-page.entity';
 import { FacebookPostMetric } from '../entities/facebook-entities/facebook-post-metric.entity';
 import { FacebookPost } from '../entities/facebook-entities/facebook-post.entity';
-import { TenantModule } from '../../user-management/tenant/tenant.module';
 import { SocialAccount } from '../entities/notifications/entity/social-account.entity';
 import { UserManagementModule } from '../../user-management/user-management.module';
 
@@ -38,7 +37,6 @@ import { UserManagementModule } from '../../user-management/user-management.modu
       SocialAccount,
       PlatformAuthModule,
     ]),
-    TenantModule,
     MediaStorageModule,
     UserManagementModule,
   ],

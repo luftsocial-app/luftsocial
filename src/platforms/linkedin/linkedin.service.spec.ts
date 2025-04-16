@@ -3,7 +3,6 @@ import { HttpException, NotFoundException } from '@nestjs/common';
 import axios from 'axios';
 import { LinkedInService } from './linkedin.service';
 import { LinkedInRepository } from './repositories/linkedin.repository';
-import { TenantService } from '../../user-management/tenant/tenant.service';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
 import { LinkedInApiException } from './helpers/linkedin-api.exception';
 import { MediaItem } from '../platform-service.interface';
@@ -12,6 +11,7 @@ import { CreateLinkedInPostDto } from './helpers/create-post.dto';
 import { PinoLogger } from 'nestjs-pino';
 import { LinkedInAccount } from '../entities/linkedin-entities/linkedin-account.entity';
 import { LinkedInOrganization } from './helpers/linkedin.interface';
+import { TenantService } from '../../user-management/tenant.service';
 
 jest.mock('axios');
 jest.mock('config', () => ({
@@ -86,10 +86,10 @@ describe('LinkedInService', () => {
     size: 1024,
   };
 
-  const mockCreatePostDto: CreateLinkedInPostDto = {
+  const mockCreatePostDto = {
     content: 'Test post content',
     visibility: 'PUBLIC',
-  };
+  } as unknown as CreateLinkedInPostDto;
 
   beforeEach(async () => {
     // Create mock implementations
@@ -164,8 +164,6 @@ describe('LinkedInService', () => {
     it('should return LinkedIn account for a user', async () => {
       const result = await service.getAccountsByUserId(mockUserId);
 
-      expect(tenantService.getTenantId).toHaveBeenCalled();
-      expect(linkedInRepo.setTenantId).toHaveBeenCalledWith(mockTenantId);
       expect(linkedInRepo.getById).toHaveBeenCalledWith(mockUserId);
       expect(result).toEqual(mockAccount);
     });

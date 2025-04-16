@@ -11,12 +11,20 @@ import { InstagramAccount } from '../../entities/instagram-entities/instagram-ac
 import { InstagramMetric } from '../../entities/instagram-entities/instagram-metric.entity';
 import { InstagramPost } from '../../entities/instagram-entities/instagram-post.entity';
 import { InstagramRateLimit } from '../../entities/instagram-entities/instagram-rate-limit.entity';
+import { TenantService } from '../../../user-management/tenant.service';
 
 // Mock crypto.randomBytes
 jest.mock('crypto', () => ({
   randomBytes: jest.fn().mockReturnValue({
     toString: jest.fn().mockReturnValue('mock-state-value'),
   }),
+}));
+
+jest.mock('../../../user-management/tenant.service', () => ({
+  TenantService: jest.fn().mockImplementation(() => ({
+    getTenantId: jest.fn(),
+    setTenantId: jest.fn(),
+  })),
 }));
 
 describe('InstagramRepository', () => {
@@ -28,11 +36,20 @@ describe('InstagramRepository', () => {
   let rateLimitRepository: jest.Mocked<Repository<InstagramRateLimit>>;
   // let socialAccountRepository: jest.Mocked<Repository<SocialAccount>>;
   let entityManager: jest.Mocked<EntityManager>;
+  let tenantService: TenantService;
+
+  const mockEntityManager = {
+    update: jest.fn(),
+    transaction: jest.fn(),
+    delete: jest.fn(),
+    remove: jest.fn(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         InstagramRepository,
+        TenantService,
         {
           provide: getRepositoryToken(InstagramAccount),
           useValue: {
@@ -97,12 +114,7 @@ describe('InstagramRepository', () => {
         },
         {
           provide: EntityManager,
-          useValue: {
-            update: jest.fn(),
-            transaction: jest.fn(),
-            delete: jest.fn(),
-            remove: jest.fn(),
-          },
+          useValue: mockEntityManager,
         },
       ],
     }).compile();
@@ -127,11 +139,10 @@ describe('InstagramRepository', () => {
     //   getRepositoryToken(SocialAccount),
     // ) as jest.Mocked<Repository<SocialAccount>>;
     entityManager = module.get(EntityManager) as jest.Mocked<EntityManager>;
+    tenantService = module.get<TenantService>(TenantService);
 
     // Mock the getTenantId method
-    jest
-      .spyOn(repository as any, 'getTenantId')
-      .mockReturnValue('test-tenant-id');
+    jest.spyOn(tenantService, 'getTenantId').mockReturnValue('test-tenant-id');
   });
 
   afterEach(() => {
@@ -590,8 +601,8 @@ describe('InstagramRepository', () => {
       accountRepository.findOne.mockResolvedValueOnce(account as any);
 
       // Mock the transaction function to execute the callback
-      entityManager.transaction.mockImplementation(async (callback) => {
-        await callback(entityManager);
+      mockEntityManager.transaction.mockImplementation(async (callback) => {
+        await callback(mockEntityManager);
       });
 
       await repository.deleteAccount(accountId);

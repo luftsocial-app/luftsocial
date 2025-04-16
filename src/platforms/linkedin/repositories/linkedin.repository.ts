@@ -6,13 +6,13 @@ import { LinkedInAccount } from '../../entities/linkedin-entities/linkedin-accou
 import { LinkedInOrganization } from '../../entities/linkedin-entities/linkedin-organization.entity';
 import { LinkedInMetric } from '../../entities/linkedin-entities/linkedin-metric.entity';
 import { LinkedInPost } from '../../entities/linkedin-entities/linkedin-post.entity';
-import { TenantAwareRepository } from '../../../user-management/tenant/tenant-aware.repository';
 import { SocialPlatform } from '../../../common/enums/social-platform.enum';
 import { AuthState } from '../../entities/facebook-entities/auth-state.entity';
 import { SocialAccount } from '../../../platforms/entities/notifications/entity/social-account.entity';
+import { TenantService } from '../../../user-management/tenant.service';
 
 @Injectable()
-export class LinkedInRepository extends TenantAwareRepository {
+export class LinkedInRepository {
   constructor(
     @InjectRepository(LinkedInAccount)
     private readonly accountRepo: Repository<LinkedInAccount>,
@@ -26,9 +26,8 @@ export class LinkedInRepository extends TenantAwareRepository {
     private readonly metricRepo: Repository<LinkedInMetric>,
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
-  ) {
-    super(accountRepo);
-  }
+    private readonly tenantService: TenantService,
+  ) {}
 
   async createPost(data: Partial<LinkedInPost>): Promise<LinkedInPost> {
     const post = this.postRepo.create(data);
@@ -51,7 +50,7 @@ export class LinkedInRepository extends TenantAwareRepository {
 
   async getById(id: string): Promise<LinkedInAccount> {
     return this.accountRepo.findOne({
-      where: { id, tenantId: this.getTenantId() },
+      where: { id, tenantId: this.tenantService.getTenantId() },
       relations: [
         'socialAccount',
         'organizations',
@@ -124,7 +123,7 @@ export class LinkedInRepository extends TenantAwareRepository {
 
     return this.accountRepo.find({
       where: {
-        tenantId: this.getTenantId(),
+        tenantId: this.tenantService.getTenantId(),
         socialAccount: {
           tokenExpiresAt: LessThan(expirationThreshold),
         },
@@ -142,7 +141,7 @@ export class LinkedInRepository extends TenantAwareRepository {
     },
   ): Promise<LinkedInAccount> {
     const account = await this.accountRepo.findOne({
-      where: { id: accountId, tenantId: this.getTenantId() },
+      where: { id: accountId, tenantId: this.tenantService.getTenantId() },
       relations: ['socialAccount'],
     });
 
@@ -170,7 +169,7 @@ export class LinkedInRepository extends TenantAwareRepository {
 
     return this.postRepo.find({
       where: {
-        tenantId: this.getTenantId(),
+        tenantId: this.tenantService.getTenantId(),
         organization: { id: organizationId },
         publishedAt: MoreThan(timeAgo),
       },
@@ -185,7 +184,7 @@ export class LinkedInRepository extends TenantAwareRepository {
   ): Promise<LinkedInMetric> {
     const existingMetric = await this.metricRepo.findOne({
       where: {
-        tenantId: this.getTenantId(),
+        tenantId: this.tenantService.getTenantId(),
         post: { id: postId },
         collectedAt: metrics.collectedAt,
       },
@@ -211,7 +210,7 @@ export class LinkedInRepository extends TenantAwareRepository {
     return this.orgRepo.find({
       where: {
         account: {
-          tenantId: this.getTenantId(),
+          tenantId: this.tenantService.getTenantId(),
           socialAccount: {
             tokenExpiresAt: MoreThan(new Date()),
           },
@@ -230,7 +229,7 @@ export class LinkedInRepository extends TenantAwareRepository {
   }): Promise<LinkedInOrganization> {
     const existing = await this.orgRepo.findOne({
       where: {
-        tenantId: this.getTenantId(),
+        tenantId: this.tenantService.getTenantId(),
         account: { id: data.account.id },
         organizationId: data.organizationId,
       },
@@ -252,7 +251,7 @@ export class LinkedInRepository extends TenantAwareRepository {
 
   async deleteAccount(accountId: string): Promise<void> {
     const account = await this.accountRepo.findOne({
-      where: { id: accountId, tenantId: this.getTenantId() },
+      where: { id: accountId, tenantId: this.tenantService.getTenantId() },
       relations: ['socialAccount'],
     });
 

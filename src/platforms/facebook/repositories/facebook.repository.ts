@@ -9,8 +9,6 @@ import {
 } from 'typeorm';
 import * as crypto from 'crypto';
 import { SocialPlatform } from '../../../common/enums/social-platform.enum';
-
-import { TenantAwareRepository } from '../../../user-management/tenant-aware.repository';
 import { AuthState } from '../../entities/facebook-entities/auth-state.entity';
 import { FacebookAccount } from '../../entities/facebook-entities/facebook-account.entity';
 import { FacebookPageMetric } from '../../entities/facebook-entities/facebook-page-metric.entity';
@@ -18,9 +16,10 @@ import { FacebookPage } from '../../entities/facebook-entities/facebook-page.ent
 import { FacebookPostMetric } from '../../entities/facebook-entities/facebook-post-metric.entity';
 import { FacebookPost } from '../../entities/facebook-entities/facebook-post.entity';
 import { SocialAccount } from '../../../platforms/entities/notifications/entity/social-account.entity';
+import { TenantService } from '../../../user-management/tenant.service';
 
 @Injectable()
-export class FacebookRepository extends TenantAwareRepository {
+export class FacebookRepository {
   private readonly logger = new Logger(FacebookRepository.name);
 
   constructor(
@@ -41,9 +40,9 @@ export class FacebookRepository extends TenantAwareRepository {
     @InjectRepository(SocialAccount)
     private socialAccountRepo: Repository<SocialAccount>,
     private dataSource: DataSource,
-  ) {
-    super(accountRepo);
-  }
+
+    private readonly tenantService: TenantService,
+  ) {}
 
   async createAccount(
     data: Partial<FacebookAccount>,
@@ -92,7 +91,7 @@ export class FacebookRepository extends TenantAwareRepository {
   ): Promise<FacebookAccount> {
     await this.accountRepo.update(id, data);
     return this.accountRepo.findOne({
-      where: { id, tenantId: this.getTenantId() },
+      where: { id, tenantId: this.tenantService.getTenantId() },
     });
   }
 
@@ -126,7 +125,7 @@ export class FacebookRepository extends TenantAwareRepository {
     return this.accountRepo.findOne({
       where: {
         userId: id,
-        tenantId: this.getTenantId(),
+        tenantId: this.tenantService.getTenantId(),
       },
       relations: ['socialAccount'],
     });
@@ -139,7 +138,7 @@ export class FacebookRepository extends TenantAwareRepository {
     return this.pageRepo.findOne({
       where: {
         id,
-        tenantId: this.getTenantId(),
+        tenantId: this.tenantService.getTenantId(),
       },
       relations,
     });
@@ -150,7 +149,7 @@ export class FacebookRepository extends TenantAwareRepository {
     relations: string[] = [],
   ): Promise<FacebookPost> {
     return this.postRepo.findOne({
-      where: { id, tenantId: this.getTenantId() },
+      where: { id, tenantId: this.tenantService.getTenantId() },
       relations,
     });
   }
@@ -162,7 +161,7 @@ export class FacebookRepository extends TenantAwareRepository {
       where: {
         createdAt: MoreThan(cutoffTime),
         isPublished: true,
-        tenantId: this.getTenantId(),
+        tenantId: this.tenantService.getTenantId(),
       },
       relations: ['account'],
       order: {
@@ -175,7 +174,7 @@ export class FacebookRepository extends TenantAwareRepository {
     return this.pageRepo.find({
       where: {
         facebookAccount: { id: accountId },
-        tenantId: this.getTenantId(),
+        tenantId: this.tenantService.getTenantId(),
       },
       relations: ['facebookAccount'],
     });
@@ -192,7 +191,7 @@ export class FacebookRepository extends TenantAwareRepository {
     const account = await this.accountRepo.findOne({
       where: {
         id: accountId,
-        tenantId: this.getTenantId(),
+        tenantId: this.tenantService.getTenantId(),
       },
       relations: ['socialAccount'],
     });
@@ -217,7 +216,10 @@ export class FacebookRepository extends TenantAwareRepository {
     limit: number = 10,
   ): Promise<FacebookPost[]> {
     return this.postRepo.find({
-      where: { page: { id: pageId }, tenantId: this.getTenantId() },
+      where: {
+        page: { id: pageId },
+        tenantId: this.tenantService.getTenantId(),
+      },
       order: { createdAt: 'DESC' },
       take: limit,
       relations: ['metrics'],
@@ -238,7 +240,7 @@ export class FacebookRepository extends TenantAwareRepository {
     return this.postRepo.count({
       where: {
         page: { id: pageId },
-        tenantId: this.getTenantId(),
+        tenantId: this.tenantService.getTenantId(),
         createdAt: MoreThan(timeAgo),
       },
     });
@@ -255,14 +257,14 @@ export class FacebookRepository extends TenantAwareRepository {
     });
 
     return this.pageRepo.findOne({
-      where: { id: pageId, tenantId: this.getTenantId() },
+      where: { id: pageId, tenantId: this.tenantService.getTenantId() },
     });
   }
 
   // Update page metrics
   async updatePageMetrics(pageId: string, metrics: any): Promise<FacebookPage> {
     const page = await this.pageRepo.findOne({
-      where: { id: pageId, tenantId: this.getTenantId() },
+      where: { id: pageId, tenantId: this.tenantService.getTenantId() },
     });
 
     if (!page) {
@@ -299,7 +301,7 @@ export class FacebookRepository extends TenantAwareRepository {
           {
             where: {
               post: { id: data.postId },
-              tenantId: this.getTenantId(),
+              tenantId: this.tenantService.getTenantId(),
               collectedAt: data.metrics.collectedAt,
             },
           },
@@ -316,7 +318,10 @@ export class FacebookRepository extends TenantAwareRepository {
           );
 
           return transactionalEntityManager.findOne(FacebookPostMetric, {
-            where: { id: existing.id, tenantId: this.getTenantId() },
+            where: {
+              id: existing.id,
+              tenantId: this.tenantService.getTenantId(),
+            },
           });
         }
 
@@ -339,7 +344,7 @@ export class FacebookRepository extends TenantAwareRepository {
   ): Promise<FacebookPost> {
     await this.postRepo.update(postId, updateData);
     return this.postRepo.findOne({
-      where: { id: postId, tenantId: this.getTenantId() },
+      where: { id: postId, tenantId: this.tenantService.getTenantId() },
       relations: ['page'],
     });
   }
@@ -350,7 +355,7 @@ export class FacebookRepository extends TenantAwareRepository {
   ): Promise<FacebookPage> {
     try {
       const page = await this.pageRepo.findOne({
-        where: { id: pageId, tenantId: this.getTenantId() },
+        where: { id: pageId, tenantId: this.tenantService.getTenantId() },
       });
       if (!page) {
         throw new NotFoundException(`Page with ID ${pageId} not found`);
@@ -421,7 +426,7 @@ export class FacebookRepository extends TenantAwareRepository {
     const existingMetric = await this.pageMetricRepo.findOne({
       where: {
         page: { id: data.pageId },
-        tenantId: this.getTenantId(),
+        tenantId: this.tenantService.getTenantId(),
         collectedAt: data.collectedAt,
       },
     });
@@ -441,7 +446,7 @@ export class FacebookRepository extends TenantAwareRepository {
 
   async deletePost(postId: string): Promise<void> {
     const post = await this.postRepo.findOne({
-      where: { id: postId, tenantId: this.getTenantId() },
+      where: { id: postId, tenantId: this.tenantService.getTenantId() },
       relations: ['metrics'],
     });
 
@@ -457,7 +462,7 @@ export class FacebookRepository extends TenantAwareRepository {
 
   async deleteAccount(accountId: string): Promise<void> {
     const account = await this.accountRepo.findOne({
-      where: { id: accountId, tenantId: this.getTenantId() },
+      where: { id: accountId, tenantId: this.tenantService.getTenantId() },
       relations: ['socialAccount'],
     });
 

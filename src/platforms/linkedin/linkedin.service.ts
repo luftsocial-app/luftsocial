@@ -22,11 +22,11 @@ import {
   PostMetrics,
 } from '../../cross-platform/helpers/cross-platform.interface';
 import { LinkedInAccount } from '../entities/linkedin-entities/linkedin-account.entity';
-import { TenantService } from '../../user-management/tenant/tenant.service';
 import { CreateLinkedInPostDto } from './helpers/create-post.dto';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
 import { MediaStorageItem } from '../../asset-management/media-storage/media-storage.dto';
 import { PinoLogger } from 'nestjs-pino';
+import { TenantService } from '../../user-management/tenant.service';
 
 @Injectable()
 export class LinkedInService implements PlatformService {
@@ -35,7 +35,6 @@ export class LinkedInService implements PlatformService {
 
   constructor(
     private readonly linkedInRepo: LinkedInRepository,
-    private readonly tenantService: TenantService,
     private readonly mediaStorageService: MediaStorageService,
     private readonly logger: PinoLogger,
   ) {
@@ -81,9 +80,6 @@ export class LinkedInService implements PlatformService {
 
   async getAccountsByUserId(userId: string): Promise<LinkedInAccount> {
     try {
-      const tenantId = this.tenantService.getTenantId();
-      this.linkedInRepo.setTenantId(tenantId);
-
       return await this.linkedInRepo.getById(userId);
     } catch (error) {
       this.logger.error(
@@ -94,9 +90,6 @@ export class LinkedInService implements PlatformService {
   }
 
   async getUserAccounts(userId: string): Promise<SocialAccountDetails[]> {
-    const tenantId = this.tenantService.getTenantId();
-    this.linkedInRepo.setTenantId(tenantId);
-
     const account = await this.linkedInRepo.getById(userId);
     if (!account) {
       throw new NotFoundException('No Linkedin accounts found for user');
@@ -146,9 +139,6 @@ export class LinkedInService implements PlatformService {
     media?: MediaItem[],
   ): Promise<PostResponse> {
     try {
-      const tenantId = this.tenantService.getTenantId();
-      this.linkedInRepo.setTenantId(tenantId);
-
       const account = await this.linkedInRepo.getById(accountId);
       if (!account) {
         throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
@@ -225,9 +215,6 @@ export class LinkedInService implements PlatformService {
     pageToken?: string,
   ): Promise<CommentResponse> {
     try {
-      const tenantId = this.tenantService.getTenantId();
-      this.linkedInRepo.setTenantId(tenantId);
-
       const account = await this.linkedInRepo.getById(accountId);
       if (!account) {
         throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
@@ -271,9 +258,6 @@ export class LinkedInService implements PlatformService {
     postId: string,
   ): Promise<PostMetrics> {
     try {
-      const tenantId = this.tenantService.getTenantId();
-      this.linkedInRepo.setTenantId(tenantId);
-
       const account = await this.linkedInRepo.getById(accountId);
       if (!account) {
         throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
@@ -322,9 +306,6 @@ export class LinkedInService implements PlatformService {
     accountId: string,
     dateRange: DateRange,
   ): Promise<AccountMetrics> {
-    const tenantId = this.tenantService.getTenantId();
-    this.linkedInRepo.setTenantId(tenantId);
-
     const account = await this.linkedInRepo.getById(accountId);
     if (!account) throw new NotFoundException('Account not found');
     if (!account.organizations || account.organizations.length === 0) {
@@ -476,9 +457,6 @@ export class LinkedInService implements PlatformService {
   async getUserOrganizations(
     accountId: string,
   ): Promise<LinkedInOrganization[]> {
-    const tenantId = this.tenantService.getTenantId();
-    this.linkedInRepo.setTenantId(tenantId);
-
     const account = await this.linkedInRepo.getById(accountId);
     if (!account) throw new NotFoundException('Account not found');
 
@@ -516,9 +494,6 @@ export class LinkedInService implements PlatformService {
   }
 
   async revokeAccess(accountId: string): Promise<void> {
-    const tenantId = this.tenantService.getTenantId();
-    this.linkedInRepo.setTenantId(tenantId);
-
     const account = await this.linkedInRepo.getById(accountId);
     if (!account) throw new NotFoundException('Account not found');
 

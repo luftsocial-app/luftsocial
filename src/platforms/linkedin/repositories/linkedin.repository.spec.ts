@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { EntityManager, Repository } from 'typeorm';
+import { EntityManager, Repository, SelectQueryBuilder } from 'typeorm';
 import * as crypto from 'crypto';
 import { LinkedInAccount } from '../../entities/linkedin-entities/linkedin-account.entity';
 import { LinkedInOrganization } from '../../entities/linkedin-entities/linkedin-organization.entity';
@@ -11,12 +11,19 @@ import { NotFoundException } from '@nestjs/common';
 import { LinkedInRepository } from './linkedin.repository';
 import { AuthState } from '../../entities/facebook-entities/auth-state.entity';
 import { SocialAccount } from '../../../platforms/entities/notifications/entity/social-account.entity';
+import { TenantService } from '../../../user-management/tenant.service';
 
 // Mock for crypto.randomBytes
 jest.mock('crypto', () => ({
   randomBytes: jest.fn(),
 }));
 
+jest.mock('../../../user-management/tenant.service', () => ({
+  TenantService: jest.fn().mockImplementation(() => ({
+    getTenantId: jest.fn(),
+    setTenantId: jest.fn(),
+  })),
+}));
 describe('LinkedInRepository', () => {
   let repository: LinkedInRepository;
   let accountRepo: Repository<LinkedInAccount>;
@@ -25,6 +32,7 @@ describe('LinkedInRepository', () => {
   let authStateRepo: Repository<AuthState>;
   let metricRepo: Repository<LinkedInMetric>;
   let entityManager: EntityManager;
+  let tenantService: TenantService;
 
   // Mock tenant ID
   const TENANT_ID = 'test-tenant-id';
@@ -39,7 +47,7 @@ describe('LinkedInRepository', () => {
       refreshToken: 'refresh-token',
       tokenExpiresAt: new Date(),
     },
-  };
+  } as unknown as LinkedInAccount;
 
   const mockOrganization = {
     id: 'org-id',
@@ -49,14 +57,14 @@ describe('LinkedInRepository', () => {
     vanityName: 'test-org',
     description: 'Test description',
     account: mockAccount,
-  };
+  } as unknown as LinkedInOrganization;
 
   const mockPost = {
     id: 'post-id',
     tenantId: TENANT_ID,
     publishedAt: new Date(),
     organization: mockOrganization,
-  };
+  } as unknown as LinkedInPost;
 
   const mockMetric = {
     id: 'metric-id-1',
@@ -71,12 +79,13 @@ describe('LinkedInRepository', () => {
     collectedAt: new Date(),
     createdAt: new Date(),
     updatedAt: new Date(),
-  };
+  } as unknown as LinkedInMetric;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         LinkedInRepository,
+        TenantService,
         {
           provide: getRepositoryToken(LinkedInAccount),
           useFactory: mockRepository,
@@ -121,9 +130,7 @@ describe('LinkedInRepository', () => {
       getRepositoryToken(LinkedInMetric),
     );
     entityManager = module.get<EntityManager>(EntityManager);
-
-    // Set tenant ID via protected method (using a hack)
-    Object.defineProperty(repository, 'tenantId', { value: TENANT_ID });
+    tenantService = module.get<TenantService>(TenantService);
   });
 
   // Helper factory function to create mock repositories
@@ -173,17 +180,26 @@ describe('LinkedInRepository', () => {
       const postData = {
         text: 'Test post',
         organizationId: 'org-id',
-      };
-      postRepo.create.mockReturnValue(postData);
-      postRepo.save.mockResolvedValue({ id: 'new-post-id', ...postData });
+      } as unknown as LinkedInPost;
+      const createdPost = {
+        id: 'temp-id',
+        ...postData,
+      } as unknown as LinkedInPost;
+      const savedPost = {
+        id: 'new-post-id',
+        ...postData,
+      } as unknown as LinkedInPost;
+
+      jest.spyOn(postRepo, 'create').mockReturnValue(createdPost);
+      jest.spyOn(postRepo, 'save').mockResolvedValue(savedPost);
 
       // Act
       const result = await repository.createPost(postData);
 
       // Assert
       expect(postRepo.create).toHaveBeenCalledWith(postData);
-      expect(postRepo.save).toHaveBeenCalled();
-      expect(result).toEqual({ id: 'new-post-id', ...postData });
+      expect(postRepo.save).toHaveBeenCalledWith(createdPost);
+      expect(result).toEqual(savedPost);
     });
   });
 
@@ -195,7 +211,8 @@ describe('LinkedInRepository', () => {
       (crypto.randomBytes as jest.Mock).mockReturnValue({
         toString: jest.fn().mockReturnValue(mockState),
       });
-      entityManager.save.mockResolvedValue({ state: mockState });
+
+      jest.spyOn(entityManager, 'save').mockResolvedValue({ state: mockState });
 
       // Act
       const result = await repository.createAuthState(userId);
@@ -217,8 +234,8 @@ describe('LinkedInRepository', () => {
     it('should find a LinkedIn account by id with relations', async () => {
       // Arrange
       const accountId = 'account-id';
-      accountRepo.findOne.mockResolvedValue(mockAccount);
-
+      jest.spyOn(accountRepo, 'findOne').mockResolvedValue(mockAccount);
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(TENANT_ID);
       // Act
       const result = await repository.getById(accountId);
 
@@ -249,9 +266,11 @@ describe('LinkedInRepository', () => {
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
         getMany: jest.fn().mockResolvedValue(mockMetrics),
-      };
+      } as unknown as SelectQueryBuilder<LinkedInMetric>;
 
-      metricRepo.createQueryBuilder.mockReturnValue(queryBuilder);
+      jest
+        .spyOn(metricRepo, 'createQueryBuilder')
+        .mockReturnValue(queryBuilder);
 
       // Act
       const result = await repository.getOrganizationMetrics(orgId, timeframe);
@@ -280,7 +299,9 @@ describe('LinkedInRepository', () => {
     it('should find accounts with tokens expiring within 24 hours', async () => {
       // Arrange
       const mockAccounts = [mockAccount];
-      accountRepo.find.mockResolvedValue(mockAccounts);
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(TENANT_ID);
+
+      jest.spyOn(accountRepo, 'find').mockResolvedValue(mockAccounts);
 
       // Act
       const result = await repository.getAccountsNearingExpiration();
@@ -308,7 +329,9 @@ describe('LinkedInRepository', () => {
         refreshToken: 'new-refresh-token',
         expiresAt: new Date(),
       };
-      accountRepo.findOne.mockResolvedValue(mockAccount);
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(TENANT_ID);
+
+      jest.spyOn(accountRepo, 'findOne').mockResolvedValue(mockAccount);
 
       // Mock the getById call that happens after update
       repository.getById = jest.fn().mockResolvedValue({
@@ -346,7 +369,9 @@ describe('LinkedInRepository', () => {
     it('should throw NotFoundException when account not found', async () => {
       // Arrange
       const accountId = 'nonexistent-id';
-      accountRepo.findOne.mockResolvedValue(null);
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(TENANT_ID);
+
+      jest.spyOn(accountRepo, 'findOne').mockResolvedValue(null);
 
       // Act & Assert
       await expect(
@@ -363,8 +388,10 @@ describe('LinkedInRepository', () => {
       // Arrange
       const orgId = 'org-id';
       const days = 15;
-      const mockPosts = [mockPost];
-      postRepo.find.mockResolvedValue(mockPosts);
+      const mockPosts = [mockPost] as unknown as LinkedInPost[];
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(TENANT_ID);
+
+      jest.spyOn(postRepo, 'find').mockResolvedValue(mockPosts);
 
       // Act
       const result = await repository.getRecentPosts(orgId, days);
@@ -385,13 +412,15 @@ describe('LinkedInRepository', () => {
     it('should use default 30 days when not specified', async () => {
       // Arrange
       const orgId = 'org-id';
-      postRepo.find.mockResolvedValue([mockPost]);
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(TENANT_ID);
+
+      jest.spyOn(postRepo, 'find').mockResolvedValue([mockPost]);
 
       // Act
       await repository.getRecentPosts(orgId);
 
       // Assert - checking the default parameter usage
-      const whereClause = postRepo.find.mock.calls[0][0].where;
+      const whereClause = postRepo.find['mock']['calls'][0][0].where;
       expect(whereClause.organization.id).toEqual(orgId);
       expect(whereClause.publishedAt).toBeDefined(); // Can't directly test MoreThan constructor
     });
@@ -402,18 +431,23 @@ describe('LinkedInRepository', () => {
       // Arrange
       const postId = 'post-id';
       const metricData = {
-        impressions: 150,
+        impressions: 100,
         likes: 75,
         collectedAt: new Date(),
       };
-      metricRepo.findOne.mockResolvedValue(mockMetric);
-      metricRepo.findOne.mockResolvedValueOnce(mockMetric); // First call
-      metricRepo.findOne.mockResolvedValueOnce({
-        // Second call after update
-        ...mockMetric,
-        impressions: metricData.impressions,
-        likes: metricData.likes,
-      });
+
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(TENANT_ID);
+
+      jest
+        .spyOn(metricRepo, 'findOne')
+        .mockResolvedValueOnce(mockMetric)
+        .mockResolvedValueOnce(mockMetric)
+        .mockResolvedValueOnce({
+          // Second call after update
+          ...mockMetric,
+          impressions: metricData.impressions,
+          likes: metricData.likes,
+        });
 
       // Act
       const result = await repository.upsertMetrics(postId, metricData);
@@ -441,11 +475,14 @@ describe('LinkedInRepository', () => {
         likes: 75,
         collectedAt: new Date(),
       };
-      const newMetric = { id: 'new-metric-id', ...metricData };
+      const newMetric = {
+        id: 'new-metric-id',
+        ...metricData,
+      } as unknown as LinkedInMetric;
 
-      metricRepo.findOne.mockResolvedValue(null);
-      metricRepo.create.mockReturnValue(newMetric);
-      metricRepo.save.mockResolvedValue(newMetric);
+      jest.spyOn(metricRepo, 'create').mockReturnValue(newMetric);
+      jest.spyOn(metricRepo, 'save').mockResolvedValue(newMetric);
+      jest.spyOn(metricRepo, 'findOne').mockResolvedValue(null);
 
       // Act
       const result = await repository.upsertMetrics(postId, metricData);
@@ -463,8 +500,10 @@ describe('LinkedInRepository', () => {
   describe('getActiveOrganizations', () => {
     it('should retrieve organizations with valid access tokens', async () => {
       // Arrange
-      const mockOrgs = [mockOrganization];
-      orgRepo.find.mockResolvedValue(mockOrgs);
+      const mockOrgs = [mockOrganization] as unknown as LinkedInOrganization[];
+
+      jest.spyOn(orgRepo, 'find').mockResolvedValue(mockOrgs);
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(TENANT_ID);
 
       // Act
       const result = await repository.getActiveOrganizations();
@@ -496,15 +535,19 @@ describe('LinkedInRepository', () => {
         description: 'Updated description',
       };
 
-      orgRepo.findOne.mockResolvedValue(mockOrganization);
-      orgRepo.findOne.mockResolvedValueOnce(mockOrganization); // First call
-      orgRepo.findOne.mockResolvedValueOnce({
-        // Second call after update
-        ...mockOrganization,
-        name: orgData.name,
-        vanityName: orgData.vanityName,
-        description: orgData.description,
-      });
+      jest
+        .spyOn(orgRepo, 'findOne')
+        .mockResolvedValue(mockOrganization)
+        .mockResolvedValueOnce(mockOrganization)
+        .mockResolvedValueOnce({
+          // Second call after update
+          ...mockOrganization,
+          name: orgData.name,
+          vanityName: orgData.vanityName,
+          description: orgData.description,
+        });
+
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(TENANT_ID);
 
       // Act
       const result = await repository.upsertOrganization(orgData);
@@ -533,11 +576,16 @@ describe('LinkedInRepository', () => {
         organizationId: 'new-linkedin-org-id',
         name: 'New Organization',
       };
-      const newOrg = { id: 'new-org-id', ...orgData };
+      const newOrg = {
+        id: 'new-org-id',
+        ...orgData,
+      } as unknown as LinkedInOrganization;
 
-      orgRepo.findOne.mockResolvedValue(null);
-      orgRepo.create.mockReturnValue(newOrg);
-      orgRepo.save.mockResolvedValue(newOrg);
+      jest.spyOn(orgRepo, 'findOne').mockResolvedValue(null);
+      jest.spyOn(orgRepo, 'create').mockReturnValue(newOrg);
+      jest.spyOn(orgRepo, 'save').mockResolvedValue(newOrg);
+
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(TENANT_ID);
 
       // Act
       const result = await repository.upsertOrganization(orgData);
@@ -553,7 +601,8 @@ describe('LinkedInRepository', () => {
     it('should delete an account and associated entities in a transaction', async () => {
       // Arrange
       const accountId = 'account-id';
-      accountRepo.findOne.mockResolvedValue(mockAccount);
+      jest.spyOn(accountRepo, 'findOne').mockResolvedValue(mockAccount);
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(TENANT_ID);
 
       // Act
       await repository.deleteAccount(accountId);
@@ -570,7 +619,7 @@ describe('LinkedInRepository', () => {
     it('should throw NotFoundException when account not found', async () => {
       // Arrange
       const accountId = 'nonexistent-id';
-      accountRepo.findOne.mockResolvedValue(null);
+      jest.spyOn(accountRepo, 'findOne').mockResolvedValue(null);
 
       // Act & Assert
       await expect(repository.deleteAccount(accountId)).rejects.toThrow(

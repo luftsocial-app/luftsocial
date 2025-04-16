@@ -5,16 +5,16 @@ import * as crypto from 'crypto';
 
 import { SocialPlatform } from '../../../common/enums/social-platform.enum';
 
-import { TenantAwareRepository } from '../../../user-management/tenant/tenant-aware.repository';
 import { AuthState } from '../../entities/facebook-entities/auth-state.entity';
 import { InstagramMetric } from '../../entities/instagram-entities/instagram-metric.entity';
 import { InstagramPost } from '../../entities/instagram-entities/instagram-post.entity';
 import { InstagramRateLimit } from '../../entities/instagram-entities/instagram-rate-limit.entity';
 import { InstagramAccount } from '../../entities/instagram-entities/instagram-account.entity';
 import { SocialAccount } from '../../../platforms/entities/notifications/entity/social-account.entity';
+import { TenantService } from '../../../user-management/tenant.service';
 
 @Injectable()
-export class InstagramRepository extends TenantAwareRepository {
+export class InstagramRepository {
   constructor(
     @InjectRepository(InstagramAccount)
     private readonly accountRepo: Repository<InstagramAccount>,
@@ -30,9 +30,8 @@ export class InstagramRepository extends TenantAwareRepository {
     private readonly socialAccountRepo: Repository<SocialAccount>,
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
-  ) {
-    super(accountRepo);
-  }
+    private readonly tenantService: TenantService,
+  ) {}
 
   async createPost(data: Partial<InstagramPost>): Promise<InstagramPost> {
     const post = this.mediaRepo.create(data);
@@ -41,7 +40,10 @@ export class InstagramRepository extends TenantAwareRepository {
 
   async getAccountByUserId(userId: string): Promise<InstagramAccount> {
     return this.accountRepo.findOne({
-      where: { instagramAccountId: userId, tenantId: this.getTenantId() },
+      where: {
+        instagramAccountId: userId,
+        tenantId: this.tenantService.getTenantId(),
+      },
       relations: ['socialAccount'],
     });
   }
@@ -57,7 +59,7 @@ export class InstagramRepository extends TenantAwareRepository {
       where: {
         media: { id: mediaId },
         collectedAt: MoreThan(timeAgo),
-        tenantId: this.getTenantId(),
+        tenantId: this.tenantService.getTenantId(),
       },
       order: { collectedAt: 'DESC' },
     });
@@ -93,7 +95,7 @@ export class InstagramRepository extends TenantAwareRepository {
   async getActiveAccounts(): Promise<InstagramAccount[]> {
     return this.accountRepo.find({
       where: {
-        tenantId: this.getTenantId(),
+        tenantId: this.tenantService.getTenantId(),
         socialAccount: {
           tokenExpiresAt: MoreThan(new Date()),
         },
@@ -111,7 +113,7 @@ export class InstagramRepository extends TenantAwareRepository {
 
     return this.mediaRepo.find({
       where: {
-        tenantId: this.getTenantId(),
+        tenantId: this.tenantService.getTenantId(),
         account: { id: accountId },
         postedAt: MoreThan(timeAgo),
       },
@@ -127,7 +129,7 @@ export class InstagramRepository extends TenantAwareRepository {
     const existingMetric = await this.metricRepo.findOne({
       where: {
         media: { id: mediaId },
-        tenantId: this.getTenantId(),
+        tenantId: this.tenantService.getTenantId(),
         collectedAt: metrics.collectedAt,
       },
     });
@@ -160,7 +162,7 @@ export class InstagramRepository extends TenantAwareRepository {
     });
 
     return this.accountRepo.findOne({
-      where: { id: accountId, tenantId: this.getTenantId() },
+      where: { id: accountId, tenantId: this.tenantService.getTenantId() },
       relations: ['socialAccount'],
     });
   }
@@ -171,7 +173,7 @@ export class InstagramRepository extends TenantAwareRepository {
 
     return this.accountRepo.find({
       where: {
-        tenantId: this.getTenantId(),
+        tenantId: this.tenantService.getTenantId(),
         socialAccount: {
           tokenExpiresAt: LessThan(expirationThreshold),
         },
@@ -219,7 +221,7 @@ export class InstagramRepository extends TenantAwareRepository {
     },
   ): Promise<InstagramAccount> {
     const account = await this.accountRepo.findOne({
-      where: { id: accountId, tenantId: this.getTenantId() },
+      where: { id: accountId, tenantId: this.tenantService.getTenantId() },
       relations: ['socialAccount'],
     });
 
@@ -240,7 +242,7 @@ export class InstagramRepository extends TenantAwareRepository {
 
   async deleteAccount(accountId: string): Promise<void> {
     const account = await this.accountRepo.findOne({
-      where: { id: accountId, tenantId: this.getTenantId() },
+      where: { id: accountId, tenantId: this.tenantService.getTenantId() },
       relations: ['socialAccount'],
     });
 

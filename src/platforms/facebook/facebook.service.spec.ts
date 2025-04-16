@@ -2,7 +2,6 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { FacebookService } from './facebook.service';
 import { FacebookRepository } from './repositories/facebook.repository';
 import { MediaStorageService } from '../../asset-management/media-storage/media-storage.service';
-import { TenantService } from '../../user-management/tenant/tenant.service';
 import { PinoLogger } from 'nestjs-pino';
 import axios from 'axios';
 import {
@@ -15,6 +14,7 @@ import { FacebookPage } from '../entities/facebook-entities/facebook-page.entity
 import { FacebookPost } from '../entities/facebook-entities/facebook-post.entity';
 import { MediaType } from '../../common/enums/media-type.enum';
 import * as config from 'config';
+import { TenantService } from '../../user-management/tenant.service';
 
 // Mock axios
 jest.mock('axios');
@@ -32,6 +32,7 @@ jest.mock('config', () => ({
 
 describe('FacebookService', () => {
   let service: FacebookService;
+  let tenantService: TenantService;
 
   // Mock data
   const mockTenantId = 'tenant123';
@@ -106,6 +107,9 @@ describe('FacebookService', () => {
     }).compile();
 
     service = module.get<FacebookService>(FacebookService);
+    tenantService = module.get<TenantService>(TenantService);
+
+    jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
     // Reset all mocks before each test
     jest.clearAllMocks();
@@ -273,7 +277,7 @@ describe('FacebookService', () => {
       const result = await service.getUserPages(mockAccountId);
 
       // Verify the function set tenant ID
-      expect(mockFacebookRepo.setTenantId).toHaveBeenCalledWith(mockTenantId);
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
 
       // Verify it fetched the account
       expect(mockFacebookRepo.getAccountById).toHaveBeenCalledWith(
@@ -357,7 +361,6 @@ describe('FacebookService', () => {
       const result = await service.getPagePosts(mockPageId);
 
       // Verify repository was called
-      expect(mockFacebookRepo.setTenantId).toHaveBeenCalledWith(mockTenantId);
       expect(mockFacebookRepo.getPageById).toHaveBeenCalledWith(mockPageId);
 
       // Verify axios was called with correct parameters
@@ -454,7 +457,6 @@ describe('FacebookService', () => {
       const result = await service.getPageInsights(mockPageId);
 
       // Verify repository was called
-      expect(mockFacebookRepo.setTenantId).toHaveBeenCalledWith(mockTenantId);
       expect(mockFacebookRepo.getPageById).toHaveBeenCalledWith(mockPageId);
 
       // Verify axios was called with correct parameters
@@ -581,7 +583,6 @@ describe('FacebookService', () => {
       const result = await service.createPagePost(mockPageId, createPostDto);
 
       // Verify repository was called
-      expect(mockFacebookRepo.setTenantId).toHaveBeenCalledWith(mockTenantId);
       expect(mockFacebookRepo.getPageById).toHaveBeenCalledWith(mockPageId);
 
       // Verify axios was called with correct parameters for text post
@@ -828,9 +829,6 @@ describe('FacebookService', () => {
       // Call the method
       await service.deletePost(mockPostId);
 
-      // Verify tenant ID was set
-      expect(mockFacebookRepo.setTenantId).toHaveBeenCalledWith(mockTenantId);
-
       // Verify post was retrieved
       expect(mockFacebookRepo.getPostById).toHaveBeenCalledWith(mockPostId);
 
@@ -878,9 +876,6 @@ describe('FacebookService', () => {
 
       // Call the method
       const result = await service.editPost(mockPostId, updateDto);
-
-      // Verify tenant ID was set
-      expect(mockFacebookRepo.setTenantId).toHaveBeenCalledWith(mockTenantId);
 
       // Verify post was retrieved with the page relation
       expect(mockFacebookRepo.getPostById).toHaveBeenCalledWith(mockPostId, [
@@ -963,9 +958,6 @@ describe('FacebookService', () => {
 
       // Call the method
       const result = await service.editPage(mockPageId, updateDto);
-
-      // Verify tenant ID was set
-      expect(mockFacebookRepo.setTenantId).toHaveBeenCalledWith(mockTenantId);
 
       // Verify page was retrieved
       expect(mockFacebookRepo.getPageById).toHaveBeenCalledWith(mockPageId);
@@ -1070,9 +1062,6 @@ describe('FacebookService', () => {
 
       // Call the method
       const result = await service.getPostMetrics(mockAccountId, mockPostId);
-
-      // Verify tenant ID was set
-      expect(mockFacebookRepo.setTenantId).toHaveBeenCalledWith(mockTenantId);
 
       // Verify account and post were retrieved
       expect(mockFacebookRepo.getAccountById).toHaveBeenCalledWith(

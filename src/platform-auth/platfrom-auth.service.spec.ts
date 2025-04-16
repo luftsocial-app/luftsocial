@@ -8,7 +8,7 @@ import { SocialPlatform } from '../common/enums/social-platform.enum';
 import { PlatformError } from '../platforms/platform.error';
 import { PlatformAuthService } from './platform-auth.service';
 import { PinoLogger } from 'nestjs-pino';
-import { TenantService } from '../user-management/tenant/tenant.service';
+import { TenantService } from '../user-management/tenant.service';
 
 // Mock simple-oauth2
 jest.mock('simple-oauth2');
