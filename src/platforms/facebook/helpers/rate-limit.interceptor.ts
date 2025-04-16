@@ -8,10 +8,16 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { FacebookRepository } from '../repositories/facebook.repository';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class RateLimitInterceptor implements NestInterceptor {
-  constructor(private readonly facebookRepo: FacebookRepository) {}
+  constructor(
+    private readonly facebookRepo: FacebookRepository,
+    private readonly logger: PinoLogger,
+  ) {
+    this.logger.setContext(RateLimitInterceptor.name);
+  }
 
   async intercept(
     context: ExecutionContext,
@@ -21,7 +27,7 @@ export class RateLimitInterceptor implements NestInterceptor {
     const pageId = request.params.pageId;
 
     if (pageId) {
-      console.log('Page_ID:', pageId);
+      this.logger.info('Page_ID:', pageId);
       const canProceed = await this.checkRateLimit(pageId);
       if (!canProceed) {
         throw new HttpException(

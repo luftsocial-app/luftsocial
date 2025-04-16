@@ -1,17 +1,17 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import * as config from 'config';
 import type { Cacheable } from 'cacheable';
 import * as fs from 'fs';
 import * as path from 'path';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class TokenCacheService {
   private stateFilePath: string;
-  private readonly logger = new Logger(TokenCacheService.name);
-
   constructor(
     @Inject('CACHE_INSTANCE')
     private readonly cache: Cacheable,
+    private readonly logger: PinoLogger,
   ) {
     // Set up file path for state storage
     this.stateFilePath = path.join(process.cwd(), '.oauth-states.json');
@@ -29,17 +29,19 @@ export class TokenCacheService {
       const testKey = 'test:' + Date.now();
       const testValue = { test: true, time: new Date().toISOString() };
 
-      this.logger.log('Testing direct Redis connection...');
+      this.logger.info('Testing direct Redis connection...');
 
       await redisClient.set(testKey, JSON.stringify(testValue));
-      this.logger.log('Set operation completed');
+      this.logger.info('Set operation completed');
 
       const retrieved = await redisClient.get(testKey);
-      this.logger.log('Get operation completed');
+      this.logger.info('Get operation completed');
 
       if (retrieved) {
-        this.logger.log('REDIS TEST PASSED: Successfully retrieved test value');
-        this.logger.log(
+        this.logger.info(
+          'REDIS TEST PASSED: Successfully retrieved test value',
+        );
+        this.logger.info(
           'Retrieved:',
           typeof retrieved === 'string' ? JSON.parse(retrieved) : retrieved,
         );
@@ -99,7 +101,7 @@ export class TokenCacheService {
 
     // If not in Redis, try the file
     if (!data) {
-      console.log('State not found in cache, checking backup file');
+      console.info('State not found in cache, checking backup file');
       data = this.getStateFromFile(key);
     }
 
@@ -126,8 +128,8 @@ export class TokenCacheService {
     // Verify storage
     const stored = await this.cache.get(key);
     const fileStored = this.getStateFromFile(key);
-    this.logger.log(`Verification - Redis storage for ${key}:`, !!stored);
-    this.logger.log(`Verification - File storage for ${key}:`, !!fileStored);
+    this.logger.info(`Verification - Redis storage for ${key}:`, !!stored);
+    this.logger.info(`Verification - File storage for ${key}:`, !!fileStored);
   }
 
   // File-based backup methods
@@ -148,7 +150,7 @@ export class TokenCacheService {
 
       // Write back to file
       fs.writeFileSync(this.stateFilePath, JSON.stringify(states, null, 2));
-      this.logger.log(`Stored state in backup file`);
+      this.logger.info(`Stored state in backup file`);
     } catch (error) {
       this.logger.error('Error storing state in file:', error);
     }
@@ -161,10 +163,10 @@ export class TokenCacheService {
         const states = JSON.parse(content);
 
         if (states[key] && states[key].expires > Date.now()) {
-          this.logger.log('Found state in backup file');
+          this.logger.info('Found state in backup file');
           return states[key].data;
         } else if (states[key]) {
-          this.logger.log('Found state in backup file but it has expired');
+          this.logger.info('Found state in backup file but it has expired');
         }
       }
       return null;
@@ -183,7 +185,7 @@ export class TokenCacheService {
         if (states[key]) {
           delete states[key];
           fs.writeFileSync(this.stateFilePath, JSON.stringify(states, null, 2));
-          console.log(`Removed state from backup file`);
+          console.info(`Removed state from backup file`);
         }
       }
     } catch (error) {

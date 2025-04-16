@@ -18,6 +18,7 @@ import {
 } from '../helpers/tiktok.interfaces';
 import { SocialAccount } from '../../../platforms/entities/notifications/entity/social-account.entity';
 import { TenantService } from '../../../user-management/tenant.service';
+import { PinoLogger } from 'nestjs-pino';
 
 @Injectable()
 export class TikTokRepository {
@@ -39,6 +40,7 @@ export class TikTokRepository {
 
     private readonly tenantService: TenantService,
     private dataSource: DataSource,
+    private readonly logger: PinoLogger,
   ) {}
 
   async createAccount(data: Partial<TikTokAccount>): Promise<TikTokAccount> {
@@ -46,10 +48,10 @@ export class TikTokRepository {
 
     const { socialAccount, ...tiktokAccountData } = data;
 
-    console.log({ socialAccount, tiktokAccountData });
+    this.logger.info({ socialAccount, tiktokAccountData });
 
     return this.dataSource.transaction(async (manager) => {
-      console.log('here');
+      this.logger.info('here');
 
       // First create the social account
       const socialAccount = this.socialAccountRepo.create({
@@ -59,7 +61,7 @@ export class TikTokRepository {
 
       const savedSocialAccount = await manager.save(socialAccount);
 
-      console.log({ savedSocialAccount });
+      this.logger.info({ savedSocialAccount });
 
       // Now create the TikTok account with a reference to the social account
       const tiktokAccount = this.accountRepo.create({

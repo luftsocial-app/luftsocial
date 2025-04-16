@@ -1,9 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TokenCacheService } from './token-cache.service';
+import { PinoLogger } from 'nestjs-pino';
 
 describe('TokenCacheService', () => {
   let service: TokenCacheService;
-
   // Create Redis client mock without any implementation
   const mockRedisClient = {
     set: jest.fn(),
@@ -22,6 +22,15 @@ describe('TokenCacheService', () => {
       providers: [
         TokenCacheService,
         {
+          provide: PinoLogger,
+          useValue: {
+            setContext: jest.fn(),
+            debug: jest.fn(),
+            info: jest.fn(),
+            error: jest.fn(),
+          },
+        },
+        {
           provide: 'CACHE_INSTANCE',
           useValue: mockCache,
         },
@@ -29,20 +38,11 @@ describe('TokenCacheService', () => {
     }).compile();
 
     service = module.get<TokenCacheService>(TokenCacheService);
-
     jest.spyOn(service as any, 'storeStateInFile').mockImplementation(() => {});
     jest.spyOn(service as any, 'getStateFromFile').mockReturnValue(null);
     jest
       .spyOn(service as any, 'removeStateFromFile')
       .mockImplementation(() => {});
-
-    if (service['logger']) {
-      jest.spyOn(service['logger'], 'log').mockImplementation(() => {});
-      jest.spyOn(service['logger'], 'error').mockImplementation(() => {});
-    }
-
-    jest.spyOn(console, 'log').mockImplementation(() => {});
-    jest.spyOn(console, 'error').mockImplementation(() => {});
 
     jest.clearAllMocks();
   });

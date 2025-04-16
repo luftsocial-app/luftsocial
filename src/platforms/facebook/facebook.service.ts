@@ -528,7 +528,6 @@ export class FacebookService implements PlatformService {
       : [{ url: photoItem.url, key: photoItem.s3Key }];
 
     // Post to Facebook
-    console.log('createPostDto', createPostDto);
     const photoData = await axios.post(
       `${this.baseUrl}/${this.apiVersion}/${page.pageId}/photos`,
       {

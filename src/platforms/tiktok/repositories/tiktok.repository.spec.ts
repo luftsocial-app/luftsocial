@@ -15,6 +15,7 @@ import {
 import { SocialAccount } from '../../../platforms/entities/notifications/entity/social-account.entity';
 import { IsolationLevel } from 'typeorm/driver/types/IsolationLevel';
 import { TenantService } from '../../../user-management/tenant.service';
+import { PinoLogger } from 'nestjs-pino';
 
 jest.mock('../../../user-management/tenant.service', () => ({
   TenantService: jest.fn().mockImplementation(() => ({
@@ -189,6 +190,15 @@ describe('TikTokRepository', () => {
       providers: [
         TikTokRepository,
         TenantService,
+        {
+          provide: PinoLogger,
+          useValue: {
+            setContext: jest.fn(),
+            debug: jest.fn(),
+            info: jest.fn(),
+            error: jest.fn(),
+          },
+        },
         {
           provide: getRepositoryToken(TikTokAccount),
           useValue: mockAccountRepo,

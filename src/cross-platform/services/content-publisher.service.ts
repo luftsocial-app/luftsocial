@@ -409,7 +409,6 @@ export class ContentPublisherService {
     postedAt: Date;
     platformSpecificData?: any;
   }> {
-    console.log('Publishing to platform:', params.platformSpecificParams);
     try {
       switch (params.platform) {
         case SocialPlatform.FACEBOOK:

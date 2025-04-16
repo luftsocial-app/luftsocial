@@ -410,8 +410,6 @@ describe('ContentPublisherService', () => {
 
       const result = await service.publishContentWithMedia(params);
 
-      console.log({ testResult: result.results });
-
       // Verify retry queue was called
       expect(mockRetryQueueService.addToRetryQueue).toHaveBeenCalled();
       expect(result.status).toBe(PublishStatus.FAILED);
