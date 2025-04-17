@@ -17,7 +17,7 @@ import { CreateCrossPlatformPostDto } from '../helpers/dtos/cross-platform.dto';
 import axios from 'axios';
 import {
   CONTENT_PLATFORM_PUBLISH,
-  CONTENT_PLATFORM_RETRY_PUBLISH,
+  CONTENT_PLATFORM_RETRY_PUBLISH_JOB,
 } from '../../bull-queue/constants';
 
 // Mock the axios module
@@ -581,7 +581,7 @@ describe('ContentPublisherService', () => {
 
       expect(result).toBe(true);
       expect(mockPublishQueue.add).toHaveBeenCalledWith(
-        CONTENT_PLATFORM_RETRY_PUBLISH,
+        CONTENT_PLATFORM_RETRY_PUBLISH_JOB,
         expect.objectContaining({
           publishRecordId: 'publish-123',
           platform: 'facebook',

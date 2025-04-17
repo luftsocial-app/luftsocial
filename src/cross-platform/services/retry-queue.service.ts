@@ -5,6 +5,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PublishRecord } from '../entities/publish.entity';
 import { RetryQueueItem } from '../helpers/cross-platform.interface';
+import {
+  CONTENT_PLATFORM_PUBLISH,
+  CONTENT_PLATFORM_RETRY_PUBLISH_JOB,
+} from '../../bull-queue/constants';
 
 @Injectable()
 export class RetryQueueService {
@@ -12,7 +16,7 @@ export class RetryQueueService {
   private readonly MAX_RETRIES = 5;
 
   constructor(
-    @InjectQueue('platform-publish') private publishQueue: Queue,
+    @InjectQueue(CONTENT_PLATFORM_PUBLISH) private publishQueue: Queue,
     @InjectRepository(PublishRecord)
     private readonly publishRepo: Repository<PublishRecord>,
   ) {}
@@ -30,7 +34,7 @@ export class RetryQueueService {
       const delayMs = this.calculateBackoffDelay(item.retryCount);
 
       // Add to queue with appropriate options
-      await this.publishQueue.add('retry-platform-publish', item, {
+      await this.publishQueue.add(CONTENT_PLATFORM_RETRY_PUBLISH_JOB, item, {
         delay: delayMs,
         attempts: 1, // We'll handle retries ourselves
         backoff: {
@@ -125,7 +129,7 @@ export class RetryQueueService {
         .filter(
           (job) =>
             job.data.publishRecordId === publishRecordId &&
-            job.name === 'retry-platform-publish',
+            job.name === CONTENT_PLATFORM_RETRY_PUBLISH_JOB,
         )
         .map((job) => ({
           id: job.id,

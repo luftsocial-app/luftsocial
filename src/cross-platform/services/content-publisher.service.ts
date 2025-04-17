@@ -30,7 +30,7 @@ import { PinoLogger } from 'nestjs-pino';
 import { CreateCrossPlatformPostDto } from '../helpers/dtos/cross-platform.dto';
 import {
   CONTENT_PLATFORM_PUBLISH,
-  CONTENT_PLATFORM_RETRY_PUBLISH,
+  CONTENT_PLATFORM_RETRY_PUBLISH_JOB,
 } from '../../bull-queue/constants';
 
 @Injectable()
@@ -556,7 +556,7 @@ export class ContentPublisherService {
 
       // Add to retry queue with increased priority
       await this.publishQueue.add(
-        CONTENT_PLATFORM_RETRY_PUBLISH,
+        CONTENT_PLATFORM_RETRY_PUBLISH_JOB,
         {
           publishRecordId: publishId,
           platform: platformId,

@@ -14,7 +14,7 @@ import { WebhookEvent } from '@clerk/express';
 import { PinoLogger } from 'nestjs-pino';
 import {
   CLERK_WEBHOOK_QUEUE_NAME,
-  CLERK_WEBHOOK_QUEUE_PROCESS_NAME,
+  CLERK_WEBHOOK_QUEUE_PROCESS_NAME_JOB,
 } from '../../bull-queue/constants';
 
 @Controller('/webhooks')
@@ -37,7 +37,7 @@ export class ClerkWebhookController {
       );
 
       // Queue the verified event instead of processing it directly
-      await this.clerkWebhookQueue.add(CLERK_WEBHOOK_QUEUE_PROCESS_NAME, {
+      await this.clerkWebhookQueue.add(CLERK_WEBHOOK_QUEUE_PROCESS_NAME_JOB, {
         event: evt,
         headers: req.headers,
         timestamp: Date.now(),
