@@ -375,6 +375,7 @@ export class ContentPublisherService {
             mediaItems.push(...uploadedFiles);
           }
         } else if (mediaItem.url) {
+          // TODO: Recheck this implementation
           // For URLs, we need to download first to calculate hash
           const downloadedMedia =
             await this.mediaStorageService.uploadMediaFromUrl(
