@@ -71,3 +71,6 @@ websocket:
   allowedOrigins:
     __name: ALLOWED_ORIGINS
     __format: json
+chat: 
+  redis:  
+    customAdapterURL: REDIS_CUSTOM_ADAPTER_URL
