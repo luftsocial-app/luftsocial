@@ -39,8 +39,9 @@ export class MessageValidatorService {
       }
 
       if (payload.metadata) {
-        const metadataSanitization =
-          this.contentSanitizer.sanitizeRealtimeMessage(payload.metadata);
+        const metadataSanitization = this.contentSanitizer.sanitizeMetadata(
+          payload.metadata,
+        );
         if (!metadataSanitization.isValid) {
           return 'Message metadata contains forbidden elements';
         }
