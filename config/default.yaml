@@ -1,4 +1,4 @@
-appName: starter-template
+appName: luftsocial-backend
 logger:
   pinoHttp:
     level: info
@@ -81,3 +81,6 @@ websocket:
 chat:
   redis:
     customAdapterURL: "redis://localhost:6379"
+otel:
+    signozIngestionKey : 
+    region: eu

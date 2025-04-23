@@ -1,4 +1,4 @@
-appName: starter-template
+appName: APP_NAME
 logger:
   pinoHttp:
     level: info
@@ -74,3 +74,5 @@ websocket:
 chat: 
   redis:  
     customAdapterURL: REDIS_CUSTOM_ADAPTER_URL
+otel:
+    signozIngestionKey : SIGNOZ_INJECTION_KEY

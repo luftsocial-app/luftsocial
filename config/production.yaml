@@ -1,4 +1,3 @@
-appName: starter-template
 db:
   options:
     extra:
