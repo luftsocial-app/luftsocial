@@ -11,8 +11,8 @@ logger:
       censor: '***'
 port: 3000
 clerk:
-  perishableKey: 
-  secretKey: 
+  perishableKey:
+  secretKey:
   clerkPublicKey: ""
 messaging:
   throttle:
@@ -78,3 +78,6 @@ websocket:
   - polling
   allowedOrigins:
   - "*"
+chat:
+  redis:
+    customAdapterURL: "redis://localhost:6379"

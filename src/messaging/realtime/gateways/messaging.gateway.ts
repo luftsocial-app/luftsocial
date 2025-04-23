@@ -1,5 +1,5 @@
 // External dependencies
-import { UseGuards, UsePipes } from '@nestjs/common';
+import { UsePipes } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Server } from 'socket.io';
 import * as config from 'config';
@@ -19,9 +19,6 @@ import {
 import { ConversationService } from '../../conversations/services/conversation.service';
 import { MessageService } from '../../messages/services/message.service';
 import { MessageValidatorService } from '../services/message-validator.service';
-
-// Guards
-import { WsGuard } from '../../../guards/ws.guard';
 
 // Events and payloads
 import {
@@ -54,8 +51,8 @@ import { WebsocketSanitizationPipe } from '../pipes/websocket-sanitization.pipe'
 import { ParticipantEventHandler } from './usecases/participants.events';
 import { MessageEventHandler } from './usecases/message.events';
 import { WebsocketHelpers } from '../utils/websocket.helpers';
-import * as jwt from 'jsonwebtoken';
 import { TenantService } from '../../../user-management/tenant.service';
+import { wsAuthMiddleware } from '../../../middleware/ws.middleware';
 @WebSocketGateway({
   cors: {
     origin: config.get('websocket.allowedOrigins'),
@@ -84,38 +81,14 @@ export class MessagingGateway
   ) {
     this.logger.setContext(MessagingGateway.name);
   }
-
   afterInit(server: Server) {
     this.logger.info('WebSocket Gateway initialized');
-    server.use((socket, next) => {
-      const tenantId = socket.handshake.headers['x-tenant-id'] as string;
-      this.tenantService.setTenantId(tenantId);
-
-      const token =
-        socket.handshake.auth?.token || socket.handshake.headers?.authorization;
-      if (!token) {
-        return next(new Error('Authentication token is missing'));
-      }
-
-      const isDev = process.env.NODE_ENV === 'development';
-      const publicKey = isDev
-        ? process.env.CLERK_JWT_PUBLIC_KEY.replace(/\\n/g, '\n')
-        : this.configService.get('clerk.clerkPublicKey');
-
-      try {
-        const user = jwt.verify(token, publicKey, {
-          algorithms: ['RS256'], // Specify the RS256 algorithm
-        });
-        socket.data.user = user; // Attach the user object to socket.dat
-        next();
-      } catch (error) {
-        this.logger.error({ error });
-        next(new Error('Invalid authentication token'));
-      }
-    });
+    server.use(
+      wsAuthMiddleware(this.tenantService, this.logger, this.configService),
+    );
   }
 
-  @UseGuards(WsGuard)
+  // @UseGuards(WsGuard)
   async handleConnection(client: SocketWithUser) {
     try {
       const { user } = client.data;
@@ -201,7 +174,7 @@ export class MessagingGateway
   ): Promise<SocketResponse> {
     const { user } = client.data;
 
-    this.logger.debug({ user }, 'new message');
+    this.logger.info({ user, payload }, 'new message');
 
     // Rate limiting
     const throttleKey = `message:${user.id}`;
