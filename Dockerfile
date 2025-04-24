@@ -15,7 +15,7 @@ CMD [""]
 FROM builder AS prod-build
 RUN rm -rf dist
 RUN npm run build
-RUN npm prune --production
+RUN npm prune --omit=dev
 
 #PROD
 FROM $IMAGE AS prod

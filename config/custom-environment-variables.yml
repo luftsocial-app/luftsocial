@@ -19,7 +19,7 @@ messaging:
     readReceiptRateMs: READ_RECEIPT_THROTTLE_MS
     maxClientsPerUser: MAX_CLIENTS_PER_USER
     connectionTimeout: WS_CONNECTION_TIMEOUT
-database:
+db:
   options:
     username: DB_USER
     password: DB_PASS
