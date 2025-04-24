@@ -33,14 +33,13 @@ const options: ValidationPipeOptions = {
   exceptionFactory: (errors) =>
     new BadRequestException({ errors, message: 'validation failed' }),
 };
-const loggerConfig = config.get<any>('logger');
 
 const logger: Logger = new Logger(
   new PinoLogger({
     pinoHttp: {
-      ...loggerConfig,
-      transport: loggerConfig.transport || {
-        target: 'pino-pretty',
+      ...config.get('logger'),
+      transport: {
+        target: 'pino-http',
         options: {
           colorize: true,
           levelFirst: true,
