@@ -19,7 +19,8 @@ function createRedisUrl(redisConfig: any): string {
       provide: 'CACHE_INSTANCE',
       useFactory: () => {
         const redisConfig = config.get('cache.redis');
-        const redisUrl = config.get('redis.renderTestURL') || createRedisUrl(redisConfig);
+        const redisUrl =
+          config.get('redis.renderTestURL') || createRedisUrl(redisConfig);
         const defaultTtl = config.get<number>('cache.defaults.ttl');
         const secondary = new KeyvRedis(redisUrl);
         return new Cacheable({
