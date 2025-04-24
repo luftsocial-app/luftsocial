@@ -1,61 +1,34 @@
-###################
-# BUILD FOR LOCAL DEVELOPMENT
-###################
+ARG IMAGE=node:22-alpine
 
-FROM node:22-alpine AS development
-
-# Create app directory
+#COMMON
+FROM $IMAGE AS builder
 WORKDIR /app
+COPY package*.json ./
+RUN npm i
+COPY . .
 
-# Copy application dependency manifests to the container image.
-# A wildcard is used to ensure copying both package.json AND package-lock.json (when available).
-# Copying this first prevents re-running npm install on every code change.
-COPY --chown=node:node package*.json ./
+#DEVELOPMENT
+FROM builder AS dev 
+CMD [""]
 
-# Install app dependencies using the `npm ci` command instead of `npm install`
-RUN npm ci
-
-# Bundle app source
-COPY --chown=node:node . .
-
-# Use the node user from the image (instead of the root user)
-USER node
-
-###################
-# BUILD FOR PRODUCTION
-###################
-
-FROM node:22-alpine AS build
-
-WORKDIR /app
-
-COPY --chown=node:node package*.json ./
-
-# In order to run `npm run build` we need access to the Nest CLI which is a dev dependency. In the previous development stage we ran `npm ci` which installed all dependencies, so we can copy over the node_modules directory from the development image
-COPY --chown=node:node --from=development /app/node_modules ./node_modules
-
-COPY --chown=node:node . .
-
-# Run the build command which creates the production bundle
+#PROD MIDDLE STEP
+FROM builder AS prod-build
+RUN rm -rf dist
 RUN npm run build
+RUN ls dist/
+RUN ls dist/src
+RUN npm prune --production
 
-# Set NODE_ENV environment variable
-ENV NODE_ENV=production
-
-# Running `npm ci` removes the existing node_modules directory and pASsing in --only=production ensures that only the production dependencies are installed. This ensures that the node_modules directory is AS optimized AS possible
-RUN npm ci --only=production && npm cache clean --force
+#PROD
+FROM $IMAGE AS prod
+COPY --chown=node:node --from=prod-build /app/dist /app/dist
+COPY --chown=node:node --from=prod-build /app/node_modules /app/node_modules
+# COPY --chown=node:node --from=prod-build /app/.env /app/dist/.env
 
 USER node
+ENV NODE_ENV=production
+WORKDIR /app/dist
+# ENTRYPOINT ["node ./main.js"]
+CMD [ "node", "main.js" ]
 
-###################
-# PRODUCTION
-###################
 
-FROM node:22-alpine AS production
-
-# Copy the bundled code from the build stage to the production image
-COPY --chown=node:node --from=build /app/node_modules ./node_modules
-COPY --chown=node:node --from=build /app/dist ./dist
-
-# Start the server using the production build
-CMD [ "node", "/app/src/dist/main.js" ]
