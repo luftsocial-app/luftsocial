@@ -1,18 +1,21 @@
 import { DataSource } from 'typeorm';
-import { ConfigService } from '@nestjs/config';
-import { config } from 'dotenv';
+import * as config from 'config';
 
-config();
-
-const configService = new ConfigService();
+console.log([
+  config.get('DB_HOST'),
+  config.get('DB_PORT'),
+  config.get('DB_USER'),
+  config.get('DB_PASS'),
+  config.get('DB_NAME'),
+]);
 
 export default new DataSource({
   type: 'postgres',
-  host: configService.get('DB_HOST') || 'localhost',
-  port: configService.get('DB_PORT') || 5434,
-  username: configService.get('DB_USER') || 'root',
-  password: configService.get('DB_PASS') || 'admin',
-  database: configService.get('DB_NAME') || 'luftsocial',
+  host: config.get('DB_HOST') || 'localhost',
+  port: config.get('DB_PORT') || 5434,
+  username: config.get('DB_USER') || 'root',
+  password: config.get('DB_PASS') || 'admin',
+  database: config.get('DB_NAME') || 'luftsocial',
   synchronize: false,
   entities: ['dist/**/**.entity{.ts,.js}'],
 
