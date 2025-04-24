@@ -24,8 +24,8 @@ COPY --chown=node:node --from=prod-build /app/node_modules /app/node_modules
 COPY --chown=node:node --from=prod-build /app/dist /app/dist
 COPY --chown=node:node --from=prod-build /app/config /app/dist/config
 
-# Create uploads directory in /tmp (writable by default)
-RUN mkdir -p /tmp/uploads
+# Create the uploads directory with the correct permissions
+RUN mkdir -p /app/dist/tmp/uploads && chown -R node:node /app/dist/tmp/uploads
 
 ENV NODE_ENV=production
 USER node
