@@ -42,6 +42,7 @@ export interface PlatformOAuthConfig {
   authorizePath: string;
   revokePath: string;
   scopes: string[];
+  baseUrl?: string; // Base URL for API requests
   cacheOptions: {
     tokenTTL: number;
     refreshTokenTTL: number;

@@ -24,13 +24,25 @@ export class TikTokAccount {
   socialAccount: SocialAccount;
 
   @Column()
-  tiktokUserId: string;
+  userId: string;
 
   @Column()
-  username: string;
+  openId: string;
 
   @Column({ nullable: true })
   displayName: string;
+
+  @Column({ nullable: true })
+  bioDescription: string;
+
+  @Column({ nullable: true })
+  avatarLargeUrl: string;
+
+  @Column({ nullable: true })
+  avatarUrl100: string;
+
+  @Column({ nullable: true })
+  profileDeepLink: string;
 
   @Column({ type: 'int', default: 0 })
   followerCount: number;

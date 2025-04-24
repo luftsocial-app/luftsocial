@@ -408,7 +408,7 @@ export class TikTokService implements PlatformService {
     // Store media in S3 first if there are any media items
     const mediaItems = await this.uploadTitTokMediaItemsToStorage(
       media,
-      account.tiktokUserId,
+      account.openId,
       'post',
     );
 

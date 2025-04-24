@@ -36,7 +36,7 @@ async function createSessionToken( // this function is for testing only, should 
     }
 
     const data = await response.json();
-    logger.debug(`Session Token: ${data.jwt}`);
+    logger.info(`Session Token: ${data.jwt}`);
     return data.jwt;
   } catch (error) {
     logger.error('Failed to create session token:', error.message);
@@ -62,11 +62,12 @@ export class TenantMiddleware implements NestMiddleware {
       clerkSecretKey,
       this.logger,
     );
+    console.log('customJWT', customJWT);
+
     req.headers['authorization'] = `Bearer ${customJWT}`;
     const tenantId =
       (req.headers['X-TENANT-ID'] as string) ||
       (req.headers['x-tenant-id'] as string);
-
     const isLuftSocialAdmin =
       req.headers['X-LUFTSOCIAL-ADMIN'] === 'true' ||
       req.headers['x-luftsocial-admin'] === 'true';

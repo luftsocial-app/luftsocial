@@ -8,7 +8,6 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import axios from 'axios';
-import * as FormData from 'form-data';
 import * as config from 'config';
 import { FacebookRepository } from './repositories/facebook.repository';
 
@@ -351,20 +350,6 @@ export class FacebookService implements PlatformService {
     return response.data.data;
   }
 
-  private async uploadMedia(accessToken: string, url: string): Promise<any> {
-    const response = await axios.post(
-      `${this.baseUrl}/${this.apiVersion}/photos`,
-      { url },
-      {
-        params: {
-          access_token: accessToken,
-          published: false,
-        },
-      },
-    );
-    return { media_fbid: response.data.id };
-  }
-
   /**
    * Unified method to create a post on a Facebook Page
    * Handles text posts, link posts, photo posts, video posts, and scheduled posts
@@ -392,6 +377,7 @@ export class FacebookService implements PlatformService {
 
         // Special case: if we have only a single video, use the video API
         if (videos.length === 1 && photos.length === 0) {
+          console.log('Single video post detected');
           return this.handleSingleVideoPost(
             page,
             createPostDto,
@@ -568,7 +554,7 @@ export class FacebookService implements PlatformService {
   }
 
   /**
-   * Handle a single video post
+   * Handle a single video post using Facebook's URL-based approach
    */
   private async handleSingleVideoPost(
     page: any,
@@ -576,111 +562,181 @@ export class FacebookService implements PlatformService {
     videoItem: MediaItem,
     tenantId: string,
   ): Promise<any> {
-    // For videos, we need to use the Resumable Upload API first to get a file handle
-    let fileHandle;
-
-    // If it's not already a URL, we need to upload it
-    if (!videoItem.url) {
-      // First, store in S3 for our records
-      await this.mediaStorageService.uploadPostMedia(
-        page.facebookAccount.id,
-        [videoItem.file],
-        page.id,
-        SocialPlatform.FACEBOOK,
-      );
-
-      // Then, use Resumable Upload API to get a handle for Facebook
-      fileHandle = await this.uploadVideoToFacebook(
-        videoItem.file.buffer,
-        page.accessToken,
-      );
-    } else {
-      // If it's already a URL, we still need to download it and upload to Facebook
-      const videoBuffer = await this.downloadFileFromUrl(videoItem.url);
-      fileHandle = await this.uploadVideoToFacebook(
-        videoBuffer,
-        page.accessToken,
-      );
-    }
-
-    const formData = new FormData();
-    formData.append('access_token', page.accessToken);
-    formData.append('description', createPostDto.content);
-
-    if (videoItem.title) {
-      formData.append('title', videoItem.title);
-    }
-
-    if (videoItem.description) {
-      formData.append('description', videoItem.description);
-    }
-
-    formData.append('fbuploader_video_file_chunk', fileHandle);
-
-    if (createPostDto.published === false) {
-      formData.append('published', 'false');
-      if (createPostDto.scheduledPublishTime) {
-        formData.append(
-          'scheduled_publish_time',
-          createPostDto.scheduledPublishTime.toString(),
+    try {
+      // Handle uploading to S3 if we have a file but no URL yet
+      if (!videoItem.url && videoItem.file) {
+        const uploadedMedia = await this.mediaStorageService.uploadPostMedia(
+          page.facebookAccount.id,
+          [videoItem.file],
+          page.id,
+          SocialPlatform.FACEBOOK,
         );
+
+        // Update the video item with the new URL
+        videoItem.url = uploadedMedia[0].url;
+        videoItem.s3Key = uploadedMedia[0].key;
       }
-    }
 
-    const videoPostResponse = await axios.post(
-      `${this.videoUrl}/${this.apiVersion}/${page.pageId}/videos`,
-      formData,
-      {
-        headers: {
-          ...formData.getHeaders(),
-        },
-      },
-    );
+      // Ensure we have a valid URL
+      if (!videoItem.url) {
+        throw new Error('No valid video URL found for upload');
+      }
 
-    return this.facebookRepo.createPost({
-      page,
-      postId: videoPostResponse.data.id, // For videos, the post ID is the same as the video ID
-      content: createPostDto.content,
-      mediaItems: [
+      console.log(`Posting Facebook video via URL: ${videoItem.url}`);
+
+      // Post directly to Facebook using the URL method
+      const videoPostResponse = await axios.post(
+        `${this.baseUrl}/${this.apiVersion}/${page.pageId}/videos`,
+        null,
         {
-          type: MediaType.VIDEO,
-          url: videoItem.url ? videoItem.url : null, // Original URL if available
-          key: videoItem.url ? null : videoItem.s3Key,
-          id: videoPostResponse.data.id,
+          params: {
+            file_url: videoItem.url,
+            description: createPostDto.content,
+            title: createPostDto.content.substring(0, 100), // Facebook limits title length
+            access_token: page.accessToken,
+            published: createPostDto.published ?? true,
+            ...(createPostDto.published === false &&
+              createPostDto.scheduledPublishTime && {
+                scheduled_publish_time: createPostDto.scheduledPublishTime,
+              }),
+          },
         },
-      ],
-      isPublished: createPostDto.published ?? true,
-      publishedAt: createPostDto.published ? new Date() : null,
-      scheduledPublishTime: !createPostDto.published
-        ? createPostDto.scheduledPublishTime
-        : null,
-      tenantId,
-    });
+      );
+
+      console.log('Facebook video post response:', videoPostResponse.data);
+
+      return this.facebookRepo.createPost({
+        page,
+        postId: videoPostResponse.data.id,
+        content: createPostDto.content,
+        mediaItems: [
+          {
+            type: MediaType.VIDEO,
+            url: videoItem.url,
+            key: videoItem.s3Key,
+            id: videoPostResponse.data.id,
+          },
+        ],
+        isPublished: createPostDto.published ?? true,
+        publishedAt: createPostDto.published ? new Date() : null,
+        scheduledPublishTime: !createPostDto.published
+          ? createPostDto.scheduledPublishTime
+          : null,
+        tenantId,
+      });
+    } catch (error) {
+      console.error(
+        'Facebook video post error:',
+        error.response?.data || error.message,
+      );
+
+      throw new Error(
+        `Failed to post video to Facebook: ${error.response?.data?.error?.message || error.message}`,
+      );
+    }
   }
 
   /**
-   * Handle a post with multiple media items (photos/videos) as a feed post with attachments
+   * Handle a post with multiple media items (photos/videos)
    */
   private async handleMultiMediaPost(
     page: any,
     createPostDto: CreateFacebookPagePostDto,
     tenantId: string,
   ): Promise<any> {
-    // First, upload all media to S3 and get media IDs from Facebook
-    const mediaItems = await this.uploadFacebookMediaItems(
-      createPostDto.media,
-      page.id,
-      'post',
+    try {
+      // First, upload all media to S3
+      const mediaItems = await this.uploadFacebookMediaItems(
+        createPostDto.media,
+        page.id,
+        'post',
+      );
+
+      // Separate photos and videos
+      const photos = mediaItems.filter(
+        (item) =>
+          item.type === MediaType.PHOTO ||
+          (item.mimeType && item.mimeType.startsWith('image/')),
+      );
+
+      const videos = mediaItems.filter(
+        (item) =>
+          item.type === MediaType.VIDEO ||
+          (item.mimeType && item.mimeType.startsWith('video/')),
+      );
+
+      console.log(
+        `Processing ${photos.length} photos and ${videos.length} videos`,
+      );
+
+      // For mixed media (photos + videos), we need to use a different approach
+      // Facebook doesn't support attaching both photos and videos in a single feed post
+      if (photos.length > 0 && videos.length > 0) {
+        return this.handleMixedMediaCarousel(
+          page,
+          createPostDto,
+          photos,
+          videos,
+          tenantId,
+        );
+      }
+
+      // For multiple photos only
+      if (photos.length > 0 && videos.length === 0) {
+        return this.handleMultiPhotoPost(page, createPostDto, photos, tenantId);
+      }
+
+      // For multiple videos only
+      if (videos.length > 0 && photos.length === 0) {
+        return this.handleMultiVideoPost(page, createPostDto, videos, tenantId);
+      }
+
+      // Should never reach here
+      throw new Error('No valid media items found');
+    } catch (error) {
+      console.error('Failed to handle multi-media post:', error);
+      throw new Error(
+        `Failed to create post with multiple media: ${error.message}`,
+      );
+    }
+  }
+
+  /**
+   * Handle multiple photos in a single post
+   */
+  private async handleMultiPhotoPost(
+    page: any,
+    createPostDto: CreateFacebookPagePostDto,
+    photos: MediaStorageItem[],
+    tenantId: string,
+  ): Promise<any> {
+    // Process photos to get their Facebook media IDs
+    const attachedPhotos = await Promise.all(
+      photos.map(async (photo) => {
+        const response = await axios.post(
+          `${this.baseUrl}/${this.apiVersion}/me/photos`,
+          {
+            url: photo.url,
+            published: false, // Don't publish as separate posts
+            temporary: true, // Mark as temporary for attachment
+          },
+          {
+            params: { access_token: page.accessToken },
+          },
+        );
+
+        return { media_fbid: response.data.id };
+      }),
     );
 
-    // Now create a feed post with attached media
-    const attachedMedia = await this.processMedia(page.accessToken, mediaItems);
+    console.log('Attached photos:', attachedPhotos);
 
+    // Create post with attached photos
     const postData = await axios.post(
       `${this.baseUrl}/${this.apiVersion}/${page.pageId}/feed`,
       {
         message: createPostDto.content,
-        attached_media: attachedMedia,
+        attached_media: attachedPhotos,
         published: createPostDto.published ?? true,
         ...(createPostDto.scheduledPublishTime && {
           scheduled_publish_time: createPostDto.scheduledPublishTime,
@@ -698,7 +754,7 @@ export class FacebookService implements PlatformService {
       page,
       postId: postData.data.id,
       content: createPostDto.content,
-      mediaItems,
+      mediaItems: photos,
       isPublished: createPostDto.published ?? true,
       publishedAt: createPostDto.published ? new Date() : null,
       scheduledPublishTime: !createPostDto.published
@@ -709,57 +765,228 @@ export class FacebookService implements PlatformService {
   }
 
   /**
-   * Upload a video to Facebook using the Resumable Upload API
+   * Handle multiple videos in a single post
+   * Note: Facebook doesn't support multiple videos in a single feed post,
+   * so we create an album instead
    */
-  private async uploadVideoToFacebook(
-    videoBuffer: Buffer | string,
-    accessToken: string,
-  ): Promise<string> {
-    const appId = config.get('platforms.facebook.clientId');
+  private async handleMultiVideoPost(
+    page: any,
+    createPostDto: CreateFacebookPagePostDto,
+    videos: MediaStorageItem[],
+    tenantId: string,
+  ): Promise<any> {
+    // Since Facebook doesn't support multiple videos in one post,
+    // we'll post the first video and then add the rest as comments
 
-    const buffer =
-      typeof videoBuffer === 'string'
-        ? await this.downloadFileFromUrl(videoBuffer)
-        : videoBuffer;
-
-    // Step 1: Start an upload session
-    const sessionResponse = await axios.post(
-      `${this.baseUrl}/${this.apiVersion}/${appId}/uploads`,
+    // Post the first video
+    const firstVideoResponse = await axios.post(
+      `${this.baseUrl}/${this.apiVersion}/${page.pageId}/videos`,
       null,
       {
         params: {
-          file_name: `video-${Date.now()}.mp4`,
-          file_length: buffer.length,
-          file_type: 'video/mp4',
-          access_token: accessToken,
+          file_url: videos[0].url,
+          description: createPostDto.content,
+          title: createPostDto.content.substring(0, 100),
+          access_token: page.accessToken,
+          published: createPostDto.published ?? true,
+          ...(createPostDto.published === false &&
+            createPostDto.scheduledPublishTime && {
+              scheduled_publish_time: createPostDto.scheduledPublishTime,
+            }),
         },
       },
     );
 
-    const uploadSessionId = sessionResponse.data.id.replace('upload:', '');
+    const postId = firstVideoResponse.data.id;
+    console.log('Posted first video with ID:', postId);
 
-    // Step 2: Upload the file
-    const uploadResponse = await axios.post(
-      `${this.baseUrl}/${this.apiVersion}/upload:${uploadSessionId}`,
-      buffer,
-      {
-        headers: {
-          Authorization: `OAuth ${accessToken}`,
-          file_offset: '0',
-          'Content-Type': 'application/octet-stream',
-        },
-      },
-    );
+    // Post remaining videos as comments if there are any
+    const remainingVideos = videos.slice(1);
+    if (remainingVideos.length > 0) {
+      await Promise.all(
+        remainingVideos.map(async (video, index) => {
+          try {
+            const commentResponse = await axios.post(
+              `${this.baseUrl}/${this.apiVersion}/${postId}/comments`,
+              null,
+              {
+                params: {
+                  message: `Additional video ${index + 1}`,
+                  attachment_url: video.url,
+                  access_token: page.accessToken,
+                },
+              },
+            );
 
-    return uploadResponse.data.h;
+            console.log(
+              `Posted video ${index + 1} as comment:`,
+              commentResponse.data,
+            );
+          } catch (error) {
+            console.error(
+              `Failed to post video ${index + 1} as comment:`,
+              error,
+            );
+            // Continue with other videos even if this one fails
+          }
+        }),
+      );
+    }
+
+    return this.facebookRepo.createPost({
+      page,
+      postId: postId,
+      content: createPostDto.content,
+      mediaItems: videos,
+      isPublished: createPostDto.published ?? true,
+      publishedAt: createPostDto.published ? new Date() : null,
+      scheduledPublishTime: !createPostDto.published
+        ? createPostDto.scheduledPublishTime
+        : null,
+      tenantId,
+    });
   }
 
   /**
-   * Download a file from a URL and return as a Buffer
+   * Handle mixed media (photos + videos) by creating a carousel or album
    */
-  private async downloadFileFromUrl(url: string): Promise<Buffer> {
-    const response = await axios.get(url, { responseType: 'arraybuffer' });
-    return Buffer.from(response.data);
+  private async handleMixedMediaCarousel(
+    page: any,
+    createPostDto: CreateFacebookPagePostDto,
+    photos: MediaStorageItem[],
+    videos: MediaStorageItem[],
+    tenantId: string,
+  ): Promise<any> {
+    // For mixed media, we'll create a post with the first media item
+    // and add the remaining items as comments or a photo album
+    const isFirstItemVideo = videos.length > 0;
+
+    let mainPostId;
+    const mediaItems = [...photos, ...videos];
+
+    if (isFirstItemVideo) {
+      // Post first video as main post
+      const videoResponse = await axios.post(
+        `${this.baseUrl}/${this.apiVersion}/${page.pageId}/videos`,
+        null,
+        {
+          params: {
+            file_url: videos[0].url,
+            description: createPostDto.content,
+            title: createPostDto.content.substring(0, 100),
+            access_token: page.accessToken,
+            published: createPostDto.published ?? true,
+            ...(createPostDto.published === false &&
+              createPostDto.scheduledPublishTime && {
+                scheduled_publish_time: createPostDto.scheduledPublishTime,
+              }),
+          },
+        },
+      );
+
+      mainPostId = videoResponse.data.id;
+
+      // Post remaining items as comments
+      const remainingMedia = [...photos, ...videos.slice(1)];
+
+      // Add other media as comments with attachment URLs
+      await Promise.all(
+        remainingMedia.map(async (media, index) => {
+          try {
+            await axios.post(
+              `${this.baseUrl}/${this.apiVersion}/${mainPostId}/comments`,
+              null,
+              {
+                params: {
+                  message: `Additional media ${index + 1}`,
+                  attachment_url: media.url,
+                  access_token: page.accessToken,
+                },
+              },
+            );
+          } catch (error) {
+            console.error(
+              `Failed to post media ${index + 1} as comment:`,
+              error,
+            );
+          }
+        }),
+      );
+    } else {
+      // Create an album with photos
+      const albumResponse = await axios.post(
+        `${this.baseUrl}/${this.apiVersion}/${page.pageId}/albums`,
+        {
+          name: createPostDto.content.substring(0, 100) || 'New Album',
+          message: createPostDto.content,
+          published: createPostDto.published ?? true,
+          ...(createPostDto.scheduledPublishTime && {
+            scheduled_publish_time: createPostDto.scheduledPublishTime,
+          }),
+        },
+        {
+          params: { access_token: page.accessToken },
+        },
+      );
+
+      const albumId = albumResponse.data.id;
+
+      // Add photos to album
+      await Promise.all(
+        photos.map(async (photo) => {
+          await axios.post(
+            `${this.baseUrl}/${this.apiVersion}/${albumId}/photos`,
+            {
+              url: photo.url,
+            },
+            {
+              params: { access_token: page.accessToken },
+            },
+          );
+        }),
+      );
+
+      mainPostId = albumResponse.data.id;
+
+      // Post videos as comments on the album post
+      if (videos.length > 0) {
+        await Promise.all(
+          videos.map(async (video, index) => {
+            try {
+              await axios.post(
+                `${this.baseUrl}/${this.apiVersion}/${mainPostId}/comments`,
+                null,
+                {
+                  params: {
+                    message: `Video ${index + 1}`,
+                    attachment_url: video.url,
+                    access_token: page.accessToken,
+                  },
+                },
+              );
+            } catch (error) {
+              console.error(
+                `Failed to post video ${index + 1} as comment:`,
+                error,
+              );
+            }
+          }),
+        );
+      }
+    }
+
+    return this.facebookRepo.createPost({
+      page,
+      postId: mainPostId,
+      content: createPostDto.content,
+      mediaItems,
+      isPublished: createPostDto.published ?? true,
+      publishedAt: createPostDto.published ? new Date() : null,
+      scheduledPublishTime: !createPostDto.published
+        ? createPostDto.scheduledPublishTime
+        : null,
+      tenantId,
+    });
   }
 
   /**
@@ -1351,27 +1578,23 @@ export class FacebookService implements PlatformService {
           item.type === MediaType.VIDEO ||
           (item.mimeType && item.mimeType.startsWith('video/'))
         ) {
-          // For videos, we need to handle differently
-          // Since videos can't use the simple URL upload like photos
-          const videoBuffer = await this.downloadFileFromUrl(item.url);
-          const fileHandle = await this.uploadVideoToFacebook(
-            videoBuffer,
-            accessToken,
-          );
+          // For videos, use the URL-based approach
+          // Ensure we have a valid URL for the video
+          if (!item.url) {
+            throw new Error('No valid video URL found for processing');
+          }
 
-          // Upload the video but don't publish it
-          const formData = new FormData();
-          formData.append('access_token', accessToken);
-          formData.append('published', 'false');
-          formData.append('temporary', 'true');
-          formData.append('fbuploader_video_file_chunk', fileHandle);
-
+          // Post the video but don't publish it
           const videoResponse = await axios.post(
-            `${this.videoUrl}/${this.apiVersion}/me/videos`,
-            formData,
+            `${this.baseUrl}/${this.apiVersion}/me/videos`,
+            null,
             {
-              headers: {
-                ...formData.getHeaders(),
+              params: {
+                file_url: item.url,
+                published: false,
+                temporary: true,
+                description: 'Temporary video for attachment',
+                access_token: accessToken,
               },
             },
           );
