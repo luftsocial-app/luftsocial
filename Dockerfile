@@ -14,6 +14,7 @@ CMD [""]
 #PROD MIDDLE STEP
 FROM builder AS prod-build
 RUN npm run build
+RUN npm run migration:run
 RUN npm prune --production
 
 #PROD
@@ -26,7 +27,7 @@ COPY --chown=node:node --from=prod-build /app/package*.json /app/dist/
 USER node
 ENV NODE_ENV=production
 WORKDIR /app/dist
-ENTRYPOINT ["sh", "-c", "npm run migration:run && exec node ./main.js"]
+ENTRYPOINT ["node ./main.js"]
 CMD [""]
 
 
