@@ -14,6 +14,7 @@ CMD [""]
 #PROD MIDDLE STEP
 FROM builder AS prod-build
 RUN npm run build
+RUN ls dist/
 RUN npm prune --production
 
 #PROD
@@ -24,7 +25,8 @@ COPY --chown=node:node --from=prod-build /app/node_modules /app/node_modules
 
 USER node
 ENV NODE_ENV=production
-CMD ["node .dist/main.js"]
-# CMD [""]
+WORKDIR /app/dist
+# ENTRYPOINT ["node ./main.js"]
+CMD [ "node", "main.js" ]
 
 
