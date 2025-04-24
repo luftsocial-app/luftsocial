@@ -2,8 +2,8 @@ appName: Luftsocial
 logger:
   pinoHttp:
     level: info
-    transport:
-      target: pino-pretty
+    # transport:
+    #   target: pino-pretty
     redact:
       paths:
       - req.headers.authorization
