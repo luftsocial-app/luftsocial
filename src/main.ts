@@ -39,7 +39,7 @@ const logger: Logger = new Logger(
     pinoHttp: {
       ...config.get('logger'),
       transport: {
-        target: 'pino-http',
+        target: 'pino/file',
         options: {
           colorize: true,
           levelFirst: true,
