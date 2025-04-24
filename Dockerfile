@@ -21,7 +21,9 @@ RUN npm prune --production
 FROM $IMAGE AS prod
 WORKDIR /app/dist
 COPY --chown=node:node --from=prod-build /app/node_modules /app/node_modules
-COPY --chown=node:node . .
+COPY --chown=node:node --from=prod-build /app/dist /app/dist
+COPY --chown=node:node --from=prod-build /app/config /app/dist/config
+
 RUN ls /app/dist/config
 RUN ls /app/dist/
 RUN ls /app/
