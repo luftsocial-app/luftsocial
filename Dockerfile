@@ -20,6 +20,7 @@ RUN npm prune --production
 FROM $IMAGE AS prod
 COPY --chown=node:node --from=prod-build /app/dist /app/dist
 COPY --chown=node:node --from=prod-build /app/node_modules /app/node_modules
+COPY --chown=node:node --from=prod-build /app/package*.json /app/dist/
 # COPY --chown=node:node --from=prod-build /app/.env /app/dist/.env
 
 USER node
