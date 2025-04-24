@@ -16,6 +16,7 @@ import {
           port: parseInt(configService.get('bull.redis.port') || '6379'),
           username: configService.get('bull.redis.username') || 'default',
           password: configService.get('bull.redis.password'),
+          url: configService.get('redis.renderTestURL'),
         },
       }),
       inject: [ConfigService],

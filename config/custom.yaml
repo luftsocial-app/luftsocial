@@ -84,3 +84,5 @@ bull:
     password: BULL_REDIS_PASSWORD
 otel:
   signozIngestionKey: SIGNOZ_INJECTION_KEY
+redis:
+  renderTestURL: RENDER_TEST_URL
