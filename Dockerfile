@@ -14,7 +14,6 @@ CMD [""]
 #PROD MIDDLE STEP
 FROM builder AS prod-build
 RUN npm run build
-RUN npm run migration:run
 RUN npm prune --production
 
 #PROD
