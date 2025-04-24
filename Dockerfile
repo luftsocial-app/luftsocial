@@ -24,7 +24,8 @@ COPY --chown=node:node --from=prod-build /app/node_modules /app/node_modules
 
 USER node
 ENV NODE_ENV=production
-CMD ["node .dist/main.js"]
-# CMD [""]
+# WORKDIR /app/dist
+# ENTRYPOINT ["node ./main.js"]
+CMD [ "node", "dist/main.js" ]
 
 
