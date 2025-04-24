@@ -1,12 +1,4 @@
 appName: starter-template
-logger:
-  pinoHttp:
-    level: info
-    redact:
-      paths:
-      - req.headers.authorization
-      - req.headers.auth
-      censor: '***'
 db:
   options:
     extra:
