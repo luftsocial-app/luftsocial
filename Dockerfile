@@ -23,12 +23,14 @@ RUN npm prune --production
 FROM $IMAGE AS prod
 COPY --chown=node:node --from=prod-build /app/dist /app/dist
 COPY --chown=node:node --from=prod-build /app/node_modules /app/node_modules
+RUN ls /app
+RUN ls /app/dist
+RUN ls /app/dist/src
 # COPY --chown=node:node --from=prod-build /app/.env /app/dist/.env
 
 USER node
 ENV NODE_ENV=production
-WORKDIR /app/dist
 # ENTRYPOINT ["node ./main.js"]
-CMD [ "node", "main.js" ]
+CMD [ "node", "dist/src/main.js" ]
 
 
