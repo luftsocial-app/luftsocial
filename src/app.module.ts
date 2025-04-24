@@ -61,7 +61,7 @@ import { RoleGuard } from './guards/role-guard';
 @Module({
   imports: [
     ConfigModule.forRoot({
-      // ignoreEnvFile: true,
+      ignoreEnvFile: true,
       validatePredefined: true,
       isGlobal: true,
       load: [config.util.toObject],

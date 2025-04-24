@@ -1,0 +1,88 @@
+appName: SERVICE_NAME
+logger:
+  pinoHttp:
+    level: LOG_LEVEL
+    redact:
+      paths:
+        __name: LOGGER_REDACT_JSON
+        __format: json
+      censor: '***'
+port: PORT
+clerk:
+  perishableKey: CLERK_PERISHABLE_KEY
+  secretKey: CLERK_SECRET_KEY
+  clerkPublicKey: CLERK_PUBLIC_KEY
+messaging:
+  throttle:
+    messageRateMs: MESSAGE_THROTTLE_MS
+    typingRateMs: TYPING_THROTTLE_MS
+    readReceiptRateMs: READ_RECEIPT_THROTTLE_MS
+    maxClientsPerUser: MAX_CLIENTS_PER_USER
+    connectionTimeout: WS_CONNECTION_TIMEOUT
+database:
+  options:
+    username: DB_USER
+    password: DB_PASS
+    host: DB_HOST
+    port: DB_PORT
+    database: DB_NAME
+cache:
+  redis:
+    host: REDIS_HOST
+    port: REDIS_PORT
+    username: REDIS_USER
+    password: REDIS_PASS
+  defaults:
+    ttl: CACHE_TTL
+  ttl:
+    oauth_state: OAUTH_STATE_TTL
+    access_token: OAUTH_ACCESS_TOKEN_TTL
+    refresh_token: OAUTH_REFRESH_TOKEN_TTL
+aws:
+  region: AWS_REGION
+  accessKeyId: AWS_ACCESS_KEY_ID
+  secretAccessKey: AWS_SECRET_ACCESS_KEY
+  s3:
+    bucket: AWS_S3_BUCKET
+platforms:
+  facebook:
+    clientId: FACEBOOK_CLIENT_ID
+    clientSecret: FACEBOOK_CLIENT_SECRET
+    redirectUri: FACEBOOK_REDIRECT_URI
+    apiVersion: FACEBOOK_API_VERSION
+  instagram:
+    clientId: INSTAGRAM_CLIENT_ID
+    clientSecret: INSTAGRAM_CLIENT_SECRET
+    redirectUri: INSTAGRAM_REDIRECT_URI
+    apiVersion: INSTAGRAM_API_VERSION
+  linkedin:
+    clientId: LINKEDIN_CLIENT_ID
+    clientSecret: LINKEDIN_CLIENT_SECRET
+    redirectUri: LINKEDIN_REDIRECT_URI
+    apiVersion: LINKEDIN_API_VERSION
+  tiktok:
+    clientId: TIKTOK_CLIENT_ID
+    clientSecret: TIKTOK_CLIENT_SECRET
+    redirectUri: TIKTOK_REDIRECT_URI
+    apiVersion: TIKTOK_API_VERSION
+websocket:
+  namespace: NAMESPACE
+  transports: WEBSOCKET_TRANSPORTS
+  allowedOrigins:
+    __name: ALLOWED_ORIGINS
+    __format: json
+customChatAdapter:
+  redis:
+    host: REDIS_CUSTOM_ADAPTER_HOST
+    port: REDIS_CUSTOM_ADAPTER_PORT
+    username: REDIS_CUSTOM_ADAPTER_USER
+    password: REDIS_CUSTOM_ADAPTER_PASS
+bull:
+  redis:
+    host: BULL_REDIS_HOST
+    username: BULL_REDIS_USERNAME
+    password: BULL_REDIS_PASSWORD
+otel:
+  signozIngestionKey: SIGNOZ_INJECTION_KEY
+redis:
+  renderTestURL: RENDER_TEST_URL
