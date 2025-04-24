@@ -93,7 +93,7 @@ bull:
     database: 0 # Optional - specific Redis database number
     tls: false # Optional - set to true for SSL/TLS connections
 otel:
-  signozIngestionKey: d95a8bd9-8eae-4695-bcd8-e07a518a3453
+  signozIngestionKey:
   region: eu
 redis:
   renderTestURL : true
