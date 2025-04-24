@@ -1,6 +1,6 @@
 services:
   postgres_db:
-    image: postgres:16-alpine
+    image: postgres:17-alpine
     restart: always
     environment:
       POSTGRES_PASSWORD: admin
@@ -12,19 +12,42 @@ services:
       - postgres-data:/var/lib/postgresql/data
     ports: ['5434:5434']
 
+  app-dev:
+    container_name: luftsocial-dev-app
+    build:
+      context: .
+      # dockerfile: Dockerfile.dev #using seperate dockerfile for dev
+      dockerfile: Dockerfile
+      target: dev
+    environment:
+      - PORT=3000
+      - NODE_ENV=development
+    ports:
+      - '3100:3000'
+    # profiles: #using seperate dockerfile for dev - docker compose --profile dev up --build -d
+    #   - dev
+    depends_on:
+      - postgres_db
+    command: [sh, -c, 'npm run start:dev']
+    volumes:
+      - .:/app:delegated
+      - /app/node_modules
   # app:
+  #   container_name: luftsocial-prod-app
   #   build:
   #     context: .
   #     dockerfile: Dockerfile
-  #   container_name: nest-docker-postgres
+  #     # dockerfile: Dockerfile.prod #using seperate dockerfile for prod
+  #     target: prod
   #   environment:
-  #     - PORT=${PORT}
+  #     - PORT=3000
+  #     - NODE_ENV=production
   #   ports:
-  #     - '3100:3100'
+  #     - '3000:3000'
+  #   # profiles:
+  #   #   - prod #using seperate dockerfile for prod
   #   depends_on:
   #     - postgres_db
-  #   volumes:
-  #     - ./src:/app/src
 
   pgadmin:
     image: dpage/pgadmin4
@@ -39,15 +62,35 @@ services:
       - postgres_db
 
   redis:
+    container_name: redis
     image: redis:6.2-alpine
     restart: always
     ports:
       - '6379:6379'
-    command: redis-server --save 20 1 --loglevel warning
-    environment:
-      - ALLOW_EMPTY_PASSWORD=yes
+    command: /bin/sh -c "redis-server --requirepass ${REDIS_PASSWORD}"
+    # environment:
+    #   - ALLOW_EMPTY_PASSWORD=yes
     volumes:
       - redis-cache:/data
+  redis-adapter:
+    container_name: redis-adapter
+    image: redis:6.2-alpine
+    restart: always
+    ports:
+      - '6380:6379'
+    command: /bin/sh -c "redis-server --requirepass ${REDIS_PASSWORD}"
+    volumes:
+      - redis-adapter:/data
+  bull-redis:
+    container_name: bull-redis
+    image: redis:6.2-alpine
+    restart: always
+    ports:
+      - '6381:6379'
+    command: redis-server --save 20 1 --loglevel warning --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - ./src/redis.conf:/etc/redis.conf:ro
+      - bull-redis:/data
 
   # nginx:
   #   image: nginx:latest
@@ -63,4 +106,8 @@ services:
 volumes:
   postgres-data: {}
   redis-cache:
+    driver: local
+  redis-adapter:
+    driver: local
+  bull-redis:
     driver: local

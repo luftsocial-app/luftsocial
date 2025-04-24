@@ -107,7 +107,7 @@ async function bootstrap() {
   //   preflightContinue: false,
   //   optionsSuccessStatus: 204,
   // });
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(config.get('port') ?? 3000);
 
   // const clerkClient = createClerkClient({
   //   secretKey: config.get('clerk.secretKey'),

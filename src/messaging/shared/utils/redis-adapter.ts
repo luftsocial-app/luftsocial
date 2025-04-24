@@ -8,8 +8,17 @@ export class RedisIoAdapter extends IoAdapter {
   private adapterConstructor: ReturnType<typeof createAdapter>;
 
   async connectToRedis(): Promise<void> {
+    const redisConfig: any = config.get('customChatAdapter.redis');
+    const { host, port, username, password } = redisConfig;
+
+    const redisUsername = `${encodeURIComponent(username)}` || 'default';
+    const redisPassword = `${encodeURIComponent(password)}` || '';
+    const redisHost = host || 'localhost';
+    const redisPort = port || 6379;
+    const redisUrl = `redis://${redisUsername}:${redisPassword}@${redisHost}:${redisPort}`;
+
     const pubClient = createClient({
-      url: config.get('chat.redis.customAdapterURL'),
+      url: redisUrl,
     });
     const subClient = pubClient.duplicate();
 

@@ -198,7 +198,6 @@ describe('MessageController', () => {
       mockMessageService.getMessages.mockResolvedValue(mockMessageList);
 
       const result = await controller.getMessages(
-        mockUser,
         mockConversationId,
         mockMessageQuery,
       );
@@ -216,7 +215,7 @@ describe('MessageController', () => {
       );
 
       await expect(
-        controller.getMessages(mockUser, mockConversationId, mockMessageQuery),
+        controller.getMessages(mockConversationId, mockMessageQuery),
       ).rejects.toThrow(ForbiddenException);
     });
   });

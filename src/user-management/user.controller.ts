@@ -11,6 +11,7 @@ import {
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { Permission, UserRole } from '../common/enums/roles';
 import { UserService } from './user.service';
+import { AuthObject } from '@clerk/express';
 
 @Controller('users')
 export class UserController {
@@ -23,9 +24,9 @@ export class UserController {
   }
 
   @Get('Tenant')
-  async getTenantUsers(@CurrentUser() user: any) {
+  async getTenantUsers(@CurrentUser() user: AuthObject) {
     try {
-      return await this.userService.getTenantUsers(user.tenantId);
+      return await this.userService.getTenantUsers(user.orgId);
     } catch (error) {
       throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
     }
@@ -35,13 +36,13 @@ export class UserController {
   async updateUserRole(
     @Body()
     body: { userId: string; roles: UserRole[]; permissions: Permission[] },
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthObject,
   ) {
     try {
       return await this.userService.updateUserRole(
         body.userId,
         body.roles,
-        user.tenantId,
+        user.orgId,
       );
     } catch (error) {
       throw new HttpException(

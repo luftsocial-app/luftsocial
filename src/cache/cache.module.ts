@@ -1,21 +1,16 @@
-import { Logger, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { Cacheable } from 'cacheable';
 import KeyvRedis from '@keyv/redis';
 import * as config from 'config';
 import { TokenCacheService } from './token-cache.service';
 
-const logger = new Logger('CacheModule');
-
 function createRedisUrl(redisConfig: any): string {
   const { host, port, username, password } = redisConfig;
 
-  const auth =
-    username && password
-      ? `${encodeURIComponent(username)}:${encodeURIComponent(password)}@`
-      : '';
-  logger.log('auth', auth);
+  const redisUsername = `${encodeURIComponent(username)}` || 'default';
+  const redisPassword = `${encodeURIComponent(password)}` || '';
 
-  return `redis://${auth}${host}:${port}`;
+  return `redis://${redisUsername}:${redisPassword}@${host}:${port}`;
 }
 
 @Module({

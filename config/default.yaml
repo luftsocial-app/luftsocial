@@ -11,8 +11,6 @@ logger:
       censor: '***'
 port: 3000
 clerk:
-  perishableKey:
-  secretKey:
   clerkPublicKey: ""
 messaging:
   throttle:
@@ -26,16 +24,16 @@ db:
     type: postgres
     username: root
     password: admin
-    host: localhost
+    host: postgres
     port: 5434
     database: luftsocial
     synchronize: true
 cache:
   redis:
-    host: localhost
+    host: redis
     port: 6379
-    username: redisuser # Optional
-    password: redispassword # Optional
+    username: "" # Optional
+    password: ${REDIS_PASSWORD} # Optional
     database: 0 # Optional - specific Redis database number
     tls: false # Optional - set to true for SSL/TLS connections  
   defaults:
@@ -78,6 +76,22 @@ websocket:
   - polling
   allowedOrigins:
   - "*"
-chat:
+customChatAdapter:
   redis:
-    customAdapterURL: "redis://localhost:6379"
+    host: redis-adapter
+    port: 6379
+    username: "" # Optional
+    password: ${REDIS_PASSWORD} # Optional
+    database: 0 # Optional - specific Redis database number
+    tls: false # Optional - set to true for SSL/TLS connections
+bull:
+  redis:
+    host: bull-redis
+    port: 6379
+    username: "" # Optional
+    password: ${REDIS_PASSWORD} # Optional
+    database: 0 # Optional - specific Redis database number
+    tls: false # Optional - set to true for SSL/TLS connections
+otel:
+  signozIngestionKey: d95a8bd9-8eae-4695-bcd8-e07a518a3453
+  region: eu
