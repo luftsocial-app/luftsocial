@@ -1,21 +1,15 @@
 import { DataSource } from 'typeorm';
-import * as config from 'config';
+import { config } from 'dotenv';
 
-console.log([
-  config.get('DB_HOST'),
-  config.get('DB_PORT'),
-  config.get('DB_USER'),
-  config.get('DB_PASS'),
-  config.get('DB_NAME'),
-]);
+config();
 
 export default new DataSource({
   type: 'postgres',
-  host: config.get('DB_HOST') || 'localhost',
-  port: config.get('DB_PORT') || 5434,
-  username: config.get('DB_USER') || 'root',
-  password: config.get('DB_PASS') || 'admin',
-  database: config.get('DB_NAME') || 'luftsocial',
+  host: process.env.DB_HOST || 'localhost',
+  port: parseInt(process.env.DB_PORT) || 5434,
+  username: process.env.DB_USER || 'root',
+  password: process.env.DB_PASS || 'admin',
+  database: process.env.DB_NAME || 'luftsocial',
   synchronize: false,
   entities: ['dist/**/**.entity{.ts,.js}'],
 
