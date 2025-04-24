@@ -23,6 +23,8 @@ WORKDIR /app/dist
 COPY --chown=node:node --from=prod-build /app/node_modules /app/node_modules
 COPY --chown=node:node . .
 RUN ls /app/dist/config
+RUN ls /app/dist/
+RUN ls /app/
 
 ENV NODE_ENV=production
 ENTRYPOINT ["node", "src/main.js"]
