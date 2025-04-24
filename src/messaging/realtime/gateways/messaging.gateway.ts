@@ -80,7 +80,6 @@ export class MessagingGateway
     private readonly tenantService: TenantService,
   ) {
     this.logger.setContext(MessagingGateway.name);
-    console.log('Config:', config.util.toObject());
   }
   afterInit(server: Server) {
     this.logger.info('WebSocket Gateway initialized');

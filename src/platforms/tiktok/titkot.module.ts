@@ -35,7 +35,7 @@ import { UserManagementModule } from '../../user-management/user-management.modu
     ScheduleModule.forRoot(),
 
     MulterModule.register({
-      dest: './uploads',
+      dest: './tmp/uploads',
     }),
     ConfigModule,
     UserManagementModule,

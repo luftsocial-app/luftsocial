@@ -1,4 +1,4 @@
-appName: starter-template
+appName: Luftsocial
 logger:
   pinoHttp:
     level: info
