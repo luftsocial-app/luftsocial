@@ -26,7 +26,7 @@ COPY --chown=node:node --from=prod-build /app/package*.json /app/dist/
 USER node
 ENV NODE_ENV=production
 WORKDIR /app/dist
-ENTRYPOINT ["sh", "-c", "npm run:migration && exec node ./main.js"]
+ENTRYPOINT ["sh", "-c", "npm run migration:run && exec node ./main.js"]
 CMD [""]
 
 
