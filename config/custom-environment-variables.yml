@@ -26,6 +26,7 @@ database:
     host: DB_HOST
     port: DB_PORT
     database: DB_NAME
+    synchronize: DB_SYNC
 cache:
   redis:
     host: REDIS_HOST
