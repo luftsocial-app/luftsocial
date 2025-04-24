@@ -2,6 +2,8 @@ appName: starter-template
 logger:
   pinoHttp:
     level: info
+    transport:
+      target: pino-pretty
     redact:
       paths:
       - req.headers.authorization
@@ -9,6 +11,8 @@ logger:
       censor: '***'
 port: 3000
 clerk:
+  perishableKey:
+  secretKey:
   clerkPublicKey: ""
 messaging:
   throttle:
@@ -94,4 +98,4 @@ otel:
   signozIngestionKey:
   region: eu
 redis:
-  renderTestURL : true
+  renderTestURL: true
