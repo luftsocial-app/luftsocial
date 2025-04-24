@@ -13,6 +13,7 @@ CMD [""]
 
 #PROD MIDDLE STEP
 FROM builder AS prod-build
+RUN rm -rf dist
 RUN npm run build
 RUN ls dist/
 RUN npm prune --production
