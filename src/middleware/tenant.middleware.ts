@@ -62,8 +62,6 @@ export class TenantMiddleware implements NestMiddleware {
       this.logger,
     );
 
-    console.log('customJWT', customJWT);
-
     req.headers['authorization'] = `Bearer ${customJWT}`;
     const tenantId =
       (req.headers['X-TENANT-ID'] as string) ||

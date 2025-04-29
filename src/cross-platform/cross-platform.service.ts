@@ -85,7 +85,6 @@ export class CrossPlatformService {
             {
               id: tiktokAccounts.id,
               name: tiktokAccounts.displayName,
-              type: 'individual',
             },
           ],
         });

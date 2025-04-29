@@ -194,7 +194,6 @@ export class PlatformAuthService {
       // Get additional user information from the platform if needed
       const userInfo = await this.fetchUserInfo(platform, tokens.accessToken);
 
-      console.log('UserInfo:', userInfo);
       // Create account data based on platform
       const accountData = this.createAccountData(
         platform,

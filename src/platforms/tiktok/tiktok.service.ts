@@ -273,7 +273,6 @@ export class TikTokService implements PlatformService {
         },
       };
 
-      console.log('Request body:', JSON.stringify(requestBody, null, 2));
 
       const response = await axios.post(
         `${this.baseUrl}/post/publish/video/init/`,
@@ -284,11 +283,6 @@ export class TikTokService implements PlatformService {
             'Content-Type': 'application/json',
           },
         },
-      );
-
-      console.log(
-        'TikTok API Response:',
-        JSON.stringify(response.data, null, 2),
       );
 
       if (response.data.error && response.data.error.code !== 'ok') {
@@ -427,8 +421,6 @@ export class TikTokService implements PlatformService {
           videoUrl: mediaItems[0].url,
         },
       );
-      console.log('UploadResponse:', JSON.stringify(uploadResponse, null, 2));
-
       if (uploadResponse.publishId.startsWith('v_pub_url~v2')) {
         const status = await this.checkPublishStatus(
           accountId,
@@ -475,11 +467,10 @@ export class TikTokService implements PlatformService {
 
     while (retries < maxRetries) {
       try {
-        console.log(
+        this.logger.info(
           `Checking publish status for ${publishId} (Attempt ${retries + 1}/${maxRetries})`,
         );
 
-        // Use the correct endpoint for v2 API
         const response = await axios.get(
           `${this.baseUrl}/post/publish/status/query/`,
           {
@@ -489,11 +480,6 @@ export class TikTokService implements PlatformService {
               'Content-Type': 'application/json',
             },
           },
-        );
-
-        console.log(
-          'Publish status response:',
-          JSON.stringify(response.data, null, 2),
         );
 
         // Check for TikTok API error
@@ -542,14 +528,8 @@ export class TikTokService implements PlatformService {
             continue;
         }
       } catch (error) {
-        console.error('Error checking publish status:', error);
-
         // If we get a 404, the endpoint might be incorrect - try an alternative endpoint
         if (axios.isAxiosError(error) && error.response?.status === 404) {
-          console.log(
-            'Received 404, trying alternative publish status endpoint...',
-          );
-
           try {
             // Try alternative endpoint
             const altResponse = await axios.get(
@@ -562,12 +542,6 @@ export class TikTokService implements PlatformService {
                 },
               },
             );
-
-            console.log(
-              'Alternative publish status response:',
-              JSON.stringify(altResponse.data, null, 2),
-            );
-
             // Process the response similar to above...
             if (
               altResponse.data.error &&
@@ -616,7 +590,7 @@ export class TikTokService implements PlatformService {
 
     // If we've exhausted all retries, assume it's still processing
     // TikTok may take a while to process videos
-    console.warn(
+    this.logger.warn(
       `Exhausted ${maxRetries} retries checking publish status, returning PUBLISHING`,
     );
     return 'PUBLISHING';

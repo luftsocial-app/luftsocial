@@ -6,7 +6,7 @@ export interface ConnectedPlatform {
   accounts: {
     id: string;
     name: string;
-    type: string;
+    type?: string;
   }[];
 }
 

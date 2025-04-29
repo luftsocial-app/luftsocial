@@ -377,7 +377,6 @@ export class FacebookService implements PlatformService {
 
         // Special case: if we have only a single video, use the video API
         if (videos.length === 1 && photos.length === 0) {
-          console.log('Single video post detected');
           return this.handleSingleVideoPost(
             page,
             createPostDto,
@@ -582,8 +581,6 @@ export class FacebookService implements PlatformService {
         throw new Error('No valid video URL found for upload');
       }
 
-      console.log(`Posting Facebook video via URL: ${videoItem.url}`);
-
       // Post directly to Facebook using the URL method
       const videoPostResponse = await axios.post(
         `${this.baseUrl}/${this.apiVersion}/${page.pageId}/videos`,
@@ -602,8 +599,6 @@ export class FacebookService implements PlatformService {
           },
         },
       );
-
-      console.log('Facebook video post response:', videoPostResponse.data);
 
       return this.facebookRepo.createPost({
         page,
@@ -665,7 +660,7 @@ export class FacebookService implements PlatformService {
           (item.mimeType && item.mimeType.startsWith('video/')),
       );
 
-      console.log(
+      this.logger.info(
         `Processing ${photos.length} photos and ${videos.length} videos`,
       );
 
@@ -729,7 +724,6 @@ export class FacebookService implements PlatformService {
       }),
     );
 
-    console.log('Attached photos:', attachedPhotos);
 
     // Create post with attached photos
     const postData = await axios.post(
@@ -798,7 +792,7 @@ export class FacebookService implements PlatformService {
     );
 
     const postId = firstVideoResponse.data.id;
-    console.log('Posted first video with ID:', postId);
+    this.logger.info('Posted first video with ID:', postId);
 
     // Post remaining videos as comments if there are any
     const remainingVideos = videos.slice(1);

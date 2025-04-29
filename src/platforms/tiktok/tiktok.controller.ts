@@ -14,7 +14,7 @@ import { TikTokService } from './tiktok.service';
 import { CreateTiktokVideoDto } from './helpers/create-video.dto';
 import { FileInterceptor } from '@nestjs/platform-express/multer';
 import { MediaItem } from '../platform-service.interface';
-import { CurrentUser } from 'src/decorators/current-user.decorator';
+import { CurrentUser } from '../../decorators/current-user.decorator';
 
 @Controller('platforms/tiktok')
 @UseInterceptors(TikTokErrorInterceptor, RateLimitInterceptor)
