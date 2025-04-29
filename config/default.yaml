@@ -26,15 +26,15 @@ db:
     type: postgres
     username: root
     password: admin
-    host: localhost
+    host: postgres
     port: 5434
     database: luftsocial
     synchronize: true
 cache:
   redis:
-    host: localhost
+    host: redis
     port: 6379
-    username: redisuser # Optional
+    username: "" # Optional
     password: redispassword # Optional
     database: 0 # Optional - specific Redis database number
     tls: false # Optional - set to true for SSL/TLS connections  
@@ -79,3 +79,24 @@ websocket:
   - polling
   allowedOrigins:
   - "*"
+customChatAdapter:
+  redis:
+    host: redis-adapter
+    port: 6379
+    username: "" # Optional
+    password: redispassword # Optional
+    database: 0 # Optional - specific Redis database number
+    tls: false # Optional - set to true for SSL/TLS connections
+bull:
+  redis:
+    host: bull-redis
+    port: 6379
+    username: "" # Optional
+    password: redispassword # Optional
+    database: 0 # Optional - specific Redis database number
+    tls: false # Optional - set to true for SSL/TLS connections
+otel:
+  signozIngestionKey:
+  region: eu
+redis:
+  renderTestURL : true

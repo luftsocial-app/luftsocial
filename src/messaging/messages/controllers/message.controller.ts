@@ -69,7 +69,6 @@ export class MessageController {
   @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Access denied' })
   @Get('conversations/:conversationId')
   getMessages(
-    @CurrentUser() user,
     @Param('conversationId', ParseUUIDPipe) conversationId: string,
     @Query() query: MessageQueryDto,
   ): Promise<MessageListResponseDto> {

@@ -45,6 +45,7 @@ import {
 import { PinoLogger } from 'nestjs-pino';
 import { RetryQueueService } from './services/retry-queue.service';
 import { CrossPlatformValidationPipe } from '../common/pipes/cross-platform-validation.pipe';
+import { AuthObject } from '@clerk/express';
 
 @ApiTags('Cross-Platform')
 @ApiBearerAuth()
@@ -62,7 +63,7 @@ export class CrossPlatformController {
   }
 
   @Get('platforms/connected')
-  async getConnectedPlatforms(@CurrentUser() user: any) {
+  async getConnectedPlatforms(@CurrentUser() user: AuthObject) {
     return this.crossPlatformService.getConnectedPlatforms(user.userId);
   }
 
@@ -72,10 +73,10 @@ export class CrossPlatformController {
     platform: SocialPlatform,
     @Param('accountId')
     accountId: string,
-    @CurrentUser() userId: string,
+    @CurrentUser() user: AuthObject,
   ) {
     return this.crossPlatformService.disconnectPlatform(
-      userId,
+      user.userId,
       platform,
       accountId,
     );
@@ -100,7 +101,7 @@ export class CrossPlatformController {
     @UploadedFiles() files: Express.Multer.File[],
     @Body(new CrossPlatformValidationPipe())
     createPostDto: CreateCrossPlatformPostDto,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthObject,
   ): Promise<PublishResult> {
     try {
       const { userId } = user;
@@ -206,12 +207,12 @@ export class CrossPlatformController {
   @ApiParam({ name: 'publishId', description: 'ID of the publish operation' })
   async getPublishStatus(
     @Param('publishId') publishId: string,
-    @CurrentUser() userId: string,
+    @CurrentUser() user: AuthObject,
   ): Promise<any> {
     try {
       const status = await this.contentPublisherService.getPublishStatus(
         publishId,
-        userId,
+        user.userId,
       );
 
       // Get pending retries if any
@@ -220,7 +221,7 @@ export class CrossPlatformController {
 
       const record = await this.contentPublisherService.findPublishById(
         publishId,
-        userId,
+        user.userId,
       );
 
       return {
@@ -256,14 +257,14 @@ export class CrossPlatformController {
     description: 'Filter by publish status',
   })
   async getUserPublishes(
-    @CurrentUser() userId: string,
+    @CurrentUser() user: AuthObject,
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 20,
     @Query('status') status?: PublishStatus,
   ): Promise<any> {
     try {
       return await this.contentPublisherService.findUserPublishRecords(
-        userId,
+        user.userId,
         page,
         limit,
         status,
@@ -290,11 +291,14 @@ export class CrossPlatformController {
     @Param('publishId') publishId: string,
     @Param('platform') platform: string,
     @Param('accountId') accountId: string,
-    @CurrentUser() userId: string,
+    @CurrentUser() user: AuthObject,
   ): Promise<any> {
     try {
       // Check if user has access to this publish record
-      await this.contentPublisherService.getPublishStatus(publishId, userId);
+      await this.contentPublisherService.getPublishStatus(
+        publishId,
+        user.userId,
+      );
 
       // Initiate retry with the existing method
       const result = await this.contentPublisherService.retryPublish(
@@ -364,11 +368,14 @@ export class CrossPlatformController {
   })
   async cancelScheduledPublish(
     @Param('publishId') publishId: string,
-    @CurrentUser() userId: string,
+    @CurrentUser() user: AuthObject,
   ): Promise<any> {
     try {
       // First check if the publish record exists and belongs to the user
-      await this.contentPublisherService.getPublishStatus(publishId, userId);
+      await this.contentPublisherService.getPublishStatus(
+        publishId,
+        user.userId,
+      );
 
       // We'll need to update this method
       const result = await this.contentPublisherService.updatePublishStatus(
@@ -408,10 +415,10 @@ export class CrossPlatformController {
   async schedulePost(
     @UploadedFiles() files: Express.Multer.File[],
     @Body() schedulePostDto: ScheduleCrossPlatformPostDto,
-    @CurrentUser() userId: string,
+    @CurrentUser() user: AuthObject,
   ) {
     return this.schedulerService.schedulePost({
-      userId,
+      userId: user.userId,
       content: schedulePostDto.content,
       files: files || [],
       mediaUrls: schedulePostDto.mediaUrls,
@@ -423,7 +430,7 @@ export class CrossPlatformController {
   @Get('schedule')
   async getScheduledPosts(
     @Query() filters: ScheduleFiltersDto,
-    @CurrentUser() userId: string,
+    @CurrentUser() user: AuthObject,
   ) {
     const transformedFilters = {
       ...filters,
@@ -431,14 +438,17 @@ export class CrossPlatformController {
       endDate: filters.endDate ? new Date(filters.endDate) : undefined,
     };
 
-    return this.schedulerService.getScheduledPosts(userId, transformedFilters);
+    return this.schedulerService.getScheduledPosts(
+      user.userId,
+      transformedFilters,
+    );
   }
 
   @Put('schedule/:postId')
   async updateScheduledPost(
     @Param('postId') postId: string,
     @Body() updateScheduleDto: UpdateScheduleDto,
-    @CurrentUser() userId: string,
+    @CurrentUser() user: AuthObject,
   ) {
     const serviceParams = {
       ...updateScheduleDto,
@@ -449,7 +459,7 @@ export class CrossPlatformController {
 
     return this.schedulerService.updateScheduledPost(
       postId,
-      userId,
+      user.userId,
       serviceParams,
     );
   }
@@ -457,19 +467,19 @@ export class CrossPlatformController {
   @Delete('schedule/:postId')
   async cancelScheduledPost(
     @Param('postId') postId: string,
-    @CurrentUser() userId: string,
+    @CurrentUser() user: AuthObject,
   ) {
-    return this.schedulerService.cancelScheduledPost(postId, userId);
+    return this.schedulerService.cancelScheduledPost(postId, user.userId);
   }
 
   // Analytics Endpoints
   @Get('analytics')
   async getAnalytics(
     @Query() analyticsDto: AnalyticsDto,
-    @CurrentUser() userId: string,
+    @CurrentUser() user: AuthObject,
   ) {
     return this.analyticsService.getAccountAnalytics({
-      userId,
+      userId: user.userId,
       ...analyticsDto,
     });
   }
@@ -477,10 +487,10 @@ export class CrossPlatformController {
   @Get('analytics/content')
   async getContentPerformance(
     @Query() contentPerformanceDto: ContentPerformanceDto,
-    @CurrentUser() userId: string,
+    @CurrentUser() user: AuthObject,
   ) {
     return this.analyticsService.getContentPerformance({
-      userId,
+      userId: user.userId,
       ...contentPerformanceDto,
     });
   }

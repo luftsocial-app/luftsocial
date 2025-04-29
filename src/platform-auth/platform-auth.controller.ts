@@ -13,6 +13,7 @@ import { ClerkAuthGuard } from '../guards/clerk-auth.guard';
 import { TokenResponse } from '../platforms/platform-service.interface';
 import { PlatformAuthService } from './platform-auth.service';
 import { SocialPlatform } from '../common/enums/social-platform.enum';
+import { AuthObject } from '@clerk/express';
 
 @UseGuards(ClerkAuthGuard)
 @Controller('auth')
@@ -23,12 +24,11 @@ export class PlatformAuthController {
   async authorize(
     @Param('platform', new ParseEnumPipe(SocialPlatform))
     platform: SocialPlatform,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthObject,
   ): Promise<{ url: string }> {
-    const { userId } = user;
     const url = await this.PlatformAuthService.getAuthorizationUrl(
       platform,
-      userId,
+      user.userId,
     );
     return { url };
   }
@@ -47,10 +47,9 @@ export class PlatformAuthController {
   async refreshToken(
     @Param('platform', new ParseEnumPipe(SocialPlatform))
     platform: SocialPlatform,
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthObject,
   ): Promise<TokenResponse> {
-    const { userId } = user;
-    return this.PlatformAuthService.refreshToken(platform, userId);
+    return this.PlatformAuthService.refreshToken(platform, user.userId);
   }
 
   @Post(':platform/revoke')

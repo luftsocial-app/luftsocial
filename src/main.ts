@@ -11,6 +11,7 @@ import {
   VersioningType,
 } from '@nestjs/common';
 import { ValidatorOptions } from '@nestjs/common/interfaces/external/validator-options.interface';
+import { RedisIoAdapter } from './messaging/shared/utils/redis-adapter';
 
 export interface ValidationPipeOptions extends ValidatorOptions {
   transform?: boolean;
@@ -72,6 +73,11 @@ async function bootstrap() {
   app.useGlobalInterceptors(new LoggerErrorInterceptor());
   // app.set('trust proxy', 'loopback'); // Trust requests from the loopback address
 
+  // custom adapter
+  const redisIoAdapter = new RedisIoAdapter(app);
+  await redisIoAdapter.connectToRedis();
+  app.useWebSocketAdapter(redisIoAdapter);
+
   const swaggerConfig = new DocumentBuilder()
     .setTitle('LuftSocial API')
     .setDescription('The LuftSocial API description')
@@ -101,7 +107,7 @@ async function bootstrap() {
   //   preflightContinue: false,
   //   optionsSuccessStatus: 204,
   // });
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(config.get('port') ?? 3000);
 
   // const clerkClient = createClerkClient({
   //   secretKey: config.get('clerk.secretKey'),

@@ -1,13 +1,32 @@
-FROM node:20
+ARG IMAGE=node:22-alpine
 
+#COMMON
+FROM $IMAGE AS builder
 WORKDIR /app
-
 COPY package*.json ./
-
-RUN npm ci
-
+RUN npm i
 COPY . .
 
-RUN npm run build
+#DEVELOPMENT
+FROM builder AS dev 
+CMD [""]
 
-CMD [ "npm", "run", "start" ]
+#PROD MIDDLE STEP
+FROM builder AS prod-build
+RUN rm -rf dist
+RUN npm run build
+RUN npm prune --production
+
+#PROD
+FROM $IMAGE AS prod
+WORKDIR /app/dist
+COPY --chown=node:node --from=prod-build /app/dist /app/dist
+COPY --chown=node:node --from=prod-build /app/node_modules /app/node_modules
+
+# ENV NODE_ENV=production
+ENTRYPOINT ["node", "src/main.js"]
+CMD [""]
+
+USER node
+
+

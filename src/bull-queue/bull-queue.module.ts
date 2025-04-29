@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { BullConfigService } from './bull-config.service';
 import {
   CLERK_WEBHOOK_QUEUE_NAME,
   CONTENT_PLATFORM_PUBLISH,
@@ -13,9 +12,11 @@ import {
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         connection: {
-          host: configService.get('REDIS_HOST') || 'localhost',
-          port: parseInt(configService.get('REDIS_PORT') || '6379'),
-          password: configService.get('REDIS_PASSWORD'),
+          host: configService.get('bull.redis.host') || 'localhost',
+          port: parseInt(configService.get('bull.redis.port') || '6379'),
+          username: configService.get('bull.redis.username') || 'default',
+          password: configService.get('bull.redis.password'),
+          url: configService.get('redis.renderTestURL'),
         },
       }),
       inject: [ConfigService],
@@ -48,7 +49,6 @@ import {
       { name: 'other-event-type' },
     ),
   ],
-  providers: [BullConfigService],
   exports: [BullModule],
 })
 export class BullQueueModule {}

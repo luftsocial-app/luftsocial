@@ -71,3 +71,18 @@ websocket:
   allowedOrigins:
     __name: ALLOWED_ORIGINS
     __format: json
+customChatAdapter:
+  redis:
+    host: REDIS_CUSTOM_ADAPTER_HOST
+    port: REDIS_CUSTOM_ADAPTER_PORT
+    username: REDIS_CUSTOM_ADAPTER_USER
+    password: REDIS_CUSTOM_ADAPTER_PASS
+bull:
+  redis:
+    host: BULL_REDIS_HOST
+    username: BULL_REDIS_USERNAME
+    password: BULL_REDIS_PASSWORD
+otel:
+  signozIngestionKey: SIGNOZ_INJECTION_KEY
+redis:
+  renderTestURL: RENDER_TEST_URL

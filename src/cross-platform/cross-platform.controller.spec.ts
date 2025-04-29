@@ -13,10 +13,13 @@ import {
   AnalyticsDto,
   CreateCrossPlatformPostDto,
 } from './helpers/dtos/cross-platform.dto';
+import { AuthObject } from '@clerk/express';
 
 describe('CrossPlatformController', () => {
   let controller: CrossPlatformController;
   let logger: PinoLogger;
+
+  const user = { userId: 'user-123' } as unknown as AuthObject;
 
   // Mock services
   const mockCrossPlatformService = {
@@ -88,7 +91,7 @@ describe('CrossPlatformController', () => {
   describe('getConnectedPlatforms', () => {
     it('should return connected platforms for a user', async () => {
       // Arrange
-      const mockUser = { userId: 'user-123' };
+      const mockUser = { userId: 'user-123' } as unknown as AuthObject;
       const mockConnectedPlatforms = [
         { platform: SocialPlatform.FACEBOOK, accountId: 'fb-123' },
         { platform: SocialPlatform.INSTAGRAM, accountId: 'ig-123' },
@@ -113,7 +116,6 @@ describe('CrossPlatformController', () => {
       // Arrange
       const platform = SocialPlatform.FACEBOOK;
       const accountId = 'fb-123';
-      const userId = 'user-123';
       mockCrossPlatformService.disconnectPlatform.mockResolvedValue({
         success: true,
       });
@@ -122,12 +124,12 @@ describe('CrossPlatformController', () => {
       const result = await controller.disconnectPlatform(
         platform,
         accountId,
-        userId,
+        user,
       );
 
       // Assert
       expect(mockCrossPlatformService.disconnectPlatform).toHaveBeenCalledWith(
-        userId,
+        user.userId,
         platform,
         accountId,
       );
@@ -136,7 +138,7 @@ describe('CrossPlatformController', () => {
   });
 
   describe('publishContent', () => {
-    const mockUser = { userId: 'user-123' };
+    const mockUser = { userId: 'user-123' } as unknown as AuthObject;
     const mockFiles = [
       {
         fieldname: 'files',
@@ -300,7 +302,6 @@ describe('CrossPlatformController', () => {
     it('should return the status of a publish operation', async () => {
       // Arrange
       const publishId = 'pub-123';
-      const userId = 'user-123';
       const mockStatus = PublishStatus.COMPLETED;
       const mockPendingRetries = [];
       const mockRecord = {
@@ -322,19 +323,19 @@ describe('CrossPlatformController', () => {
       mockContentPublisherService.findPublishById.mockResolvedValue(mockRecord);
 
       // Act
-      const result = await controller.getPublishStatus(publishId, userId);
+      const result = await controller.getPublishStatus(publishId, user);
 
       // Assert
       expect(mockContentPublisherService.getPublishStatus).toHaveBeenCalledWith(
         publishId,
-        userId,
+        user.userId,
       );
       expect(mockRetryQueueService.getPendingRetries).toHaveBeenCalledWith(
         publishId,
       );
       expect(mockContentPublisherService.findPublishById).toHaveBeenCalledWith(
         publishId,
-        userId,
+        user.userId,
       );
 
       expect(result).toEqual({
@@ -352,14 +353,13 @@ describe('CrossPlatformController', () => {
     it('should handle errors when getting publish status', async () => {
       // Arrange
       const publishId = 'pub-123';
-      const userId = 'user-123';
       mockContentPublisherService.getPublishStatus.mockRejectedValue(
         new Error('Publish record not found'),
       );
 
       // Act & Assert
       await expect(
-        controller.getPublishStatus(publishId, userId),
+        controller.getPublishStatus(publishId, user),
       ).rejects.toThrow(HttpException);
       expect(logger.error).toHaveBeenCalled();
     });
@@ -368,7 +368,6 @@ describe('CrossPlatformController', () => {
   describe('getUserPublishes', () => {
     it('should return paginated publish records for a user', async () => {
       // Arrange
-      const userId = 'user-123';
       const page = 1;
       const limit = 10;
       const status = PublishStatus.COMPLETED;
@@ -389,7 +388,7 @@ describe('CrossPlatformController', () => {
 
       // Act
       const result = await controller.getUserPublishes(
-        userId,
+        user,
         page,
         limit,
         status,
@@ -398,19 +397,18 @@ describe('CrossPlatformController', () => {
       // Assert
       expect(
         mockContentPublisherService.findUserPublishRecords,
-      ).toHaveBeenCalledWith(userId, page, limit, status);
+      ).toHaveBeenCalledWith(user.userId, page, limit, status);
       expect(result).toEqual(mockPublishes);
     });
 
     it('should handle errors when getting user publishes', async () => {
       // Arrange
-      const userId = 'user-123';
       mockContentPublisherService.findUserPublishRecords.mockRejectedValue(
         new Error('Database error'),
       );
 
       // Act & Assert
-      await expect(controller.getUserPublishes(userId)).rejects.toThrow(
+      await expect(controller.getUserPublishes(user)).rejects.toThrow(
         HttpException,
       );
       expect(logger.error).toHaveBeenCalled();
@@ -423,7 +421,6 @@ describe('CrossPlatformController', () => {
       const publishId = 'pub-123';
       const platform = 'facebook';
       const accountId = 'fb-123';
-      const userId = 'user-123';
 
       mockContentPublisherService.getPublishStatus.mockResolvedValue(
         PublishStatus.PARTIALLY_COMPLETED,
@@ -435,13 +432,13 @@ describe('CrossPlatformController', () => {
         publishId,
         platform,
         accountId,
-        userId,
+        user,
       );
 
       // Assert
       expect(mockContentPublisherService.getPublishStatus).toHaveBeenCalledWith(
         publishId,
-        userId,
+        user.userId,
       );
       expect(mockContentPublisherService.retryPublish).toHaveBeenCalledWith(
         publishId,
@@ -459,7 +456,6 @@ describe('CrossPlatformController', () => {
       const publishId = 'pub-123';
       const platform = 'facebook';
       const accountId = 'fb-123';
-      const userId = 'user-123';
 
       mockContentPublisherService.getPublishStatus.mockResolvedValue(
         PublishStatus.PARTIALLY_COMPLETED,
@@ -468,7 +464,7 @@ describe('CrossPlatformController', () => {
 
       // Act & Assert
       await expect(
-        controller.retryPlatformPublish(publishId, platform, accountId, userId),
+        controller.retryPlatformPublish(publishId, platform, accountId, user),
       ).rejects.toThrow(
         new HttpException(
           'Failed to retry platform publish: Failed to initiate retry',
@@ -482,7 +478,6 @@ describe('CrossPlatformController', () => {
       const publishId = 'pub-123';
       const platform = 'facebook';
       const accountId = 'fb-123';
-      const userId = 'user-123';
 
       mockContentPublisherService.getPublishStatus.mockRejectedValue(
         new Error('Publish record not found'),
@@ -490,7 +485,7 @@ describe('CrossPlatformController', () => {
 
       // Act & Assert
       await expect(
-        controller.retryPlatformPublish(publishId, platform, accountId, userId),
+        controller.retryPlatformPublish(publishId, platform, accountId, user),
       ).rejects.toThrow(HttpException);
       expect(logger.error).toHaveBeenCalled();
     });
@@ -546,7 +541,6 @@ describe('CrossPlatformController', () => {
     it('should successfully cancel a scheduled publish', async () => {
       // Arrange
       const publishId = 'pub-123';
-      const userId = 'user-123';
 
       mockContentPublisherService.getPublishStatus.mockResolvedValue(
         PublishStatus.PENDING,
@@ -554,12 +548,12 @@ describe('CrossPlatformController', () => {
       mockContentPublisherService.updatePublishStatus.mockResolvedValue(true);
 
       // Act
-      const result = await controller.cancelScheduledPublish(publishId, userId);
+      const result = await controller.cancelScheduledPublish(publishId, user);
 
       // Assert
       expect(mockContentPublisherService.getPublishStatus).toHaveBeenCalledWith(
         publishId,
-        userId,
+        user.userId,
       );
       expect(
         mockContentPublisherService.updatePublishStatus,
@@ -573,7 +567,6 @@ describe('CrossPlatformController', () => {
     it('should throw exception when cancel fails', async () => {
       // Arrange
       const publishId = 'pub-123';
-      const userId = 'user-123';
 
       mockContentPublisherService.getPublishStatus.mockResolvedValue(
         PublishStatus.PENDING,
@@ -582,7 +575,7 @@ describe('CrossPlatformController', () => {
 
       // Act & Assert
       await expect(
-        controller.cancelScheduledPublish(publishId, userId),
+        controller.cancelScheduledPublish(publishId, user),
       ).rejects.toThrow(
         new HttpException(
           'Failed to cancel scheduled publish: Failed to cancel scheduled publish',
@@ -594,7 +587,6 @@ describe('CrossPlatformController', () => {
     it('should handle errors when cancelling scheduled publish', async () => {
       // Arrange
       const publishId = 'pub-123';
-      const userId = 'user-123';
 
       mockContentPublisherService.getPublishStatus.mockRejectedValue(
         new Error('Publish record not found'),
@@ -602,7 +594,7 @@ describe('CrossPlatformController', () => {
 
       // Act & Assert
       await expect(
-        controller.cancelScheduledPublish(publishId, userId),
+        controller.cancelScheduledPublish(publishId, user),
       ).rejects.toThrow(HttpException);
       expect(logger.error).toHaveBeenCalled();
     });
@@ -628,8 +620,6 @@ describe('CrossPlatformController', () => {
         scheduledTime: '2023-12-01T12:00:00Z',
       };
 
-      const userId = 'user-123';
-
       const mockResult = {
         id: 'schedule-123',
         status: 'SCHEDULED',
@@ -642,12 +632,12 @@ describe('CrossPlatformController', () => {
       const result = await controller.schedulePost(
         files,
         schedulePostDto,
-        userId,
+        user,
       );
 
       // Assert
       expect(mockSchedulerService.schedulePost).toHaveBeenCalledWith({
-        userId,
+        userId: user.userId,
         content: schedulePostDto.content,
         files: files,
         mediaUrls: schedulePostDto.mediaUrls,
@@ -667,8 +657,6 @@ describe('CrossPlatformController', () => {
         platform: SocialPlatform.FACEBOOK,
       };
 
-      const userId = 'user-123';
-
       const mockScheduledPosts = [
         {
           id: 'schedule-1',
@@ -687,11 +675,11 @@ describe('CrossPlatformController', () => {
       );
 
       // Act
-      const result = await controller.getScheduledPosts(filters, userId);
+      const result = await controller.getScheduledPosts(filters, user);
 
       // Assert
       expect(mockSchedulerService.getScheduledPosts).toHaveBeenCalledWith(
-        userId,
+        user.userId,
         {
           ...filters,
           startDate: new Date(filters.startDate),
@@ -710,7 +698,6 @@ describe('CrossPlatformController', () => {
         content: 'Updated content',
         scheduledTime: '2023-12-15T14:00:00Z',
       };
-      const userId = 'user-123';
 
       const mockResult = {
         id: postId,
@@ -724,13 +711,13 @@ describe('CrossPlatformController', () => {
       const result = await controller.updateScheduledPost(
         postId,
         updateScheduleDto,
-        userId,
+        user,
       );
 
       // Assert
       expect(mockSchedulerService.updateScheduledPost).toHaveBeenCalledWith(
         postId,
-        userId,
+        user.userId,
         {
           ...updateScheduleDto,
           scheduledTime: new Date(updateScheduleDto.scheduledTime),
@@ -744,19 +731,17 @@ describe('CrossPlatformController', () => {
     it('should cancel a scheduled post successfully', async () => {
       // Arrange
       const postId = 'schedule-123';
-      const userId = 'user-123';
-
       const mockResult = { success: true };
 
       mockSchedulerService.cancelScheduledPost.mockResolvedValue(mockResult);
 
       // Act
-      const result = await controller.cancelScheduledPost(postId, userId);
+      const result = await controller.cancelScheduledPost(postId, user);
 
       // Assert
       expect(mockSchedulerService.cancelScheduledPost).toHaveBeenCalledWith(
         postId,
-        userId,
+        user.userId,
       );
       expect(result).toEqual(mockResult);
     });
@@ -772,8 +757,6 @@ describe('CrossPlatformController', () => {
         endDate: '2023-12-31',
       } as unknown as AnalyticsDto;
 
-      const userId = 'user-123';
-
       const mockAnalytics = {
         followers: 1000,
         engagement: 5.2,
@@ -783,11 +766,11 @@ describe('CrossPlatformController', () => {
       mockAnalyticsService.getAccountAnalytics.mockResolvedValue(mockAnalytics);
 
       // Act
-      const result = await controller.getAnalytics(analyticsDto, userId);
+      const result = await controller.getAnalytics(analyticsDto, user);
 
       // Assert
       expect(mockAnalyticsService.getAccountAnalytics).toHaveBeenCalledWith({
-        userId,
+        userId: user.userId,
         ...analyticsDto,
       });
       expect(result).toEqual(mockAnalytics);
@@ -803,8 +786,6 @@ describe('CrossPlatformController', () => {
         postId: 'post-123',
       };
 
-      const userId = 'user-123';
-
       const mockPerformance = {
         likes: 120,
         comments: 45,
@@ -819,12 +800,12 @@ describe('CrossPlatformController', () => {
       // Act
       const result = await controller.getContentPerformance(
         { postIds: [contentPerformanceDto] },
-        userId,
+        user,
       );
 
       // Assert
       expect(mockAnalyticsService.getContentPerformance).toHaveBeenCalledWith({
-        userId,
+        userId: user.userId,
         postIds: [contentPerformanceDto],
       });
       expect(result).toEqual(mockPerformance);

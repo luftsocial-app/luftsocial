@@ -66,8 +66,8 @@ import { TikTokRateLimit } from './platforms/entities/tiktok-entities/tiktok_rat
 @Module({
   imports: [
     ConfigModule.forRoot({
-      // ignoreEnvFile: true,
-      // ignoreEnvVars: true,
+      ignoreEnvFile: true,
+      ignoreEnvVars: true,
       isGlobal: true,
       load: [config.util.toObject],
     }),
