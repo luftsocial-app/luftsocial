@@ -89,5 +89,33 @@
       "userId": "user_2vRfuRuZ10wjeYKx4KrCvdkhzcg"
     },
     "expires": 1744129779819
+  },
+  "oauth_state:c79dde558b3417b8d0e01b1d87676fd3c206c8a095e0c0c1d43e238f3e3d3d01": {
+    "data": {
+      "platform": "FACEBOOK",
+      "userId": "user_2vRfuRuZ10wjeYKx4KrCvdkhzcg"
+    },
+    "expires": 1745902822043
+  },
+  "oauth_state:dccca81e2bd6be3b8abc433bf240099300a340153e9e58dc774b9e2fe2db2b5e": {
+    "data": {
+      "platform": "FACEBOOK",
+      "userId": "user_2vRfuRuZ10wjeYKx4KrCvdkhzcg"
+    },
+    "expires": 1745902845738
+  },
+  "oauth_state:57243d253694216b37f4c09eae9f50a7b72a3564d219b504f51e97289279c442": {
+    "data": {
+      "platform": "FACEBOOK",
+      "userId": "user_2vRfuRuZ10wjeYKx4KrCvdkhzcg"
+    },
+    "expires": 1745909319349
+  },
+  "oauth_state:a8fc54437261960e45b909e0da0ff374cc9fdae721a74db77219697fff9a8a6c": {
+    "data": {
+      "platform": "TIKTOK",
+      "userId": "user_2vRfuRuZ10wjeYKx4KrCvdkhzcg"
+    },
+    "expires": 1745942401947
   }
 }

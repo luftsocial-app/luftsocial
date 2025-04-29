@@ -78,14 +78,16 @@ export class CrossPlatformService {
     // TikTok
     try {
       const tiktokAccounts = await this.tiktokService.getUserAccounts(userId);
-      if (tiktokAccounts?.length) {
+      if (tiktokAccounts) {
         connectedPlatforms.push({
           platform: SocialPlatform.TIKTOK,
-          accounts: tiktokAccounts.map((account) => ({
-            id: account.id,
-            name: account.name,
-            type: 'page',
-          })),
+          accounts: [
+            {
+              id: tiktokAccounts.id,
+              name: tiktokAccounts.displayName,
+              type: 'individual',
+            },
+          ],
         });
       }
     } catch (error) {

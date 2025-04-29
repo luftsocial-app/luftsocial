@@ -19,12 +19,14 @@ export class CreateTiktokVideoDto extends BasePlatformParams {
   platform: SocialPlatform.TIKTOK;
 
   @IsString()
+  accountId: string;
+
+  @IsString()
   @MaxLength(2200)
   title?: string;
 
   @IsEnum(TikTokVideoPrivacyLevel)
-  privacyLevel: TikTokVideoPrivacyLevel =
-    TikTokVideoPrivacyLevel.PUBLIC_TO_EVERYONE;
+  privacyLevel: TikTokVideoPrivacyLevel = TikTokVideoPrivacyLevel.SELF_ONLY;
 
   @IsEnum(TikTokPostVideoStatus)
   status: TikTokPostVideoStatus = TikTokPostVideoStatus.PENDING;

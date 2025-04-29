@@ -12,7 +12,6 @@ import {
   MediaItem,
   PlatformService,
   PostResponse,
-  SocialAccountDetails,
 } from '../platform-service.interface';
 import { TikTokRepository } from './repositories/tiktok.repository';
 import {
@@ -35,7 +34,7 @@ import { TenantService } from '../../user-management/tenant.service';
 
 @Injectable()
 export class TikTokService implements PlatformService {
-  private readonly baseUrl: string;
+  private readonly baseUrl: string = config.get('platforms.tiktok.baseUrl');
 
   constructor(
     private readonly tiktokRepo: TikTokRepository,
@@ -97,34 +96,12 @@ export class TikTokService implements PlatformService {
     }
   }
 
-  async getUserAccounts(userId: string): Promise<SocialAccountDetails[]> {
+  async getUserAccounts(userId: string): Promise<TikTokAccount> {
     const account = await this.tiktokRepo.getAccountById(userId);
     if (!account) {
       throw new NotFoundException('No Tiktok accounts found for user');
     }
-
-    try {
-      const response = await axios.get(`${this.baseUrl}/user/info/`, {
-        headers: {
-          Authorization: `Bearer ${account.socialAccount.accessToken}`,
-        },
-      });
-
-      return [
-        {
-          id: response.data.data.user.open_id,
-          name: response.data.data.user.display_name,
-          type: 'creator',
-          avatarUrl: response.data.data.user.avatar_url,
-          platformSpecific: {
-            bio: response.data.data.user.bio_description,
-            isVerified: response.data.data.user.verified,
-          },
-        },
-      ];
-    } catch (error) {
-      throw new TikTokApiException('Failed to fetch user account', error);
-    }
+    return account;
   }
 
   async getComments(
@@ -245,82 +222,99 @@ export class TikTokService implements PlatformService {
     }
   }
 
-  private async getUserInfo(accessToken: string): Promise<any> {
-    try {
-      const response = await axios.get(`${this.baseUrl}/user/info/`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-        params: {
-          fields: [
-            'open_id',
-            'union_id',
-            'avatar_url',
-            'display_name',
-            'bio_description',
-          ],
-        },
-      });
-
-      return response.data.data;
-    } catch (error) {
-      throw new TikTokApiException('Failed to fetch user info', error);
-    }
-  }
-
   async initializeVideoUpload(
     accountId: string,
     params: CreateVideoParams,
     uploadInfo: VideoUploadInit,
   ): Promise<VideoUploadResponse> {
-    const account = await this.tiktokRepo.getById(accountId);
+    let account = await this.tiktokRepo.getById(accountId);
     if (!account) throw new NotFoundException('Account not found');
 
     try {
+      // Make sure the access token is valid
+      if (!account.socialAccount?.accessToken) {
+        throw new Error('Access token not available for account');
+      }
+
+      // This is important as TikTok access tokens expire
+      if (account.socialAccount.refreshToken) {
+        try {
+          const refreshedAccount = await this.refreshAccessToken(account);
+          if (refreshedAccount) {
+            account = refreshedAccount;
+          }
+        } catch (refreshError) {
+          console.warn('Failed to refresh token:', refreshError);
+        }
+      }
+
+      const requestBody = {
+        post_info: {
+          title: params.title,
+          privacy_level: params.privacyLevel,
+          disable_duet: params.disableDuet,
+          disable_stitch: params.disableStitch,
+          disable_comment: params.disableComment,
+          video_cover_timestamp_ms: params.videoCoverTimestampMs,
+          brand_content_toggle: params.brandContentToggle,
+          brand_organic_toggle: params.brandOrganicToggle,
+          is_aigc: params.isAigc,
+        },
+        source_info: {
+          source: uploadInfo.source,
+          ...(uploadInfo.source === 'PULL_FROM_URL' && {
+            video_url: uploadInfo.videoUrl,
+          }),
+          ...(uploadInfo.source === 'FILE_UPLOAD' && {
+            video_size: uploadInfo.videoSize,
+            chunk_size: uploadInfo.chunkSize,
+            total_chunk_count: uploadInfo.totalChunkCount,
+          }),
+        },
+      };
+
+      console.log('Request body:', JSON.stringify(requestBody, null, 2));
+
       const response = await axios.post(
         `${this.baseUrl}/post/publish/video/init/`,
-        {
-          post_info: {
-            title: params.title,
-            privacy_level: params.privacyLevel,
-            disable_duet: params.disableDuet,
-            disable_stitch: params.disableStitch,
-            disable_comment: params.disableComment,
-            video_cover_timestamp_ms: params.videoCoverTimestampMs,
-            brand_content_toggle: params.brandContentToggle,
-            brand_organic_toggle: params.brandOrganicToggle,
-            is_aigc: params.isAigc,
-          },
-          source_info: {
-            source: uploadInfo.source,
-            ...(uploadInfo.source === 'PULL_FROM_URL' && {
-              video_url: uploadInfo.videoUrl,
-            }),
-            ...(uploadInfo.source === 'FILE_UPLOAD' && {
-              video_size: uploadInfo.videoSize,
-              chunk_size: uploadInfo.chunkSize,
-              total_chunk_count: uploadInfo.totalChunkCount,
-            }),
-          },
-        },
+        requestBody,
         {
           headers: {
             Authorization: `Bearer ${account.socialAccount.accessToken}`,
-            'Content-Type': 'application/json; charset=UTF-8',
+            'Content-Type': 'application/json',
           },
         },
       );
 
-      if (response.data.error.code !== 'ok') {
-        throw new TikTokApiException(response.data.error.message);
+      console.log(
+        'TikTok API Response:',
+        JSON.stringify(response.data, null, 2),
+      );
+
+      if (response.data.error && response.data.error.code !== 'ok') {
+        throw new TikTokApiException(
+          response.data.error.message || 'Unknown TikTok API error',
+          response.data.error,
+        );
       }
+
+      if (!response.data.data || !response.data.data.publish_id) {
+        throw new TikTokApiException(
+          'Invalid response from TikTok API: Missing publish_id',
+          response.data,
+        );
+      }
+
+      const uploadUrl = response.data.data.upload_url || null;
+      const publishId = response.data.data.publish_id;
 
       // Store video record
       await this.tiktokRepo.createVideo({
         account,
-        publishId: response.data.data.publish_id,
-        uploadUrl: response.data.data.upload_url,
-        status: params.status.toString(),
+        tenantId: this.tenantService.getTenantId(),
+        publishId: publishId,
+        uploadUrl: uploadUrl,
+        status: params.status,
         privacyLevel: params.privacyLevel,
         title: params.title,
         disableDuet: params.disableDuet,
@@ -333,10 +327,21 @@ export class TikTokService implements PlatformService {
       });
 
       return {
-        publishId: response.data.data.publish_id,
-        uploadUrl: response.data.data.upload_url,
+        publishId: publishId,
+        uploadUrl: uploadUrl,
       };
     } catch (error) {
+      console.error('TikTok video initialization error:', error);
+
+      // More informative error handling
+      if (axios.isAxiosError(error)) {
+        const responseData = error.response?.data;
+        throw new TikTokApiException(
+          `Failed to initialize video upload: ${responseData?.message || error.message}`,
+          responseData || error,
+        );
+      }
+
       throw new TikTokApiException('Failed to initialize video upload', error);
     }
   }
@@ -422,14 +427,27 @@ export class TikTokService implements PlatformService {
           videoUrl: mediaItems[0].url,
         },
       );
+      console.log('UploadResponse:', JSON.stringify(uploadResponse, null, 2));
 
-      // Monitor upload status
-      const status = await this.checkUploadStatus(
-        accountId,
-        uploadResponse.publishId,
-      );
-      if (status === 'FAILED') {
-        throw new TikTokApiException('Video upload failed');
+      if (uploadResponse.publishId.startsWith('v_pub_url~v2')) {
+        const status = await this.checkPublishStatus(
+          accountId,
+          uploadResponse.publishId,
+        );
+
+        if (status === 'FAILED') {
+          throw new TikTokApiException('Video publishing failed');
+        }
+      } else {
+        // Fall back to the traditional upload status check
+        const status = await this.checkUploadStatus(
+          accountId,
+          uploadResponse.publishId,
+        );
+
+        if (status === 'FAILED') {
+          throw new TikTokApiException('Video upload failed');
+        }
       }
 
       return {
@@ -437,8 +455,171 @@ export class TikTokService implements PlatformService {
         postedAt: new Date(),
       };
     } catch (error) {
+      console.error('TikTok post error:', error);
       throw new TikTokApiException('Failed to upload video', error);
     }
+  }
+
+  async checkPublishStatus(
+    accountId: string,
+    publishId: string,
+    maxRetries = 10,
+    delayMs = 3000,
+  ): Promise<'PUBLISHED' | 'PUBLISHING' | 'FAILED'> {
+    const account = await this.tiktokRepo.getById(accountId);
+    if (!account) {
+      throw new NotFoundException('Account not found');
+    }
+
+    let retries = 0;
+
+    while (retries < maxRetries) {
+      try {
+        console.log(
+          `Checking publish status for ${publishId} (Attempt ${retries + 1}/${maxRetries})`,
+        );
+
+        // Use the correct endpoint for v2 API
+        const response = await axios.get(
+          `${this.baseUrl}/post/publish/status/query/`,
+          {
+            params: { publish_id: publishId },
+            headers: {
+              Authorization: `Bearer ${account.socialAccount.accessToken}`,
+              'Content-Type': 'application/json',
+            },
+          },
+        );
+
+        console.log(
+          'Publish status response:',
+          JSON.stringify(response.data, null, 2),
+        );
+
+        // Check for TikTok API error
+        if (response.data.error && response.data.error.code !== 'ok') {
+          console.error(
+            'TikTok API error when checking publish status:',
+            response.data.error,
+          );
+          throw new TikTokApiException(
+            `Failed to check publish status: ${response.data.error.message}`,
+            response.data.error,
+          );
+        }
+
+        // Check the publish status
+        const status = response.data.data?.publish_status;
+
+        if (!status) {
+          console.warn('No publish status returned from TikTok API');
+          // Wait and retry
+          await new Promise((resolve) => setTimeout(resolve, delayMs));
+          retries++;
+          continue;
+        }
+
+        // Map TikTok API status to our status enum
+        switch (status.toLowerCase()) {
+          case 'publish_success':
+          case 'success':
+          case 'published':
+            return 'PUBLISHED';
+          case 'publish_failed':
+          case 'failed':
+            console.error(
+              'Publish failed with reason:',
+              response.data.data?.fail_reason || 'Unknown reason',
+            );
+            return 'FAILED';
+          case 'publish_processing':
+          case 'processing':
+          case 'publishing':
+          default:
+            // Still processing, wait and retry
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
+            retries++;
+            continue;
+        }
+      } catch (error) {
+        console.error('Error checking publish status:', error);
+
+        // If we get a 404, the endpoint might be incorrect - try an alternative endpoint
+        if (axios.isAxiosError(error) && error.response?.status === 404) {
+          console.log(
+            'Received 404, trying alternative publish status endpoint...',
+          );
+
+          try {
+            // Try alternative endpoint
+            const altResponse = await axios.get(
+              `${this.baseUrl}/post/publish/status/fetch/`,
+              {
+                params: { publish_id: publishId },
+                headers: {
+                  Authorization: `Bearer ${account.socialAccount.accessToken}`,
+                  'Content-Type': 'application/json',
+                },
+              },
+            );
+
+            console.log(
+              'Alternative publish status response:',
+              JSON.stringify(altResponse.data, null, 2),
+            );
+
+            // Process the response similar to above...
+            if (
+              altResponse.data.error &&
+              altResponse.data.error.code !== 'ok'
+            ) {
+              throw new TikTokApiException(
+                `Failed to check publish status: ${altResponse.data.error.message}`,
+                altResponse.data.error,
+              );
+            }
+
+            const altStatus = altResponse.data.data?.publish_status;
+
+            if (!altStatus) {
+              await new Promise((resolve) => setTimeout(resolve, delayMs));
+              retries++;
+              continue;
+            }
+
+            switch (altStatus.toLowerCase()) {
+              case 'publish_success':
+              case 'success':
+              case 'published':
+                return 'PUBLISHED';
+              case 'publish_failed':
+              case 'failed':
+                return 'FAILED';
+              default:
+                await new Promise((resolve) => setTimeout(resolve, delayMs));
+                retries++;
+                continue;
+            }
+          } catch (altError) {
+            console.error('Alternative endpoint also failed:', altError);
+            await new Promise((resolve) => setTimeout(resolve, delayMs));
+            retries++;
+            continue;
+          }
+        }
+
+        // For other errors, wait and retry
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+        retries++;
+      }
+    }
+
+    // If we've exhausted all retries, assume it's still processing
+    // TikTok may take a while to process videos
+    console.warn(
+      `Exhausted ${maxRetries} retries checking publish status, returning PUBLISHING`,
+    );
+    return 'PUBLISHING';
   }
 
   async uploadLocalVideo(
@@ -775,6 +956,42 @@ export class TikTokService implements PlatformService {
       await this.tiktokRepo.deleteAccount(accountId);
     } catch (error) {
       throw new TikTokApiException('Failed to revoke TikTok access', error);
+    }
+  }
+
+  async refreshAccessToken(
+    account: TikTokAccount,
+  ): Promise<TikTokAccount | null> {
+    if (!account.socialAccount.refreshToken) {
+      return null;
+    }
+
+    try {
+      const response = await axios.post(
+        `${this.baseUrl}/oauth/refresh_token/`,
+        {
+          client_key: config.get('platforms.tiktok.clientKey'),
+          client_secret: config.get('platforms.tiktok.clientSecret'),
+          grant_type: 'refresh_token',
+          refresh_token: account.socialAccount.refreshToken,
+        },
+      );
+
+      if (response.data && response.data.access_token) {
+        // Update the account with the new tokens
+        account.socialAccount.accessToken = response.data.access_token;
+        if (response.data.refresh_token) {
+          account.socialAccount.refreshToken = response.data.refresh_token;
+        }
+
+        // Save the updated account
+        return await this.tiktokRepo.updateAccount(account);
+      }
+
+      return null;
+    } catch (error) {
+      console.error('Failed to refresh TikTok access token:', error);
+      return null;
     }
   }
 }

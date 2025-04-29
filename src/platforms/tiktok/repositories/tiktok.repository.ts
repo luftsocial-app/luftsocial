@@ -14,6 +14,7 @@ import { TikTokRateLimit } from '../../entities/tiktok-entities/tiktok_rate_limi
 import { TikTokComment } from '../../entities/tiktok-entities/tiktok_comments.entity';
 import {
   CreateUploadSessionParams,
+  TikTokPostVideoStatus,
   TikTokVideoPrivacyLevel,
 } from '../helpers/tiktok.interfaces';
 import { SocialAccount } from '../../../platforms/entities/notifications/entity/social-account.entity';
@@ -83,9 +84,10 @@ export class TikTokRepository {
   }
   async createVideo(data: {
     account: TikTokAccount;
+    tenantId: string;
     publishId: string;
     uploadUrl?: string;
-    status: string;
+    status: TikTokPostVideoStatus;
     title?: string;
     privacyLevel: TikTokVideoPrivacyLevel;
     disableDuet?: boolean;
@@ -177,7 +179,7 @@ export class TikTokRepository {
 
   async updateVideoStatus(
     publishId: string,
-    status: string,
+    status: TikTokPostVideoStatus,
   ): Promise<TikTokVideo> {
     await this.videoRepo.update(
       { publishId },
@@ -320,6 +322,19 @@ export class TikTokRepository {
     return this.entityManager.findOne('tiktok_upload_sessions', {
       where: { id: sessionId, tenantId: this.tenantService.getTenantId() },
     });
+  }
+
+  async updateAccount(account: TikTokAccount): Promise<TikTokAccount> {
+    const existingAccount = await this.accountRepo.findOne({
+      where: { id: account.id, tenantId: this.tenantService.getTenantId() },
+      relations: ['socialAccount'],
+    });
+
+    if (!existingAccount) {
+      throw new NotFoundException('Account not found');
+    }
+
+    return this.accountRepo.save({ ...existingAccount, ...account });
   }
 
   async deleteAccount(accountId: string): Promise<void> {

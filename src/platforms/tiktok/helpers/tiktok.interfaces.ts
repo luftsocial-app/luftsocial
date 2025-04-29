@@ -11,6 +11,8 @@ export enum TikTokPostVideoStatus {
   'PENDING',
   'COMPLETED',
   'FAILED',
+  'UPLOADED',
+  'PUBLISHED',
 }
 
 export interface TikTokComment {
