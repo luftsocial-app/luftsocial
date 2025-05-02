@@ -246,7 +246,7 @@ export class ContentPublisherService {
 
             return {
               platform: platform.platform,
-              userId: params.userId,
+              accountId: params.userId,
               success: true,
               postId: result.platformPostId,
               postedAt: result.postedAt,
@@ -271,7 +271,7 @@ export class ContentPublisherService {
 
             return {
               platform: platform.platform,
-              userId: params.userId,
+              accountId: params.userId,
               success: false,
               error: error.message,
               scheduled_for_retry: true,

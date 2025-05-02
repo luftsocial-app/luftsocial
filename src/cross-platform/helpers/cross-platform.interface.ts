@@ -80,7 +80,7 @@ export interface DateRange {
 
 export interface PublishPlatformResult {
   platform: SocialPlatform;
-  userId: string;
+  accountId: string;
   success: boolean;
   postId?: string;
   postedAt?: Date;
