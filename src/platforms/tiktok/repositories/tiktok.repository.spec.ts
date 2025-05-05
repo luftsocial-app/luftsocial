@@ -306,6 +306,7 @@ describe('TikTokRepository', () => {
             .fn()
             .mockResolvedValueOnce(mockSavedSocialAccount)
             .mockResolvedValueOnce(mockSavedTikTokAccount),
+          findOne: jest.fn().mockResolvedValue(null),
         };
         return callback(manager);
       });
@@ -641,7 +642,7 @@ describe('TikTokRepository', () => {
       const result = await repository.getAccountById(mockAccountId);
 
       expect(accountRepo.findOne).toHaveBeenCalledWith({
-        where: { id: mockAccountId, tenantId: mockTenantId },
+        where: { userId: mockAccountId, tenantId: mockTenantId },
         relations: [],
       });
 
@@ -658,7 +659,7 @@ describe('TikTokRepository', () => {
       const result = await repository.getAccountById(mockAccountId, relations);
 
       expect(accountRepo.findOne).toHaveBeenCalledWith({
-        where: { id: mockAccountId, tenantId: mockTenantId },
+        where: { userId: mockAccountId, tenantId: mockTenantId },
         relations,
       });
 

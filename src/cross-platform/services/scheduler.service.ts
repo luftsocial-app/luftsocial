@@ -83,7 +83,6 @@ export class SchedulerService {
     mediaUrls?: string[];
     platforms: {
       platform: SocialPlatform;
-      accountId: string;
       platformSpecificParams?: any;
     }[];
     scheduledTime: Date;
@@ -183,7 +182,6 @@ export class SchedulerService {
       mediaUrls?: string[];
       platforms?: {
         platform: SocialPlatform;
-        accountId: string;
         platformSpecificParams?: any;
       }[];
       scheduledTime?: Date;

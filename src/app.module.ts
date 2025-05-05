@@ -57,6 +57,11 @@ import { TiktokModule } from './webhooks/tiktok/tiktok.module';
 import { PostAsset } from './asset-management/entities/post-asset.entity';
 import { PublishRecord } from './cross-platform/entities/publish.entity';
 import { RoleGuard } from './guards/role-guard';
+import { TikTokAccount } from './platforms/entities/tiktok-entities/tiktok-account.entity';
+import { TikTokMetric } from './platforms/entities/tiktok-entities/tiktok-metric.entity';
+import { TikTokVideo } from './platforms/entities/tiktok-entities/tiktok-video.entity';
+import { TikTokComment } from './platforms/entities/tiktok-entities/tiktok_comments.entity';
+import { TikTokRateLimit } from './platforms/entities/tiktok-entities/tiktok_rate_limits.entity';
 
 @Module({
   imports: [
@@ -86,6 +91,12 @@ import { RoleGuard } from './guards/role-guard';
         AuthState,
         ParticipantEntity,
         FacebookAccount,
+        TikTokAccount,
+        TikTokAccount,
+        TikTokVideo,
+        TikTokMetric,
+        TikTokRateLimit,
+        TikTokComment,
         SocialAccount,
         PostAsset,
         PublishRecord,

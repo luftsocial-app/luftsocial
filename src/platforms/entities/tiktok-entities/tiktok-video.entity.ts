@@ -9,7 +9,10 @@ import {
 } from 'typeorm';
 import { TikTokAccount } from './tiktok-account.entity';
 import { TikTokMetric } from './tiktok-metric.entity';
-import { TikTokVideoPrivacyLevel } from '../../tiktok/helpers/tiktok.interfaces';
+import {
+  TikTokPostVideoStatus,
+  TikTokVideoPrivacyLevel,
+} from '../../tiktok/helpers/tiktok.interfaces';
 
 @Entity('tiktok_videos')
 export class TikTokVideo {
@@ -28,7 +31,11 @@ export class TikTokVideo {
   @Column({ nullable: true })
   uploadUrl: string;
 
-  @Column()
+  @Column({
+    type: 'varchar',
+    enum: TikTokVideoPrivacyLevel,
+    default: TikTokVideoPrivacyLevel.SELF_ONLY,
+  })
   privacyLevel: TikTokVideoPrivacyLevel;
 
   @Column({ nullable: true })
@@ -58,11 +65,13 @@ export class TikTokVideo {
   @OneToMany(() => TikTokMetric, (metric) => metric.video)
   metrics: TikTokMetric[];
 
+  @Column()
   @Column({
-    type: 'enum',
-    enum: ['PENDING', 'UPLOADED', 'PUBLISHED', 'FAILED'],
+    type: 'varchar',
+    enum: TikTokPostVideoStatus,
+    default: TikTokPostVideoStatus.PENDING,
   })
-  status: string;
+  status: TikTokPostVideoStatus;
 
   @CreateDateColumn()
   createdAt: Date;

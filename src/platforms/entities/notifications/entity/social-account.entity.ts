@@ -8,6 +8,7 @@ import {
   OneToOne,
 } from 'typeorm';
 import { FacebookAccount } from '../../facebook-entities/facebook-account.entity';
+import { TikTokAccount } from '../../tiktok-entities/tiktok-account.entity';
 
 @Entity('social_accounts')
 export class SocialAccount {
@@ -45,4 +46,9 @@ export class SocialAccount {
     onDelete: 'CASCADE',
   })
   facebookAccount?: FacebookAccount;
+
+  @OneToOne(() => TikTokAccount, (account) => account.socialAccount, {
+    onDelete: 'CASCADE',
+  })
+  tiktokAccount?: TikTokAccount;
 }

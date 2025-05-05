@@ -11,6 +11,8 @@ logger:
       censor: '***'
 port: 3000
 clerk:
+  perishableKey: 
+  secretKey: 
   clerkPublicKey: ""
 messaging:
   throttle:
@@ -69,6 +71,7 @@ platforms:
     clientSecret: TIKTOK_CLIENT_SECRET
     redirectUri: TIKTOK_REDIRECT_URI
     apiVersion: TIKTOK_API_VERSION
+    baseUrl: TITKOK_BASE_URL
 websocket:
   namespace: 'messaging'
   transports:

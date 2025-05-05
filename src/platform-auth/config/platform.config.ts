@@ -72,12 +72,14 @@ export const PlatformConfigsProvider = {
       tokenPath: '/v2/auth/authorize/',
       authorizePath: '/v2/auth/authorize/',
       revokePath: '/v2/oauth/revoke/',
+      baseUrl: 'https://open.tiktokapis.com/v2/',
       scopes: [
+        'user.info.basic',
         'user.info.profile',
-        // 'user.info.basic',
-        // 'video.list',
-        // 'video.publish',
-        // 'video.upload',
+        'user.info.stats',
+        'video.list',
+        'video.publish',
+        'video.upload',
       ],
       cacheOptions: {
         tokenTTL: 3600,

@@ -28,7 +28,6 @@ export class TenantMiddleware implements NestMiddleware {
     const tenantId =
       (req.headers['X-TENANT-ID'] as string) ||
       (req.headers['x-tenant-id'] as string);
-
     const isLuftSocialAdmin =
       req.headers['X-LUFTSOCIAL-ADMIN'] === 'true' ||
       req.headers['x-luftsocial-admin'] === 'true';
