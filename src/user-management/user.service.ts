@@ -48,6 +48,17 @@ export class UserService {
     });
   }
 
+  async checkUserInTeam(userId: string, teamId: string): Promise<boolean> {
+    const count = await this.userRepo
+      .createQueryBuilder('user')
+      .innerJoin('user.teams', 'team')
+      .where('user.id = :userId', { userId })
+      .andWhere('team.id = :teamId', { teamId })
+      .getCount();
+
+    return count > 0;
+  }
+
   async findUserWithRelations(userId: string): Promise<User> {
     return this.userRepo.findOne({
       where: { id: userId },

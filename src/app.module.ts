@@ -57,6 +57,7 @@ import { TiktokModule } from './webhooks/tiktok/tiktok.module';
 import { PostAsset } from './asset-management/entities/post-asset.entity';
 import { PublishRecord } from './cross-platform/entities/publish.entity';
 import { RoleGuard } from './guards/role-guard';
+import { TeamManagementModule } from './team-management/team-management.module';
 
 @Module({
   imports: [
@@ -118,6 +119,7 @@ import { RoleGuard } from './guards/role-guard';
     TaskModule,
     TiktokModule,
     MessageModule,
+    TeamManagementModule,
   ],
   controllers: [AppController],
   providers: [
