@@ -98,6 +98,11 @@ export class TokenCacheService {
 
     // Try Redis first
     let data = await this.cache.get(key);
+    this.logger.info('State retrieved from Redis:', !!data);
+    this.logger.info('State key:', key);
+
+    const keys: any = await this.cache.get('*');
+    console.log(keys);
 
     // If not in Redis, try the file
     if (!data) {
