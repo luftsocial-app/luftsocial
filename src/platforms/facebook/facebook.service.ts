@@ -114,11 +114,11 @@ export class FacebookService implements PlatformService {
         createdAt: new Date(item.created_time),
         author: item.from
           ? {
-              id: item.from.id,
-              name: item.from.name,
-              // Note: Facebook no longer returns picture in this endpoint
-              picture: null,
-            }
+            id: item.from.id,
+            name: item.from.name,
+            // Note: Facebook no longer returns picture in this endpoint
+            picture: null,
+          }
           : null,
       }));
 
@@ -169,6 +169,9 @@ export class FacebookService implements PlatformService {
 
   async getUserAccounts(userId: string): Promise<SocialAccountDetails[]> {
     const account = await this.facebookRepo.getAccountById(userId);
+
+    console.log('facebook account', account);
+
     this.logger.debug({ account }, 'getUserAccounts');
     if (!account) {
       throw new NotFoundException('No Facebook accounts found for user');
@@ -527,11 +530,11 @@ export class FacebookService implements PlatformService {
     // Upload the photo to S3 first if it's not a URL
     const mediaItem = !photoItem.url
       ? await this.mediaStorageService.uploadPostMedia(
-          page.facebookAccount.id,
-          [photoItem.file],
-          page.id,
-          SocialPlatform.FACEBOOK,
-        )
+        page.facebookAccount.id,
+        [photoItem.file],
+        page.id,
+        SocialPlatform.FACEBOOK,
+      )
       : [{ url: photoItem.url, key: photoItem.s3Key }];
 
     // Post to Facebook
@@ -951,14 +954,14 @@ export class FacebookService implements PlatformService {
     const metrics = customMetrics
       ? customMetrics.split(',')
       : [
-          'page_impressions', // The number of times any Page content entered a person's screen
-          'page_post_engagements', // Engagement with Page posts
-          'page_fan_adds_unique', // New Page likes (unique accounts)
-          'page_views_total', // Total Page views
-          'page_daily_follows_unique', // New followers (unique accounts)
-          'page_posts_impressions_unique', // Unique users who saw your Page's posts
-          'page_actions_post_reactions_total', // Total reactions on Page posts
-        ];
+        'page_impressions', // The number of times any Page content entered a person's screen
+        'page_post_engagements', // Engagement with Page posts
+        'page_fan_adds_unique', // New Page likes (unique accounts)
+        'page_views_total', // Total Page views
+        'page_daily_follows_unique', // New followers (unique accounts)
+        'page_posts_impressions_unique', // Unique users who saw your Page's posts
+        'page_actions_post_reactions_total', // Total reactions on Page posts
+      ];
 
     try {
       const response = await axios.get(
@@ -1028,10 +1031,10 @@ export class FacebookService implements PlatformService {
         previous_value: values[1]?.value || 0,
         trend_percentage: values[1]?.value
           ? Math.round(
-              (((values[0]?.value || 0) - values[1]?.value) /
-                values[1]?.value) *
-                100,
-            )
+            (((values[0]?.value || 0) - values[1]?.value) /
+              values[1]?.value) *
+            100,
+          )
           : 0,
         values: values.map((v) => ({
           end_time: v.end_time,

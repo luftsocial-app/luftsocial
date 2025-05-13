@@ -37,11 +37,6 @@ export class PlatformAuthService {
   private initializeOAuthClients() {
     const clients: Partial<Record<SocialPlatform, AuthorizationCode>> = {};
 
-    this.logger.debug(
-      { platformConfigs: this.platformConfigs },
-      'Initializing OAuth clients',
-    );
-
     for (const platformName in this.platformConfigs) {
       const config = this.platformConfigs[platformName];
 
@@ -67,8 +62,6 @@ export class PlatformAuthService {
     platform: SocialPlatform,
     userId: string,
   ): Promise<string> {
-    this.logger.debug({ platform, userId }, 'Generating authorization URL');
-
     try {
       const config = this.platformConfigs[platform];
       const state = crypto.randomBytes(32).toString('hex');
@@ -85,11 +78,6 @@ export class PlatformAuthService {
       if (platform === SocialPlatform.TIKTOK) {
         options['client_key'] = config.clientId;
       }
-
-      this.logger.debug(
-        { platforms: this.oauthClients[platform] },
-        'OAuth clients initialized',
-      );
 
       return this.oauthClients[platform].authorizeURL(options);
     } catch (error) {

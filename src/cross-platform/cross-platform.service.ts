@@ -26,6 +26,9 @@ export class CrossPlatformService {
     try {
       const facebookAccounts =
         await this.facebookService.getUserAccounts(userId);
+
+        console.log('facebookAccounts', facebookAccounts);
+        
       if (facebookAccounts?.length) {
         connectedPlatforms.push({
           platform: SocialPlatform.FACEBOOK,
