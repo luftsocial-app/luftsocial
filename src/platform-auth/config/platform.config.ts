@@ -10,8 +10,12 @@ export const PlatformConfigsProvider = {
   ): Record<SocialPlatform, PlatformOAuthConfig> => ({
     [SocialPlatform.FACEBOOK]: {
       clientId: configService.get('platforms.facebook.FACEBOOK_CLIENT_ID'),
-      clientSecret: configService.get('platforms.facebook.FACEBOOK_CLIENT_SECRET'),
-      redirectUri: configService.get('platforms.facebook.FACEBOOK_REDIRECT_URI'),
+      clientSecret: configService.get(
+        'platforms.facebook.FACEBOOK_CLIENT_SECRET',
+      ),
+      redirectUri: configService.get(
+        'platforms.facebook.FACEBOOK_REDIRECT_URI',
+      ),
       tokenHost: 'https://www.facebook.com',
       tokenPath: '/v22.0/oauth/access_token',
       authorizePath: '/v22.0/dialog/oauth',
@@ -31,8 +35,12 @@ export const PlatformConfigsProvider = {
     },
     [SocialPlatform.INSTAGRAM]: {
       clientId: configService.get('platforms.instagram.INSTAGRAM_CLIENT_ID'),
-      clientSecret: configService.get('platforms.instagram.INSTAGRAM_CLIENT_SECRET'),
-      redirectUri: configService.get('platforms.instagram.INSTAGRAM_REDIRECT_URI'),
+      clientSecret: configService.get(
+        'platforms.instagram.INSTAGRAM_CLIENT_SECRET',
+      ),
+      redirectUri: configService.get(
+        'platforms.instagram.INSTAGRAM_REDIRECT_URI',
+      ),
       tokenHost: 'https://api.instagram.com',
       tokenPath: '/oauth/access_token',
       authorizePath: '/oauth/authorize',
@@ -45,8 +53,12 @@ export const PlatformConfigsProvider = {
     },
     [SocialPlatform.LINKEDIN]: {
       clientId: configService.get('platforms.linkedin.LINKEDIN_CLIENT_ID'),
-      clientSecret: configService.get('platforms.linkedin.LINKEDIN_CLIENT_SECRET'),
-      redirectUri: configService.get('platforms.linkedin.LINKEDIN_REDIRECT_URI'),
+      clientSecret: configService.get(
+        'platforms.linkedin.LINKEDIN_CLIENT_SECRET',
+      ),
+      redirectUri: configService.get(
+        'platforms.linkedin.LINKEDIN_REDIRECT_URI',
+      ),
       tokenHost: 'https://www.linkedin.com',
       tokenPath: '/oauth/v2/accessToken',
       authorizePath: '/oauth/v2/authorization',
