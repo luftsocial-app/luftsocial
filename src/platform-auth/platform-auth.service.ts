@@ -76,7 +76,10 @@ export class PlatformAuthService {
         options['client_key'] = config.clientId;
       }
 
-      this.logger.debug({ oauth: this.oauthClients[platform] }, 'OAuth client for platform');
+      this.logger.debug(
+        { oauth: this.oauthClients[platform] },
+        'OAuth client for platform',
+      );
       return this.oauthClients[platform].authorizeURL(options);
     } catch (error) {
       throw new PlatformError(
