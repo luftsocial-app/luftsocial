@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { ValidatorOptions } from '@nestjs/common/interfaces/external/validator-options.interface';
 import { RedisIoAdapter } from './messaging/shared/utils/redis-adapter';
-
+import tracer from './tracer';
 export interface ValidationPipeOptions extends ValidatorOptions {
   transform?: boolean;
   disableErrorMessages?: boolean;
@@ -53,6 +53,7 @@ const logger: Logger = new Logger(
 );
 
 async function bootstrap() {
+  await tracer.start();
   const app = await NestFactory.create(AppModule, {
     logger,
   });
