@@ -23,6 +23,7 @@ import { FilesInterceptor } from '@nestjs/platform-express/multer';
 import { CurrentUser } from '../../decorators/current-user.decorator';
 import { FacebookPage } from '../entities/facebook-entities/facebook-page.entity';
 import { FacebookPost } from '../entities/facebook-entities/facebook-post.entity';
+import { AuthObject } from '@clerk/express';
 
 @Controller('platforms/facebook')
 @UseInterceptors(RateLimitInterceptor)
@@ -66,7 +67,7 @@ export class FacebookController {
 
   @Get(':accountId/posts/:postId/comments')
   async getComments(
-    @CurrentUser() user: any,
+    @CurrentUser() user: AuthObject,
     @Param('postId') postId: string,
     @Query('pageToken') pageToken?: string,
   ) {
@@ -75,7 +76,7 @@ export class FacebookController {
   }
 
   @Get('pages')
-  async getPages(@CurrentUser() user) {
+  async getPages(@CurrentUser() user: AuthObject) {
     return this.facebookService.getUserPages(user.userId);
   }
 

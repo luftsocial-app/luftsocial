@@ -17,7 +17,8 @@ const exporterOptions = {
 };
 
 const traceExporter = new OTLPTraceExporter(exporterOptions);
-export const sdk = new opentelemetry.NodeSDK({
+
+const sdk = new opentelemetry.NodeSDK({
   traceExporter,
   instrumentations: [getNodeAutoInstrumentations()],
   resource: new Resource({
@@ -37,3 +38,5 @@ process.on('SIGTERM', () => {
     .catch((error) => console.log('Error terminating tracing', error))
     .finally(() => process.exit(0));
 });
+
+export default sdk;

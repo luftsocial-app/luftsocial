@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { ValidatorOptions } from '@nestjs/common/interfaces/external/validator-options.interface';
 import { RedisIoAdapter } from './messaging/shared/utils/redis-adapter';
-import { sdk } from './tracer';
+import tracer from './tracer';
 export interface ValidationPipeOptions extends ValidatorOptions {
   transform?: boolean;
   disableErrorMessages?: boolean;
@@ -53,7 +53,7 @@ const logger: Logger = new Logger(
 );
 
 async function bootstrap() {
-  await sdk.start();
+  await tracer.start();
   const app = await NestFactory.create(AppModule, {
     logger,
   });
@@ -108,7 +108,7 @@ async function bootstrap() {
   //   preflightContinue: false,
   //   optionsSuccessStatus: 204,
   // });
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(config.get('port') ?? 3000);
 
   // const clerkClient = createClerkClient({
   //   secretKey: config.get('clerk.secretKey'),
