@@ -72,11 +72,7 @@ export class PlatformAuthService implements OnModuleInit {
     platform: SocialPlatform,
     userId: string,
   ): Promise<string> {
-
-    this.logger.debug(
-      { platform, userId },
-      'Generating authorization URL',
-    );
+    this.logger.debug({ platform, userId }, 'Generating authorization URL');
 
     try {
       const config = this.platformConfigs[platform];

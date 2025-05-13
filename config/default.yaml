@@ -6,9 +6,9 @@ logger:
     #   target: pino-pretty
     redact:
       paths:
-      - req.headers.authorization
-      - req.headers.auth
-      censor: '***'
+        - req.headers.authorization
+        - req.headers.auth
+      censor: "***"
 port: 3000
 clerk:
   perishableKey:
@@ -37,9 +37,9 @@ cache:
     username: "" # Optional
     password: redispassword # Optional
     database: 0 # Optional - specific Redis database number
-    tls: false # Optional - set to true for SSL/TLS connections  
+    tls: false # Optional - set to true for SSL/TLS connections
   defaults:
-    ttl: 14400 # Default TTL in seconds (4 hours)  
+    ttl: 14400 # Default TTL in seconds (4 hours)
   ttl:
     oauth_state: 600 # 10 minutes for OAuth states
     access_token: 3600 # 1 hour for access tokens
@@ -52,32 +52,32 @@ aws:
     bucket: uploads-123-456
 platforms:
   facebook:
-    clientId: ${FACEBOOK_CLIENT_ID}
-    clientSecret: ${FACEBOOK_CLIENT_SECRET}
-    redirectUri: ${FACEBOOK_REDIRECT_URI}
+    clientId: "FACEBOOK_CLIENT_ID"
+    clientSecret: "FACEBOOK_CLIENT_SECRET"
+    redirectUri: "FACEBOOK_REDIRECT_URI"
     apiVersion: v22.0
   instagram:
-    clientId: INSTAGRAM_CLIENT_ID
-    clientSecret: INSTAGRAM_CLIENT_SECRET
-    redirectUri: INSTAGRAM_REDIRECT_URI
-    apiVersion: INSTAGRAM_API_VERSION
+    clientId: "INSTAGRAM_CLIENT_ID"
+    clientSecret: "INSTAGRAM_CLIENT_SECRET"
+    redirectUri: "INSTAGRAM_REDIRECT_URI"
+    apiVersion: "INSTAGRAM_API_VERSION"
   linkedin:
-    clientId: LINKEDIN_CLIENT_ID
-    clientSecret: LINKEDIN_CLIENT_SECRET
-    redirectUri: LINKEDIN_REDIRECT_URI
-    apiVersion: LINKEDIN_API_VERSION
+    clientId: "LINKEDIN_CLIENT_ID"
+    clientSecret: "LINKEDIN_CLIENT_SECRET"
+    redirectUri: "LINKEDIN_REDIRECT_URI"
+    apiVersion: "LINKEDIN_API_VERSION"
   tiktok:
-    clientKey: TIKTOK_CLIENT_ID
-    clientSecret: TIKTOK_CLIENT_SECRET
-    redirectUri: TIKTOK_REDIRECT_URI
-    apiVersion: TIKTOK_API_VERSION
+    clientKey: "TIKTOK_CLIENT_ID"
+    clientSecret: "TIKTOK_CLIENT_SECRET"
+    redirectUri: "TIKTOK_REDIRECT_URI"
+    apiVersion: "TIKTOK_API_VERSION"
 websocket:
-  namespace: 'messaging'
+  namespace: "messaging"
   transports:
-  - websocket
-  - polling
+    - websocket
+    - polling
   allowedOrigins:
-  - "*"
+    - "*"
 customChatAdapter:
   redis:
     host: redis-adapter
