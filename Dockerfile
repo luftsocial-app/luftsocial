@@ -29,8 +29,7 @@ RUN mkdir -p /app/dist/tmp/uploads && chown -R node:node /app/dist/tmp/uploads
 
 ENV NODE_ENV=production
 USER node
-ENTRYPOINT ["node", "src/main.js"]
-CMD [""]
+CMD ["sh", "-c", "npm run migration:run && node src/main.js"]
 
 
 
