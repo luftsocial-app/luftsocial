@@ -37,6 +37,11 @@ export class PlatformAuthService {
   private initializeOAuthClients() {
     const clients: Partial<Record<SocialPlatform, AuthorizationCode>> = {};
 
+    this.logger.debug(
+      { platformConfigs: this.platformConfigs },
+      'Initializing OAuth clients',
+    );
+
     for (const platformName in this.platformConfigs) {
       const config = this.platformConfigs[platformName];
 
@@ -57,7 +62,6 @@ export class PlatformAuthService {
     // Cast to full Record<SocialPlatform, AuthorizationCode> if you're confident
     this.oauthClients = clients as Record<SocialPlatform, AuthorizationCode>;
   }
-
 
   async getAuthorizationUrl(
     platform: SocialPlatform,
@@ -81,10 +85,10 @@ export class PlatformAuthService {
       }
 
       this.logger.debug(
-        { platforms: Object.keys(this.oauthClients) },
+        { platforms: this.oauthClients[platform] },
         'OAuth clients initialized',
       );
-      
+
       return this.oauthClients[platform].authorizeURL(options);
     } catch (error) {
       throw new PlatformError(
