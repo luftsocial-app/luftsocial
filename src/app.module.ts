@@ -2,6 +2,7 @@ import {
   MiddlewareConsumer,
   Module,
   NestModule,
+  Post,
   RequestMethod,
 } from '@nestjs/common';
 import { AppController } from './app.controller';
@@ -50,14 +51,22 @@ import { ConversationModule } from './messaging/conversations/conversation.modul
 import { RealtimeModule } from './messaging/realtime/realtime.module';
 import { ClerkWebhookModule } from './webhooks/clerk-webhook/clerk-webhook.module';
 import { SocialAccount } from './platforms/entities/notifications/entity/social-account.entity';
-import { Team } from './user-management/entities/team.entity';
 import { Tenant } from './user-management/entities/tenant.entity';
 import { Notification } from './platforms/entities/notifications/notification.entity';
 import { TiktokModule } from './webhooks/tiktok/tiktok.module';
 import { PostAsset } from './asset-management/entities/post-asset.entity';
 import { PublishRecord } from './cross-platform/entities/publish.entity';
 import { RoleGuard } from './guards/role-guard';
-import { TeamManagementModule } from './team-management/team-management.module';
+import { OrganizationAccessGuard } from './guards/organization-access.guard';
+import { Organization } from './user-management/entities/organization.entity';
+import { OrganizationManagementModule } from './organization-management/organization-management.module';
+import { AuditModule } from './audit/audit.module';
+import { ApprovalAction } from './organization-management/post-approval/entities/approval-action.entity';
+import { ApprovalStep } from './organization-management/post-approval/entities/approval-step.entity';
+import { Task } from './organization-management/post-approval/entities/task.entity';
+import { WorkflowStep } from './organization-management/post-approval/entities/workflow-step.entity';
+import { WorkflowTemplate } from './organization-management/post-approval/entities/workflow-template.entity';
+import { UserPost } from './organization-management/post-approval/entities/post.entity';
 
 @Module({
   imports: [
@@ -78,7 +87,7 @@ import { TeamManagementModule } from './team-management/team-management.module';
         ConversationEntity,
         MessageEntity,
         AttachmentEntity,
-        Team,
+        Organization,
         Notification,
         FacebookPostMetric,
         FacebookPost,
@@ -91,6 +100,12 @@ import { TeamManagementModule } from './team-management/team-management.module';
         PostAsset,
         PublishRecord,
         PostAsset,
+        UserPost,
+        ApprovalStep,
+        ApprovalAction,
+        Task,
+        WorkflowTemplate,
+        WorkflowStep,
       ],
     }),
     LoggerModule.forRoot({
@@ -119,7 +134,8 @@ import { TeamManagementModule } from './team-management/team-management.module';
     TaskModule,
     TiktokModule,
     MessageModule,
-    TeamManagementModule,
+    OrganizationManagementModule,
+    AuditModule,
   ],
   controllers: [AppController],
   providers: [
@@ -127,6 +143,10 @@ import { TeamManagementModule } from './team-management/team-management.module';
     {
       provide: APP_INTERCEPTOR,
       useClass: RequestInterceptor,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: OrganizationAccessGuard,
     },
     {
       provide: APP_GUARD,

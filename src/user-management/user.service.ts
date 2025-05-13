@@ -48,12 +48,15 @@ export class UserService {
     });
   }
 
-  async checkUserInTeam(userId: string, teamId: string): Promise<boolean> {
+  async checkUserInorganization(
+    userId: string,
+    organizationId: string,
+  ): Promise<boolean> {
     const count = await this.userRepo
       .createQueryBuilder('user')
-      .innerJoin('user.teams', 'team')
+      .innerJoin('user.organizations', 'organization')
       .where('user.id = :userId', { userId })
-      .andWhere('team.id = :teamId', { teamId })
+      .andWhere('organization.id = :organizationId', { organizationId })
       .getCount();
 
     return count > 0;

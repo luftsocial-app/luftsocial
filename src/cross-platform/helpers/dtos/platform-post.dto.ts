@@ -7,6 +7,7 @@ import { CreateFacebookPagePostDto } from '../../../platforms/facebook/helpers/p
 import { CreateTiktokVideoDto } from '../../../platforms/tiktok/helpers/create-video.dto';
 import { CreateLinkedInPostDto } from '../../../platforms/linkedin/helpers/create-post.dto';
 import { CreateInstagramPostDto } from '../../../platforms/instagram/helpers/create-content.dto';
+
 export class PlatformPostDto {
   @IsEnum(SocialPlatform)
   platform: SocialPlatform;
