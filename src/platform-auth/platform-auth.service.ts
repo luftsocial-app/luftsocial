@@ -35,25 +35,29 @@ export class PlatformAuthService {
   }
 
   private initializeOAuthClients() {
-    this.oauthClients = Object.entries(this.platformConfigs).reduce(
-      (clients, [platform, config]) => {
-        clients[platform as SocialPlatform] = new AuthorizationCode({
-          client: {
-            id: config.clientId,
-            secret: config.clientSecret,
-          },
-          auth: {
-            tokenHost: config.tokenHost,
-            tokenPath: config.tokenPath,
-            authorizePath: config.authorizePath,
-            revokePath: config.revokePath,
-          },
-        });
-        return clients;
-      },
-      {} as Record<SocialPlatform, AuthorizationCode>,
-    );
+    const clients: Partial<Record<SocialPlatform, AuthorizationCode>> = {};
+
+    for (const platformName in this.platformConfigs) {
+      const config = this.platformConfigs[platformName];
+
+      clients[platformName as SocialPlatform] = new AuthorizationCode({
+        client: {
+          id: config.clientId,
+          secret: config.clientSecret,
+        },
+        auth: {
+          tokenHost: config.tokenHost,
+          tokenPath: config.tokenPath,
+          authorizePath: config.authorizePath,
+          revokePath: config.revokePath,
+        },
+      });
+    }
+
+    // Cast to full Record<SocialPlatform, AuthorizationCode> if you're confident
+    this.oauthClients = clients as Record<SocialPlatform, AuthorizationCode>;
   }
+
 
   async getAuthorizationUrl(
     platform: SocialPlatform,
