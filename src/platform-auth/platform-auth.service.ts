@@ -77,7 +77,7 @@ export class PlatformAuthService {
       }
 
       this.logger.debug(
-        { oauth: this.oauthClients[platform] },
+        { oauth: this.oauthClients },
         'OAuth client for platform',
       );
       return this.oauthClients[platform].authorizeURL(options);
