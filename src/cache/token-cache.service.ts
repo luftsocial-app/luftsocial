@@ -94,7 +94,7 @@ export class TokenCacheService {
   }
 
   async getStoredState(state: string): Promise<any> {
-    const key = `oauth_state:${state}`;
+    const key = `keyv::keyv:oauth_state:${state}`;
 
     // Try Redis first
     let data = await this.cache.get(key);

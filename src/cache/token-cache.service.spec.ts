@@ -59,7 +59,9 @@ describe('TokenCacheService', () => {
 
       const result = await service.getStoredState(state);
 
-      expect(mockCache.get).toHaveBeenCalledWith(`oauth_state:${state}`);
+      expect(mockCache.get).toHaveBeenCalledWith(
+        `keyv::keyv:oauth_state:${state}`,
+      );
       expect(result).toEqual(mockData);
     });
   });
