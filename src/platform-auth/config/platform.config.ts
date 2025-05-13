@@ -9,13 +9,9 @@ export const PlatformConfigsProvider = {
     configService: ConfigService,
   ): Record<SocialPlatform, PlatformOAuthConfig> => ({
     [SocialPlatform.FACEBOOK]: {
-      clientId: configService.get('platforms.facebook.FACEBOOK_CLIENT_ID'),
-      clientSecret: configService.get(
-        'platforms.facebook.FACEBOOK_CLIENT_SECRET',
-      ),
-      redirectUri: configService.get(
-        'platforms.facebook.FACEBOOK_REDIRECT_URI',
-      ),
+      clientId: configService.get('platforms.facebook.clientId'),
+      clientSecret: configService.get('platforms.facebook.clientSecret'),
+      redirectUri: configService.get('platforms.facebook.redirectUri'),
       tokenHost: 'https://www.facebook.com',
       tokenPath: '/v22.0/oauth/access_token',
       authorizePath: '/v22.0/dialog/oauth',
@@ -34,13 +30,9 @@ export const PlatformConfigsProvider = {
       },
     },
     [SocialPlatform.INSTAGRAM]: {
-      clientId: configService.get('platforms.instagram.INSTAGRAM_CLIENT_ID'),
-      clientSecret: configService.get(
-        'platforms.instagram.INSTAGRAM_CLIENT_SECRET',
-      ),
-      redirectUri: configService.get(
-        'platforms.instagram.INSTAGRAM_REDIRECT_URI',
-      ),
+      clientId: configService.get('platforms.instagram.clientId'),
+      clientSecret: configService.get('platforms.instagram.clientSecret'),
+      redirectUri: configService.get('platforms.instagram.redirectUri'),
       tokenHost: 'https://api.instagram.com',
       tokenPath: '/oauth/access_token',
       authorizePath: '/oauth/authorize',
@@ -52,13 +44,9 @@ export const PlatformConfigsProvider = {
       },
     },
     [SocialPlatform.LINKEDIN]: {
-      clientId: configService.get('platforms.linkedin.LINKEDIN_CLIENT_ID'),
-      clientSecret: configService.get(
-        'platforms.linkedin.LINKEDIN_CLIENT_SECRET',
-      ),
-      redirectUri: configService.get(
-        'platforms.linkedin.LINKEDIN_REDIRECT_URI',
-      ),
+      clientId: configService.get('platforms.linkedin.clientId'),
+      clientSecret: configService.get('platforms.linkedin.clientSecret'),
+      redirectUri: configService.get('platforms.linkedin.redirectUri'),
       tokenHost: 'https://www.linkedin.com',
       tokenPath: '/oauth/v2/accessToken',
       authorizePath: '/oauth/v2/authorization',
@@ -77,9 +65,9 @@ export const PlatformConfigsProvider = {
       },
     },
     [SocialPlatform.TIKTOK]: {
-      clientId: configService.get('platforms.tiktok.TIKTOK_CLIENT_KEY'),
-      clientSecret: configService.get('platforms.tiktok.TIKTOK_CLIENT_SECRET'),
-      redirectUri: configService.get('platforms.tiktok.TIKTOK_REDIRECT_URI'),
+      clientId: configService.get('platforms.tiktok.clientKey'),
+      clientSecret: configService.get('platforms.tiktok.clientSecret'),
+      redirectUri: configService.get('platforms.tiktok.redirectUri'),
       tokenHost: 'https://www.tiktok.com',
       tokenPath: '/v2/auth/authorize/',
       authorizePath: '/v2/auth/authorize/',

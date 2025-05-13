@@ -6,7 +6,6 @@ import {
   Inject,
   UnauthorizedException,
   NotFoundException,
-  OnModuleInit,
 } from '@nestjs/common';
 import {
   PlatformOAuthConfig,
@@ -19,7 +18,7 @@ import { PinoLogger } from 'nestjs-pino';
 import { TenantService } from '../user-management/tenant.service';
 
 @Injectable()
-export class PlatformAuthService implements OnModuleInit {
+export class PlatformAuthService {
   private oauthClients: Record<SocialPlatform, AuthorizationCode>;
 
   constructor(
@@ -33,10 +32,6 @@ export class PlatformAuthService implements OnModuleInit {
   ) {
     this.logger.setContext(PlatformAuthService.name);
     this.initializeOAuthClients();
-  }
-
-  onModuleInit() {
-    console.log(this.platformConfigs); // Should now have the configs
   }
 
   private initializeOAuthClients() {
