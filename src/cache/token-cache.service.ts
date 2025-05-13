@@ -94,15 +94,12 @@ export class TokenCacheService {
   }
 
   async getStoredState(state: string): Promise<any> {
-    const key = `keyv::keyv:oauth_state:${state}`;
+    const key = `oauth_state:${state}`;
 
     // Try Redis first
     let data = await this.cache.get(key);
     this.logger.info('State retrieved from Redis:', !!data);
-    this.logger.info('State key:', key);
-
-    const keys: any = await this.cache.get('*');
-    console.log(keys);
+    this.logger.info('State key:', { key, data });
 
     // If not in Redis, try the file
     if (!data) {

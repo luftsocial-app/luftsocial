@@ -60,7 +60,7 @@ describe('TokenCacheService', () => {
       const result = await service.getStoredState(state);
 
       expect(mockCache.get).toHaveBeenCalledWith(
-        `keyv::keyv:oauth_state:${state}`,
+        `oauth_state:${state}`,
       );
       expect(result).toEqual(mockData);
     });
@@ -86,7 +86,7 @@ describe('TokenCacheService', () => {
     });
   });
 
-  describe.skip('integration scenarios', () => {
+  describe('integration scenarios', () => {
     it('should store and retrieve OAuth state', async () => {
       // Arrange
       const state = 'test_state';
