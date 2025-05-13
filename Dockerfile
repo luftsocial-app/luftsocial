@@ -29,7 +29,8 @@ RUN mkdir -p /app/dist/tmp/uploads && chown -R node:node /app/dist/tmp/uploads
 
 ENV NODE_ENV=production
 USER node
-CMD ["sh", "-c", "npm run migration:run && node src/main.js"]
+# Make the script executable
+RUN chmod +x /entrypoint.sh
 
-
-
+# Use the script as the entry point
+ENTRYPOINT ["/entrypoint.sh"]
