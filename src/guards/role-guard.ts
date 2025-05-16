@@ -62,16 +62,16 @@ export class RoleGuard implements CanActivate {
       throw new ForbiddenException('User not authenticated');
     }
 
-    this.logger.info({
-      user,
-      orgRole: user.sessionClaims?.org_role,
-      permissions: user.sessionClaims?.org_permissions,
+    this.logger.debug({
+      userId: user.userId,
+      orgId: user.orgId,
+      orgRole: user.orgRole,
+      orgPermissionsCount: user.orgPermissions?.length,
     });
 
     // Check roles if required
     if (requiredRoles && requiredRoles.length > 0) {
-      // Get the user's Clerk organization role
-      const clerkRole = user.sessionClaims?.org_role;
+      const clerkRole = user.orgRole;
 
       if (!clerkRole) {
         this.logger.warn('User has no organization role');
@@ -81,7 +81,6 @@ export class RoleGuard implements CanActivate {
       // Map Clerk role to application role
       const appRole = CLERK_ROLE_MAPPING[clerkRole] || clerkRole;
 
-      // Check if the user has any of the required roles
       const hasRequiredRole = requiredRoles.includes(appRole);
 
       if (!hasRequiredRole) {
@@ -94,14 +93,15 @@ export class RoleGuard implements CanActivate {
 
     // Check permissions if required
     if (requiredPermissions && requiredPermissions.length > 0) {
-      const userPermissions = user.sessionClaims?.org_permissions || [];
+      const userPermissions = user.orgPermissions || [];
 
       // Check if the user has all required permissions
       const hasAllRequiredPermissions = requiredPermissions.every(
         (permission) => {
+          // Format the permission to match Clerk's format if needed
           const clerkPermission = permission.startsWith('org:')
             ? permission
-            : `org:sys_${permission}`;
+            : `org:${permission}`;
 
           return userPermissions.includes(clerkPermission);
         },
@@ -109,11 +109,14 @@ export class RoleGuard implements CanActivate {
 
       if (!hasAllRequiredPermissions) {
         this.logger.warn(
-          `User lacks required permissions. Has: ${userPermissions.join(', ')}, Required: ${requiredPermissions.join(', ')}`,
+          `User lacks required permissions. Required: ${requiredPermissions.join(', ')}`,
         );
         return false;
       }
     }
+
+    // Add organization ID to request for easy access in controllers
+    req.organizationId = user.orgId;
 
     return true;
   }

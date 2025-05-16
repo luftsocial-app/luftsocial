@@ -2,7 +2,6 @@ import {
   MiddlewareConsumer,
   Module,
   NestModule,
-  Post,
   RequestMethod,
 } from '@nestjs/common';
 import { AppController } from './app.controller';
@@ -56,8 +55,6 @@ import { Notification } from './platforms/entities/notifications/notification.en
 import { TiktokModule } from './webhooks/tiktok/tiktok.module';
 import { PostAsset } from './asset-management/entities/post-asset.entity';
 import { PublishRecord } from './cross-platform/entities/publish.entity';
-import { RoleGuard } from './guards/role-guard';
-import { OrganizationAccessGuard } from './guards/organization-access.guard';
 import { Organization } from './user-management/entities/organization.entity';
 import { OrganizationManagementModule } from './organization-management/organization-management.module';
 import { AuditModule } from './audit/audit.module';
@@ -144,14 +141,7 @@ import { UserPost } from './organization-management/post-approval/entities/post.
       provide: APP_INTERCEPTOR,
       useClass: RequestInterceptor,
     },
-    {
-      provide: APP_GUARD,
-      useClass: OrganizationAccessGuard,
-    },
-    {
-      provide: APP_GUARD,
-      useClass: RoleGuard,
-    },
+
     {
       provide: APP_GUARD,
       useClass: ClerkAuthGuard,

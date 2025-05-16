@@ -11,7 +11,8 @@ logger:
       censor: '***'
 port: 3000
 clerk:
-  clerkPublicKey: ""
+  clerkPublicKey: "pk_test_ZWxlZ2FudC1jYW1lbC00MS5jbGVyay5hY2NvdW50cy5kZXYk"
+  secretKey: "sk_test_rX0cdpfvVMTlYuriJ7pRpaJdWTmCW3j4L9a94e6dZ3"
 messaging:
   throttle:
     messageRateMs: 500 # Time between messages (ms)

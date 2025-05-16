@@ -25,6 +25,8 @@ import { StepApprovedHandler } from './services/event-handlers/step-approved.han
 import { StepRejectedHandler } from './services/event-handlers/step-rejected.handler';
 import { CrossPlatformModule } from 'src/cross-platform/cross-platform.module';
 import { AuditModule } from 'src/audit/audit.module';
+import { OrganizationAccessGuard } from 'src/guards/organization-access.guard';
+import { RoleGuard } from 'src/guards/role-guard';
 
 @Module({
   imports: [
@@ -43,6 +45,8 @@ import { AuditModule } from 'src/audit/audit.module';
   ],
   controllers: [ApprovalController, TaskController],
   providers: [
+    RoleGuard,
+    OrganizationAccessGuard,
     PublisherAdapterService,
     ApprovalService,
     TaskService,

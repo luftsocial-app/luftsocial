@@ -7,14 +7,18 @@ import {
   Query,
   BadRequestException,
   UseGuards,
+  ValidationPipe,
+  Post,
+  UsePipes,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiBody } from '@nestjs/swagger';
 
-import { RoleGuard } from 'src/guards/role-guard';
+import { Role, RoleGuard, Roles } from 'src/guards/role-guard';
 import { OrganizationAccessGuard } from 'src/guards/organization-access.guard';
 import { TaskService } from '../services/task.service';
 import { Task, TaskStatus } from '../entities/task.entity';
 import { CurrentUser } from 'src/decorators/current-user.decorator';
+import { CreateTaskDto } from '../helper/dto/create-task.dto';
 
 class ReassignTaskDto {
   newAssigneeId: string;
@@ -25,6 +29,22 @@ class ReassignTaskDto {
 @UseGuards(RoleGuard, OrganizationAccessGuard)
 export class TaskController {
   constructor(private readonly taskService: TaskService) {}
+
+  @Post('new')
+  @ApiOperation({ summary: 'Create a new task' })
+  @ApiBody({ type: CreateTaskDto })
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @Roles(Role.Admin, Role.Member)
+  async createTask(
+    @Body() createTaskDto: CreateTaskDto,
+    @CurrentUser() user: any,
+  ): Promise<Task> {
+    return this.taskService.createTask(
+      createTaskDto,
+      user.id,
+      user.organizationId || user.tenantId,
+    );
+  }
 
   @Get('my')
   @ApiOperation({ summary: 'Get tasks assigned to current user' })

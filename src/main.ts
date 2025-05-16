@@ -58,13 +58,10 @@ async function bootstrap() {
   });
 
   // Initialize Clerk with the correct middleware
-  app.use(
-    clerkMiddleware(),
-    //   {
-    //   publishableKey: config.get('clerk.perishableKey'),
-    //   secretKey: config.get('clerk.secretKey'),
-    // }
-  );
+  process.env.CLERK_SECRET_KEY = config.get('clerk.secretKey');
+  process.env.CLERK_PUBLISHABLE_KEY = config.get('clerk.clerkPublicKey');
+
+  app.use(clerkMiddleware());
   app.enableVersioning({
     type: VersioningType.URI,
   });

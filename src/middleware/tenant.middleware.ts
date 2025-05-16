@@ -22,7 +22,7 @@ export class TenantMiddleware implements NestMiddleware {
     const clerkSecretKey = this.configService.get('clerk.secretKey');
 
     // testing: renew session by 1 hr
-    if (process.env.NODE_ENV === 'development')
+    // if (process.env.NODE_ENV === 'development')
       await createSessionToken(sessionId, clerkSecretKey, this.logger);
     // req.headers['authorization'] = `Bearer ${customJWT}`;
     const tenantId =
