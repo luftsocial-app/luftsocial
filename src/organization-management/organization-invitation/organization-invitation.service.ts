@@ -26,11 +26,7 @@ export class OrganizationInvitationService {
   ): Promise<any> {
     try {
       // Determine the inviter user ID (default to requesting user if not provided)
-      const inviterUserId =
-        createInvitationDto.inviter_user_id || requestingUserId;
-
-      // Verify that the inviter is an admin in the organization
-      await this.verifyUserIsAdmin(inviterUserId, organizationId);
+      const inviterUserId = requestingUserId;
 
       // Make API call to Clerk
       const response = await axios.post(
@@ -77,48 +73,6 @@ export class OrganizationInvitationService {
 
       throw new InternalServerErrorException(
         'Failed to create organization invitation',
-      );
-    }
-  }
-
-  private async verifyUserIsAdmin(
-    userId: string,
-    organizationId: string,
-  ): Promise<void> {
-    try {
-      // Get the user's membership in the organization
-      const response = await axios.get(
-        `${this.clerkApiUrl}/organizations/${organizationId}/memberships`,
-        {
-          headers: {
-            Authorization: `Bearer ${this.clerkSecretKey}`,
-            'Content-Type': 'application/json',
-          },
-        },
-      );
-
-      // Find the user's membership
-      const membership = response.data.find(
-        (m: any) => m.public_user_data.user_id === userId,
-      );
-
-      // Check if the user is an admin
-      if (!membership || membership.role !== 'org:admin') {
-        throw new UnauthorizedException(
-          'Only organization administrators can create invitations',
-        );
-      }
-    } catch (error) {
-      if (error instanceof UnauthorizedException) {
-        throw error;
-      }
-
-      this.logger.error(
-        `Error verifying user admin status: ${error.message}`,
-        error.stack,
-      );
-      throw new InternalServerErrorException(
-        'Failed to verify user permissions',
       );
     }
   }

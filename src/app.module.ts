@@ -64,6 +64,7 @@ import { Task } from './organization-management/post-approval/entities/task.enti
 import { WorkflowStep } from './organization-management/post-approval/entities/workflow-step.entity';
 import { WorkflowTemplate } from './organization-management/post-approval/entities/workflow-template.entity';
 import { UserPost } from './organization-management/post-approval/entities/post.entity';
+import { ClerkModule } from './clerk/clerk.module';
 
 @Module({
   imports: [
@@ -114,6 +115,7 @@ import { UserPost } from './organization-management/post-approval/entities/post.
         limit: 5,
       },
     ]),
+    ClerkModule,
     RealtimeModule,
     ClerkWebhookModule,
     RealtimeModule,

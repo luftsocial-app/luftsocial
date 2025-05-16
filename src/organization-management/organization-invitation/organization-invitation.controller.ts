@@ -21,15 +21,10 @@ import { OrganizationAccessGuard } from 'src/guards/organization-access.guard';
 import { OrganizationInvitationService } from './organization-invitation.service';
 import { CreateInvitationDto } from './helper/create-invitation.dto';
 import { CurrentUser } from 'src/decorators/current-user.decorator';
-import {
-  RequirePermissions,
-  Role,
-  RoleGuard,
-  Roles,
-} from 'src/guards/role-guard';
+import { Role, RoleGuard, Roles } from 'src/guards/role-guard';
 
 @ApiTags('Organization Invitations')
-@Controller('organizations/:organizationId/invitations')
+@Controller('organizations/invitations')
 @UseGuards(RoleGuard, OrganizationAccessGuard)
 @UsePipes(new ValidationPipe({ transform: true }))
 export class OrganizationInvitationController {
@@ -37,12 +32,8 @@ export class OrganizationInvitationController {
     private readonly organizationInvitationService: OrganizationInvitationService,
   ) {}
 
-  @Post()
+  @Post('/new-invitation')
   @ApiOperation({ summary: 'Create and send an organization invitation' })
-  @ApiParam({
-    name: 'organizationId',
-    description: 'The ID of the organization',
-  })
   @ApiBody({ type: CreateInvitationDto })
   @ApiResponse({
     status: 201,
@@ -52,14 +43,12 @@ export class OrganizationInvitationController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - User is not an admin' })
   @Roles(Role.Admin)
-  @RequirePermissions('member:invite')
   async createInvitation(
-    @Param('organizationId') organizationId: string,
     @Body() createInvitationDto: CreateInvitationDto,
     @CurrentUser() user: any,
   ): Promise<any> {
     return this.organizationInvitationService.createInvitation(
-      organizationId,
+      user.orgId,
       createInvitationDto,
       user.userId,
     );
@@ -76,10 +65,8 @@ export class OrganizationInvitationController {
     description: 'List of invitations for the organization',
   })
   @Roles(Role.Admin)
-  async listInvitations(
-    @Param('organizationId') organizationId: string,
-  ): Promise<any> {
-    return this.organizationInvitationService.listInvitations(organizationId);
+  async listInvitations(@CurrentUser() user: any): Promise<any> {
+    return this.organizationInvitationService.listInvitations(user.orgId);
   }
 
   @Delete(':invitationId')

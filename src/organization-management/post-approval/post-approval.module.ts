@@ -27,6 +27,7 @@ import { CrossPlatformModule } from 'src/cross-platform/cross-platform.module';
 import { AuditModule } from 'src/audit/audit.module';
 import { OrganizationAccessGuard } from 'src/guards/organization-access.guard';
 import { RoleGuard } from 'src/guards/role-guard';
+import { ClerkModule } from 'src/clerk/clerk.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { RoleGuard } from 'src/guards/role-guard';
     PostSubmittedHandler,
     StepApprovedHandler,
     StepRejectedHandler,
+    ClerkModule,
   ],
   exports: [ApprovalService, TaskService],
 })

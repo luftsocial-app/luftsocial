@@ -39,11 +39,7 @@ export class TaskController {
     @Body() createTaskDto: CreateTaskDto,
     @CurrentUser() user: any,
   ): Promise<Task> {
-    return this.taskService.createTask(
-      createTaskDto,
-      user.id,
-      user.organizationId || user.tenantId,
-    );
+    return this.taskService.createTask(createTaskDto, user.orgId, user.userId);
   }
 
   @Get('my')

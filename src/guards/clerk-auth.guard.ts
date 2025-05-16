@@ -44,6 +44,7 @@ export class ClerkAuthGuard implements CanActivate {
       }
 
       const user = await clerkClient.users.getUser(session.userId);
+      console.log('user2323', user);
       request.user = user;
       return true;
     } catch (error) {

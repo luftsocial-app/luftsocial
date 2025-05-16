@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { EntityManager, Repository } from 'typeorm';
 import { PinoLogger } from 'nestjs-pino';
@@ -7,6 +7,8 @@ import { UserPost } from '../entities/post.entity';
 import { ApprovalStep } from '../entities/approval-step.entity';
 import { User } from '../../../user-management/entities/user.entity';
 import { CreateTaskDto } from '../helper/dto/create-task.dto';
+import { ClerkClient } from '@clerk/express';
+import { CLERK_CLIENT } from 'src/clerk/clerk.provider';
 
 @Injectable()
 export class TaskService {
@@ -15,6 +17,8 @@ export class TaskService {
     private readonly taskRepository: Repository<Task>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @Inject(CLERK_CLIENT) private readonly clerkClient: ClerkClient,
+
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(TaskService.name);
@@ -25,13 +29,15 @@ export class TaskService {
     organizationId: string,
     tenantId: string,
   ): Promise<Task> {
+    console.log('createTaskDtoassigneeId', createTaskDto.assigneeId);
+
+    const user = await this.clerkClient.users.getUser(tenantId);
+    console.log('userfefe', user);
     // Validate that the assignee exists and belongs to the organization
-    const assignee = await this.userRepository
-      .createQueryBuilder('user')
-      .innerJoin('user.organization', 'organization')
-      .where('user.id = :userId', { userId: createTaskDto.assigneeId })
-      .andWhere('organization.id = :organizationId', { organizationId })
-      .getOne();
+    const assignee = await this.verifyUserInOrganization(
+      createTaskDto.assigneeId,
+      organizationId,
+    );
 
     if (!assignee) {
       throw new NotFoundException(
@@ -47,6 +53,32 @@ export class TaskService {
     });
 
     return this.taskRepository.save(task);
+  }
+
+  private async verifyUserInOrganization(
+    userId: string,
+    organizationId: string,
+  ): Promise<boolean> {
+    try {
+      const membershipsResponse =
+        await this.clerkClient.organizations.getOrganizationMembershipList({
+          organizationId,
+        });
+
+      const memberships = membershipsResponse.data;
+
+      const userMembership = memberships.find(
+        (membership) => membership.publicUserData?.userId === userId,
+      );
+
+      return !!userMembership;
+    } catch (error) {
+      this.logger.error(
+        `Error verifying user in organization: ${error.message}`,
+        error.stack,
+      );
+      return false;
+    }
   }
 
   async createReviewTask(
