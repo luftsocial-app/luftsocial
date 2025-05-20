@@ -16,6 +16,9 @@ export class InstagramAccount {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
+  @Column()
+  userId: string;
+
   @Column({ nullable: false })
   tenantId: string;
 
@@ -23,17 +26,41 @@ export class InstagramAccount {
   @JoinColumn()
   socialAccount: SocialAccount;
 
-  @Column()
-  instagramAccountId: string;
+  @Column({ nullable: true })
+  instagramId: string;
 
-  @Column()
+  @Column({ nullable: true })
   username: string;
+
+  @Column({ nullable: true })
+  name: string;
+
+  @Column({ nullable: true })
+  profilePictureUrl: string;
+
+  @Column({ nullable: true })
+  biography: string;
+
+  @Column({ nullable: true })
+  facebookPageName: string;
+
+  @Column({ nullable: true })
+  facebookPageAccessToken: string;
+
+  @Column({ nullable: true })
+  accountType: string;
 
   @Column({ nullable: true })
   profileUrl: string;
 
   @Column('jsonb')
   permissions: string[];
+
+  @Column({ default: false })
+  isBusinessLogin: boolean; // true for Instagram Business Login, false for Facebook Login
+
+  @Column({ nullable: true })
+  facebookPageId: string; // Only applicable for Instagram with Facebook Login
 
   @Column({ type: 'int', default: 0 })
   followerCount: number;

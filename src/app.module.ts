@@ -65,12 +65,15 @@ import { WorkflowStep } from './organization-management/post-approval/entities/w
 import { WorkflowTemplate } from './organization-management/post-approval/entities/workflow-template.entity';
 import { UserPost } from './organization-management/post-approval/entities/post.entity';
 import { ClerkModule } from './clerk/clerk.module';
+import { InstagramAccount } from './platforms/entities/instagram-entities/instagram-account.entity';
+import { InstagramPost } from './platforms/entities/instagram-entities/instagram-post.entity';
+import { InstagramMetric } from './platforms/entities/instagram-entities/instagram-metric.entity';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      ignoreEnvFile: true,
-      ignoreEnvVars: true,
+      // ignoreEnvFile: true,
+      // ignoreEnvVars: true,
       isGlobal: true,
       load: [config.util.toObject],
     }),
@@ -94,6 +97,9 @@ import { ClerkModule } from './clerk/clerk.module';
         AuthState,
         ParticipantEntity,
         FacebookAccount,
+        InstagramAccount,
+        InstagramPost,
+        InstagramMetric,
         SocialAccount,
         PostAsset,
         PublishRecord,

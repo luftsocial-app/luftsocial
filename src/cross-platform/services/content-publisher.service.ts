@@ -401,6 +401,7 @@ export class ContentPublisherService {
   /**
    * Publish to a specific platform
    */
+  // TODO: Refactor this to use platform-specific services if we need to publish to more than one specific platform account. We'll to change the specific platform account ID an array.
   private async publishToPlatform(params: {
     platform: SocialPlatform;
     content: string;

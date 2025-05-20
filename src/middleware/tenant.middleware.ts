@@ -23,7 +23,7 @@ export class TenantMiddleware implements NestMiddleware {
 
     // testing: renew session by 1 hr
     // if (process.env.NODE_ENV === 'development')
-      await createSessionToken(sessionId, clerkSecretKey, this.logger);
+    await createSessionToken(sessionId, clerkSecretKey, this.logger);
     // req.headers['authorization'] = `Bearer ${customJWT}`;
     const tenantId =
       (req.headers['X-TENANT-ID'] as string) ||

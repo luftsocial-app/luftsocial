@@ -51,6 +51,9 @@ export class PlatformsService {
       [SocialPlatform.INSTAGRAM]: Array.isArray(instagramAccounts)
         ? instagramAccounts
         : [],
+      [SocialPlatform.INSTAGRAM_BUSINESS]: Array.isArray(instagramAccounts)
+        ? instagramAccounts
+        : [],
       [SocialPlatform.LINKEDIN]: Array.isArray(linkedInAccounts)
         ? linkedInAccounts
         : [],

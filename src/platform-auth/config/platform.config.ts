@@ -29,18 +29,47 @@ export const PlatformConfigsProvider = {
         refreshTokenTTL: 7200, // 2 hours
       },
     },
+    // Instagram with Facebook Login for Business configuration
     [SocialPlatform.INSTAGRAM]: {
-      clientId: configService.get('INSTAGRAM_CLIENT_ID'),
-      clientSecret: configService.get('INSTAGRAM_CLIENT_SECRET'),
-      redirectUri: configService.get('INSTAGRAM_REDIRECT_URI'),
-      tokenHost: 'https://api.instagram.com',
+      clientId: configService.get<string>('FACEBOOK_CLIENT_ID'),
+      clientSecret: configService.get<string>('FACEBOOK_CLIENT_SECRET'),
+      tokenHost: 'https://www.facebook.com',
+      tokenPath: '/v22.0/oauth/access_token',
+      authorizePath: '/v22.0/dialog/oauth',
+      revokePath: '/v22.0/auth/revoke',
+      redirectUri: configService.get<string>('FACEBOOK_REDIRECT_URI'),
+      scopes: [
+        'instagram_basic',
+        'instagram_content_publish',
+        'instagram_manage_comments',
+        'instagram_manage_insights',
+        'instagram_manage_messages',
+        'pages_show_list',
+        'pages_read_engagement',
+      ],
+      cacheOptions: {
+        tokenTTL: 60 * 60, // 1 hour
+        refreshTokenTTL: 60 * 60 * 24, // 24 hours
+      },
+    },
+    // Instagram with Business Login for Instagram configuration
+    [SocialPlatform.INSTAGRAM_BUSINESS]: {
+      clientId: configService.get<string>('INSTAGRAM_APP_ID'),
+      clientSecret: configService.get<string>('INSTAGRAM_APP_SECRET'),
+      tokenHost: 'https://graph.instagram.com',
       tokenPath: '/oauth/access_token',
       authorizePath: '/oauth/authorize',
       revokePath: '/oauth/revoke',
-      scopes: ['basic', 'comments', 'relationships', 'media'],
+      redirectUri: configService.get<string>('INSTAGRAM_REDIRECT_URI'),
+      scopes: [
+        'instagram_business_basic',
+        'instagram_business_content_publish',
+        'instagram_business_manage_comments',
+        'instagram_business_manage_messages',
+      ],
       cacheOptions: {
-        tokenTTL: 3600,
-        refreshTokenTTL: 7200,
+        tokenTTL: 60 * 60, // 1 hour
+        refreshTokenTTL: 60 * 60 * 24, // 24 hours
       },
     },
     [SocialPlatform.LINKEDIN]: {

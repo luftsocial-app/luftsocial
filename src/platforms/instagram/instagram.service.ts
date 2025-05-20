@@ -161,7 +161,7 @@ export class InstagramService implements PlatformService {
       // Store media in S3 first if there are any media items
       const mediaItems = await this.uploadInstagramMediaItems(
         media,
-        account.instagramAccountId,
+        account.userId,
         'post',
       );
 
@@ -496,7 +496,7 @@ export class InstagramService implements PlatformService {
         throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
       }
 
-      const igAccountId = account.instagramAccountId;
+      const igAccountId = account.instagramId;
       const { accessToken } = account.socialAccount;
 
       const response = await axios.get(
@@ -544,7 +544,7 @@ export class InstagramService implements PlatformService {
         throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
       }
 
-      const igAccountId = account.instagramAccountId;
+      const igAccountId = account.instagramId;
       const { accessToken } = account.socialAccount;
 
       // 1. Upload media
