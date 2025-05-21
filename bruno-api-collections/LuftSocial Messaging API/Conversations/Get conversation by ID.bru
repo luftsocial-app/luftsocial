@@ -1,0 +1,23 @@
+meta {
+  name: Get conversation by ID
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/conversations/{{conversationId}}
+  body: none
+  auth: bearer
+}
+
+headers {
+  x-tenant-id: {{x-tenant-id}}
+}
+
+auth:bearer {
+  token: {{BearerToken}}
+}
+
+docs {
+  Get a specific conversation by ID
+}

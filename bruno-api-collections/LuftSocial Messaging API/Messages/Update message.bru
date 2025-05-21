@@ -1,0 +1,31 @@
+meta {
+  name: Update message
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/messages/{{messageId}}
+  body: json
+  auth: bearer
+}
+
+headers {
+  content-type: application/json
+  x-tenant-id: {{x-tenant-id}}
+  ~Authorization: Bearer {{authToken}}
+}
+
+auth:bearer {
+  token: {{BearerToken}}
+}
+
+body:json {
+  {
+      "content": "Updated message content 2"
+  }
+}
+
+docs {
+  Update a message
+}

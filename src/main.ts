@@ -62,6 +62,7 @@ async function bootstrap() {
   app.use(
     clerkMiddleware(),
     //   {
+    // authorizedParties: ['http://localhost:3000', 'https://example.com']
     //   publishableKey: config.get('clerk.perishableKey'),
     //   secretKey: config.get('clerk.secretKey'),
     // }

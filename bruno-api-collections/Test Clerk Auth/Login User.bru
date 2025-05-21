@@ -1,0 +1,45 @@
+meta {
+  name: Login User
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/auth/login
+  body: json
+  auth: apikey
+}
+
+headers {
+  Content-Type: application/json
+  Accept: application/json
+}
+
+auth:apikey {
+  key: Authorization
+  value: Bearer {{clerkToken}}
+  placement: header
+}
+
+body:json {
+  {
+      "email": " test12@gmail.com",
+      "password": "5WfZAp-&RbWJytb"
+  }
+}
+
+tests {
+  const response = res.getBody();
+  
+  if (response.sessionId && response.userId) {
+      bru.setEnvVar('sessionId', response.sessionId);
+      bru.setEnvVar('userId', response.userId);
+      // Typically you would have to get the token from Clerk's API separately
+      // We set a placeholder value here that you'll need to replace with the actual token
+      bru.setEnvVar('clerkToken', response.sessionId); // In reality, this won't work directly
+  }
+}
+
+docs {
+  Authenticates a user using Clerk and returns the session ID and user ID.
+}

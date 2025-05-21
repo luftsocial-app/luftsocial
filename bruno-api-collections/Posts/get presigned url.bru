@@ -1,0 +1,24 @@
+meta {
+  name: get presigned url
+  type: http
+  seq: 4
+}
+
+get {
+  url: http://localhost:3000/api/uploads/presigned-url?fileName=titkok-img.png&mimeType=image/png
+  body: none
+  auth: bearer
+}
+
+params:query {
+  fileName: titkok-img.png
+  mimeType: image/png
+}
+
+headers {
+  x-tenant-id: org_2vD6YhWzb2gk4bxkyJH6mOc4ABN
+}
+
+auth:bearer {
+  token: {{authToken}}
+}

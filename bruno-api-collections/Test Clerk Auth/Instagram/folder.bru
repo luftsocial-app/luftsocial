@@ -1,0 +1,14 @@
+meta {
+  name: Instagram
+  seq: 1
+}
+
+auth {
+  mode: apikey
+}
+
+auth:apikey {
+  key: Authorization
+  value: Bearer {{clerkToken}}
+  placement: header
+}

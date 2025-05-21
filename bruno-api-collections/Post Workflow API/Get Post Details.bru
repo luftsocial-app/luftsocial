@@ -1,0 +1,23 @@
+meta {
+  name: Get Post Details
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/posts/{{postId}}
+  body: none
+  auth: bearer
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+docs {
+  Retrieves detailed information about a specific post
+}

@@ -1,0 +1,23 @@
+meta {
+  name: Get message attachments
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/messages/{{messageId}}/attachments
+  body: none
+  auth: bearer
+}
+
+headers {
+  x-tenant-id: {{x-tenant-id}}
+}
+
+auth:bearer {
+  token: {{BearerToken}}
+}
+
+docs {
+  Get attachments for a message
+}

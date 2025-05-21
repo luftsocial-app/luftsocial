@@ -1,0 +1,15 @@
+meta {
+  name: Get Video Status
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/platforms/tiktok/{{accountId}}/videos/{{publishId}}/status
+  body: none
+  auth: none
+}
+
+docs {
+  Check the publishing status of a TikTok video
+}

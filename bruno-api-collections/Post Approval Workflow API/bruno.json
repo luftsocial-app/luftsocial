@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "Post Approval Workflow API",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

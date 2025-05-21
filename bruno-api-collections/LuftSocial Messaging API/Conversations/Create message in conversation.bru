@@ -1,0 +1,27 @@
+meta {
+  name: Create message in conversation
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/conversations/{{conversationId}}/messages
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  x-tenant-id: {{tenantId}}
+  Authorization: Bearer {{authToken}}
+}
+
+body:json {
+  {
+      "content": "Hello, this is a message"
+  }
+}
+
+docs {
+  Create a new message in a conversation (via conversation controller)
+}

@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "Social Platform Authentication",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

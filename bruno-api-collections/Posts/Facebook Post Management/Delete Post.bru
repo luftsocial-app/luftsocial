@@ -1,0 +1,19 @@
+meta {
+  name: Delete Post
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}/api/platforms/facebook/posts/{{postId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+docs {
+  Delete an existing Facebook post
+}

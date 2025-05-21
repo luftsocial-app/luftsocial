@@ -1,0 +1,31 @@
+meta {
+  name: Add reaction to message
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/messages/{{messageId}}/reactions
+  body: json
+  auth: bearer
+}
+
+headers {
+  content-type: application/json
+  x-tenant-id: {{x-tenant-id}}
+  ~Authorization: Bearer {{authToken}}
+}
+
+auth:bearer {
+  token: {{BearerToken}}
+}
+
+body:json {
+  {
+      "emoji": "👍👍👍"
+  }
+}
+
+docs {
+  Add a reaction to a message
+}

@@ -1,0 +1,14 @@
+meta {
+  name: facebook
+  seq: 2
+}
+
+auth {
+  mode: apikey
+}
+
+auth:apikey {
+  key: Authorization
+  value: Bearer {{clerkToken}}
+  placement: header
+}

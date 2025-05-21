@@ -1,0 +1,24 @@
+meta {
+  name: List Organization Invitations
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/organizations/invitations
+  body: none
+  auth: bearer
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+  X-TENANT-ID: {{tenant_id}}
+}
+
+auth:bearer {
+  token: {{auth_token}}
+}
+
+docs {
+  Lists all pending invitations for the organization. Only organization administrators can list invitations.
+}

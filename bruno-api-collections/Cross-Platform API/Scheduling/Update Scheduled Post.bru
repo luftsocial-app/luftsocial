@@ -1,0 +1,27 @@
+meta {
+  name: Update Scheduled Post
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{base_url}}/cross-platform/schedule/:postId
+  body: json
+  auth: none
+}
+
+params:path {
+  postId: schedule123
+}
+
+headers {
+  Authorization: Bearer {{access_token}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+      "content": "Updated scheduled post content",
+      "scheduledTime": "2024-05-16T15:45:00Z"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "Organization Invitations API",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

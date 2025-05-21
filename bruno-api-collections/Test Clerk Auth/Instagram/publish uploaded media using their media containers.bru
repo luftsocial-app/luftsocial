@@ -1,0 +1,42 @@
+meta {
+  name: publish uploaded media using their media containers
+  type: http
+  seq: 7
+}
+
+post {
+  url: https://graph.instagram.com/v22.0/9504726706281862/media_publish
+  body: json
+  auth: bearer
+}
+
+params:query {
+  ~video_url: https://pixabay.com/videos/boat-fishing-boat-sea-chinese-fog-215926
+  ~media_type: REELS
+  ~upload_type: resumable
+  ~creation_id: 17962423499912493
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer IGAAJVcKzK0PJBZAE8tZAHNqX2FTTExPN1ZAkYngtZAkJ4b2J2WlV2eXJNRC1kakVkZAUN4OU5KaVBraEl6ZAXdzVEdSWnNsdUJ3VGQzYzh3U21SWUNfWUEzR1poTmhYeDJEdzUtMlNpMVk2TVJnQ1JzTm1ERVV3
+}
+
+auth:bearer {
+  token: IGAAJVcKzK0PJBZAE8tZAHNqX2FTTExPN1ZAkYngtZAkJ4b2J2WlV2eXJNRC1kakVkZAUN4OU5KaVBraEl6ZAXdzVEdSWnNsdUJ3VGQzYzh3U21SWUNfWUEzR1poTmhYeDJEdzUtMlNpMVk2TVJnQ1JzTm1ERVV3
+}
+
+body:json {
+  {
+      "creation_id": "17938614890881373"
+  }
+}
+
+docs {
+  Generated from cURL: curl -X POST "https://<HOST_URL>/<LATEST_API_VERSION>/<IG_ID>/media"
+       -H "Content-Type: application/json" 
+       -H "Authorization: Bearer <ACCESS_TOKEN>" 
+       -d '{
+             "image_url":"https://www.example.com/images/bronz-fonz.jpg"
+           }'
+}

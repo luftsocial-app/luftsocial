@@ -1,0 +1,21 @@
+meta {
+  name: Get Analytics
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/cross-platform/analytics?platform=FACEBOOK&startDate=2024-01-01&endDate=2024-12-31
+  body: none
+  auth: none
+}
+
+params:query {
+  platform: FACEBOOK
+  startDate: 2024-01-01
+  endDate: 2024-12-31
+}
+
+headers {
+  Authorization: Bearer {{access_token}}
+}

@@ -1,0 +1,39 @@
+meta {
+  name: Create media container
+  type: http
+  seq: 6
+}
+
+post {
+  url: https://graph.instagram.com/v22.0/9504726706281862/media?video_url=https://static.videezy.com/system/resources/previews/000/014/045/original/30_seconds_digital_clock_display_of_sixteen_segments.mp4&media_type=REELS
+  body: text
+  auth: bearer
+}
+
+params:query {
+  video_url: https://static.videezy.com/system/resources/previews/000/014/045/original/30_seconds_digital_clock_display_of_sixteen_segments.mp4
+  media_type: REELS
+  ~upload_type: resumable
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer IGAAJVcKzK0PJBZAE8tZAHNqX2FTTExPN1ZAkYngtZAkJ4b2J2WlV2eXJNRC1kakVkZAUN4OU5KaVBraEl6ZAXdzVEdSWnNsdUJ3VGQzYzh3U21SWUNfWUEzR1poTmhYeDJEdzUtMlNpMVk2TVJnQ1JzTm1ERVV3
+}
+
+auth:bearer {
+  token: IGAAJVcKzK0PJBZAE8tZAHNqX2FTTExPN1ZAkYngtZAkJ4b2J2WlV2eXJNRC1kakVkZAUN4OU5KaVBraEl6ZAXdzVEdSWnNsdUJ3VGQzYzh3U21SWUNfWUEzR1poTmhYeDJEdzUtMlNpMVk2TVJnQ1JzTm1ERVV3
+}
+
+body:text {
+   @Downloads/215926_medium.mp4
+}
+
+docs {
+  Generated from cURL: curl -X POST "https://<HOST_URL>/<LATEST_API_VERSION>/<IG_ID>/media"
+       -H "Content-Type: application/json" 
+       -H "Authorization: Bearer <ACCESS_TOKEN>" 
+       -d '{
+             "image_url":"https://www.example.com/images/bronz-fonz.jpg"
+           }'
+}

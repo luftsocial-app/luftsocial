@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "Test Clerk Auth",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

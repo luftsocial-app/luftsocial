@@ -1,0 +1,28 @@
+meta {
+  name: Get My Tasks
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/tasks/my?organizationId={{organizationId}}&status={{taskStatus}}
+  body: none
+  auth: bearer
+}
+
+params:query {
+  organizationId: {{organizationId}}
+  status: {{taskStatus}}
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+auth:bearer {
+  token: {{auth_token}}
+}
+
+docs {
+  Retrieves all tasks assigned to the currently authenticated user. The organizationId query parameter is required.
+}

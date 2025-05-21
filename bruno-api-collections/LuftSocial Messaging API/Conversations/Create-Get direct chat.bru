@@ -1,0 +1,27 @@
+meta {
+  name: Create/Get direct chat
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/conversations/direct/:userId
+  body: none
+  auth: bearer
+}
+
+params:path {
+  userId: user_2vHUwvpUlO0lsv6P4NlUl337T4b
+}
+
+headers {
+  x-tenant-id: {{x-tenant-id}}
+}
+
+auth:bearer {
+  token: {{BearerToken}}
+}
+
+docs {
+  Create or get a direct chat with another user
+}

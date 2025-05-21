@@ -1,0 +1,47 @@
+meta {
+  name: instagram access token
+  type: http
+  seq: 1
+}
+
+post {
+  url: https://api.instagram.com/oauth/access_token
+  body: multipartForm
+  auth: oauth2
+}
+
+auth:oauth2 {
+  grant_type: authorization_code
+  callback_url: 
+  authorization_url: 
+  access_token_url: 
+  refresh_token_url: 
+  client_id: 
+  client_secret: 
+  scope: 
+  state: 
+  pkce: false
+  credentials_placement: basic_auth_header
+  credentials_id: 
+  token_placement: header
+  token_header_prefix: 
+  auto_fetch_token: true
+  auto_refresh_token: false
+}
+
+body:multipart-form {
+  client_id: 656892377092338
+  client_secret: 26dd8e50651d35be24094ff4fdc48001
+  grant_type: authorization_code
+  redirect_uri: https://oauth.pstmn.io/v1/browser-callback
+  code: AQD22u06dT2b5Hug8faaIarBoUMXkauNdT-rjEE1ZBp8Ht0mSbytqiUq-F_feqHrUXA8jUFwjZzlVpjOtWZ9_Js7PL1ADevLrW2ZogNwY4pEVqNZREQdSY9IAVufqyW497f5FpImYOWY2tonFUE0HXW3Ty78K41-ylC_PHgTJgfcDVKr-hZvKsHX42yHhXlWEIIuJFblKozUje5AVA7cJCCrKss2idHtvJ_oSI9WvhDdXg#_
+}
+
+docs {
+  Generated from cURL: curl -X POST https://api.instagram.com/oauth/access_token \
+    -F 'client_id=990602627938098' \
+    -F 'client_secret=a1b2C3D4' \
+    -F 'grant_type=authorization_code' \
+    -F 'redirect_uri=https://my.m.redirect.net/' \
+    -F 'code=AQBx-hBsH3...'
+}

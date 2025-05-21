@@ -1,0 +1,28 @@
+meta {
+  name: Create group chat
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/conversations/group
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  x-tenant-id: {{tenantId}}
+  Authorization: Bearer {{authToken}}
+}
+
+body:json {
+  {
+      "name": "Group Chat Name",
+      "participantIds": ["user-id-1", "user-id-2"]
+  }
+}
+
+docs {
+  Create a new group chat
+}

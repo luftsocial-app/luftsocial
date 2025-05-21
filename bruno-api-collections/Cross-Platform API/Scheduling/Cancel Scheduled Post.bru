@@ -1,0 +1,19 @@
+meta {
+  name: Cancel Scheduled Post
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{base_url}}/cross-platform/schedule/:postId
+  body: none
+  auth: none
+}
+
+params:path {
+  postId: schedule123
+}
+
+headers {
+  Authorization: Bearer {{access_token}}
+}

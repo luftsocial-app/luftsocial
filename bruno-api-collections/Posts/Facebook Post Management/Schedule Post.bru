@@ -1,0 +1,26 @@
+meta {
+  name: Schedule Post
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/platforms/facebook/{{accountId}}/posts/schedule
+  body: multipartForm
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+  Content-Type: application/json
+}
+
+body:multipart-form {
+  content: This is a scheduled post
+  scheduledTime: 2023-12-25T12:00:00Z
+  files: @file()
+}
+
+docs {
+  Schedule a post for future publication on the user's Facebook feed
+}

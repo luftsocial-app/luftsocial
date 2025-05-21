@@ -1,0 +1,22 @@
+meta {
+  name: Test Clerk Auth
+  seq: 1
+}
+
+auth {
+  mode: apikey
+}
+
+auth:apikey {
+  key: Authorization
+  value: Bearer {{clerkToken}}
+  placement: header
+}
+vars:pre-request {
+  baseUrl: http://localhost:3000
+  clerkToken: 
+}
+
+docs {
+  A collection for testing the LoftSocial authentication API with Clerk integration
+}

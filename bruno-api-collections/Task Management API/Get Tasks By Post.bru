@@ -1,0 +1,28 @@
+meta {
+  name: Get Tasks By Post
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/tasks/post/{{postId}}?organizationId={{organizationId}}&status={{taskStatus}}
+  body: none
+  auth: bearer
+}
+
+params:query {
+  organizationId: {{organizationId}}
+  status: {{taskStatus}}
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+auth:bearer {
+  token: {{auth_token}}
+}
+
+docs {
+  Retrieves all tasks associated with a specific post. The organizationId query parameter is required.
+}

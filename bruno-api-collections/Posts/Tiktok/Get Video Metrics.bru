@@ -1,0 +1,15 @@
+meta {
+  name: Get Video Metrics
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/platforms/tiktok/{{accountId}}/videos/{{videoId}}/metrics
+  body: none
+  auth: none
+}
+
+docs {
+  Retrieve metrics for a specific TikTok video
+}
