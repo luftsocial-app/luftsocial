@@ -1,0 +1,23 @@
+meta {
+  name: Get unread count for conversation
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{baseUrl}}/messages/unread/{{conversationId}}
+  body: none
+  auth: bearer
+}
+
+headers {
+  x-tenant-id: {{x-tenant-id}}
+}
+
+auth:bearer {
+  token: {{BearerToken}}
+}
+
+docs {
+  Get unread count for a conversation
+}

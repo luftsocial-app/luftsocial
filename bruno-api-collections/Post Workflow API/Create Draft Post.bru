@@ -1,0 +1,36 @@
+meta {
+  name: Create Draft Post
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/posts/drafts?organizationId={{organizationId}}
+  body: multipartForm
+  auth: bearer
+}
+
+params:query {
+  organizationId: {{organizationId}}
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+body:multipart-form {
+  title: Draft Post Title
+  content: This is the content of my draft post. It will be saved and can be edited later.
+  channelIds: ["channel1", "channel2"]
+  scheduledDate: 2025-06-01T12:00:00Z
+  metadata: {"campaign": "summer2025", "tags": ["announcement", "product"]}
+  files: @file()
+}
+
+docs {
+  Creates a new draft post with optional file attachments. The organizationId query parameter is required.
+}

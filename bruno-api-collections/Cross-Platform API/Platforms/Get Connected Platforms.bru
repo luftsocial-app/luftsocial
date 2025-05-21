@@ -1,0 +1,20 @@
+meta {
+  name: Get Connected Platforms
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/cross-platform/platforms/connected
+  body: none
+  auth: bearer
+}
+
+headers {
+  X-TENANT-ID: {{tenant-id}}
+  ~Authorization: Bearer {{access_token}}
+}
+
+auth:bearer {
+  token: {{BearerToken}}
+}

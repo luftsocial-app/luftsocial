@@ -1,0 +1,41 @@
+meta {
+  name: Upload Video
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/platforms/tiktok/{{tiktok_accountId}}/videos
+  body: json
+  auth: bearer
+}
+
+headers {
+  X-TENANT-ID: {{tenant_id}}
+  ~Content-Type: multipart/form-data
+}
+
+auth:bearer {
+  token: {{auth_token}}
+}
+
+body:json {
+  {
+    "platform": "TIKTOK",
+    "title": "Check out my latest video!",
+    "privacyLevel": "SELF_ONLY",
+    "status": "PENDING",
+    "disableDuet": true,
+    "disableStitch": false,
+    "disableComment": false,
+    "videoCoverTimestampMs": 1500,
+    "brandContentToggle": false,
+    "brandOrganicToggle": true,
+    "isAigc": false,
+    "videoUrl": "https://luftsocial-dev.s3.ap-southeast-2.amazonaws.com/social-media/user_2vRfuRuZ10wjeYKx4KrCvdkhzcg/ce3701f3-82b5-4419-8885-f58a328944d2/3+Minute+Tomato+Soup!+Ready+in+Grilled-Cheese+time!+Tomato+Paste+Tomato+Soup.mp4"
+  }
+}
+
+docs {
+  Upload a video file or provide a video URL for posting to TikTok
+}

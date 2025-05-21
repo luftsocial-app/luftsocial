@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "LuftSocial Messaging API",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

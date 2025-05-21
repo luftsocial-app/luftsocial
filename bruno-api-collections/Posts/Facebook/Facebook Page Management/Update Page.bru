@@ -1,0 +1,33 @@
+meta {
+  name: Update Page
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/platforms/facebook/pages/{{pageId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+      "name": "Updated Page Name",
+      "description": "Updated page description",
+      "about": "Updated about section",
+      "pageInfo": {
+          "website": "https://example.com",
+          "phone": "123-456-7890",
+          "location": "New York, NY"
+      }
+  }
+}
+
+docs {
+  Update a Facebook page's information
+}

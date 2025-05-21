@@ -1,0 +1,34 @@
+meta {
+  name: Get messages from conversation
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/messages/conversations/:conversationId?conversationId=22b2628f-8025-44dd-ba38-3facb42df1c1
+  body: json
+  auth: bearer
+}
+
+params:query {
+  conversationId: 22b2628f-8025-44dd-ba38-3facb42df1c1
+  ~cursor: last-message-id
+  ~direction: older
+}
+
+params:path {
+  conversationId: 22b2628f-8025-44dd-ba38-3facb42df1c1
+}
+
+headers {
+  x-tenant-id: {{x-tenant-id}}
+  ~Authorization: Bearer {{authToken}}
+}
+
+auth:bearer {
+  token: {{BearerToken}}
+}
+
+docs {
+  Get messages from a conversation with pagination
+}

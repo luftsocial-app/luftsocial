@@ -1,0 +1,29 @@
+meta {
+  name: Refresh Token
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{base_url}}/auth/:platform/refresh
+  body: none
+  auth: bearer
+}
+
+params:path {
+  platform: FACEBOOK
+}
+
+headers {
+  Content-Type: application/json
+  x-tenant-id: {{tenant-id}}
+  ~Authorization: Bearer {{clerk_token}}
+}
+
+auth:bearer {
+  token: {{BearerToken}}
+}
+
+docs {
+  Refresh an expired access token using a refresh token
+}

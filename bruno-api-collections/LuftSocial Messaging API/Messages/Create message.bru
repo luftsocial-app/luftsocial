@@ -1,0 +1,33 @@
+meta {
+  name: Create message
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/messages
+  body: json
+  auth: bearer
+}
+
+headers {
+  content-type: application/json
+  x-tenant-id: {{x-tenant-id}}
+  Authorization: Bearer {{authToken}}
+}
+
+auth:bearer {
+  token: {{BearerToken}}
+}
+
+body:json {
+  {
+      "conversationId": "24bc5804-50a5-4424-a6bd-6c1e9c59a6fe",
+      "content": "Hello, this is a message",
+      "parentMessageId": null
+  }
+}
+
+docs {
+  Create a new message (via message controller)
+}

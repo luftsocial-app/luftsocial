@@ -1,0 +1,45 @@
+meta {
+  name: Post Approval Workflow API
+  seq: 1
+}
+
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{auth_token}}
+}
+
+vars:pre-request {
+  baseUrl: http://localhost:3000
+  postId: post-id-here
+  stepId: step-id-here
+}
+
+script:pre-request {
+  // You can add pre-request scripts here if needed
+  // For example, to set environment variables or perform authentication
+}
+
+tests {
+  // Basic test to verify successful response
+  test("Status code is 200 or 201", function () {
+      expect(res.getStatus()).to.be.oneOf([200, 201]);
+  });
+  
+  // Parse response JSON
+  var jsonData = res.getBody();
+  
+  // Add more specific tests based on your API responses
+  if (res.getStatus() === 200 || res.getStatus() === 201) {
+      test("Response has required properties", function () {
+          expect(jsonData).to.be.an('object');
+          // Add more specific property checks based on your API
+      });
+  }
+}
+
+docs {
+  Collection for interacting with the Post Approval Workflow API endpoints
+}

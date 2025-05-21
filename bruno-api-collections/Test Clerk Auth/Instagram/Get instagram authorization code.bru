@@ -1,0 +1,28 @@
+meta {
+  name: Get instagram authorization code
+  type: http
+  seq: 2
+}
+
+post {
+  url: https://www.instagram.com/oauth/authorize?client_id=656892377092338&redirect_uri=https://oauth.pstmn.io/v1/browser-callback&response_type=code&scope=instagram_business_basic instagram_business_manage_messages instagram_business_manage_comments instagram_business_content_publish
+  body: json
+  auth: apikey
+}
+
+params:query {
+  client_id: 656892377092338
+  redirect_uri: https://oauth.pstmn.io/v1/browser-callback
+  response_type: code
+  scope: instagram_business_basic instagram_business_manage_messages instagram_business_manage_comments instagram_business_content_publish
+}
+
+auth:apikey {
+  key: Authorization
+  value: Bearer {{clerkToken}}
+  placement: header
+}
+
+body:json {
+  AQD22u06dT2b5Hug8faaIarBoUMXkauNdT-rjEE1ZBp8Ht0mSbytqiUq-F_feqHrUXA8jUFwjZzlVpjOtWZ9_Js7PL1ADevLrW2ZogNwY4pEVqNZREQdSY9IAVufqyW497f5FpImYOWY2tonFUE0HXW3Ty78K41-ylC_PHgTJgfcDVKr-hZvKsHX42yHhXlWEIIuJFblKozUje5AVA7cJCCrKss2idHtvJ_oSI9WvhDdXg#_
+}

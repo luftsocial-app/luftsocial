@@ -1,0 +1,29 @@
+meta {
+  name: Create new Task
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/tasks/new
+  body: json
+  auth: bearer
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+  X-TENANT-ID: {{tenant_id}}
+}
+
+auth:bearer {
+  token: {{auth_token}}
+}
+
+body:json {
+  {
+      "title": "Review blog post content",
+      "description": "A detailed description of the task",
+      "type": "REVIEW",
+      "assigneeId": ""
+  }
+}

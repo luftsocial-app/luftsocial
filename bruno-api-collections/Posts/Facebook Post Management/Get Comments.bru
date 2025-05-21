@@ -1,0 +1,27 @@
+meta {
+  name: Get Comments
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/platforms/facebook/{{accountId}}/posts/{{postId}}/comments?pageToken=
+  body: none
+  auth: bearer
+}
+
+params:query {
+  pageToken: 
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+auth:bearer {
+  token: eyJhbGciOiJSUzI1NiIsImNhdCI6ImNsX0I3ZDRQRDExMUFBQSIsImtpZCI6Imluc18yc1NpQlRTclhVY0E5WDdOY3dRRzhQaEhHcmsiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE3NDMxODY3NTAsImZ2YSI6WzQ0NTIsLTFdLCJpYXQiOjE3NDMxODMxNTAsImlzcyI6Imh0dHBzOi8vZWxlZ2FudC1jYW1lbC00MS5jbGVyay5hY2NvdW50cy5kZXYiLCJqdGkiOiIxYWU1OGIxMGM0ODcwZDYzYTczNyIsIm1lbWJlcnNoaXAiOnsib3JnXzJ1b1hncjQ0amVPeW4yRjUwcHJGVlFKTWFLZSI6Im9yZzphZG1pbiJ9LCJtZXRhZGF0YSI6e30sIm5iZiI6MTc0MzE4MzE0MCwicGVybWlzc2lvbnMiOm51bGwsInNpZCI6InNlc3NfMnVvWGZsWW5DWkMwYkJXeGltWWlsS0VZcjlwIiwic3ViIjoidXNlcl8ydW9YZmlSTW1hQkJGSjFubjFlSjVEM2hXZ0gifQ.J0rSgtfife0H_j1dubEKzDPDgchaXmt8-IrW-R_F4R68blX5aCfzzI0Pk2ihkQ1x2tvuYsN3Z6-reUK_D94n8MvwwL6J0SbJpezVTxAW24zcup0butHRuik4m7JiHLwdcUvFX1UBPetbrLdbRjLcBrkTs6iNuncDeiGLgaxz6iIDI-usp8NmuA1QP4TnulvinHbb3JcTBsPSv_rR6C76EE-ZVYeJ4QEcJ9NtwPcbmGqggnWI2NC9VsMTii9JzJ5OksSCT0PUG70jPrmCWIxE6mdwmQvt6or5uThBvsYNfCT4M27wYt92KR2skqwcgIwxScs2BuSwFVeYCESVKIdOmw
+}
+
+docs {
+  Get comments for a specific Facebook post with pagination
+}

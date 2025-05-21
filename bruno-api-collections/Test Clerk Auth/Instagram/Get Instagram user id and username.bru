@@ -1,0 +1,29 @@
+meta {
+  name: Get Instagram user id and username
+  type: http
+  seq: 5
+}
+
+get {
+  url: https://graph.instagram.com/v22.0/me?fields=user_id,username,account_type,followers_count&access_token=IGAAJVcKzK0PJBZAE8tZAHNqX2FTTExPN1ZAkYngtZAkJ4b2J2WlV2eXJNRC1kakVkZAUN4OU5KaVBraEl6ZAXdzVEdSWnNsdUJ3VGQzYzh3U21SWUNfWUEzR1poTmhYeDJEdzUtMlNpMVk2TVJnQ1JzTm1ERVV3
+  body: none
+  auth: apikey
+}
+
+params:query {
+  fields: user_id,username,account_type,followers_count
+  access_token: IGAAJVcKzK0PJBZAE8tZAHNqX2FTTExPN1ZAkYngtZAkJ4b2J2WlV2eXJNRC1kakVkZAUN4OU5KaVBraEl6ZAXdzVEdSWnNsdUJ3VGQzYzh3U21SWUNfWUEzR1poTmhYeDJEdzUtMlNpMVk2TVJnQ1JzTm1ERVV3
+}
+
+auth:apikey {
+  key: Authorization
+  value: Bearer {{clerkToken}}
+  placement: header
+}
+
+docs {
+  Generated from cURL: curl -i -X GET \
+   "https://graph.instagram.com/v22.0/me
+        ?fields=user_id,username
+        &access_token=Ealkdfj..."
+}

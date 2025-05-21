@@ -1,0 +1,20 @@
+meta {
+  name: Delete message
+  type: http
+  seq: 6
+}
+
+delete {
+  url: {{baseUrl}}/messages/{{messageId}}
+  body: none
+  auth: none
+}
+
+headers {
+  x-tenant-id: {{tenantId}}
+  Authorization: Bearer {{authToken}}
+}
+
+docs {
+  Delete a message
+}

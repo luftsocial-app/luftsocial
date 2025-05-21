@@ -1,0 +1,18 @@
+meta {
+  name: Get Facebook Refresh Token
+  type: http
+  seq: 2
+}
+
+get {
+  url: https://graph.facebook.com/v17.0/oauth/access_token?grant_type=fb_exchange_token&client_id={{APP_ID}}&client_secret={{APP_SECRET}}&fb_exchange_token={{facebook_token}}
+  body: none
+  auth: none
+}
+
+params:query {
+  grant_type: fb_exchange_token
+  client_id: {{APP_ID}}
+  client_secret: {{APP_SECRET}}
+  fb_exchange_token: {{facebook_token}}
+}

@@ -1,0 +1,35 @@
+meta {
+  name: Register User
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/auth/register
+  body: json
+  auth: apikey
+}
+
+headers {
+  Content-Type: application/json
+  Accept: application/json
+}
+
+auth:apikey {
+  key: Authorization
+  value: Bearer {{clerkToken}}
+  placement: header
+}
+
+body:json {
+  {
+      "email": "test@example.com",
+      "password": "Password123!",
+      "firstName": "Test",
+      "lastName": "User"
+  }
+}
+
+docs {
+  Creates a new user in Clerk using the provided email, password, and optional name fields.
+}

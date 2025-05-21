@@ -1,0 +1,30 @@
+meta {
+  name: Reassign Task
+  type: http
+  seq: 5
+}
+
+patch {
+  url: {{baseUrl}}/tasks/{{taskId}}/reassign
+  body: json
+  auth: bearer
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{auth_token}}
+}
+
+body:json {
+  {
+      "newAssigneeId": "{{newAssigneeId}}"
+  }
+}
+
+docs {
+  Reassigns a specific task to another organization member.
+}

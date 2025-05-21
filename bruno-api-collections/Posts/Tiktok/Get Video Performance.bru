@@ -1,0 +1,19 @@
+meta {
+  name: Get Video Performance
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/platforms/tiktok/{{accountId}}/videos/{{videoId}}/performance?days={{days}}
+  body: none
+  auth: none
+}
+
+params:query {
+  days: {{days}}
+}
+
+docs {
+  Retrieve performance data for a specific TikTok video over a time period
+}

@@ -1,0 +1,23 @@
+meta {
+  name: Get thread replies
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/messages/{{messageId}}/replies
+  body: none
+  auth: bearer
+}
+
+headers {
+  x-tenant-id: {{x-tenant-id}}
+}
+
+auth:bearer {
+  token: {{BearerToken}}
+}
+
+docs {
+  Get thread replies
+}

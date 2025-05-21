@@ -1,0 +1,30 @@
+meta {
+  name: Get Instagram long lived access token
+  type: http
+  seq: 3
+}
+
+get {
+  url: https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=26dd8e50651d35be24094ff4fdc48001&access_token=IGAAJVcKzK0PJBZAFBKaC0zTzdZAejdJeEdvdmZAScXlxRHYwbUkwbHJaLWlLTkhuYmt0TW5DOHpCeUlCTGkxbGJwbFBCajMyR0cySjRtZAWlVSmhDUUJfS2FEMkJpNHJNbHBoNjdPdUZA1Mk4yaHAwcXAwbkFPRlZALeGtnNFJWVG10TW4wZADJ5WVFtaVZAB
+  body: none
+  auth: apikey
+}
+
+params:query {
+  grant_type: ig_exchange_token
+  client_secret: 26dd8e50651d35be24094ff4fdc48001
+  access_token: IGAAJVcKzK0PJBZAFBKaC0zTzdZAejdJeEdvdmZAScXlxRHYwbUkwbHJaLWlLTkhuYmt0TW5DOHpCeUlCTGkxbGJwbFBCajMyR0cySjRtZAWlVSmhDUUJfS2FEMkJpNHJNbHBoNjdPdUZA1Mk4yaHAwcXAwbkFPRlZALeGtnNFJWVG10TW4wZADJ5WVFtaVZAB
+}
+
+auth:apikey {
+  key: Authorization
+  value: Bearer {{clerkToken}}
+  placement: header
+}
+
+docs {
+  Generated from cURL: curl -i -X GET "https://graph.instagram.com/access_token
+    ?grant_type=ig_exchange_token
+    &client_secret=a1b2C3D4
+    &access_token=EAACEdEose0..."
+}

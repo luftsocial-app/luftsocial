@@ -24,14 +24,14 @@ export async function createSessionToken( // this function is for testing only, 
 
     if (!response.ok) {
       const errorDetails = await response.json();
-      throw new Error(`Error ${response.status}: ${errorDetails.message}`);
+      throw new Error(`Error Details ${response.status}: ${JSON.stringify(errorDetails)}`);
     }
 
     const data = await response.json();
     logger.info(`Session Token: ${data.jwt}`);
     return data.jwt;
   } catch (error) {
-    logger.error('Failed to create session token:', error.message);
+    logger.error('Failed to create session token:', error);
     throw error;
   }
 }

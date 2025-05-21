@@ -1,0 +1,24 @@
+meta {
+  name: Get User Pages
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/platforms/facebook/pages
+  body: none
+  auth: bearer
+}
+
+headers {
+  X-TENANT-ID: {{tenant-id}}
+  ~: 
+}
+
+auth:bearer {
+  token: {{BearerToken}}
+}
+
+docs {
+  Get all Facebook pages that the user has access to
+}

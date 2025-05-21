@@ -1,0 +1,30 @@
+meta {
+  name: Publish Post
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/posts/{{postId}}/publish
+  body: multipartForm
+  auth: bearer
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+auth:bearer {
+  token: {{auth_token}}
+}
+
+body:multipart-form {
+  scheduledDate: 2025-06-01T15:30:00Z
+  channels: ["facebook", "instagram", "twitter"]
+  metadata: {"campaign": "summer2025", "targetAudience": "millennials"}
+  files: @file()
+}
+
+docs {
+  Publishes an approved post with optional file attachments
+}

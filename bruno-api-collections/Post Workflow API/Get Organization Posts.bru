@@ -1,0 +1,30 @@
+meta {
+  name: Get Organization Posts
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/posts?organizationId={{organizationId}}&status={{postStatus}}&page={{page}}&limit={{limit}}
+  body: none
+  auth: bearer
+}
+
+params:query {
+  organizationId: {{organizationId}}
+  status: {{postStatus}}
+  page: {{page}}
+  limit: {{limit}}
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+docs {
+  Retrieves a paginated list of posts for the specified organization. The organizationId query parameter is required.
+}

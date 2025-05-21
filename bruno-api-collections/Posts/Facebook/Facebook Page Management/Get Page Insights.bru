@@ -1,0 +1,27 @@
+meta {
+  name: Get Page Insights
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/platforms/facebook/pages/{{pageId}}/insights?period=days_28
+  body: none
+  auth: bearer
+}
+
+params:query {
+  period: days_28
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+auth:bearer {
+  token: eyJhbGciOiJSUzI1NiIsImNhdCI6ImNsX0I3ZDRQRDExMUFBQSIsImtpZCI6Imluc18yc1NpQlRTclhVY0E5WDdOY3dRRzhQaEhHcmsiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE3NDM1ODY2NTQsImZ2YSI6WzAsLTFdLCJpYXQiOjE3NDM1ODMwNTQsImlzcyI6Imh0dHBzOi8vZWxlZ2FudC1jYW1lbC00MS5jbGVyay5hY2NvdW50cy5kZXYiLCJqdGkiOiJjMGM0ZTQ5YTBiOWY5Y2ZlMDRjZCIsIm1lbWJlcnNoaXAiOnsib3JnXzJ1b1hncjQ0amVPeW4yRjUwcHJGVlFKTWFLZSI6Im9yZzphZG1pbiJ9LCJtZXRhZGF0YSI6e30sIm5iZiI6MTc0MzU4MzA0NCwicGVybWlzc2lvbnMiOm51bGwsInNpZCI6InNlc3NfMnZBTGNJaVc5MGVIS2V3YjN3MnVReHZMZGJkIiwic3ViIjoidXNlcl8ydW9YZmlSTW1hQkJGSjFubjFlSjVEM2hXZ0gifQ.d1JWWR94cMeHJFhVfrXUcOaZTVCAunbzcw1nAEGC3qT3c9_qC25uvedANZfauiBULlvR4UjuJ6NhvsBDDxQCt6AnNAHuCD_voGwHFR_HaljX_mCSiuVfNvkO9fGf1QW-OKu7Gc4lWrM9hO7t0mack2Mimx6YP4kQoooQJjqaxcc2MZKlMyDKnquD4l1Wcb745UBydI7NHBY6iE4ROd0oX2vUpW8IlsTABuDZuNZnJdD8qP5OqiAc-9SGEwISpr-hFdvJe_0-HXkH33Lac2t2TlaAgDxs5Z6BrgxgquxIKFKdZWMcJbCNTPodhBO0wdvDcYLWiqjch8jEgdNknto6HA
+}
+
+docs {
+  Get insights and metrics for a specific Facebook page
+}

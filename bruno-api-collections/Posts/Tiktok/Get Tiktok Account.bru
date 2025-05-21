@@ -1,0 +1,19 @@
+meta {
+  name: Get Tiktok Account
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/api/platforms/tiktok/creator-info
+  body: none
+  auth: bearer
+}
+
+headers {
+  X-TENANT-ID: {{tenant_id}}
+}
+
+auth:bearer {
+  token: {{auth_token}}
+}

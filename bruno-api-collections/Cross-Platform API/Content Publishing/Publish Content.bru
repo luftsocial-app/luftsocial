@@ -1,0 +1,59 @@
+meta {
+  name: Publish Content
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/cross-platform/publish
+  body: json
+  auth: bearer
+}
+
+headers {
+  X-TENANT-ID: {{tenant_id}}
+}
+
+auth:bearer {
+  token: {{auth_token}}
+}
+
+body:json {
+  {
+      "content": "🚀 Fresh Water! testing 2",
+      "mediaUrls": [
+          "https://luftsocial-dev.s3.ap-southeast-2.amazonaws.com/social-media/user_2vRfuRuZ10wjeYKx4KrCvdkhzcg/ce3701f3-82b5-4419-8885-f58a328944d2/3+Minute+Tomato+Soup!+Ready+in+Grilled-Cheese+time!+Tomato+Paste+Tomato+Soup.mp4"
+          // "https://images.unsplash.com/photo-1594897030264-ab7d87efc473?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
+          //         "https://plus.unsplash.com/premium_photo-1661603403807-aa68bfcc983a?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
+      ],
+      "platforms": [
+          {
+              "platform": "FACEBOOK",
+              "platformSpecificParams": {
+                  "platform": "FACEBOOK",
+                  "content": "Posting about water today!",
+                  "pageId": "6f750a83-36ad-4350-b373-42dc684998fd",
+                  "privacyLevel": "PUBLIC",
+                  "link": "https://myproduct.com"
+              }
+          },
+          {
+              "platform": "TIKTOK",
+              "platformSpecificParams": {
+                  "platform": "TIKTOK",
+                  "accountId": "84baf0a3-d1d1-4af0-8f7b-1bc28f1ae223",
+                  "title": "Check out my latest video!",
+                  "privacyLevel": "SELF_ONLY",
+                  "status": "PENDING",
+                  "disableDuet": true,
+                  "disableStitch": false,
+                  "disableComment": false,
+                  "videoCoverTimestampMs": 1500,
+                  "brandContentToggle": false,
+                  "brandOrganicToggle": true,
+                  "isAigc": false
+              }
+          }
+      ]
+  }
+}

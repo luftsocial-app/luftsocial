@@ -1,0 +1,30 @@
+meta {
+  name: Get Facebook  acccess token
+  type: http
+  seq: 1
+}
+
+get {
+  url: http://
+  body: none
+  auth: oauth2
+}
+
+auth:oauth2 {
+  grant_type: authorization_code
+  callback_url: 
+  authorization_url: https://www.facebook.com/v22.0/dialog/oauth
+  access_token_url: https://graph.facebook.com/v22.0/oauth/access_token
+  refresh_token_url: 
+  client_id: 660615723197811
+  client_secret: 0f80eee43e677ae1f69b5892f76eca4a
+  scope: pages_manage_posts pages_manage_metadata pages_read_engagement pages_show_list publish_video business_management
+  state: 
+  pkce: false
+  credentials_placement: basic_auth_header
+  credentials_id: credentials
+  token_placement: header
+  token_header_prefix: Bearer
+  auto_fetch_token: true
+  auto_refresh_token: false
+}

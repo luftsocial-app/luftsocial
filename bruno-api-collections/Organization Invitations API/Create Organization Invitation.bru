@@ -1,0 +1,42 @@
+meta {
+  name: Create Organization Invitation
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/organizations/{{organizationId}}/invitations
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{authToken}}
+  X-TENANT-ID: {{tenant_id}}
+}
+
+auth:bearer {
+  token: {{auth_token}}
+}
+
+body:json {
+  {
+      "email_address": "mikelmessi.om@gmail.com",
+      "role": "org:member",
+      "public_metadata": {
+          "team": "marketing",
+          "title": "Social Media Manager"
+      },
+      "private_metadata": {
+          "access_level": 2,
+          "internal_id": "EMP-123"
+      },
+      "redirect_url": "https://luftsocial.netlify.app/dashboard",
+      "expires_in_days": 14
+  }
+}
+
+docs {
+  Creates a new organization invitation and sends an email to the provided email address. Only organization administrators can create invitations.
+}

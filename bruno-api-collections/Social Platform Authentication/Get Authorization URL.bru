@@ -1,0 +1,28 @@
+meta {
+  name: Get Authorization URL
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/auth/:platform/authorize
+  body: none
+  auth: bearer
+}
+
+params:path {
+  platform: FACEBOOK
+}
+
+headers {
+  X-TENANT-ID: {{tenant-id}}
+  ~Authorization: Bearer {{clerk_token}}
+}
+
+auth:bearer {
+  token: {{BearerToken}}
+}
+
+docs {
+  Get the authorization URL for a specific platform
+}

@@ -1,0 +1,28 @@
+meta {
+  name: Get message history for user
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/messages/history/:userId
+  body: none
+  auth: bearer
+}
+
+params:path {
+  userId: user_2vHVQOqPcnFiPLQm2hFVJdsPkEC
+}
+
+headers {
+  x-tenant-id: {{tenantId}}
+  Authorization: Bearer {{authToken}}
+}
+
+auth:bearer {
+  token: {{BearerToken}}
+}
+
+docs {
+  Get message history for a user
+}
