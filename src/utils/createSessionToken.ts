@@ -24,7 +24,9 @@ export async function createSessionToken( // this function is for testing only, 
 
     if (!response.ok) {
       const errorDetails = await response.json();
-      throw new Error(`Error Details ${response.status}: ${JSON.stringify(errorDetails)}`);
+      throw new Error(
+        `Error Details ${response.status}: ${JSON.stringify(errorDetails)}`,
+      );
     }
 
     const data = await response.json();
