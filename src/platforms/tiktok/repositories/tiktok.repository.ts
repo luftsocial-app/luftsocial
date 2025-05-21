@@ -14,6 +14,7 @@ import { TikTokRateLimit } from '../../entities/tiktok-entities/tiktok_rate_limi
 import { TikTokComment } from '../../entities/tiktok-entities/tiktok_comments.entity';
 import {
   CreateUploadSessionParams,
+  TikTokPostVideoStatus,
   TikTokVideoPrivacyLevel,
 } from '../helpers/tiktok.interfaces';
 import { SocialAccount } from '../../../platforms/entities/notifications/entity/social-account.entity';
@@ -44,26 +45,35 @@ export class TikTokRepository {
   ) {}
 
   async createAccount(data: Partial<TikTokAccount>): Promise<TikTokAccount> {
-    const socialAccountData = data.socialAccount;
+    const { socialAccount: socialAccountData, ...tiktokAccountData } = data;
 
-    const { socialAccount, ...tiktokAccountData } = data;
-
-    this.logger.info({ socialAccount, tiktokAccountData });
+    this.logger.info({ socialAccount: socialAccountData, tiktokAccountData });
 
     return this.dataSource.transaction(async (manager) => {
-      this.logger.info('here');
+      this.logger.info('Checking for existing TikTok account');
 
-      // First create the social account
+      const existingAccount = await manager.findOne(TikTokAccount, {
+        where: {
+          openId: tiktokAccountData.openId,
+          userId: tiktokAccountData.userId,
+        },
+        relations: ['socialAccount'],
+      });
+
+      if (existingAccount) {
+        this.logger.warn('Account with same tiktok account already exists');
+        return existingAccount;
+      }
+
+      // Create the social account
       const socialAccount = this.socialAccountRepo.create({
         ...socialAccountData,
-        tenantId: data.tenantId, // Ensure tenantId is set
+        tenantId: data.tenantId,
       });
 
       const savedSocialAccount = await manager.save(socialAccount);
-
       this.logger.info({ savedSocialAccount });
 
-      // Now create the TikTok account with a reference to the social account
       const tiktokAccount = this.accountRepo.create({
         ...tiktokAccountData,
         socialAccount: savedSocialAccount,
@@ -72,12 +82,12 @@ export class TikTokRepository {
       return await manager.save(tiktokAccount);
     });
   }
-
   async createVideo(data: {
     account: TikTokAccount;
+    tenantId: string;
     publishId: string;
     uploadUrl?: string;
-    status: string;
+    status: TikTokPostVideoStatus;
     title?: string;
     privacyLevel: TikTokVideoPrivacyLevel;
     disableDuet?: boolean;
@@ -169,7 +179,7 @@ export class TikTokRepository {
 
   async updateVideoStatus(
     publishId: string,
-    status: string,
+    status: TikTokPostVideoStatus,
   ): Promise<TikTokVideo> {
     await this.videoRepo.update(
       { publishId },
@@ -188,7 +198,7 @@ export class TikTokRepository {
     relations: string[] = [],
   ): Promise<TikTokAccount> {
     return this.accountRepo.findOne({
-      where: { id, tenantId: this.tenantService.getTenantId() },
+      where: { userId: id, tenantId: this.tenantService.getTenantId() },
       relations,
     });
   }
@@ -312,6 +322,19 @@ export class TikTokRepository {
     return this.entityManager.findOne('tiktok_upload_sessions', {
       where: { id: sessionId, tenantId: this.tenantService.getTenantId() },
     });
+  }
+
+  async updateAccount(account: TikTokAccount): Promise<TikTokAccount> {
+    const existingAccount = await this.accountRepo.findOne({
+      where: { id: account.id, tenantId: this.tenantService.getTenantId() },
+      relations: ['socialAccount'],
+    });
+
+    if (!existingAccount) {
+      throw new NotFoundException('Account not found');
+    }
+
+    return this.accountRepo.save({ ...existingAccount, ...account });
   }
 
   async deleteAccount(accountId: string): Promise<void> {
