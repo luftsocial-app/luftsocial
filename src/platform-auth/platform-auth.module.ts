@@ -58,6 +58,7 @@ import { UserManagementModule } from '../user-management/user-management.module'
       ) => ({
         [SocialPlatform.FACEBOOK]: facebookRepo,
         [SocialPlatform.INSTAGRAM]: instagramRepo,
+        [SocialPlatform.INSTAGRAM_BUSINESS]: instagramRepo,
         [SocialPlatform.LINKEDIN]: linkedInRepo,
         [SocialPlatform.TIKTOK]: tiktokRepo,
       }),

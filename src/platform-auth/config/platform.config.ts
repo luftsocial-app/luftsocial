@@ -54,9 +54,9 @@ export const PlatformConfigsProvider = {
     },
     // Instagram with Business Login for Instagram configuration
     [SocialPlatform.INSTAGRAM_BUSINESS]: {
-      clientId: configService.get<string>('INSTAGRAM_APP_ID'),
-      clientSecret: configService.get<string>('INSTAGRAM_APP_SECRET'),
-      tokenHost: 'https://graph.instagram.com',
+      clientId: configService.get<string>('INSTAGRAM_CLIENT_ID'),
+      clientSecret: configService.get<string>('INSTAGRAM_CLIENT_SECRET'),
+      tokenHost: 'https://api.instagram.com',
       tokenPath: '/oauth/access_token',
       authorizePath: '/oauth/authorize',
       revokePath: '/oauth/revoke',

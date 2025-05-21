@@ -172,30 +172,90 @@ export class PlatformAuthService {
     }
   }
 
-  private async createPlatformAccount(
+  /**
+   *
+   * @param platform - The platform (INSTAGRAM_BUSINESS)
+   * @param userId - The user ID in your system
+   * @param tokens - Token response from authentication
+   * @param userInfo - User information fetched from Instagram
+   * @param tenantId - Tenant ID
+   */
+  private createInstagramBusinessAccountData(
+    userId: string,
+    tokens: TokenResponse,
+    userInfo: any,
+    tenantId: string,
+  ): any {
+    const socialAccountData = {
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken || tokens.accessToken,
+      expiresAt: tokens.expiresIn
+        ? new Date(Date.now() + tokens.expiresIn * 1000)
+        : new Date(Date.now() + 60 * 24 * 60 * 60 * 1000), // Default to 60 days
+      scope: tokens.scope || ['user_profile', 'user_media'],
+      platform: SocialPlatform.INSTAGRAM_BUSINESS,
+      platformUserId: userInfo.id,
+      tokenExpiresAt: tokens.expiresIn
+        ? new Date(Date.now() + tokens.expiresIn * 1000)
+        : new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
+    };
+
+    // Return the Instagram account data
+    return {
+      userId,
+      tenantId,
+      permissions: tokens.scope || ['user_profile', 'user_media'],
+      socialAccount: socialAccountData,
+      instagramId: userInfo.id,
+      username: userInfo.username,
+      name: userInfo.name || userInfo.username,
+      accountType: userInfo.account_type || 'business',
+      isBusinessLogin: true, // This is direct Instagram Business login
+      mediaCount: userInfo.media_count || 0,
+      metadata: {
+        instagramAccounts: [
+          {
+            id: userInfo.id || '',
+          },
+        ],
+      },
+    };
+  }
+  async createPlatformAccount(
     tenantId: string,
     platform: SocialPlatform,
     userId: string,
     tokens: TokenResponse,
   ): Promise<any> {
     try {
-      // Get the appropriate repository for the platform
       const repository = this.platformRepos[platform];
       if (!repository) {
         throw new Error(`Repository not found for platform: ${platform}`);
       }
 
-      // Get additional user information from the platform if needed
       const userInfo = await this.fetchUserInfo(platform, tokens.accessToken);
 
       // Create account data based on platform
-      const accountData = this.createAccountData(
-        platform,
-        userId,
-        tokens,
-        userInfo,
-        tenantId,
-      );
+      let accountData;
+
+      // Special handling for INSTAGRAM_BUSINESS platform
+      if (platform === SocialPlatform.INSTAGRAM_BUSINESS) {
+        accountData = this.createInstagramBusinessAccountData(
+          userId,
+          tokens,
+          userInfo,
+          tenantId,
+        );
+      } else {
+        // For other platforms, use the standard createAccountData method
+        accountData = this.createAccountData(
+          platform,
+          userId,
+          tokens,
+          userInfo,
+          tenantId,
+        );
+      }
 
       // Create and save the account
       return await repository.createAccount(accountData);
@@ -273,7 +333,6 @@ export class PlatformAuthService {
           },
         },
       );
-      console.log('instagrambuss', pagesResponse.data);
 
       this.logger.debug('Facebook Pages response:', pagesResponse.data);
 
@@ -287,8 +346,6 @@ export class PlatformAuthService {
       const pageWithInstagram = pages.find(
         (page) => page.instagram_business_account,
       );
-
-      console.log('instagrambuss1212', pageWithInstagram)
 
       if (!pageWithInstagram) {
         throw new Error(
@@ -316,7 +373,6 @@ export class PlatformAuthService {
         instagramResponse.data,
       );
 
-      console.log('instagrambuss1212', instagramResponse.data)
       // Return a composite object with both Page and Instagram info
       return {
         id: instagramResponse.data.id,
@@ -733,29 +789,33 @@ export class PlatformAuthService {
     config: PlatformOAuthConfig,
   ): Promise<any> {
     try {
-      // Instagram Business Login uses a different flow than standard OAuth
+      const formData = new URLSearchParams();
+      formData.append('client_id', config.clientId);
+      formData.append('client_secret', config.clientSecret);
+      formData.append('grant_type', 'authorization_code');
+      formData.append('redirect_uri', config.redirectUri);
+      formData.append('code', code);
+
+      // Make the first request to get the short-lived token
       const response = await axios.post(
-        `${config.tokenHost}${config.tokenPath}`,
-        null,
+        'https://api.instagram.com/oauth/access_token',
+        formData.toString(), // Send as string body
         {
-          params: {
-            client_id: config.clientId,
-            client_secret: config.clientSecret,
-            grant_type: 'authorization_code',
-            redirect_uri: config.redirectUri,
-            code: code,
-          },
           headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
             Accept: 'application/json',
           },
         },
       );
 
-      const shortLivedToken = response.data.access_token;
+      this.logger.debug('Short-lived token response:', response.data);
 
-      // Exchange for a long-lived token
+      // Step 2: Exchange short-lived token for long-lived token
+      const shortLivedToken = response.data.access_token;
+      const userId = response.data.user_id; // Save user ID from first response
+
       const longLivedTokenResponse = await axios.get(
-        `${config.tokenHost}/access_token`,
+        'https://graph.instagram.com/access_token',
         {
           params: {
             grant_type: 'ig_exchange_token',
@@ -765,9 +825,16 @@ export class PlatformAuthService {
         },
       );
 
+      this.logger.debug(
+        'Long-lived token response:',
+        longLivedTokenResponse.data,
+      );
+
+      // Create a token object that matches the format expected by the rest of the system
       return {
         token: {
           access_token: longLivedTokenResponse.data.access_token,
+          user_id: userId, // Include the user ID from the first response
           token_type: 'bearer',
           expires_in: longLivedTokenResponse.data.expires_in,
         },
@@ -777,6 +844,21 @@ export class PlatformAuthService {
         'Instagram Business token exchange error:',
         error.response?.data || error.message,
       );
+
+      // Enhanced error logging
+      if (error.response) {
+        this.logger.error('Response status:', error.response.status);
+        this.logger.error('Response headers:', error.response.headers);
+        this.logger.error('Response data:', error.response.data);
+        this.logger.error('Request URL:', error.config?.url);
+        this.logger.error('Request params:', error.config?.params);
+        this.logger.error('Request data:', error.config?.data);
+      } else if (error.request) {
+        this.logger.error('No response received, request was:', error.request);
+      } else {
+        this.logger.error('Error during request setup:', error.message);
+      }
+
       throw error;
     }
   }
