@@ -273,7 +273,6 @@ export class TikTokService implements PlatformService {
         },
       };
 
-
       const response = await axios.post(
         `${this.baseUrl}/post/publish/video/init/`,
         requestBody,

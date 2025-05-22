@@ -724,7 +724,6 @@ export class FacebookService implements PlatformService {
       }),
     );
 
-
     // Create post with attached photos
     const postData = await axios.post(
       `${this.baseUrl}/${this.apiVersion}/${page.pageId}/feed`,
