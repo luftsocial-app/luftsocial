@@ -427,6 +427,7 @@ export class ContentPublisherService {
           };
 
         case SocialPlatform.INSTAGRAM:
+        case SocialPlatform.INSTAGRAM_BUSINESS:
           if (!params.media?.length) {
             throw new BadRequestException(
               'Instagram requires at least one media',

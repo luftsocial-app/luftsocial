@@ -7,6 +7,7 @@ export interface ConnectedPlatform {
     id: string;
     name: string;
     type: string;
+    platformSpecific?: any;
   }[];
 }
 

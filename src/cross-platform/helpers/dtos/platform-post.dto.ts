@@ -24,6 +24,10 @@ export class PlatformPostDto {
         { value: CreateFacebookPagePostDto, name: SocialPlatform.FACEBOOK },
         { value: CreateTiktokVideoDto, name: SocialPlatform.TIKTOK },
         { value: CreateInstagramPostDto, name: SocialPlatform.INSTAGRAM },
+        {
+          value: CreateInstagramPostDto,
+          name: SocialPlatform.INSTAGRAM_BUSINESS,
+        },
         { value: CreateLinkedInPostDto, name: SocialPlatform.LINKEDIN },
       ],
     },

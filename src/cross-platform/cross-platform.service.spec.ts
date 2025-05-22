@@ -26,7 +26,7 @@ describe('CrossPlatformService', () => {
   ] as unknown as SocialAccountDetails[];
 
   const mockInstagramAccounts = [
-    { id: 'ig123', name: 'My Instagram Account' },
+    { id: 'ig123', name: 'My Instag`ram Account' },
   ] as unknown as SocialAccountDetails[];
 
   const mockLinkedInAccounts = [

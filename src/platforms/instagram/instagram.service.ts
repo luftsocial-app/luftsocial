@@ -34,7 +34,10 @@ import { TenantService } from '../../user-management/tenant.service';
 
 @Injectable()
 export class InstagramService implements PlatformService {
-  private readonly baseUrl: string = 'https://graph.facebook.com/v18.0';
+  // Base URLs for different authentication methods
+  private readonly facebookGraphUrl: string =
+    'https://graph.facebook.com/v18.0';
+  private readonly instagramGraphUrl: string = 'https://graph.instagram.com';
 
   constructor(
     private readonly instagramRepo: InstagramRepository,
@@ -43,6 +46,32 @@ export class InstagramService implements PlatformService {
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(InstagramService.name);
+  }
+
+  /**
+   * Determines the appropriate base URL and access token based on authentication method
+   */
+  private getApiConfig(account: InstagramAccount): {
+    baseUrl: string;
+    accessToken: string;
+    instagramAccountId: string;
+  } {
+    if (account.isBusinessLogin) {
+      // Direct Instagram Business Login
+      return {
+        baseUrl: this.instagramGraphUrl,
+        accessToken: account.socialAccount.accessToken,
+        instagramAccountId: account.instagramId,
+      };
+    } else {
+      // Instagram with Facebook Login - use Page access token
+      return {
+        baseUrl: this.facebookGraphUrl,
+        accessToken:
+          account.facebookPageAccessToken || account.socialAccount.accessToken,
+        instagramAccountId: account.instagramId,
+      };
+    }
   }
 
   private async uploadInstagramMediaItems(
@@ -81,6 +110,7 @@ export class InstagramService implements PlatformService {
 
     return mediaItems;
   }
+
   async withRateLimit<T>(
     accountId: string,
     action: string,
@@ -111,41 +141,39 @@ export class InstagramService implements PlatformService {
       return await this.instagramRepo.getAccountByUserId(userId);
     } catch (error) {
       this.logger.error(
-        `Failed to fetch Facebook accounts for user ${userId}`,
+        `Failed to fetch Instagram accounts for user ${userId}`,
         error.stack,
       );
+      throw error;
     }
   }
 
-  async getUserAccounts(userId: string): Promise<SocialAccountDetails[]> {
+  async getUserAccounts(userId: string): Promise<SocialAccountDetails> {
     const account = await this.instagramRepo.getAccountByUserId(userId);
+
     if (!account) {
-      throw new NotFoundException('No Instagram accounts found for user');
+      throw new NotFoundException('No Instagram account found for user');
     }
 
-    try {
-      const response = await axios.get(`${this.baseUrl}/me/accounts`, {
-        params: {
-          access_token: account.socialAccount.accessToken,
-          fields: 'id,username,profile_picture_url,account_type',
-        },
-      });
-
-      return response.data.data.map((account) => ({
-        id: account.id,
-        name: account.username,
-        type: account.account_type,
-        avatarUrl: account.profile_picture_url,
-        platformSpecific: {
-          accountType: account.account_type,
-        },
-      }));
-    } catch (error) {
-      throw new InstagramApiException('Failed to fetch user accounts', error);
-    }
+    // Transform accounts to SocialAccountDetails format
+    return {
+      id: account.id,
+      name: account.username || account.name,
+      type: account.accountType || 'business',
+      avatarUrl: account.profilePictureUrl,
+      platformSpecific: {
+        accountType: account.accountType,
+        isBusinessLogin: account.isBusinessLogin,
+        instagramId: account.instagramId,
+        facebookPageId: account.facebookPageId,
+      },
+    };
   }
 
-  // TODO: add caption, hastags and mentions to posting
+  /**
+   * Enhanced post method that handles both authentication methods and includes
+   * caption, hashtags, and mentions
+   */
   async post(
     accountId: string,
     content: CreateInstagramPostDto,
@@ -158,6 +186,22 @@ export class InstagramService implements PlatformService {
       }
 
       const { hashtags, mentions, caption } = content;
+
+      // Build the full caption with hashtags and mentions
+      let fullCaption = caption || '';
+
+      if (mentions && mentions.length > 0) {
+        const mentionText = mentions.map((mention) => `@${mention}`).join(' ');
+        fullCaption = `${fullCaption} ${mentionText}`.trim();
+      }
+
+      if (hashtags && hashtags.length > 0) {
+        const hashtagText = hashtags
+          .map((tag) => (tag.startsWith('#') ? tag : `#${tag}`))
+          .join(' ');
+        fullCaption = `${fullCaption} ${hashtagText}`.trim();
+      }
+
       // Store media in S3 first if there are any media items
       const mediaItems = await this.uploadInstagramMediaItems(
         media,
@@ -165,7 +209,7 @@ export class InstagramService implements PlatformService {
         'post',
       );
 
-      const igAccountId = account.metadata.instagramAccounts[0].id;
+      const apiConfig = this.getApiConfig(account);
 
       if (!mediaItems?.length) {
         throw new HttpException(
@@ -174,44 +218,51 @@ export class InstagramService implements PlatformService {
         );
       }
 
-      // 1. Upload media
-      const mediaObjects = await Promise.all(
+      // 1. Create media containers
+      const mediaContainers = await Promise.all(
         mediaItems.map((mediaItem) =>
-          this.uploadMedia(
-            igAccountId,
+          this.createMediaContainer(
+            apiConfig.instagramAccountId,
             mediaItem.url,
-            account.socialAccount.accessToken,
+            fullCaption,
+            apiConfig.baseUrl,
+            apiConfig.accessToken,
           ),
         ),
       );
 
-      // 2. Create container if multiple media items
+      // 2. Create post container (for single media) or carousel container (for multiple media)
       let containerId: string;
-      if (mediaObjects.length > 1) {
-        containerId = await this.createMediaContainer(
-          igAccountId,
-          mediaObjects.map((m) => m.id),
-          account.socialAccount.accessToken,
+      if (mediaContainers.length === 1) {
+        containerId = mediaContainers[0].id;
+      } else {
+        containerId = await this.createCarouselContainer(
+          apiConfig.instagramAccountId,
+          mediaContainers.map((c) => c.id),
+          fullCaption,
+          apiConfig.baseUrl,
+          apiConfig.accessToken,
         );
       }
 
       // 3. Publish post
       const response = await axios.post(
-        `${this.baseUrl}/${igAccountId}/media_publish`,
+        `${apiConfig.baseUrl}/${apiConfig.instagramAccountId}/media_publish`,
         null,
         {
           params: {
-            creation_id: containerId || mediaObjects[0].id,
-            access_token: account.socialAccount.accessToken,
+            creation_id: containerId,
+            access_token: apiConfig.accessToken,
           },
         },
       );
 
+      // 4. Save post to database
       await this.instagramRepo.createPost({
         account: account,
-        caption: caption,
-        mentions: mentions,
-        hashtags: hashtags,
+        caption: fullCaption,
+        mentions: mentions || [],
+        hashtags: hashtags || [],
         mediaItems: mediaItems,
         postId: response.data.id,
         isPublished: true,
@@ -223,6 +274,7 @@ export class InstagramService implements PlatformService {
         postedAt: new Date(),
       };
     } catch (error) {
+      this.logger.error('Failed to create Instagram post', error);
       throw new InstagramApiException('Failed to create Instagram post', error);
     }
   }
@@ -238,20 +290,25 @@ export class InstagramService implements PlatformService {
         throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
       }
 
-      const response = await axios.get(`${this.baseUrl}/${postId}/comments`, {
-        params: {
-          access_token: account.socialAccount.accessToken,
-          fields: 'id,text,timestamp,username',
-          after: pageToken,
+      const apiConfig = this.getApiConfig(account);
+
+      const response = await axios.get(
+        `${apiConfig.baseUrl}/${postId}/comments`,
+        {
+          params: {
+            access_token: apiConfig.accessToken,
+            fields: 'id,text,timestamp,username,from',
+            after: pageToken,
+          },
         },
-      });
+      );
 
       return {
         items: response.data.data.map((comment) => ({
           id: comment.id,
           content: comment.text,
-          authorId: comment.username,
-          authorName: comment.username,
+          authorId: comment.from?.id || comment.username,
+          authorName: comment.from?.username || comment.username,
           createdAt: new Date(comment.timestamp),
         })),
         nextPageToken: response.data.paging?.cursors?.after,
@@ -274,14 +331,23 @@ export class InstagramService implements PlatformService {
         throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
       }
 
-      const response = await axios.get(`${this.baseUrl}/${postId}/insights`, {
-        params: {
-          access_token: account.socialAccount.accessToken,
-          metric:
-            'engagement,impressions,reach,saved,likes_count,comments_count,shares',
-          period: 'lifetime',
+      const apiConfig = this.getApiConfig(account);
+
+      // Different metrics available for different authentication methods
+      const metricsToFetch = account.isBusinessLogin
+        ? 'engagement,impressions,reach'
+        : 'engagement,impressions,reach,saved,likes,comments,shares';
+
+      const response = await axios.get(
+        `${apiConfig.baseUrl}/${postId}/insights`,
+        {
+          params: {
+            access_token: apiConfig.accessToken,
+            metric: metricsToFetch,
+            period: 'lifetime',
+          },
         },
-      });
+      );
 
       const metrics: Record<string, number> = {};
       response.data.data.forEach((metric) => {
@@ -292,12 +358,11 @@ export class InstagramService implements PlatformService {
         engagement: metrics.engagement || 0,
         impressions: metrics.impressions || 0,
         reach: metrics.reach || 0,
-        reactions: metrics.likes_count || 0,
-        comments: metrics.comments_count || 0,
+        reactions: metrics.likes || 0,
+        comments: metrics.comments || 0,
         shares: metrics.shares || 0,
         saves: metrics.saved || 0,
         platformSpecific: {
-          // Instagram specific metrics can go here
           saved: metrics.saved || 0,
           storyReplies: metrics.story_replies || 0,
           storyTaps: metrics.story_taps_back || 0,
@@ -321,41 +386,44 @@ export class InstagramService implements PlatformService {
       throw new NotFoundException('Account not found');
     }
 
+    const apiConfig = this.getApiConfig(account);
+
     try {
-      const response = await axios.get(`${this.baseUrl}/insights`, {
-        params: {
-          access_token: account.socialAccount.accessToken,
-          metric: [
-            'impressions',
-            'reach',
-            'profile_views',
-            'follower_count',
-            'email_contacts',
-            'get_directions_clicks',
-            'phone_call_clicks',
-            'text_message_clicks',
-            'website_clicks',
-          ].join(','),
-          period: 'day',
-          since: dateRange.startDate,
-          until: dateRange.endDate,
+      const metricsToFetch = account.isBusinessLogin
+        ? 'impressions,reach,profile_views'
+        : 'impressions,reach,profile_views,follower_count,email_contacts,get_directions_clicks,phone_call_clicks,text_message_clicks,website_clicks';
+
+      const response = await axios.get(
+        `${apiConfig.baseUrl}/${apiConfig.instagramAccountId}/insights`,
+        {
+          params: {
+            access_token: apiConfig.accessToken,
+            metric: metricsToFetch,
+            period: 'day',
+            since: dateRange.startDate,
+            until: dateRange.endDate,
+          },
         },
-      });
+      );
+
+      const metricsData = response.data.data.reduce((acc, metric) => {
+        acc[metric.name] = metric.values[0]?.value || 0;
+        return acc;
+      }, {});
 
       return {
-        followers: response.data.follower_count || 0,
+        followers: metricsData.follower_count || account.followerCount || 0,
         engagement:
-          (response.data.profile_views || 0) +
-          (response.data.website_clicks || 0),
-        impressions: response.data.impressions || 0,
-        reach: response.data.reach || 0,
+          (metricsData.profile_views || 0) + (metricsData.website_clicks || 0),
+        impressions: metricsData.impressions || 0,
+        reach: metricsData.reach || 0,
         platformSpecific: {
-          profileViews: response.data.profile_views,
-          emailContacts: response.data.email_contacts,
-          getDirectionsClicks: response.data.get_directions_clicks,
-          phoneCallClicks: response.data.phone_call_clicks,
-          textMessageClicks: response.data.text_message_clicks,
-          websiteClicks: response.data.website_clicks,
+          profileViews: metricsData.profile_views,
+          emailContacts: metricsData.email_contacts,
+          getDirectionsClicks: metricsData.get_directions_clicks,
+          phoneCallClicks: metricsData.phone_call_clicks,
+          textMessageClicks: metricsData.text_message_clicks,
+          websiteClicks: metricsData.website_clicks,
         },
         dateRange,
       };
@@ -364,129 +432,173 @@ export class InstagramService implements PlatformService {
     }
   }
 
-  private async getInstagramAccounts(accessToken: string): Promise<any[]> {
-    // First get Facebook Pages
-    const pagesResponse = await axios.get(`${this.baseUrl}/me/accounts`, {
-      params: {
-        access_token: accessToken,
-        fields: 'instagram_business_account{id,username}',
-      },
-    });
-
-    // Extract Instagram Business Accounts
-    const instagramAccounts = [];
-    for (const page of pagesResponse.data.data) {
-      if (page.instagram_business_account) {
-        instagramAccounts.push({
-          id: page.instagram_business_account.id,
-          username: page.instagram_business_account.username,
-          pageId: page.id,
-        });
-      }
-    }
-
-    return instagramAccounts;
-  }
-
-  private async uploadMedia(
-    igAccountId: string,
+  /**
+   * Creates a media container with caption for single media or carousel items
+   */
+  private async createMediaContainer(
+    instagramAccountId: string,
     mediaUrl: string,
+    caption: string,
+    baseUrl: string,
     accessToken: string,
   ): Promise<{ id: string; type: MediaType }> {
     try {
-      // 1. Download media
+      // Validate and get media type first
       const mediaData = await this.downloadAndValidateMedia(mediaUrl);
 
-      // 2. Create container
-      const containerResponse = await axios.post(
-        `${this.baseUrl}/${igAccountId}/media`,
-        null,
-        {
-          params: {
-            image_url: mediaUrl,
-            media_type: mediaData.type,
-            access_token: accessToken,
-          },
-        },
-      );
+      const params: any = {
+        access_token: accessToken,
+      };
 
-      // 3. Check status
-      const status = await this.checkMediaStatus(
-        containerResponse.data.id,
-        accessToken,
-      );
-
-      if (status !== 'FINISHED') {
-        throw new Error('Media upload failed');
+      // Set media URL and type based on media type
+      if (mediaData.type === MediaType.IMAGE) {
+        params.image_url = mediaUrl;
+      } else if (mediaData.type === MediaType.VIDEO) {
+        params.video_url = mediaUrl;
       }
 
+      // Add caption only for single media posts (not carousel children)
+      if (caption) {
+        params.caption = caption;
+      }
+
+      const response = await axios.post(
+        `${baseUrl}/${instagramAccountId}/media`,
+        null,
+        { params },
+      );
+
+      // Wait for media processing to complete
+      await this.waitForMediaProcessing(response.data.id, baseUrl, accessToken);
+
       return {
-        id: containerResponse.data.id,
+        id: response.data.id,
         type: mediaData.type,
       };
     } catch (error) {
-      throw new InstagramApiException('Failed to upload media', error);
+      this.logger.error('Failed to create media container', error);
+      throw new InstagramApiException(
+        'Failed to create media container',
+        error,
+      );
     }
   }
 
-  private async createMediaContainer(
-    igAccountId: string,
-    mediaIds: string[],
+  /**
+   * Creates a carousel container for multiple media items
+   */
+  private async createCarouselContainer(
+    instagramAccountId: string,
+    childrenIds: string[],
+    caption: string,
+    baseUrl: string,
     accessToken: string,
   ): Promise<string> {
-    const response = await axios.post(
-      `${this.baseUrl}/${igAccountId}/media`,
-      null,
-      {
-        params: {
-          media_type: 'CAROUSEL',
-          children: mediaIds.join(','),
-          access_token: accessToken,
-        },
-      },
-    );
+    try {
+      const params: any = {
+        media_type: 'CAROUSEL',
+        children: childrenIds.join(','),
+        access_token: accessToken,
+      };
 
-    return response.data.id;
+      if (caption) {
+        params.caption = caption;
+      }
+
+      const response = await axios.post(
+        `${baseUrl}/${instagramAccountId}/media`,
+        null,
+        { params },
+      );
+
+      // Wait for carousel processing to complete
+      await this.waitForMediaProcessing(response.data.id, baseUrl, accessToken);
+
+      return response.data.id;
+    } catch (error) {
+      this.logger.error('Failed to create carousel container', error);
+      throw new InstagramApiException(
+        'Failed to create carousel container',
+        error,
+      );
+    }
   }
 
-  private async checkMediaStatus(
+  /**
+   * Waits for media processing to complete before publishing
+   */
+  private async waitForMediaProcessing(
     mediaId: string,
+    baseUrl: string,
     accessToken: string,
-  ): Promise<string> {
-    const response = await axios.get(`${this.baseUrl}/${mediaId}`, {
-      params: {
-        fields: 'status_code',
-        access_token: accessToken,
-      },
-    });
+    maxAttempts: number = 10,
+  ): Promise<void> {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      try {
+        const response = await axios.get(`${baseUrl}/${mediaId}`, {
+          params: {
+            fields: 'status_code',
+            access_token: accessToken,
+          },
+        });
 
-    return response.data.status_code;
+        const status = response.data.status_code;
+
+        if (status === 'FINISHED') {
+          return;
+        } else if (status === 'ERROR') {
+          throw new Error('Media processing failed');
+        }
+
+        // Wait before next attempt
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      } catch (error) {
+        if (attempt === maxAttempts - 1) {
+          throw new InstagramApiException('Media processing timeout', error);
+        }
+      }
+    }
+
+    throw new Error('Media processing timeout');
   }
 
   private async downloadAndValidateMedia(url: string): Promise<{
     type: MediaType;
     mimeType: string;
   }> {
-    const response = await axios.head(url);
-    const contentType = response.headers['content-type'];
-    const contentLength = parseInt(response.headers['content-length']);
+    try {
+      const response = await axios.head(url);
+      const contentType = response.headers['content-type'];
+      const contentLength = parseInt(response.headers['content-length'] || '0');
 
-    // Validate file size (Instagram limit is 8MB)
-    if (contentLength > 8 * 1024 * 1024) {
+      // Validate file size (Instagram limit is 8MB for photos, 100MB for videos)
+      const maxSize = contentType.startsWith('video/')
+        ? 100 * 1024 * 1024
+        : 8 * 1024 * 1024;
+      if (contentLength > maxSize) {
+        throw new HttpException(
+          `File size exceeds ${maxSize / (1024 * 1024)}MB limit`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // Determine media type
+      if (contentType.startsWith('image/')) {
+        return { type: MediaType.IMAGE, mimeType: contentType };
+      } else if (contentType.startsWith('video/')) {
+        return { type: MediaType.VIDEO, mimeType: contentType };
+      }
+
+      throw new HttpException('Unsupported media type', HttpStatus.BAD_REQUEST);
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
       throw new HttpException(
-        'File size exceeds 8MB limit',
+        'Failed to validate media',
         HttpStatus.BAD_REQUEST,
       );
     }
-
-    // Determine media type
-    if (contentType.startsWith('image/')) {
-      return { type: MediaType.IMAGE, mimeType: contentType };
-    } else if (contentType.startsWith('video/')) {
-      return { type: MediaType.VIDEO, mimeType: contentType };
-    }
-
-    throw new HttpException('Unsupported media type', HttpStatus.BAD_REQUEST);
   }
 
   async getAccountInsights(accountId: string): Promise<AccountInsights> {
@@ -496,14 +608,13 @@ export class InstagramService implements PlatformService {
         throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
       }
 
-      const igAccountId = account.instagramId;
-      const { accessToken } = account.socialAccount;
+      const apiConfig = this.getApiConfig(account);
 
       const response = await axios.get(
-        `${this.baseUrl}/${igAccountId}/insights`,
+        `${apiConfig.baseUrl}/${apiConfig.instagramAccountId}/insights`,
         {
           params: {
-            access_token: accessToken,
+            access_token: apiConfig.accessToken,
             metric: 'follower_count,impressions,profile_views,reach',
             period: 'day',
           },
@@ -544,37 +655,35 @@ export class InstagramService implements PlatformService {
         throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
       }
 
-      const igAccountId = account.instagramId;
-      const { accessToken } = account.socialAccount;
+      const apiConfig = this.getApiConfig(account);
 
-      // 1. Upload media
-      const mediaContainer = await this.uploadMedia(
-        igAccountId,
+      // 1. Create media container for story
+      const mediaContainer = await this.createMediaContainer(
+        apiConfig.instagramAccountId,
         mediaUrl,
-        accessToken,
+        '', // Stories don't use captions
+        apiConfig.baseUrl,
+        apiConfig.accessToken,
       );
 
-      // 2. Configure story
-      const configureStoryParams = {
+      // 2. Publish story
+      const storyParams: any = {
         media_id: mediaContainer.id,
-        source_type: '3',
-        configure_mode: '1',
-        stickers: stickers ? JSON.stringify(stickers) : undefined,
+        access_token: apiConfig.accessToken,
       };
 
-      const configureStoryResponse = await axios.post(
-        `${this.baseUrl}/${igAccountId}/media_configure_to_story`,
+      if (stickers) {
+        storyParams.stickers = JSON.stringify(stickers);
+      }
+
+      const response = await axios.post(
+        `${apiConfig.baseUrl}/${apiConfig.instagramAccountId}/media_publish`,
         null,
-        {
-          params: {
-            ...configureStoryParams,
-            access_token: accessToken,
-          },
-        },
+        { params: storyParams },
       );
 
       return {
-        platformPostId: configureStoryResponse.data.id,
+        platformPostId: response.data.id,
         postedAt: new Date(),
       };
     } catch (error) {
@@ -592,13 +701,26 @@ export class InstagramService implements PlatformService {
     }
 
     try {
-      await axios.post(`${this.baseUrl}/oauth/revoke/`, null, {
-        params: {
-          client_key: config.get('platforms.instagram.clientId'),
-          client_secret: config.get('platforms.instagram.clientSecret'),
-          token: account.socialAccount.accessToken,
-        },
-      });
+      const apiConfig = this.getApiConfig(account);
+
+      // Revoke access based on authentication method
+      if (account.isBusinessLogin) {
+        // For Instagram Business Login, revoke via Instagram API
+        await axios.post(`${this.instagramGraphUrl}/oauth/revoke`, null, {
+          params: {
+            client_id: config.get('platforms.instagram.clientId'),
+            client_secret: config.get('platforms.instagram.clientSecret'),
+            token: apiConfig.accessToken,
+          },
+        });
+      } else {
+        // For Facebook Login, revoke via Facebook API
+        await axios.delete(`${this.facebookGraphUrl}/me/permissions`, {
+          params: {
+            access_token: apiConfig.accessToken,
+          },
+        });
+      }
 
       await this.instagramRepo.deleteAccount(accountId);
     } catch (error) {
