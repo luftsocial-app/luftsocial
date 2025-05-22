@@ -6,8 +6,11 @@ import {
   JoinTable,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { User } from './user.entity';
+import { Tenant } from './tenant.entity'; // Import Tenant entity
 
 @Entity('teams')
 export class Team {
@@ -22,24 +25,28 @@ export class Team {
 
   @ManyToMany(() => User, (user) => user.teams)
   @JoinTable({
-    name: 'team_members',
+    name: 'team_members', // table name for the junction table
     joinColumn: { name: 'team_id', referencedColumnName: 'id' },
     inverseJoinColumn: { name: 'user_id', referencedColumnName: 'id' },
   })
   users: User[];
 
-  @Column({ name: 'tenant_id' })
-  tenantId: string;
+  // Relation to Tenant
+  @ManyToOne(() => Tenant, (tenant) => tenant.teams, { nullable: false }) // Assuming a team must belong to a tenant
+  @JoinColumn({ name: 'tenant_id' })
+  tenant: Tenant;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at', type: 'timestamp with time zone' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamp with time zone' })
   updatedAt: Date;
 
-  @Column({ nullable: true })
-  createdBy?: string;
+  // Relation to User for createdBy
+  @ManyToOne(() => User, { nullable: true }) // Nullable if creator can be system or undefined
+  @JoinColumn({ name: 'created_by_user_id' })
+  createdBy?: User;
 
-  @Column({ nullable: true })
-  updatedBy?: string;
+  @Column({ name: 'updated_by_user_id', type: 'uuid', nullable: true }) // Keep as string ID, or relate to User as well
+  updatedBy?: string; // Or User entity if you want full relation
 }

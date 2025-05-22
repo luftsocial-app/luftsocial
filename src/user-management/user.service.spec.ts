@@ -694,4 +694,81 @@ describe('UserService', () => {
     // `clerkClient.organizations.getOrganizationMembershipList`. If that part were to be activated,
     // additional tests would be needed to cover its mocking and behavior.
   });
+  
+  describe('syncClerkUser', () => {
+    const syncClerkId = 'syncUserClerk123';
+    const syncTenantId = 'syncTenant123';
+    const syncUserData = { email: 'sync@example.com', firstName: 'Sync', lastName: 'User' };
+    let mockSyncedUser: User;
+    let mockTenantForSync: Tenant;
+
+    beforeEach(() => {
+        mockSyncedUser = {
+            id: syncClerkId,
+            clerkId: syncClerkId,
+            ...syncUserData,
+            activeTenantId: syncTenantId,
+            tenants: [],
+            roles: [mockMemberRole],
+        } as User;
+        mockTenantForSync = { id: syncTenantId, name: 'Sync Tenant' } as Tenant;
+        
+        roleRepository.findOne.mockResolvedValue(mockMemberRole); // Default role
+        tenantRepository.findOneBy.mockResolvedValue(mockTenantForSync);
+    });
+
+    it('should update user if found in tenant (via findById(clerkId, tenantId))', async () => {
+        userRepository.findOne.mockResolvedValueOnce(mockSyncedUser); // Simulates findById(clerkId, tenantId) finding the user
+        userRepository.save.mockResolvedValue({ ...mockSyncedUser, firstName: "UpdatedSync" });
+
+        const result = await service.syncClerkUser(syncClerkId, syncTenantId, { firstName: "UpdatedSync" });
+        
+        expect(userRepository.findOne).toHaveBeenCalledWith({ where: { clerkId: syncClerkId }, relations: ['roles', 'tenants'] }); // from findById(clerkId, tenantId)
+        expect(userRepository.save).toHaveBeenCalledWith(expect.objectContaining({ firstName: "UpdatedSync" }));
+        expect(result.firstName).toBe("UpdatedSync");
+    });
+
+    it('should add user to tenant if user exists globally but not in tenant', async () => {
+        // findById(clerkId, tenantId) returns null
+        userRepository.findOne.mockResolvedValueOnce(null); 
+        // findById(clerkId) returns global user
+        const globalUser = { ...mockSyncedUser, tenants: [] }; // No tenants initially for this global user mock
+        userRepository.findOne.mockResolvedValueOnce(globalUser); 
+        userRepository.save.mockImplementation(async (user) => user as User);
+
+
+        const result = await service.syncClerkUser(syncClerkId, syncTenantId, syncUserData);
+
+        expect(userRepository.findOne).toHaveBeenNthCalledWith(1, { where: { clerkId: syncClerkId }, relations: ['roles', 'tenants'] }); // For findById(clerkId, tenantId)
+        expect(userRepository.findOne).toHaveBeenNthCalledWith(2, { where: { clerkId: syncClerkId }, relations: ['roles', 'tenants'] }); // For findById(clerkId)
+        expect(tenantRepository.findOneBy).toHaveBeenCalledWith({ id: syncTenantId });
+        expect(result.tenants).toContainEqual(mockTenantForSync);
+        // if activeTenantId was null on globalUser, it should be set
+        if(!globalUser.activeTenantId) expect(result.activeTenantId).toBe(syncTenantId); 
+        expect(userRepository.save).toHaveBeenCalled();
+    });
+    
+    it('should create new user if not found globally and add to tenant', async () => {
+        userRepository.findOne.mockResolvedValue(null); // Both findById calls return null
+        userRepository.create.mockReturnValue(mockSyncedUser); // User object to be created
+        userRepository.save.mockResolvedValue(mockSyncedUser);
+
+
+        const result = await service.syncClerkUser(syncClerkId, syncTenantId, syncUserData);
+
+        expect(userRepository.findOne).toHaveBeenCalledTimes(2); // for findById(clerkId, tenantId) and findById(clerkId)
+        expect(userRepository.create).toHaveBeenCalledWith(expect.objectContaining({
+            id: syncClerkId,
+            clerkId: syncClerkId,
+            email: syncUserData.email,
+            activeTenantId: syncTenantId,
+        }));
+        expect(tenantRepository.findOneBy).toHaveBeenCalledWith({ id: syncTenantId });
+        expect(result.tenants).toContainEqual(mockTenantForSync);
+        expect(userRepository.save).toHaveBeenCalledWith(mockSyncedUser);
+    });
+  });
+
+  // Placeholder for other tests like getTenantUsers, deleteUser etc.
+  // These would need their mocks (userRepository.find, userRepository.remove) to be set up similarly.
 });

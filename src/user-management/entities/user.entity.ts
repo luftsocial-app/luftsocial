@@ -126,4 +126,8 @@ export class User {
 
   @OneToMany(() => ParticipantEntity, (participant) => participant.user)
   conversationParticipants: ParticipantEntity[];
+
+  // One-to-Many relationship with teams created by the user
+  @OneToMany(() => Team, (team) => team.createdBy)
+  createdTeams: Team[];
 }

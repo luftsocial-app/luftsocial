@@ -32,7 +32,8 @@ export class Tenant {
   @OneToMany(() => Role, (role) => role.tenant)
   roles: Role[];
 
-  @OneToMany(() => Team, (team) => team.tenantId, { cascade: true })
+  // One-to-Many relationship with teams (tenant can have many teams)
+  @OneToMany(() => Team, (team) => team.tenant, { cascade: true }) // Corrected inverse side
   teams: Team[];
 
   @Column({ name: 'settings', type: 'jsonb', default: {} })

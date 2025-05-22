@@ -105,7 +105,15 @@ export class UserTenantService {
     if (!user.tenants.find((t) => t.id === tenant.id)) {
       user.tenants.push(tenant);
     }
-    user.activeTenantId = tenant.id;
+
+    // Set activeTenantId only if it's currently null or empty
+    if (!user.activeTenantId) {
+      user.activeTenantId = tenant.id;
+      this.logger.info(
+        { userId: user.id, newActiveTenantId: tenant.id },
+        'User activeTenantId was null, setting it to the newly added tenant.',
+      );
+    }
 
     return await queryRunner.manager.save(User, user);
   }
