@@ -15,7 +15,15 @@ const mockClerkUser1: clerkUser = {
   id: 'clerk_user_1',
   firstName: 'Clerk',
   lastName: 'UserOne',
-  emailAddresses: [{ emailAddress: 'clerk1@example.com', id: 'email_id_1', linkedTo: [], object: 'email_address', verification: null }],
+  emailAddresses: [
+    {
+      emailAddress: 'clerk1@example.com',
+      id: 'email_id_1',
+      linkedTo: [],
+      object: 'email_address',
+      verification: null,
+    },
+  ],
   primaryEmailAddressId: 'email_id_1',
   username: 'clerkuser1',
   publicMetadata: {},
@@ -49,7 +57,11 @@ const mockClerkUser1: clerkUser = {
   passkeys: [],
 };
 
-const mockClerkUser2: clerkUser = { ...mockClerkUser1, id: 'clerk_user_2', username: 'clerkuser2' };
+const mockClerkUser2: clerkUser = {
+  ...mockClerkUser1,
+  id: 'clerk_user_2',
+  username: 'clerkuser2',
+};
 
 const mockLocalUser: User = {
   id: 'local_user_1',
@@ -60,7 +72,9 @@ const mockLocalUser: User = {
   lastName: 'UserOne',
   isActive: true,
   permissions: [],
-  roles: [{ id: 1, name: UserRole.MEMBER, createdAt: new Date(), permissions: [] }],
+  roles: [
+    { id: 1, name: UserRole.MEMBER, createdAt: new Date(), permissions: [] },
+  ],
   createdAt: new Date(),
   updatedAt: new Date(),
   isDeleted: false,
@@ -78,7 +92,6 @@ const mockAuthObject: AuthObject = {
   debug: jest.fn(),
 };
 
-
 describe('UserController', () => {
   let controller: UserController;
   let userServiceMock: jest.Mocked<UserService>;
@@ -93,9 +106,7 @@ describe('UserController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UserController],
-      providers: [
-        { provide: UserService, useValue: userServiceMockValue },
-      ],
+      providers: [{ provide: UserService, useValue: userServiceMockValue }],
     }).compile();
 
     controller = module.get<UserController>(UserController);
@@ -126,19 +137,26 @@ describe('UserController', () => {
 
   describe('getTenantUsers', () => {
     it('should return an array of local User entity-like objects for a tenant', async () => {
-      const localUsersArray = [mockLocalUser, { ...mockLocalUser, id: 'local_user_2' }];
+      const localUsersArray = [
+        mockLocalUser,
+        { ...mockLocalUser, id: 'local_user_2' },
+      ];
       userServiceMock.getTenantUsers.mockResolvedValue(localUsersArray);
 
       const result = await controller.getTenantUsers(mockAuthObject);
       expect(result).toEqual(localUsersArray);
-      expect(userServiceMock.getTenantUsers).toHaveBeenCalledWith(mockAuthObject.orgId);
+      expect(userServiceMock.getTenantUsers).toHaveBeenCalledWith(
+        mockAuthObject.orgId,
+      );
     });
-    
+
     it('should throw HttpException if service fails', async () => {
-        userServiceMock.getTenantUsers.mockRejectedValue(new Error("Service failure"));
-        await expect(controller.getTenantUsers(mockAuthObject)).rejects.toThrow(
-            new HttpException("Service failure", HttpStatus.INTERNAL_SERVER_ERROR),
-        );
+      userServiceMock.getTenantUsers.mockRejectedValue(
+        new Error('Service failure'),
+      );
+      await expect(controller.getTenantUsers(mockAuthObject)).rejects.toThrow(
+        new HttpException('Service failure', HttpStatus.INTERNAL_SERVER_ERROR),
+      );
     });
   });
 
@@ -150,10 +168,19 @@ describe('UserController', () => {
     };
 
     it('should update user role and return the updated local User', async () => {
-      const updatedLocalUser = { ...mockLocalUser, roles: [{name: UserRole.ADMIN} as Role, {name: UserRole.MANAGER} as Role] };
+      const updatedLocalUser = {
+        ...mockLocalUser,
+        roles: [
+          { name: UserRole.ADMIN } as Role,
+          { name: UserRole.MANAGER } as Role,
+        ],
+      };
       userServiceMock.updateUserRole.mockResolvedValue(updatedLocalUser);
 
-      const result = await controller.updateUserRole(updateUserRoleBody, mockAuthObject);
+      const result = await controller.updateUserRole(
+        updateUserRoleBody,
+        mockAuthObject,
+      );
       expect(result).toEqual(updatedLocalUser);
       expect(userServiceMock.updateUserRole).toHaveBeenCalledWith(
         updateUserRoleBody.userId,
@@ -164,9 +191,13 @@ describe('UserController', () => {
 
     it('should throw HttpException with BAD_REQUEST if service throws BadRequestException', async () => {
       const errorMessage = 'Invalid roles provided';
-      userServiceMock.updateUserRole.mockRejectedValue(new BadRequestException(errorMessage));
+      userServiceMock.updateUserRole.mockRejectedValue(
+        new BadRequestException(errorMessage),
+      );
 
-      await expect(controller.updateUserRole(updateUserRoleBody, mockAuthObject)).rejects.toThrow(
+      await expect(
+        controller.updateUserRole(updateUserRoleBody, mockAuthObject),
+      ).rejects.toThrow(
         new HttpException(errorMessage, HttpStatus.BAD_REQUEST),
       );
     });
@@ -175,7 +206,9 @@ describe('UserController', () => {
       const errorMessage = 'Some internal service error';
       userServiceMock.updateUserRole.mockRejectedValue(new Error(errorMessage));
 
-      await expect(controller.updateUserRole(updateUserRoleBody, mockAuthObject)).rejects.toThrow(
+      await expect(
+        controller.updateUserRole(updateUserRoleBody, mockAuthObject),
+      ).rejects.toThrow(
         new HttpException(errorMessage, HttpStatus.INTERNAL_SERVER_ERROR),
       );
     });
@@ -199,22 +232,30 @@ describe('UserController', () => {
         new HttpException('User not found', HttpStatus.NOT_FOUND),
       );
     });
-    
+
     it('should throw HttpException with NOT_FOUND if service indicates user not found (resource_not_found code)', async () => {
-        const notFoundError = { errors: [{ code: 'resource_not_found' }], message: 'Clerk user not found' };
-        userServiceMock.findById.mockRejectedValue(notFoundError);
-  
-        await expect(controller.findUser(clerkIdToFind)).rejects.toThrow(
-          new HttpException('User not found', HttpStatus.NOT_FOUND),
-        );
-      });
+      const notFoundError = {
+        errors: [{ code: 'resource_not_found' }],
+        message: 'Clerk user not found',
+      };
+      userServiceMock.findById.mockRejectedValue(notFoundError);
+
+      await expect(controller.findUser(clerkIdToFind)).rejects.toThrow(
+        new HttpException('User not found', HttpStatus.NOT_FOUND),
+      );
+    });
 
     it('should throw HttpException with INTERNAL_SERVER_ERROR for other service errors', async () => {
       const genericErrorMessage = 'Some other service error';
-      userServiceMock.findById.mockRejectedValue(new Error(genericErrorMessage));
+      userServiceMock.findById.mockRejectedValue(
+        new Error(genericErrorMessage),
+      );
 
       await expect(controller.findUser(clerkIdToFind)).rejects.toThrow(
-        new HttpException(genericErrorMessage, HttpStatus.INTERNAL_SERVER_ERROR),
+        new HttpException(
+          genericErrorMessage,
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        ),
       );
     });
   });

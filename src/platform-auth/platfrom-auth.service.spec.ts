@@ -664,21 +664,37 @@ describe('PlatformAuthService', () => {
         platform: SocialPlatform.INSTAGRAM,
         userId: mockUserId, // Clerk User ID
       });
-      mockAuthorizationCode.getToken.mockResolvedValueOnce({ // Standard token exchange
-        token: { access_token: 'ig_token', refresh_token: 'ig_refresh', expires_in: 3600, scope: 'user_profile' }
+      mockAuthorizationCode.getToken.mockResolvedValueOnce({
+        // Standard token exchange
+        token: {
+          access_token: 'ig_token',
+          refresh_token: 'ig_refresh',
+          expires_in: 3600,
+          scope: 'user_profile',
+        },
       });
-      mockAxios.get.mockImplementation((url) => { // Mock for fetchInstagramUserInfo
+      mockAxios.get.mockImplementation((url) => {
+        // Mock for fetchInstagramUserInfo
         if (url.includes('graph.instagram.com/me')) {
-          return Promise.resolve({ data: { id: 'ig_platform_user_id', username: 'ig_username' } });
+          return Promise.resolve({
+            data: { id: 'ig_platform_user_id', username: 'ig_username' },
+          });
         }
         return Promise.reject(new Error('Unknown axios GET call in test'));
       });
-      mockPlatformRepos[SocialPlatform.INSTAGRAM].createAccount.mockResolvedValueOnce({ id: 'new_ig_account_id' });
+      mockPlatformRepos[
+        SocialPlatform.INSTAGRAM
+      ].createAccount.mockResolvedValueOnce({ id: 'new_ig_account_id' });
 
+      await service.handleCallback(
+        SocialPlatform.INSTAGRAM,
+        mockCode,
+        mockState,
+      );
 
-      await service.handleCallback(SocialPlatform.INSTAGRAM, mockCode, mockState);
-
-      expect(mockPlatformRepos[SocialPlatform.INSTAGRAM].createAccount).toHaveBeenCalledWith(
+      expect(
+        mockPlatformRepos[SocialPlatform.INSTAGRAM].createAccount,
+      ).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: mockUserId, // For InstagramAccount.userId (Clerk ID)
           tenantId: mockTenantId,
@@ -695,74 +711,117 @@ describe('PlatformAuthService', () => {
     });
 
     it('should create a TikTok account with correct socialAccount.userId via handleCallback', async () => {
-        tokenCacheService.getStoredState.mockResolvedValueOnce({
-          platform: SocialPlatform.TIKTOK,
-          userId: mockUserId, // Clerk User ID
-        });
-        // TikTok uses direct axios post for token exchange in the service
-        mockAxios.post.mockResolvedValueOnce({ 
-            data: { access_token: 'tt_token', refresh_token: 'tt_refresh', expires_in: 3600, open_id: 'tt_open_id', scope: 'user.info.basic' }
-        });
-        mockAxios.get.mockImplementation((url) => { // Mock for fetchTikTokUserInfo
-          if (url.includes('/user/info/')) {
-            return Promise.resolve({ data: { data: { open_id: 'tt_open_id', display_name: 'TikTok User', username: 'tiktok_username' } } });
-          }
-          return Promise.reject(new Error('Unknown axios GET call in test for TikTok user info'));
-        });
-        mockPlatformRepos[SocialPlatform.TIKTOK].createAccount.mockResolvedValueOnce({ id: 'new_tt_account_id' });
-  
-        await service.handleCallback(SocialPlatform.TIKTOK, mockCode, mockState);
-  
-        expect(mockPlatformRepos[SocialPlatform.TIKTOK].createAccount).toHaveBeenCalledWith(
-          expect.objectContaining({
-            userId: mockUserId, // For TikTokAccount.userId (Clerk ID)
-            tenantId: mockTenantId,
-            socialAccount: expect.objectContaining({
-              userId: mockUserId, // **KEY CHECK** For SocialAccount.userId (Clerk ID)
-              platform: SocialPlatform.TIKTOK,
-              platformUserId: 'tt_open_id', // TikTok uses open_id as platformUserId
-              accessToken: 'tt_token',
-            }),
-            openId: 'tt_open_id',
-            displayName: 'TikTok User',
-            tiktokUserName: 'tiktok_username',
-          }),
+      tokenCacheService.getStoredState.mockResolvedValueOnce({
+        platform: SocialPlatform.TIKTOK,
+        userId: mockUserId, // Clerk User ID
+      });
+      // TikTok uses direct axios post for token exchange in the service
+      mockAxios.post.mockResolvedValueOnce({
+        data: {
+          access_token: 'tt_token',
+          refresh_token: 'tt_refresh',
+          expires_in: 3600,
+          open_id: 'tt_open_id',
+          scope: 'user.info.basic',
+        },
+      });
+      mockAxios.get.mockImplementation((url) => {
+        // Mock for fetchTikTokUserInfo
+        if (url.includes('/user/info/')) {
+          return Promise.resolve({
+            data: {
+              data: {
+                open_id: 'tt_open_id',
+                display_name: 'TikTok User',
+                username: 'tiktok_username',
+              },
+            },
+          });
+        }
+        return Promise.reject(
+          new Error('Unknown axios GET call in test for TikTok user info'),
         );
       });
+      mockPlatformRepos[
+        SocialPlatform.TIKTOK
+      ].createAccount.mockResolvedValueOnce({ id: 'new_tt_account_id' });
 
-      it('should create a LinkedIn account with correct socialAccount.userId via handleCallback', async () => {
-        tokenCacheService.getStoredState.mockResolvedValueOnce({
-          platform: SocialPlatform.LINKEDIN,
-          userId: mockUserId, // Clerk User ID
-        });
-        mockAuthorizationCode.getToken.mockResolvedValueOnce({ // Standard token exchange
-          token: { access_token: 'li_token', refresh_token: 'li_refresh', expires_in: 3600, scope: 'r_liteprofile' }
-        });
-        mockAxios.get.mockImplementation((url) => { // Mock for fetchLinkedInUserInfo
-          if (url.includes('api.linkedin.com/v2/me')) {
-            return Promise.resolve({ data: { id: 'li_platform_user_id', localizedFirstName: 'LinkedIn', localizedLastName: 'User' } });
-          }
-          return Promise.reject(new Error('Unknown axios GET call in test for LinkedIn user info'));
-        });
-        mockPlatformRepos[SocialPlatform.LINKEDIN].createAccount.mockResolvedValueOnce({ id: 'new_li_account_id' });
-  
-        await service.handleCallback(SocialPlatform.LINKEDIN, mockCode, mockState);
-  
-        expect(mockPlatformRepos[SocialPlatform.LINKEDIN].createAccount).toHaveBeenCalledWith(
-          expect.objectContaining({
-            userId: mockUserId, // For LinkedInAccount.userId (Clerk ID)
-            tenantId: mockTenantId,
-            socialAccount: expect.objectContaining({
-              userId: mockUserId, // **KEY CHECK** For SocialAccount.userId (Clerk ID)
-              platform: SocialPlatform.LINKEDIN,
-              platformUserId: 'li_platform_user_id',
-              accessToken: 'li_token',
-            }),
-            linkedinId: 'li_platform_user_id',
-            name: 'LinkedIn User',
+      await service.handleCallback(SocialPlatform.TIKTOK, mockCode, mockState);
+
+      expect(
+        mockPlatformRepos[SocialPlatform.TIKTOK].createAccount,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: mockUserId, // For TikTokAccount.userId (Clerk ID)
+          tenantId: mockTenantId,
+          socialAccount: expect.objectContaining({
+            userId: mockUserId, // **KEY CHECK** For SocialAccount.userId (Clerk ID)
+            platform: SocialPlatform.TIKTOK,
+            platformUserId: 'tt_open_id', // TikTok uses open_id as platformUserId
+            accessToken: 'tt_token',
           }),
+          openId: 'tt_open_id',
+          displayName: 'TikTok User',
+          tiktokUserName: 'tiktok_username',
+        }),
+      );
+    });
+
+    it('should create a LinkedIn account with correct socialAccount.userId via handleCallback', async () => {
+      tokenCacheService.getStoredState.mockResolvedValueOnce({
+        platform: SocialPlatform.LINKEDIN,
+        userId: mockUserId, // Clerk User ID
+      });
+      mockAuthorizationCode.getToken.mockResolvedValueOnce({
+        // Standard token exchange
+        token: {
+          access_token: 'li_token',
+          refresh_token: 'li_refresh',
+          expires_in: 3600,
+          scope: 'r_liteprofile',
+        },
+      });
+      mockAxios.get.mockImplementation((url) => {
+        // Mock for fetchLinkedInUserInfo
+        if (url.includes('api.linkedin.com/v2/me')) {
+          return Promise.resolve({
+            data: {
+              id: 'li_platform_user_id',
+              localizedFirstName: 'LinkedIn',
+              localizedLastName: 'User',
+            },
+          });
+        }
+        return Promise.reject(
+          new Error('Unknown axios GET call in test for LinkedIn user info'),
         );
       });
+      mockPlatformRepos[
+        SocialPlatform.LINKEDIN
+      ].createAccount.mockResolvedValueOnce({ id: 'new_li_account_id' });
 
+      await service.handleCallback(
+        SocialPlatform.LINKEDIN,
+        mockCode,
+        mockState,
+      );
+
+      expect(
+        mockPlatformRepos[SocialPlatform.LINKEDIN].createAccount,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: mockUserId, // For LinkedInAccount.userId (Clerk ID)
+          tenantId: mockTenantId,
+          socialAccount: expect.objectContaining({
+            userId: mockUserId, // **KEY CHECK** For SocialAccount.userId (Clerk ID)
+            platform: SocialPlatform.LINKEDIN,
+            platformUserId: 'li_platform_user_id',
+            accessToken: 'li_token',
+          }),
+          linkedinId: 'li_platform_user_id',
+          name: 'LinkedIn User',
+        }),
+      );
+    });
   });
 });

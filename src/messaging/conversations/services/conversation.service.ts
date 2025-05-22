@@ -7,7 +7,7 @@ import {
 import { ConversationRepository } from '../repositories/conversation.repository';
 import { ParticipantRepository } from '../repositories/participant.repository';
 // Removed InjectRepository and Repository from typeorm, In might still be used by other repos
-import { In } from 'typeorm'; 
+import { In } from 'typeorm';
 // Removed User entity import as we're removing direct userRepository usage
 import { ConversationEntity } from '../entities/conversation.entity';
 import {
@@ -32,7 +32,7 @@ export class ConversationService {
     private readonly logger: PinoLogger,
 
     // @InjectRepository(User) // Removed userRepository
-    // private userRepository: Repository<User>, 
+    // private userRepository: Repository<User>,
   ) {
     this.logger.setContext(ConversationService.name);
   }
@@ -41,24 +41,33 @@ export class ConversationService {
     data: CreateConversationDto,
   ): Promise<ConversationEntity> {
     const tenantId = await this.tenantService.getTenantId();
-    const { validClerkUsers, invalidUserIds } = await this.userService.validateUsersAreInTenant(data.participantIds, tenantId);
+    const { validClerkUsers, invalidUserIds } =
+      await this.userService.validateUsersAreInTenant(
+        data.participantIds,
+        tenantId,
+      );
 
     if (invalidUserIds.length > 0) {
-      throw new NotFoundException(`One or more users are invalid, not found, or do not belong to the tenant: ${invalidUserIds.join(', ')}`);
+      throw new NotFoundException(
+        `One or more users are invalid, not found, or do not belong to the tenant: ${invalidUserIds.join(', ')}`,
+      );
     }
     if (validClerkUsers.length === 0) {
-        throw new NotFoundException('No valid users found to create a conversation.');
-    }
-    
-    // Ensure creator is part of the valid users if creatorId was in participantIds
-    if (!validClerkUsers.some(u => u.id === data.creatorId)) {
-        // This check is important if creatorId isn't guaranteed to be in participantIds or if validation might exclude them
-        // If creatorId MUST be part of participantIds and be valid, this error is appropriate.
-        // If creatorId is separate and also needs validation, it should be included in validateUsersAreInTenant call.
-        // For now, assuming creatorId is one of the participantIds.
-        throw new NotFoundException(`Creator (ID: ${data.creatorId}) is not among the valid participants for this tenant.`);
+      throw new NotFoundException(
+        'No valid users found to create a conversation.',
+      );
     }
 
+    // Ensure creator is part of the valid users if creatorId was in participantIds
+    if (!validClerkUsers.some((u) => u.id === data.creatorId)) {
+      // This check is important if creatorId isn't guaranteed to be in participantIds or if validation might exclude them
+      // If creatorId MUST be part of participantIds and be valid, this error is appropriate.
+      // If creatorId is separate and also needs validation, it should be included in validateUsersAreInTenant call.
+      // For now, assuming creatorId is one of the participantIds.
+      throw new NotFoundException(
+        `Creator (ID: ${data.creatorId}) is not among the valid participants for this tenant.`,
+      );
+    }
 
     const conversation = this.conversationRepository.create({
       name: data.name,
@@ -132,11 +141,15 @@ export class ConversationService {
     const tenantId = await this.tenantService.getTenantId();
 
     // Validate userId2
-    const { validClerkUsers: validatedUser2List, invalidUserIds: invalidUser2Ids } = 
-      await this.userService.validateUsersAreInTenant([userId2], tenantId);
+    const {
+      validClerkUsers: validatedUser2List,
+      invalidUserIds: invalidUser2Ids,
+    } = await this.userService.validateUsersAreInTenant([userId2], tenantId);
 
     if (invalidUser2Ids.length > 0 || validatedUser2List.length === 0) {
-      throw new NotFoundException(`User ${userId2} not found in the tenant or is invalid.`);
+      throw new NotFoundException(
+        `User ${userId2} not found in the tenant or is invalid.`,
+      );
     }
     const clerkUser2 = validatedUser2List[0]; // We only passed one ID
 
@@ -168,7 +181,7 @@ export class ConversationService {
 
     const savedConversation =
       await this.conversationRepository.save(conversation);
-    
+
     // Create participants
     // Participant for userId1 (current user)
     const participant1 = this.participantRepository.create({
@@ -203,21 +216,30 @@ export class ConversationService {
     creatorId: string,
   ): Promise<ConversationEntity> {
     const tenantId = await this.tenantService.getTenantId();
-    
+
     // Validate all participantIds including the creator
-    const { validClerkUsers, invalidUserIds } = 
-      await this.userService.validateUsersAreInTenant([...new Set([creatorId, ...participantIds])], tenantId);
+    const { validClerkUsers, invalidUserIds } =
+      await this.userService.validateUsersAreInTenant(
+        [...new Set([creatorId, ...participantIds])],
+        tenantId,
+      );
 
     if (invalidUserIds.length > 0) {
-      throw new NotFoundException(`One or more users are invalid, not found, or do not belong to the tenant: ${invalidUserIds.join(', ')}`);
+      throw new NotFoundException(
+        `One or more users are invalid, not found, or do not belong to the tenant: ${invalidUserIds.join(', ')}`,
+      );
     }
     if (validClerkUsers.length === 0) {
-        throw new NotFoundException('No valid users found to create a group chat.');
+      throw new NotFoundException(
+        'No valid users found to create a group chat.',
+      );
     }
-    
+
     // Ensure creator is among the valid users
-    if (!validClerkUsers.some(u => u.id === creatorId)) {
-        throw new NotFoundException(`Creator (ID: ${creatorId}) is not among the valid participants for this tenant or is invalid.`);
+    if (!validClerkUsers.some((u) => u.id === creatorId)) {
+      throw new NotFoundException(
+        `Creator (ID: ${creatorId}) is not among the valid participants for this tenant or is invalid.`,
+      );
     }
 
     const conversation = this.conversationRepository.create({

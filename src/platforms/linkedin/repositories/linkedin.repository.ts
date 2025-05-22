@@ -35,10 +35,14 @@ export class LinkedInRepository {
     this.logger.setContext(LinkedInRepository.name); // Set context for logger
   }
 
-  async getAccountByClerkUserId(clerkUserId: string): Promise<LinkedInAccount | null> {
+  async getAccountByClerkUserId(
+    clerkUserId: string,
+  ): Promise<LinkedInAccount | null> {
     const tenantId = this.tenantService.getTenantId();
-    this.logger.debug(`Attempting to find LinkedIn account for Clerk User ID: ${clerkUserId} in tenant: ${tenantId}`);
-  
+    this.logger.debug(
+      `Attempting to find LinkedIn account for Clerk User ID: ${clerkUserId} in tenant: ${tenantId}`,
+    );
+
     const socialAccount = await this.socialAccountRepo.findOne({
       where: {
         userId: clerkUserId,
@@ -46,12 +50,14 @@ export class LinkedInRepository {
         tenantId: tenantId,
       },
     });
-  
+
     if (!socialAccount) {
-      this.logger.warn(`No LinkedIn social account found for Clerk User ID: ${clerkUserId} in tenant: ${tenantId}`);
+      this.logger.warn(
+        `No LinkedIn social account found for Clerk User ID: ${clerkUserId} in tenant: ${tenantId}`,
+      );
       return null;
     }
-  
+
     const linkedInAccount = await this.accountRepo.findOne({
       where: {
         socialAccount: { id: socialAccount.id },
@@ -59,25 +65,28 @@ export class LinkedInRepository {
       },
       relations: ['socialAccount', 'organizations'], // Adjust relations as needed
     });
-  
+
     if (!linkedInAccount) {
-      this.logger.error(`Data inconsistency: LinkedIn SocialAccount ${socialAccount.id} found but no corresponding LinkedInAccount for Clerk User ID: ${clerkUserId} in tenant: ${tenantId}`);
+      this.logger.error(
+        `Data inconsistency: LinkedIn SocialAccount ${socialAccount.id} found but no corresponding LinkedInAccount for Clerk User ID: ${clerkUserId} in tenant: ${tenantId}`,
+      );
       return null;
     }
-    
+
     return linkedInAccount;
   }
-  
 
   async createAccount(data: any): Promise<LinkedInAccount> {
     return this.entityManager.transaction(async (transactionManager) => {
       // 1. Create SocialAccount
       const socialAccountData = data.socialAccount;
-      const socialAccountEntity = this.socialAccountRepo.create({ // Use injected socialAccountRepo
+      const socialAccountEntity = this.socialAccountRepo.create({
+        // Use injected socialAccountRepo
         // Spread common SocialAccount fields from socialAccountData
         accessToken: socialAccountData.accessToken,
         refreshToken: socialAccountData.refreshToken,
-        tokenExpiresAt: socialAccountData.tokenExpiresAt || socialAccountData.expiresAt, // Handle potential naming difference
+        tokenExpiresAt:
+          socialAccountData.tokenExpiresAt || socialAccountData.expiresAt, // Handle potential naming difference
         scope: socialAccountData.scope,
         // Specific fields for SocialAccount
         userId: socialAccountData.userId, // This is the Clerk User ID
@@ -86,7 +95,10 @@ export class LinkedInRepository {
         tenantId: data.tenantId,
         metadata: socialAccountData.metadata, // If metadata is passed for socialAccount
       });
-      const savedSocialAccount = await transactionManager.save(SocialAccount, socialAccountEntity); // Use SocialAccount class as first arg
+      const savedSocialAccount = await transactionManager.save(
+        SocialAccount,
+        socialAccountEntity,
+      ); // Use SocialAccount class as first arg
 
       // 2. Create LinkedInAccount
       const linkedInAccountEntity = this.accountRepo.create({
@@ -100,8 +112,11 @@ export class LinkedInRepository {
         permissions: data.permissions,
         // any other LinkedIn-specific fields from data
       });
-      const savedLinkedInAccount = await transactionManager.save(LinkedInAccount, linkedInAccountEntity); // Use LinkedInAccount class as first arg
-      
+      const savedLinkedInAccount = await transactionManager.save(
+        LinkedInAccount,
+        linkedInAccountEntity,
+      ); // Use LinkedInAccount class as first arg
+
       return savedLinkedInAccount;
     });
   }

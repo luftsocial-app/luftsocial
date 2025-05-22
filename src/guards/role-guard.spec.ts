@@ -11,9 +11,10 @@ import { Role } from '../user-management/entities/role.entity';
 
 // DeepMocked type helper (optional, can use 'any' or manual mocks)
 type DeepMocked<T> = {
-  [K in keyof T]: T[K] extends (...args: any[]) => any ? jest.Mock<ReturnType<T[K]>, Parameters<T[K]>> : DeepMocked<T[K]>;
+  [K in keyof T]: T[K] extends (...args: any[]) => any
+    ? jest.Mock<ReturnType<T[K]>, Parameters<T[K]>>
+    : DeepMocked<T[K]>;
 } & T;
-
 
 describe('RoleGuard', () => {
   let guard: RoleGuard;
@@ -27,9 +28,9 @@ describe('RoleGuard', () => {
     userId?: string | null,
   ): ExecutionContext => {
     const mockRequest = {
-      auth: userId === null ? undefined : (userId ? { userId } : {}), // Handles undefined userId, null auth, and present userId
+      auth: userId === null ? undefined : userId ? { userId } : {}, // Handles undefined userId, null auth, and present userId
     };
-    
+
     reflectorMock.getAllAndOverride.mockReturnValue(requiredRoles);
 
     return {
@@ -70,7 +71,10 @@ describe('RoleGuard', () => {
       const context = createMockExecutionContext(undefined, 'user123'); // No roles required
       const result = await guard.canActivate(context);
       expect(result).toBe(true);
-      expect(reflectorMock.getAllAndOverride).toHaveBeenCalledWith('roles', [expect.any(Function), expect.any(Function)]);
+      expect(reflectorMock.getAllAndOverride).toHaveBeenCalledWith('roles', [
+        expect.any(Function),
+        expect.any(Function),
+      ]);
     });
 
     it('should return true if roles array is empty', async () => {
@@ -87,11 +91,15 @@ describe('RoleGuard', () => {
         id: userId,
         roles: [{ name: UserRole.ADMIN } as Role],
       };
-      userServiceMock.findUserWithRelations.mockResolvedValue(mockUserWithRole as User);
+      userServiceMock.findUserWithRelations.mockResolvedValue(
+        mockUserWithRole as User,
+      );
 
       const result = await guard.canActivate(context);
       expect(result).toBe(true);
-      expect(userServiceMock.findUserWithRelations).toHaveBeenCalledWith(userId);
+      expect(userServiceMock.findUserWithRelations).toHaveBeenCalledWith(
+        userId,
+      );
     });
 
     it('should return false if user does not have the required role', async () => {
@@ -102,14 +110,18 @@ describe('RoleGuard', () => {
         id: userId,
         roles: [{ name: UserRole.MEMBER } as Role],
       };
-      userServiceMock.findUserWithRelations.mockResolvedValue(mockUserWithoutRole as User);
+      userServiceMock.findUserWithRelations.mockResolvedValue(
+        mockUserWithoutRole as User,
+      );
 
       const result = await guard.canActivate(context);
       expect(result).toBe(false);
-      expect(userServiceMock.findUserWithRelations).toHaveBeenCalledWith(userId);
+      expect(userServiceMock.findUserWithRelations).toHaveBeenCalledWith(
+        userId,
+      );
       expect(loggerMock.info).toHaveBeenCalledWith(
         { userId, userRoles: [UserRole.MEMBER], requiredRoles },
-        'User does not have any of the required roles.'
+        'User does not have any of the required roles.',
       );
     });
 
@@ -121,7 +133,9 @@ describe('RoleGuard', () => {
         id: userId,
         roles: [{ name: UserRole.EDITOR } as Role],
       };
-      userServiceMock.findUserWithRelations.mockResolvedValue(mockUserWithOneRole as User);
+      userServiceMock.findUserWithRelations.mockResolvedValue(
+        mockUserWithOneRole as User,
+      );
 
       const result = await guard.canActivate(context);
       expect(result).toBe(true);
@@ -135,33 +149,37 @@ describe('RoleGuard', () => {
         id: userId,
         roles: [], // Empty roles array
       };
-      userServiceMock.findUserWithRelations.mockResolvedValue(mockUserWithNoRoles as User);
+      userServiceMock.findUserWithRelations.mockResolvedValue(
+        mockUserWithNoRoles as User,
+      );
 
       const result = await guard.canActivate(context);
       expect(result).toBe(false);
       expect(loggerMock.warn).toHaveBeenCalledWith(
         { userId, requiredRoles },
-        'User not found by UserService, or has no roles.'
+        'User not found by UserService, or has no roles.',
       );
     });
-    
+
     it('should return false if user roles are null', async () => {
-        const requiredRoles = [UserRole.ADMIN];
-        const userId = 'userWithNullRoles';
-        const context = createMockExecutionContext(requiredRoles, userId);
-        const mockUserWithNullRoles: Partial<User> = {
-          id: userId,
-          roles: null, // Roles property is null
-        };
-        userServiceMock.findUserWithRelations.mockResolvedValue(mockUserWithNullRoles as User);
-  
-        const result = await guard.canActivate(context);
-        expect(result).toBe(false);
-        expect(loggerMock.warn).toHaveBeenCalledWith(
-            { userId, requiredRoles },
-            'User not found by UserService, or has no roles.'
-          );
-      });
+      const requiredRoles = [UserRole.ADMIN];
+      const userId = 'userWithNullRoles';
+      const context = createMockExecutionContext(requiredRoles, userId);
+      const mockUserWithNullRoles: Partial<User> = {
+        id: userId,
+        roles: null, // Roles property is null
+      };
+      userServiceMock.findUserWithRelations.mockResolvedValue(
+        mockUserWithNullRoles as User,
+      );
+
+      const result = await guard.canActivate(context);
+      expect(result).toBe(false);
+      expect(loggerMock.warn).toHaveBeenCalledWith(
+        { userId, requiredRoles },
+        'User not found by UserService, or has no roles.',
+      );
+    });
 
     it('should return false if request.auth.userId is missing', async () => {
       const requiredRoles = [UserRole.ADMIN];
@@ -170,18 +188,22 @@ describe('RoleGuard', () => {
       const result = await guard.canActivate(context);
       expect(result).toBe(false);
       expect(userServiceMock.findUserWithRelations).not.toHaveBeenCalled();
-      expect(loggerMock.warn).toHaveBeenCalledWith('No userId found on request.auth.userId. Ensure ClerkAuthGuard runs before RoleGuard.');
+      expect(loggerMock.warn).toHaveBeenCalledWith(
+        'No userId found on request.auth.userId. Ensure ClerkAuthGuard runs before RoleGuard.',
+      );
     });
-    
+
     it('should return false if request.auth is missing', async () => {
-        const requiredRoles = [UserRole.ADMIN];
-        const context = createMockExecutionContext(requiredRoles, null); // auth object is undefined
-  
-        const result = await guard.canActivate(context);
-        expect(result).toBe(false);
-        expect(userServiceMock.findUserWithRelations).not.toHaveBeenCalled();
-        expect(loggerMock.warn).toHaveBeenCalledWith('No userId found on request.auth.userId. Ensure ClerkAuthGuard runs before RoleGuard.');
-      });
+      const requiredRoles = [UserRole.ADMIN];
+      const context = createMockExecutionContext(requiredRoles, null); // auth object is undefined
+
+      const result = await guard.canActivate(context);
+      expect(result).toBe(false);
+      expect(userServiceMock.findUserWithRelations).not.toHaveBeenCalled();
+      expect(loggerMock.warn).toHaveBeenCalledWith(
+        'No userId found on request.auth.userId. Ensure ClerkAuthGuard runs before RoleGuard.',
+      );
+    });
 
     it('should return false if userService.findUserWithRelations throws an error', async () => {
       const requiredRoles = [UserRole.ADMIN];
@@ -194,7 +216,7 @@ describe('RoleGuard', () => {
       expect(result).toBe(false);
       expect(loggerMock.error).toHaveBeenCalledWith(
         { error, userId, requiredRoles },
-        'Error in RoleGuard while fetching user or checking roles'
+        'Error in RoleGuard while fetching user or checking roles',
       );
     });
 
@@ -208,7 +230,7 @@ describe('RoleGuard', () => {
       expect(result).toBe(false);
       expect(loggerMock.warn).toHaveBeenCalledWith(
         { userId, requiredRoles },
-        'User not found by UserService, or has no roles.'
+        'User not found by UserService, or has no roles.',
       );
     });
   });

@@ -2,11 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserService } from './user.service';
-import { User } from './entities/user.entity';
+import { User } from './entities/user.entity'; // Local User entity
 import { Role } from './entities/role.entity';
+import { Tenant } from './entities/tenant.entity'; // Local Tenant entity
 import { UserRole } from '../common/enums/roles';
 import { PinoLogger } from 'nestjs-pino';
-import { Tenant } from './entities/tenant.entity';
 import { TenantService } from './tenant.service';
 import { CLERK_CLIENT } from '../clerk/clerk.provider'; // Import CLERK_CLIENT token
 import { ClerkClient, User as ClerkUserType } from '@clerk/backend'; // For types
@@ -84,11 +84,29 @@ describe('UserService', () => {
 
 
   beforeEach(async () => {
+    // Reset mocks for each test
+    mockGetUser.mockReset();
+    mockGetOrganizationMembershipList.mockReset();
+    mockGetUserList.mockReset();
+
+    mockClerkClient = {
+      users: {
+        getUser: mockGetUser,
+        getUserList: mockGetUserList,
+      },
+      organizations: {
+        getOrganizationMembershipList: mockGetOrganizationMembershipList,
+      },
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UserService,
+        UserService,
         {
           provide: PinoLogger,
+          useValue: { // Basic mock for PinoLogger
+            info: jest.fn(), error: jest.fn(), warn: jest.fn(), debug: jest.fn(), setContext: jest.fn(),
           useValue: { // Basic mock for PinoLogger
             info: jest.fn(), error: jest.fn(), warn: jest.fn(), debug: jest.fn(), setContext: jest.fn(),
           },
@@ -113,14 +131,7 @@ describe('UserService', () => {
     // tenantRepository = module.get(getRepositoryToken(Tenant));
     mockClerkClient = module.get(CLERK_CLIENT);
 
-    // Clear all mocks before each test
     jest.clearAllMocks();
-    // Reset specific mock implementations if they are changed per test
-    mockClerkClient.users.getUser.mockResolvedValue(mockClerkUser); // Default good path
-    mockClerkClient.users.getOrganizationMembershipList.mockResolvedValue({ data: [], totalCount: 0 });
-    mockClerkClient.organizations.getOrganizationMembershipList.mockResolvedValue({ data: [], totalCount: 0 });
-    userRepository.findOne.mockResolvedValue(mockLocalUserEntity); // Default good path
-    roleRepository.find.mockResolvedValue([mockRoleEntity]); // Default good path
   });
 
   describe('Webhook Handlers', () => {

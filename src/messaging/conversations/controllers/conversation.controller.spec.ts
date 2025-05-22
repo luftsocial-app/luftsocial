@@ -32,9 +32,10 @@ import { User as ClerkUser } from '@clerk/backend'; // For mocking service retur
 
 // Helper type for mocked services
 type DeepMocked<T> = {
-  [K in keyof T]: T[K] extends (...args: any[]) => any ? jest.Mock<ReturnType<T[K]>, Parameters<T[K]>> : DeepMocked<T[K]>;
+  [K in keyof T]: T[K] extends (...args: any[]) => any
+    ? jest.Mock<ReturnType<T[K]>, Parameters<T[K]>>
+    : DeepMocked<T[K]>;
 } & T;
-
 
 describe('ConversationController', () => {
   let controller: ConversationController;
@@ -50,7 +51,7 @@ describe('ConversationController', () => {
     getToken: jest.fn().mockResolvedValue('mock-token'),
     has: jest.fn().mockReturnValue(true),
     debug: jest.fn(),
-    claims: { org_role: 'org:admin' } // Example, adjust as needed
+    claims: { org_role: 'org:admin' }, // Example, adjust as needed
   } as AuthObject;
 
   const mockOtherUserId = 'user-456';
@@ -96,11 +97,11 @@ describe('ConversationController', () => {
       // Note: The DTO in service.spec.ts has muteNotifications, enableReadReceipts
       // but ParticipantEntity settings has muted, pinned, notificationsEnabled.
       // This might be a discrepancy to align. Assuming DTO matches service expectation.
-      muteNotifications: true, 
+      muteNotifications: true,
       enableReadReceipts: false,
     },
   };
-  
+
   const mockRemoveParticipantsDto: RemoveParticipantsDto = {
     participantIds: ['user-to-remove-1', 'user-to-remove-2'],
   };
@@ -108,7 +109,6 @@ describe('ConversationController', () => {
   const mockUpdateLastActiveDto: UpdateLastActiveTimestampDto = {
     lastActiveAt: new Date(),
   };
-
 
   beforeEach(async () => {
     conversationServiceMock = {
@@ -134,9 +134,9 @@ describe('ConversationController', () => {
         { provide: ConversationService, useValue: conversationServiceMock },
       ],
     })
-    .overrideGuard(ChatGuard) // Override the ChatGuard for all routes in this controller
-    .useValue(chatGuardMock)
-    .compile();
+      .overrideGuard(ChatGuard) // Override the ChatGuard for all routes in this controller
+      .useValue(chatGuardMock)
+      .compile();
 
     controller = module.get<ConversationController>(ConversationController);
 
@@ -146,19 +146,20 @@ describe('ConversationController', () => {
   it('should be defined', () => {
     expect(controller).toBeDefined();
   });
-  
+
   describe('General Guard Behavior', () => {
     it('should deny access if ChatGuard.canActivate returns false', async () => {
       chatGuardMock.canActivate.mockResolvedValue(false); // Guard denies access
       // Test with any method, e.g., getMyConversations
-      await expect(controller.getMyConversations(mockAuthUser)).rejects.toThrow(ForbiddenException);
+      await expect(controller.getMyConversations(mockAuthUser)).rejects.toThrow(
+        ForbiddenException,
+      );
       // Or whatever exception the guard is configured to throw. Assuming ForbiddenException for typical guards.
       // If ChatGuard itself throws, that specific error would be expected.
       // For this test, we check if canActivate was called.
       expect(chatGuardMock.canActivate).toHaveBeenCalled();
     });
   });
-
 
   describe('createOrGetDirectChat', () => {
     it('should create or get a direct chat with another user', async () => {
@@ -171,10 +172,9 @@ describe('ConversationController', () => {
         mockOtherUserId,
       );
 
-      expect(conversationServiceMock.createOrGetDirectChat).toHaveBeenCalledWith(
-        mockAuthUser.userId,
-        mockOtherUserId,
-      );
+      expect(
+        conversationServiceMock.createOrGetDirectChat,
+      ).toHaveBeenCalledWith(mockAuthUser.userId, mockOtherUserId);
       expect(result).toEqual(mockDirectConversation);
     });
 
@@ -229,14 +229,15 @@ describe('ConversationController', () => {
 
       const result = await controller.getMyConversations(mockAuthUser);
 
-      expect(conversationServiceMock.getConversationsByUserId).toHaveBeenCalledWith(
-        mockAuthUser.userId,
-      );
+      expect(
+        conversationServiceMock.getConversationsByUserId,
+      ).toHaveBeenCalledWith(mockAuthUser.userId);
       expect(result).toEqual(mockConversationsArray);
     });
   });
 
-  describe('getConversationById', () => { // Renamed to match controller method name
+  describe('getConversationById', () => {
+    // Renamed to match controller method name
     it('should return a specific conversation by ID', async () => {
       conversationServiceMock.getConversation.mockResolvedValue(
         mockConversation as ConversationEntity,
@@ -247,7 +248,9 @@ describe('ConversationController', () => {
       // The controller method is actually getConversationById.
       const result = await controller.getConversationById(mockConversationId);
 
-      expect(conversationServiceMock.getConversation).toHaveBeenCalledWith(mockConversationId);
+      expect(conversationServiceMock.getConversation).toHaveBeenCalledWith(
+        mockConversationId,
+      );
       expect(result).toEqual(mockConversation);
     });
 
@@ -255,13 +258,14 @@ describe('ConversationController', () => {
       const error = new NotFoundException('Conversation not found');
       conversationServiceMock.getConversation.mockRejectedValue(error);
 
-      await expect(controller.getConversationById('invalid-id')).rejects.toThrow(
-        error,
-      );
+      await expect(
+        controller.getConversationById('invalid-id'),
+      ).rejects.toThrow(error);
     });
   });
 
-  describe('addParticipantsToGroup', () => { // Renamed from addParticipantsToConversation
+  describe('addParticipantsToGroup', () => {
+    // Renamed from addParticipantsToConversation
     it('should add participants to a conversation', async () => {
       const updatedConv = {
         ...mockConversation,
@@ -271,15 +275,20 @@ describe('ConversationController', () => {
           { userId: 'user-101', role: ParticipantRole.MEMBER } as any,
         ],
       } as ConversationEntity;
-      conversationServiceMock.addParticipantsToGroup.mockResolvedValue(updatedConv);
+      conversationServiceMock.addParticipantsToGroup.mockResolvedValue(
+        updatedConv,
+      );
 
-      const result = await controller.addParticipantsToGroup( // Method name in controller
+      const result = await controller.addParticipantsToGroup(
+        // Method name in controller
         mockAuthUser,
         mockConversationId,
         mockAddParticipantsDto,
       );
 
-      expect(conversationServiceMock.addParticipantsToGroup).toHaveBeenCalledWith(
+      expect(
+        conversationServiceMock.addParticipantsToGroup,
+      ).toHaveBeenCalledWith(
         mockConversationId,
         mockAddParticipantsDto.participantIds,
         mockAuthUser.userId,
@@ -288,7 +297,9 @@ describe('ConversationController', () => {
     });
 
     it('should handle ConflictException from service', async () => {
-      const error = new ConflictException('Cannot add participants to direct chat');
+      const error = new ConflictException(
+        'Cannot add participants to direct chat',
+      );
       conversationServiceMock.addParticipantsToGroup.mockRejectedValue(error);
 
       await expect(
@@ -303,7 +314,7 @@ describe('ConversationController', () => {
     it('should handle ForbiddenException from service', async () => {
       const error = new ForbiddenException('Only admins can add participants');
       conversationServiceMock.addParticipantsToGroup.mockRejectedValue(error);
-      
+
       const nonAdminUser = { ...mockAuthUser, userId: 'non-admin-user' };
       await expect(
         controller.addParticipantsToGroup(
@@ -320,8 +331,8 @@ describe('ConversationController', () => {
       const updatedConversation = {
         ...mockConversation,
         settings: mockUpdateSettingsDto.settings, // This assumes settings is a direct field.
-                                                 // If it's a JSONB field named 'settings', the DTO structure matters.
-                                                 // Based on DTO, it looks like settings IS a sub-object.
+        // If it's a JSONB field named 'settings', the DTO structure matters.
+        // Based on DTO, it looks like settings IS a sub-object.
       } as ConversationEntity;
       conversationServiceMock.updateConversationSettings.mockResolvedValue(
         updatedConversation,
@@ -333,7 +344,9 @@ describe('ConversationController', () => {
         mockUpdateSettingsDto,
       );
 
-      expect(conversationServiceMock.updateConversationSettings).toHaveBeenCalledWith(
+      expect(
+        conversationServiceMock.updateConversationSettings,
+      ).toHaveBeenCalledWith(
         mockConversationId,
         mockUpdateSettingsDto,
         mockAuthUser.userId,
@@ -343,7 +356,9 @@ describe('ConversationController', () => {
 
     it('should handle NotFoundException from service', async () => {
       const error = new NotFoundException('Conversation not found');
-      conversationServiceMock.updateConversationSettings.mockRejectedValue(error);
+      conversationServiceMock.updateConversationSettings.mockRejectedValue(
+        error,
+      );
 
       await expect(
         controller.updateConversationSettings(
@@ -354,14 +369,25 @@ describe('ConversationController', () => {
       ).rejects.toThrow(error);
     });
   });
-  
+
   describe('removeParticipantsFromGroup', () => {
     it('should remove participants from a group', async () => {
-      const updatedConv = { ...mockConversation, participants: [] } as ConversationEntity;
-      conversationServiceMock.removeParticipantsFromGroup.mockResolvedValue(updatedConv);
+      const updatedConv = {
+        ...mockConversation,
+        participants: [],
+      } as ConversationEntity;
+      conversationServiceMock.removeParticipantsFromGroup.mockResolvedValue(
+        updatedConv,
+      );
 
-      const result = await controller.removeParticipantsFromGroup(mockAuthUser, mockConversationId, mockRemoveParticipantsDto);
-      expect(conversationServiceMock.removeParticipantsFromGroup).toHaveBeenCalledWith(
+      const result = await controller.removeParticipantsFromGroup(
+        mockAuthUser,
+        mockConversationId,
+        mockRemoveParticipantsDto,
+      );
+      expect(
+        conversationServiceMock.removeParticipantsFromGroup,
+      ).toHaveBeenCalledWith(
         mockConversationId,
         mockRemoveParticipantsDto.participantIds,
         mockAuthUser.userId,
@@ -371,19 +397,34 @@ describe('ConversationController', () => {
 
     it('should handle ForbiddenException from service', async () => {
       const error = new ForbiddenException('Cannot remove owner');
-      conversationServiceMock.removeParticipantsFromGroup.mockRejectedValue(error);
-      await expect(controller.removeParticipantsFromGroup(mockAuthUser, mockConversationId, mockRemoveParticipantsDto))
-        .rejects.toThrow(error);
+      conversationServiceMock.removeParticipantsFromGroup.mockRejectedValue(
+        error,
+      );
+      await expect(
+        controller.removeParticipantsFromGroup(
+          mockAuthUser,
+          mockConversationId,
+          mockRemoveParticipantsDto,
+        ),
+      ).rejects.toThrow(error);
     });
   });
 
   describe('updateLastActiveTimestamp', () => {
     it('should call service to update last active timestamp', async () => {
-      conversationServiceMock.updateParticipantLastActive.mockResolvedValue(undefined); // void method
-      
-      await controller.updateLastActiveTimestamp(mockAuthUser, mockConversationId, mockUpdateLastActiveDto);
-      
-      expect(conversationServiceMock.updateParticipantLastActive).toHaveBeenCalledWith(
+      conversationServiceMock.updateParticipantLastActive.mockResolvedValue(
+        undefined,
+      ); // void method
+
+      await controller.updateLastActiveTimestamp(
+        mockAuthUser,
+        mockConversationId,
+        mockUpdateLastActiveDto,
+      );
+
+      expect(
+        conversationServiceMock.updateParticipantLastActive,
+      ).toHaveBeenCalledWith(
         mockAuthUser.userId,
         mockConversationId,
         // The service method `updateParticipantLastActive` in the provided code does not take a DTO or lastActiveAt date.
@@ -394,14 +435,24 @@ describe('ConversationController', () => {
         // If the service was: updateParticipantLastActive(userId, convId, date), then: mockUpdateLastActiveDto.lastActiveAt
       );
       // No specific return to assert for void method, just that it doesn't throw an unexpected error.
-      expect(true).toBe(true); 
+      expect(true).toBe(true);
     });
 
     it('should handle errors from service', async () => {
-        const error = new HttpException('Service error', HttpStatus.INTERNAL_SERVER_ERROR);
-        conversationServiceMock.updateParticipantLastActive.mockRejectedValue(error);
-        await expect(controller.updateLastActiveTimestamp(mockAuthUser, mockConversationId, mockUpdateLastActiveDto))
-            .rejects.toThrow(error);
+      const error = new HttpException(
+        'Service error',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+      conversationServiceMock.updateParticipantLastActive.mockRejectedValue(
+        error,
+      );
+      await expect(
+        controller.updateLastActiveTimestamp(
+          mockAuthUser,
+          mockConversationId,
+          mockUpdateLastActiveDto,
+        ),
+      ).rejects.toThrow(error);
     });
   });
 
@@ -414,5 +465,4 @@ describe('ConversationController', () => {
   //     expect(conversationServiceMock.leaveConversation).toHaveBeenCalledWith(mockConversationId, mockAuthUser.userId);
   //   });
   // });
-
 });

@@ -51,9 +51,13 @@ export class InstagramRepository {
         // Ensure tokenExpiresAt is correctly used from socialAccountData if it's the intended field.
         // The provided data structure has both socialAccount.expiresAt and socialAccount.tokenExpiresAt.
         // Assuming socialAccount.tokenExpiresAt is the correct one for SocialAccount.tokenExpiresAt
-        tokenExpiresAt: socialAccountData.tokenExpiresAt || socialAccountData.expiresAt,
+        tokenExpiresAt:
+          socialAccountData.tokenExpiresAt || socialAccountData.expiresAt,
       });
-      const savedSocialAccount = await transactionManager.save(SocialAccount, socialAccountEntity);
+      const savedSocialAccount = await transactionManager.save(
+        SocialAccount,
+        socialAccountEntity,
+      );
 
       // 2. Create InstagramAccount
       const instagramAccountEntity = this.accountRepo.create({
@@ -66,8 +70,11 @@ export class InstagramRepository {
         permissions: data.permissions, // If InstagramAccount stores permissions
         // any other Instagram-specific fields from data
       });
-      const savedInstagramAccount = await transactionManager.save(InstagramAccount, instagramAccountEntity);
-      
+      const savedInstagramAccount = await transactionManager.save(
+        InstagramAccount,
+        instagramAccountEntity,
+      );
+
       // The returned account from repository.createAccount in PlatformAuthService is not directly used
       // but returning the main platform account is good practice.
       return savedInstagramAccount;
@@ -79,7 +86,8 @@ export class InstagramRepository {
     return this.mediaRepo.save(post);
   }
 
-  async getAccountByUserId(userId: string): Promise<InstagramAccount | null> { // userId is Clerk User ID
+  async getAccountByUserId(userId: string): Promise<InstagramAccount | null> {
+    // userId is Clerk User ID
     const tenantId = this.tenantService.getTenantId(); // getTenantId is synchronous
     const socialAccount = await this.socialAccountRepo.findOne({
       where: {
@@ -88,12 +96,14 @@ export class InstagramRepository {
         tenantId: tenantId,
       },
     });
-  
+
     if (!socialAccount) {
-      this.logger.warn(`No Instagram social account found for Clerk User ID: ${userId} in tenant: ${tenantId}`);
+      this.logger.warn(
+        `No Instagram social account found for Clerk User ID: ${userId} in tenant: ${tenantId}`,
+      );
       return null;
     }
-  
+
     // Now find the InstagramAccount associated with this SocialAccount
     const instagramAccount = await this.accountRepo.findOne({
       where: {
@@ -102,13 +112,15 @@ export class InstagramRepository {
       },
       relations: ['socialAccount'], // Ensure the relation is loaded
     });
-  
+
     if (!instagramAccount) {
       // This case should ideally not happen if data is consistent
-      this.logger.error(`Data inconsistency: Instagram SocialAccount ${socialAccount.id} found but no corresponding InstagramAccount for Clerk User ID: ${userId} in tenant: ${tenantId}`);
+      this.logger.error(
+        `Data inconsistency: Instagram SocialAccount ${socialAccount.id} found but no corresponding InstagramAccount for Clerk User ID: ${userId} in tenant: ${tenantId}`,
+      );
       return null;
     }
-    
+
     return instagramAccount;
   }
 
