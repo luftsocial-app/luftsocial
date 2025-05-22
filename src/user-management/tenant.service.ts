@@ -178,14 +178,15 @@ export class TenantService {
       slug = slug.substring(0, 255);
     }
     // Ensure slug is unique (this is a simplified check, a real implementation might need a loop and DB check)
-    const existingTenantWithSlug = await this.tenantRepo.findOne({ where: { slug } });
+    const existingTenantWithSlug = await this.tenantRepo.findOne({
+      where: { slug },
+    });
     if (existingTenantWithSlug) {
-        slug = `${slug}-${Date.now()}`; // Append timestamp to ensure uniqueness
-        if (slug.length > 255) {
-            slug = slug.substring(0, 255);
-        }
+      slug = `${slug}-${Date.now()}`; // Append timestamp to ensure uniqueness
+      if (slug.length > 255) {
+        slug = slug.substring(0, 255);
+      }
     }
-
 
     const newTenant = this.tenantRepo.create({
       name: tenantName,

@@ -34,8 +34,13 @@ export class TeamController {
   private getTenantId(authUser: AuthObject): string {
     const tenantId = authUser.claims?.org_id;
     if (!tenantId) {
-      this.logger.error({ claims: authUser.claims }, 'Tenant ID (org_id) not found in user claims.');
-      throw new ForbiddenException('Tenant ID not found in user claims. Cannot perform team operations.');
+      this.logger.error(
+        { claims: authUser.claims },
+        'Tenant ID (org_id) not found in user claims.',
+      );
+      throw new ForbiddenException(
+        'Tenant ID not found in user claims. Cannot perform team operations.',
+      );
     }
     return tenantId;
   }
@@ -43,14 +48,20 @@ export class TeamController {
   private getUserId(authUser: AuthObject): string {
     const userId = authUser.claims?.sub;
     if (!userId) {
-      this.logger.error({ claims: authUser.claims }, 'User ID (sub) not found in user claims.');
+      this.logger.error(
+        { claims: authUser.claims },
+        'User ID (sub) not found in user claims.',
+      );
       throw new ForbiddenException('User ID not found in user claims.');
     }
     return userId;
   }
 
   @Post()
-  async createTeam(@Body() createTeamDto: CreateTeamDto, @CurrentUser() authUser: AuthObject) {
+  async createTeam(
+    @Body() createTeamDto: CreateTeamDto,
+    @CurrentUser() authUser: AuthObject,
+  ) {
     this.logger.info({ createTeamDto }, 'Received request to create team');
     const tenantId = this.getTenantId(authUser);
     const creatorId = this.getUserId(authUser);
@@ -80,7 +91,10 @@ export class TeamController {
     @Body() updateTeamDto: UpdateTeamDto,
     @CurrentUser() authUser: AuthObject,
   ) {
-    this.logger.info({ teamId, updateTeamDto }, 'Received request to update team');
+    this.logger.info(
+      { teamId, updateTeamDto },
+      'Received request to update team',
+    );
     const tenantId = this.getTenantId(authUser);
     return this.teamService.updateTeam(teamId, updateTeamDto, tenantId);
   }
@@ -102,9 +116,16 @@ export class TeamController {
     @Body() addTeamMemberDto: AddTeamMemberDto,
     @CurrentUser() authUser: AuthObject,
   ) {
-    this.logger.info({ teamId, addTeamMemberDto }, 'Received request to add member to team');
+    this.logger.info(
+      { teamId, addTeamMemberDto },
+      'Received request to add member to team',
+    );
     const tenantId = this.getTenantId(authUser);
-    return this.teamService.addMemberToTeam(teamId, addTeamMemberDto.userId, tenantId);
+    return this.teamService.addMemberToTeam(
+      teamId,
+      addTeamMemberDto.userId,
+      tenantId,
+    );
   }
 
   @Delete(':teamId/members/:userId')
@@ -113,7 +134,10 @@ export class TeamController {
     @Param('userId') userId: string, // Clerk user IDs are not necessarily UUIDs
     @CurrentUser() authUser: AuthObject,
   ) {
-    this.logger.info({ teamId, userId }, 'Received request to remove member from team');
+    this.logger.info(
+      { teamId, userId },
+      'Received request to remove member from team',
+    );
     const tenantId = this.getTenantId(authUser);
     return this.teamService.removeMemberFromTeam(teamId, userId, tenantId);
   }

@@ -99,15 +99,26 @@ describe('ClerkWebhookService', () => {
         data: { ...baseUserWebhookEventData, organization_memberships: [] },
       };
 
-      mockTenantService.createPersonalTenant.mockResolvedValue(mockPersonalTenantEntity);
+      mockTenantService.createPersonalTenant.mockResolvedValue(
+        mockPersonalTenantEntity,
+      );
       mockUserService.createUser.mockResolvedValue(mockUserEntity);
       mockUserService.updateUserRole.mockResolvedValue(mockUserEntity); // Assume it returns the updated user
 
       const result = await service.handleUserCreated(userCreatedEventNoOrg);
 
-      expect(mockTenantService.createPersonalTenant).toHaveBeenCalledWith(userCreatedEventNoOrg.data);
-      expect(mockUserService.createUser).toHaveBeenCalledWith(userCreatedEventNoOrg, mockPersonalTenantId);
-      expect(mockUserService.updateUserRole).toHaveBeenCalledWith(mockUserId, [UserRole.ADMIN], mockPersonalTenantId);
+      expect(mockTenantService.createPersonalTenant).toHaveBeenCalledWith(
+        userCreatedEventNoOrg.data,
+      );
+      expect(mockUserService.createUser).toHaveBeenCalledWith(
+        userCreatedEventNoOrg,
+        mockPersonalTenantId,
+      );
+      expect(mockUserService.updateUserRole).toHaveBeenCalledWith(
+        mockUserId,
+        [UserRole.ADMIN],
+        mockPersonalTenantId,
+      );
       expect(result).toEqual(mockUserEntity);
     });
 
@@ -118,8 +129,14 @@ describe('ClerkWebhookService', () => {
           ...baseUserWebhookEventData,
           primary_organization_id: 'orgmem1',
           organization_memberships: [
-            { id: 'orgmem1', organization: { id: mockOrgTenantId, name: 'Org1', slug: 'org1' } },
-            { id: 'orgmem2', organization: { id: 'other-org-id', name: 'Org2', slug: 'org2' } },
+            {
+              id: 'orgmem1',
+              organization: { id: mockOrgTenantId, name: 'Org1', slug: 'org1' },
+            },
+            {
+              id: 'orgmem2',
+              organization: { id: 'other-org-id', name: 'Org2', slug: 'org2' },
+            },
           ],
         },
       };
@@ -129,65 +146,93 @@ describe('ClerkWebhookService', () => {
       const result = await service.handleUserCreated(userCreatedEventWithOrg);
 
       expect(mockTenantService.createPersonalTenant).not.toHaveBeenCalled();
-      expect(mockUserService.createUser).toHaveBeenCalledWith(userCreatedEventWithOrg, mockOrgTenantId);
+      expect(mockUserService.createUser).toHaveBeenCalledWith(
+        userCreatedEventWithOrg,
+        mockOrgTenantId,
+      );
       expect(mockUserService.updateUserRole).not.toHaveBeenCalled(); // Role assignment in orgs handled by membership events
       expect(result).toEqual(mockUserEntity);
     });
-    
+
     it('should use first organization ID if primary_organization_id is null but memberships exist', async () => {
-        const userCreatedEventWithOrgNoPrimary: UserWebhookEvent = {
-          type: 'user.created',
-          data: {
-            ...baseUserWebhookEventData,
-            primary_organization_id: null, // No primary specified
-            organization_memberships: [ // But memberships exist
-              { id: 'orgmem1', organization: { id: mockOrgTenantId, name: 'Org1', slug: 'org1' } },
-            ],
-          },
-        };
-  
-        mockUserService.createUser.mockResolvedValue(mockUserEntity);
-  
-        await service.handleUserCreated(userCreatedEventWithOrgNoPrimary);
-  
-        expect(mockTenantService.createPersonalTenant).not.toHaveBeenCalled();
-        expect(mockUserService.createUser).toHaveBeenCalledWith(userCreatedEventWithOrgNoPrimary, mockOrgTenantId);
-      });
+      const userCreatedEventWithOrgNoPrimary: UserWebhookEvent = {
+        type: 'user.created',
+        data: {
+          ...baseUserWebhookEventData,
+          primary_organization_id: null, // No primary specified
+          organization_memberships: [
+            // But memberships exist
+            {
+              id: 'orgmem1',
+              organization: { id: mockOrgTenantId, name: 'Org1', slug: 'org1' },
+            },
+          ],
+        },
+      };
+
+      mockUserService.createUser.mockResolvedValue(mockUserEntity);
+
+      await service.handleUserCreated(userCreatedEventWithOrgNoPrimary);
+
+      expect(mockTenantService.createPersonalTenant).not.toHaveBeenCalled();
+      expect(mockUserService.createUser).toHaveBeenCalledWith(
+        userCreatedEventWithOrgNoPrimary,
+        mockOrgTenantId,
+      );
+    });
 
     it('should throw BadRequestException if tenantId cannot be determined (should not happen with personal tenant fallback)', async () => {
-        // This scenario is hard to trigger perfectly if personal tenant creation is robust,
-        // but we can simulate a failure in createPersonalTenant.
-        const userCreatedEventNoOrg: UserWebhookEvent = {
-            type: 'user.created',
-            data: { ...baseUserWebhookEventData, organization_memberships: [] },
-        };
-        mockTenantService.createPersonalTenant.mockRejectedValue(new Error("Failed to create personal tenant"));
-        
-        await expect(service.handleUserCreated(userCreatedEventNoOrg)).rejects.toThrow(BadRequestException);
+      // This scenario is hard to trigger perfectly if personal tenant creation is robust,
+      // but we can simulate a failure in createPersonalTenant.
+      const userCreatedEventNoOrg: UserWebhookEvent = {
+        type: 'user.created',
+        data: { ...baseUserWebhookEventData, organization_memberships: [] },
+      };
+      mockTenantService.createPersonalTenant.mockRejectedValue(
+        new Error('Failed to create personal tenant'),
+      );
+
+      await expect(
+        service.handleUserCreated(userCreatedEventNoOrg),
+      ).rejects.toThrow(BadRequestException);
     });
-    
+
     it('should proceed with user creation even if assigning admin role fails for personal tenant', async () => {
-        const userCreatedEventNoOrg: UserWebhookEvent = {
-            type: 'user.created',
-            data: { ...baseUserWebhookEventData, organization_memberships: [] },
-        };
+      const userCreatedEventNoOrg: UserWebhookEvent = {
+        type: 'user.created',
+        data: { ...baseUserWebhookEventData, organization_memberships: [] },
+      };
 
-        mockTenantService.createPersonalTenant.mockResolvedValue(mockPersonalTenantEntity);
-        mockUserService.createUser.mockResolvedValue(mockUserEntity);
-        mockUserService.updateUserRole.mockRejectedValue(new Error("Failed to assign role")); // Role assignment fails
+      mockTenantService.createPersonalTenant.mockResolvedValue(
+        mockPersonalTenantEntity,
+      );
+      mockUserService.createUser.mockResolvedValue(mockUserEntity);
+      mockUserService.updateUserRole.mockRejectedValue(
+        new Error('Failed to assign role'),
+      ); // Role assignment fails
 
-        const result = await service.handleUserCreated(userCreatedEventNoOrg);
+      const result = await service.handleUserCreated(userCreatedEventNoOrg);
 
-        expect(mockTenantService.createPersonalTenant).toHaveBeenCalled();
-        expect(mockUserService.createUser).toHaveBeenCalledWith(userCreatedEventNoOrg, mockPersonalTenantId);
-        expect(mockUserService.updateUserRole).toHaveBeenCalledWith(mockUserId, [UserRole.ADMIN], mockPersonalTenantId);
-        expect(mockPinoLogger.error).toHaveBeenCalledWith( // Check if the error was logged
-            expect.objectContaining({ userId: mockUserId, tenantId: mockPersonalTenantId }),
-            'Error assigning Admin role to user in personal tenant. Continuing user creation process.',
-        );
-        expect(result).toEqual(mockUserEntity); // User creation should still succeed
+      expect(mockTenantService.createPersonalTenant).toHaveBeenCalled();
+      expect(mockUserService.createUser).toHaveBeenCalledWith(
+        userCreatedEventNoOrg,
+        mockPersonalTenantId,
+      );
+      expect(mockUserService.updateUserRole).toHaveBeenCalledWith(
+        mockUserId,
+        [UserRole.ADMIN],
+        mockPersonalTenantId,
+      );
+      expect(mockPinoLogger.error).toHaveBeenCalledWith(
+        // Check if the error was logged
+        expect.objectContaining({
+          userId: mockUserId,
+          tenantId: mockPersonalTenantId,
+        }),
+        'Error assigning Admin role to user in personal tenant. Continuing user creation process.',
+      );
+      expect(result).toEqual(mockUserEntity); // User creation should still succeed
     });
-
   });
 
   // --- Other Webhook Handler Tests (handleUserUpdated, handleTenantCreated, etc.) ---
@@ -195,7 +240,10 @@ describe('ClerkWebhookService', () => {
   // For brevity, focusing on the modified handleUserCreated.
 
   describe('handleUserUpdated', () => {
-    const mockUserWebhookDataUpdate = { type: 'user.updated', data: { id: mockUserId } } as UserWebhookEvent;
+    const mockUserWebhookDataUpdate = {
+      type: 'user.updated',
+      data: { id: mockUserId },
+    } as UserWebhookEvent;
     it('should handle user update', async () => {
       mockUserService.updateUser.mockResolvedValue(mockUserEntity);
 
@@ -225,22 +273,28 @@ describe('ClerkWebhookService', () => {
         id: 'org123',
         name: 'Test Org',
       },
-      type: 'organization.created' // Or other relevant types
+      type: 'organization.created', // Or other relevant types
     } as any; // Cast to any for simplicity if not using full OrganizationWebhookEvent type
 
     it('should handle tenant creation', async () => {
       await service.handleTenantCreated(mockOrgWebhookData);
-      expect(mockTenantService.createTenant).toHaveBeenCalledWith(mockOrgWebhookData);
+      expect(mockTenantService.createTenant).toHaveBeenCalledWith(
+        mockOrgWebhookData,
+      );
     });
 
     it('should handle tenant update', async () => {
       await service.handleTenantUpdated(mockOrgWebhookData);
-      expect(mockTenantService.updateTenant).toHaveBeenCalledWith(mockOrgWebhookData);
+      expect(mockTenantService.updateTenant).toHaveBeenCalledWith(
+        mockOrgWebhookData,
+      );
     });
 
     it('should handle tenant deletion', async () => {
       await service.handleTenantDeleted(mockOrgWebhookData);
-      expect(mockTenantService.deleteTenant).toHaveBeenCalledWith(mockOrgWebhookData);
+      expect(mockTenantService.deleteTenant).toHaveBeenCalledWith(
+        mockOrgWebhookData,
+      );
     });
   });
 

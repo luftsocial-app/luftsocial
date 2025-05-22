@@ -65,7 +65,10 @@ describe('TeamController', () => {
   });
 
   describe('createTeam', () => {
-    const createTeamDto: CreateTeamDto = { name: 'New Team', description: 'Team Desc' };
+    const createTeamDto: CreateTeamDto = {
+      name: 'New Team',
+      description: 'Team Desc',
+    };
     const mockTeam = { id: 'team-uuid', ...createTeamDto } as Team;
 
     it('should call teamService.createTeam and return the created team', async () => {
@@ -80,8 +83,12 @@ describe('TeamController', () => {
     });
 
     it('should throw ForbiddenException if org_id is missing from claims', async () => {
-        const authUserNoOrg = { claims: { sub: 'user-uuid-1' } } as unknown as AuthObject;
-        await expect(controller.createTeam(createTeamDto, authUserNoOrg)).rejects.toThrow(ForbiddenException);
+      const authUserNoOrg = {
+        claims: { sub: 'user-uuid-1' },
+      } as unknown as AuthObject;
+      await expect(
+        controller.createTeam(createTeamDto, authUserNoOrg),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 
@@ -91,7 +98,9 @@ describe('TeamController', () => {
       mockTeamService.getTeamsInTenant.mockResolvedValue(mockTeams);
       const result = await controller.getTeamsInTenant(mockAuthUser);
       expect(result).toEqual(mockTeams);
-      expect(mockTeamService.getTeamsInTenant).toHaveBeenCalledWith(mockAuthUser.claims.org_id);
+      expect(mockTeamService.getTeamsInTenant).toHaveBeenCalledWith(
+        mockAuthUser.claims.org_id,
+      );
     });
   });
 
@@ -102,7 +111,10 @@ describe('TeamController', () => {
       mockTeamService.getTeamById.mockResolvedValue(mockTeam);
       const result = await controller.getTeamById(teamId, mockAuthUser);
       expect(result).toEqual(mockTeam);
-      expect(mockTeamService.getTeamById).toHaveBeenCalledWith(teamId, mockAuthUser.claims.org_id);
+      expect(mockTeamService.getTeamById).toHaveBeenCalledWith(
+        teamId,
+        mockAuthUser.claims.org_id,
+      );
     });
   });
 
@@ -112,9 +124,17 @@ describe('TeamController', () => {
     const mockUpdatedTeam = { id: teamId, ...updateTeamDto } as Team;
     it('should call teamService.updateTeam and return the updated team', async () => {
       mockTeamService.updateTeam.mockResolvedValue(mockUpdatedTeam);
-      const result = await controller.updateTeam(teamId, updateTeamDto, mockAuthUser);
+      const result = await controller.updateTeam(
+        teamId,
+        updateTeamDto,
+        mockAuthUser,
+      );
       expect(result).toEqual(mockUpdatedTeam);
-      expect(mockTeamService.updateTeam).toHaveBeenCalledWith(teamId, updateTeamDto, mockAuthUser.claims.org_id);
+      expect(mockTeamService.updateTeam).toHaveBeenCalledWith(
+        teamId,
+        updateTeamDto,
+        mockAuthUser.claims.org_id,
+      );
     });
   });
 
@@ -124,18 +144,28 @@ describe('TeamController', () => {
       mockTeamService.deleteTeam.mockResolvedValue(undefined); // Simulates void return
       // HttpCode is NO_CONTENT, so controller method itself returns void/undefined
       await controller.deleteTeam(teamId, mockAuthUser);
-      expect(mockTeamService.deleteTeam).toHaveBeenCalledWith(teamId, mockAuthUser.claims.org_id);
+      expect(mockTeamService.deleteTeam).toHaveBeenCalledWith(
+        teamId,
+        mockAuthUser.claims.org_id,
+      );
     });
   });
 
   describe('addMemberToTeam', () => {
     const teamId = 'team-uuid-add-member';
     const addMemberDto: AddTeamMemberDto = { userId: 'new-member-uuid' };
-    const mockTeamWithNewMember = { id: teamId, users: [{id: addMemberDto.userId}] } as Team;
+    const mockTeamWithNewMember = {
+      id: teamId,
+      users: [{ id: addMemberDto.userId }],
+    } as Team;
 
     it('should call teamService.addMemberToTeam and return the updated team', async () => {
       mockTeamService.addMemberToTeam.mockResolvedValue(mockTeamWithNewMember);
-      const result = await controller.addMemberToTeam(teamId, addMemberDto, mockAuthUser);
+      const result = await controller.addMemberToTeam(
+        teamId,
+        addMemberDto,
+        mockAuthUser,
+      );
       expect(result).toEqual(mockTeamWithNewMember);
       expect(mockTeamService.addMemberToTeam).toHaveBeenCalledWith(
         teamId,
@@ -151,8 +181,14 @@ describe('TeamController', () => {
     const mockTeamAfterRemoval = { id: teamId, users: [] } as Team;
 
     it('should call teamService.removeMemberFromTeam and return the updated team', async () => {
-      mockTeamService.removeMemberFromTeam.mockResolvedValue(mockTeamAfterRemoval);
-      const result = await controller.removeMemberFromTeam(teamId, memberToRemoveId, mockAuthUser);
+      mockTeamService.removeMemberFromTeam.mockResolvedValue(
+        mockTeamAfterRemoval,
+      );
+      const result = await controller.removeMemberFromTeam(
+        teamId,
+        memberToRemoveId,
+        mockAuthUser,
+      );
       expect(result).toEqual(mockTeamAfterRemoval);
       expect(mockTeamService.removeMemberFromTeam).toHaveBeenCalledWith(
         teamId,

@@ -197,9 +197,9 @@ export class UserService {
       user = this.userRepo.create({
         clerkId: clerkId, // ensure this is the clerkId
         id: clerkId, // Assuming the 'id' field in User entity should be the clerkId if creating new.
-                     // This needs to be consistent with how User entity PK is managed.
-                     // If User.id is a UUID, then it should be generated.
-                     // The createUser method uses clerkUserData.id for User.id. So this should be userData.id
+        // This needs to be consistent with how User entity PK is managed.
+        // If User.id is a UUID, then it should be generated.
+        // The createUser method uses clerkUserData.id for User.id. So this should be userData.id
         email: userData.email || '',
         firstName: userData.firstName || '',
         lastName: userData.lastName || '',
@@ -217,36 +217,41 @@ export class UserService {
       // The `syncClerkUser` was likely broken if `findById` expected a UUID but received a `clerkId`.
       // With `findById` now correctly taking `clerkId`, this part is more sensible.
 
-      if (globalUser) { // User exists globally but not in this tenant (or tenant scope wasn't checked before)
-          user = globalUser;
-          // Add user to this tenant if not already part of it
-          const tenantEntity = await this.tenantRepo.findOneBy({ id: tenantId });
-          if (tenantEntity) {
-            if (!user.tenants) user.tenants = [];
-            if (!user.tenants.some(t => t.id === tenantId)) {
-                user.tenants.push(tenantEntity);
-            }
-            // If user's activeTenantId is not set, set it to this tenant.
-            if (!user.activeTenantId) {
-                user.activeTenantId = tenantId;
-            }
+      if (globalUser) {
+        // User exists globally but not in this tenant (or tenant scope wasn't checked before)
+        user = globalUser;
+        // Add user to this tenant if not already part of it
+        const tenantEntity = await this.tenantRepo.findOneBy({ id: tenantId });
+        if (tenantEntity) {
+          if (!user.tenants) user.tenants = [];
+          if (!user.tenants.some((t) => t.id === tenantId)) {
+            user.tenants.push(tenantEntity);
           }
-      } else { // User does not exist globally, create new
+          // If user's activeTenantId is not set, set it to this tenant.
+          if (!user.activeTenantId) {
+            user.activeTenantId = tenantId;
+          }
+        }
+      } else {
+        // User does not exist globally, create new
         user = this.userRepo.create({
-            id: clerkId, // Assuming Clerk ID is used as primary key for User entity
-            clerkId: clerkId,
-            email: userData.email || '',
-            firstName: userData.firstName || '',
-            lastName: userData.lastName || '',
-            activeTenantId: tenantId,
-            roles: defaultRole ? [defaultRole] : [],
-            tenants: [],
+          id: clerkId, // Assuming Clerk ID is used as primary key for User entity
+          clerkId: clerkId,
+          email: userData.email || '',
+          firstName: userData.firstName || '',
+          lastName: userData.lastName || '',
+          activeTenantId: tenantId,
+          roles: defaultRole ? [defaultRole] : [],
+          tenants: [],
         });
         const tenantEntity = await this.tenantRepo.findOneBy({ id: tenantId });
         if (tenantEntity) {
-            user.tenants.push(tenantEntity);
+          user.tenants.push(tenantEntity);
         } else {
-            this.logger.warn({ tenantId }, "Tenant not found for syncClerkUser, cannot associate user with tenant.");
+          this.logger.warn(
+            { tenantId },
+            'Tenant not found for syncClerkUser, cannot associate user with tenant.',
+          );
         }
       }
     }
@@ -259,12 +264,11 @@ export class UserService {
       // roles: userData.roles ?? user.roles, // Role assignment should be more explicit
     });
     if (userData.roles && userData.roles.length > 0) {
-        // Assuming userData.roles are UserRole enums or can be mapped to Role entities
-        // This part needs careful handling of role objects vs enums.
-        // For now, let's assume roles are handled elsewhere or simplified.
-        // user.roles = ...
+      // Assuming userData.roles are UserRole enums or can be mapped to Role entities
+      // This part needs careful handling of role objects vs enums.
+      // For now, let's assume roles are handled elsewhere or simplified.
+      // user.roles = ...
     }
-
 
     return this.userRepo.save(user);
   }
@@ -480,10 +484,16 @@ export class UserService {
     const user = this.userRepo.create(userObject);
     try {
       const savedUser = await this.userRepo.save(user);
-      this.logger.info({ userId: savedUser.id, tenantId: tenantIdToSetAsActive }, 'User created successfully in DB');
+      this.logger.info(
+        { userId: savedUser.id, tenantId: tenantIdToSetAsActive },
+        'User created successfully in DB',
+      );
       return savedUser;
     } catch (error) {
-      this.logger.error({ error, clerkUserData, tenantIdToSetAsActive }, 'Error saving new user to DB');
+      this.logger.error(
+        { error, clerkUserData, tenantIdToSetAsActive },
+        'Error saving new user to DB',
+      );
       // Consider if this should throw a more specific error or be handled by a global exception filter
       throw new BadRequestException('Could not create user in database.');
     }
