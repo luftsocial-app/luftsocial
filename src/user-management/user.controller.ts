@@ -55,15 +55,40 @@ export class UserController {
   }
 
   @Get(':tenantId/:clerkId')
-  async findUser(@Param('clerkId') clerkId: string) {
+  async findUser(
+    @Param('tenantId', ParseUUIDPipe) tenantId: string,
+    @Param('clerkId') clerkId: string,
+    @CurrentUser() authUser: AuthObject,
+  ) {
+    // Authorization: Check if the authenticated user can access the requested tenant's data.
+    // This typically means checking if authUser.claims.org_id matches the tenantId,
+    // or if the user has a super_admin role or similar.
+    // For now, a basic check: if the authUser's org_id claim doesn't match the requested tenantId, deny access.
+    // A more sophisticated RBAC might be needed for more complex scenarios (e.g. super admins).
+    if (authUser.claims?.org_id !== tenantId) {
+      // TODO: Implement more sophisticated role-based access if needed.
+      // For now, only users belonging to the tenant can fetch user details from that tenant.
+      // Consider if a user from tenant A should be able to see user details from tenant B, even if they know the IDs.
+      // Typically, this should be forbidden unless the authUser is a system-level admin.
+      throw new HttpException('Forbidden: You do not have access to this tenant.', HttpStatus.FORBIDDEN);
+    }
+
     try {
-      const user = await this.userService.findById(clerkId);
+      // Call the modified service method, now passing both clerkId and tenantId for explicit scoping.
+      const user = await this.userService.findById(clerkId, tenantId);
       if (!user) {
-        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+        // If findById returns null (either user not found by clerkId, or not in the specified tenant),
+        // return a 404.
+        throw new HttpException('User not found in this tenant', HttpStatus.NOT_FOUND);
       }
       return user;
     } catch (error) {
-      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      // Catching potential errors from the service layer or the HttpException thrown above.
+      if (error instanceof HttpException) {
+        throw error; // Re-throw if it's already an HttpException
+      }
+      // Generic error handling for unexpected issues.
+      throw new HttpException(error.message || 'An internal server error occurred', HttpStatus.INTERNAL_SERVER_ERROR);
     }
   }
 }

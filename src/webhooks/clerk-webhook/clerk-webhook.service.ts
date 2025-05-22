@@ -87,11 +87,102 @@ export class ClerkWebhookService {
     }
   }
 
+import { UserRole } from '../../common/enums/roles';
+
+// ... other imports
+
   async handleUserCreated(userCreatedData: UserWebhookEvent): Promise<User> {
+    const { data: clerkUserData } = userCreatedData;
     this.logger.info('Processing user.created event', {
-      userId: userCreatedData.data.id,
+      userId: clerkUserData.id,
+      email: clerkUserData.email_addresses?.find(e => e.id === clerkUserData.primary_email_address_id)?.email_address,
+      organization_memberships: clerkUserData.organization_memberships,
     });
-    return this.userService.createUser(userCreatedData);
+
+    let tenantIdToSetAsActive: string | null = null;
+    let isNewPersonalTenant = false;
+
+    // Check for organization affiliation
+    // Clerk's User object might have `organization_memberships` array or direct organization IDs.
+    // Let's assume `organization_memberships` is the primary way to check.
+    // Also, Clerk sometimes uses `public_metadata` or `private_metadata` for org info,
+    // but `organization_memberships` is more standard for direct relations.
+    const primaryOrgMembership = clerkUserData.organization_memberships?.find(
+        mem => mem.id === clerkUserData.primary_organization_id
+    );
+
+    if (primaryOrgMembership && primaryOrgMembership.organization?.id) {
+        tenantIdToSetAsActive = primaryOrgMembership.organization.id;
+        this.logger.info(
+            { userId: clerkUserData.id, tenantId: tenantIdToSetAsActive },
+            'User is affiliated with an organization. Setting active tenant to organization ID.',
+        );
+    } else if (clerkUserData.organization_memberships && clerkUserData.organization_memberships.length > 0) {
+        // Fallback if primary_organization_id is not set but memberships exist
+        tenantIdToSetAsActive = clerkUserData.organization_memberships[0].organization.id;
+        this.logger.info(
+            { userId: clerkUserData.id, tenantId: tenantIdToSetAsActive },
+            'User has organization memberships, using the first available organization ID as active tenant.',
+        );
+    } else {
+      this.logger.info(
+        { userId: clerkUserData.id },
+        'User has no organization affiliation. Creating a personal tenant.',
+      );
+      const personalTenant = await this.tenantService.createPersonalTenant(
+        clerkUserData,
+      );
+      tenantIdToSetAsActive = personalTenant.id;
+      isNewPersonalTenant = true;
+      this.logger.info(
+        { userId: clerkUserData.id, tenantId: tenantIdToSetAsActive },
+        'Personal tenant created and will be set as active.',
+      );
+    }
+
+    if (!tenantIdToSetAsActive) {
+      this.logger.error({ userId: clerkUserData.id, clerkUserData }, "Could not determine a tenant ID (organization or personal) for the new user.");
+      // This case should ideally not be reached if personal tenant creation works.
+      // Throwing an error or handling as per business rules for users without any tenant.
+      throw new BadRequestException('Failed to determine or create a tenant for the user.');
+    }
+    
+    // Create the user in our database with the determined activeTenantId
+    const newUser = await this.userService.createUser(
+      userCreatedData, // Pass the full event as userService.createUser expects it
+      tenantIdToSetAsActive,
+    );
+
+    // If a new personal tenant was created, assign the user as Admin to this tenant
+    if (isNewPersonalTenant && newUser) {
+      this.logger.info(
+        { userId: newUser.id, tenantId: tenantIdToSetAsActive },
+        'Assigning Admin role to user in their new personal tenant.',
+      );
+      try {
+        // Ensure the 'Admin' role is available for this tenant or globally.
+        // The updateUserRole method in UserService should handle finding/creating roles.
+        // It typically operates on the user's activeTenantId, which is now set.
+        await this.userService.updateUserRole(
+          newUser.id,
+          [UserRole.ADMIN], // Assign 'Admin' role
+          tenantIdToSetAsActive, // Explicitly pass tenantId for clarity and safety
+        );
+        this.logger.info(
+          { userId: newUser.id, tenantId: tenantIdToSetAsActive },
+          'Admin role assigned successfully to user in personal tenant.',
+        );
+      } catch (error) {
+        this.logger.error(
+          { userId: newUser.id, tenantId: tenantIdToSetAsActive, error },
+          'Error assigning Admin role to user in personal tenant. Continuing user creation process.',
+        );
+        // Decide if this error is critical. For now, we log it and continue.
+        // The user and tenant are created, but role assignment failed.
+        // Manual intervention or a retry mechanism might be needed.
+      }
+    }
+    return newUser;
   }
 
   async handleUserUpdated(userUpdatedData: UserWebhookEvent): Promise<User> {

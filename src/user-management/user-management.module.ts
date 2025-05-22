@@ -8,16 +8,20 @@ import { UserService } from './user.service';
 import { UserTenantService } from './user-tenant.service';
 import { UserController } from './user.controller';
 import { TenantService } from './tenant.service';
+import { Team } from './entities/team.entity'; // Import Team entity
+import { TeamService } from './teams/team.service'; // Import TeamService
+import { TeamController } from './teams/team.controller'; // Import TeamController
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Role, Tenant])],
+  imports: [TypeOrmModule.forFeature([User, Role, Tenant, Team])], // Add Team entity
   providers: [
     UserService,
     ClerkClientProvider,
     TenantService,
     UserTenantService,
+    TeamService, // Add TeamService
   ],
-  exports: [UserService, TenantService, UserTenantService],
-  controllers: [UserController],
+  exports: [UserService, TenantService, UserTenantService, TeamService], // Export TeamService
+  controllers: [UserController, TeamController], // Add TeamController
 })
 export class UserManagementModule {}
