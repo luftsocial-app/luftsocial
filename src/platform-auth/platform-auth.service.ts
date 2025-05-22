@@ -297,10 +297,11 @@ export class PlatformAuthService {
     const expiresAt = new Date(Date.now() + expiresIn * 1000);
 
     const baseAccountData = {
-      userId,
+      userId, // This is for the platform-specific account like FacebookAccount.userId
       tenantId,
       permissions,
       socialAccount: {
+        userId: userId, // <--- ADDED THIS LINE (Clerk User ID for SocialAccount.userId)
         accessToken: tokens.accessToken,
         refreshToken: tokens.refreshToken,
         expiresAt: tokens.expiresIn

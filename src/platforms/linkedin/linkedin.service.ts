@@ -3,9 +3,10 @@ import {
   HttpException,
   HttpStatus,
   NotFoundException,
+  InternalServerErrorException, // Added InternalServerErrorException
 } from '@nestjs/common';
 import axios from 'axios';
-import * as config from 'config';
+import * as config from 'config'; // config package might need to be replaced with @nestjs/config
 import { LinkedInRepository } from './repositories/linkedin.repository';
 import {
   CommentResponse,
@@ -77,22 +78,35 @@ export class LinkedInService implements PlatformService {
     return mediaItems;
   }
 
-  async getAccountsByUserId(userId: string): Promise<LinkedInAccount> {
+  async getAccountsByUserId(userId: string): Promise<LinkedInAccount> { // userId is Clerk User ID
     try {
-      return await this.linkedInRepo.getById(userId);
+      const account = await this.linkedInRepo.getAccountByClerkUserId(userId);
+      if (!account) {
+        this.logger.warn(`LinkedIn account not found for Clerk User ID: ${userId}`);
+        throw new NotFoundException('LinkedIn account not found for this user.');
+      }
+      return account;
     } catch (error) {
       this.logger.error(
-        `Failed to fetch Facebook accounts for user ${userId}`,
-        error.stack,
+        `Failed to fetch LinkedIn account for user ${userId}: ${error.message}`, // Corrected log
+        error.stack
       );
+      if (error instanceof NotFoundException || error instanceof HttpException) { // Re-throw if it's already a known HTTP exception
+          throw error;
+      }
+      // Wrap other errors
+      throw new InternalServerErrorException(`Error fetching LinkedIn account: ${error.message}`); 
     }
   }
 
   async getUserAccounts(userId: string): Promise<SocialAccountDetails[]> {
-    const account = await this.linkedInRepo.getById(userId);
-    if (!account) {
-      throw new NotFoundException('No Linkedin accounts found for user');
-    }
+    // This method should now use getAccountsByUserId which expects a Clerk User ID
+    // The original `this.linkedInRepo.getById(userId)` was incorrect if userId was a Clerk ID.
+    // Assuming `userId` parameter here is the Clerk User ID.
+    const account = await this.getAccountsByUserId(userId); 
+    // No need for `if (!account)` here, as getAccountsByUserId will throw NotFoundException
+
+    try {
 
     try {
       const response = await axios.get(`${this.baseUrl}/organizationAcls`, {
@@ -493,7 +507,16 @@ export class LinkedInService implements PlatformService {
   }
 
   async revokeAccess(accountId: string): Promise<void> {
-    const account = await this.linkedInRepo.getById(accountId);
+    // Assuming accountId here is the DB ID of the LinkedInAccount, not the Clerk User ID.
+    // If it's meant to be Clerk User ID, then this should also use getAccountsByUserId.
+    // For now, keeping it as is, assuming it's the specific platform account ID.
+    // If this `accountId` is actually the Clerk User ID, then the call should be:
+    // const account = await this.getAccountsByUserId(accountId);
+    // However, the PlatformAuthService's refreshToken takes platform accountId.
+    // Let's assume this `accountId` is the DB ID of the LinkedInAccount.
+    // If so, `getById` is correct. If it's Clerk User ID, then it needs to change.
+    // The task is about getAccountsByUserId, so leaving this as is unless specified.
+    const account = await this.linkedInRepo.getById(accountId); 
     if (!account) throw new NotFoundException('Account not found');
 
     try {

@@ -10,6 +10,7 @@ import { SocialPlatform } from '../../../common/enums/social-platform.enum';
 import { AuthState } from '../../entities/facebook-entities/auth-state.entity';
 import { SocialAccount } from '../../../platforms/entities/notifications/entity/social-account.entity';
 import { TenantService } from '../../../user-management/tenant.service';
+import { PinoLogger } from 'nestjs-pino'; // Added PinoLogger import
 
 @Injectable()
 export class LinkedInRepository {
@@ -24,10 +25,86 @@ export class LinkedInRepository {
     private readonly authStateRepo: Repository<AuthState>,
     @InjectRepository(LinkedInMetric)
     private readonly metricRepo: Repository<LinkedInMetric>,
+    @InjectRepository(SocialAccount) // Added SocialAccount repository injection
+    private readonly socialAccountRepo: Repository<SocialAccount>,
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
     private readonly tenantService: TenantService,
-  ) {}
+    private readonly logger: PinoLogger, // Added PinoLogger injection
+  ) {
+    this.logger.setContext(LinkedInRepository.name); // Set context for logger
+  }
+
+  async getAccountByClerkUserId(clerkUserId: string): Promise<LinkedInAccount | null> {
+    const tenantId = this.tenantService.getTenantId();
+    this.logger.debug(`Attempting to find LinkedIn account for Clerk User ID: ${clerkUserId} in tenant: ${tenantId}`);
+  
+    const socialAccount = await this.socialAccountRepo.findOne({
+      where: {
+        userId: clerkUserId,
+        platform: SocialPlatform.LINKEDIN,
+        tenantId: tenantId,
+      },
+    });
+  
+    if (!socialAccount) {
+      this.logger.warn(`No LinkedIn social account found for Clerk User ID: ${clerkUserId} in tenant: ${tenantId}`);
+      return null;
+    }
+  
+    const linkedInAccount = await this.accountRepo.findOne({
+      where: {
+        socialAccount: { id: socialAccount.id },
+        tenantId: tenantId,
+      },
+      relations: ['socialAccount', 'organizations'], // Adjust relations as needed
+    });
+  
+    if (!linkedInAccount) {
+      this.logger.error(`Data inconsistency: LinkedIn SocialAccount ${socialAccount.id} found but no corresponding LinkedInAccount for Clerk User ID: ${clerkUserId} in tenant: ${tenantId}`);
+      return null;
+    }
+    
+    return linkedInAccount;
+  }
+  
+
+  async createAccount(data: any): Promise<LinkedInAccount> {
+    return this.entityManager.transaction(async (transactionManager) => {
+      // 1. Create SocialAccount
+      const socialAccountData = data.socialAccount;
+      const socialAccountEntity = this.socialAccountRepo.create({ // Use injected socialAccountRepo
+        // Spread common SocialAccount fields from socialAccountData
+        accessToken: socialAccountData.accessToken,
+        refreshToken: socialAccountData.refreshToken,
+        tokenExpiresAt: socialAccountData.tokenExpiresAt || socialAccountData.expiresAt, // Handle potential naming difference
+        scope: socialAccountData.scope,
+        // Specific fields for SocialAccount
+        userId: socialAccountData.userId, // This is the Clerk User ID
+        platformUserId: socialAccountData.platformUserId, // LinkedIn's ID for the user on the platform
+        platform: SocialPlatform.LINKEDIN, // Explicitly set platform
+        tenantId: data.tenantId,
+        metadata: socialAccountData.metadata, // If metadata is passed for socialAccount
+      });
+      const savedSocialAccount = await transactionManager.save(SocialAccount, socialAccountEntity); // Use SocialAccount class as first arg
+
+      // 2. Create LinkedInAccount
+      const linkedInAccountEntity = this.accountRepo.create({
+        tenantId: data.tenantId,
+        socialAccount: savedSocialAccount, // Link to the saved SocialAccount
+        linkedinUserId: data.linkedinUserId, // This is from userInfo.id (platform-specific LinkedIn user ID)
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email, // Assuming email is passed in data
+        profileUrl: data.profileUrl, // Assuming profileUrl is passed in data
+        permissions: data.permissions,
+        // any other LinkedIn-specific fields from data
+      });
+      const savedLinkedInAccount = await transactionManager.save(LinkedInAccount, linkedInAccountEntity); // Use LinkedInAccount class as first arg
+      
+      return savedLinkedInAccount;
+    });
+  }
 
   async createPost(data: Partial<LinkedInPost>): Promise<LinkedInPost> {
     const post = this.postRepo.create(data);

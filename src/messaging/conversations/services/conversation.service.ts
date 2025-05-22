@@ -6,9 +6,9 @@ import {
 } from '@nestjs/common';
 import { ConversationRepository } from '../repositories/conversation.repository';
 import { ParticipantRepository } from '../repositories/participant.repository';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
-import { User } from '../../../user-management/entities/user.entity';
+// Removed InjectRepository and Repository from typeorm, In might still be used by other repos
+import { In } from 'typeorm'; 
+// Removed User entity import as we're removing direct userRepository usage
 import { ConversationEntity } from '../entities/conversation.entity';
 import {
   CreateConversationDto,
@@ -31,8 +31,8 @@ export class ConversationService {
 
     private readonly logger: PinoLogger,
 
-    @InjectRepository(User)
-    private userRepository: Repository<User>,
+    // @InjectRepository(User) // Removed userRepository
+    // private userRepository: Repository<User>, 
   ) {
     this.logger.setContext(ConversationService.name);
   }
@@ -40,13 +40,25 @@ export class ConversationService {
   async createConversation(
     data: CreateConversationDto,
   ): Promise<ConversationEntity> {
-    const users = await this.userRepository.findBy({
-      id: In(data.participantIds),
-    });
+    const tenantId = await this.tenantService.getTenantId();
+    const { validClerkUsers, invalidUserIds } = await this.userService.validateUsersAreInTenant(data.participantIds, tenantId);
 
-    if (users.length === 0) {
-      throw new NotFoundException('No users found with the provided IDs');
+    if (invalidUserIds.length > 0) {
+      throw new NotFoundException(`One or more users are invalid, not found, or do not belong to the tenant: ${invalidUserIds.join(', ')}`);
     }
+    if (validClerkUsers.length === 0) {
+        throw new NotFoundException('No valid users found to create a conversation.');
+    }
+    
+    // Ensure creator is part of the valid users if creatorId was in participantIds
+    if (!validClerkUsers.some(u => u.id === data.creatorId)) {
+        // This check is important if creatorId isn't guaranteed to be in participantIds or if validation might exclude them
+        // If creatorId MUST be part of participantIds and be valid, this error is appropriate.
+        // If creatorId is separate and also needs validation, it should be included in validateUsersAreInTenant call.
+        // For now, assuming creatorId is one of the participantIds.
+        throw new NotFoundException(`Creator (ID: ${data.creatorId}) is not among the valid participants for this tenant.`);
+    }
+
 
     const conversation = this.conversationRepository.create({
       name: data.name,
@@ -54,23 +66,23 @@ export class ConversationService {
       isPrivate: data.isPrivate,
       metadata: data.metadata,
       settings: data.settings,
-      tenantId: await this.tenantService.getTenantId(),
+      tenantId: tenantId,
     });
 
     const savedConversation =
       await this.conversationRepository.save(conversation);
 
-    // Create participant records for all users
-    const participants = users.map((user) => {
-      const isCreator = data.creatorId === user.id;
+    // Create participant records for all valid clerkUsers
+    const participants = validClerkUsers.map((clerkUser) => {
+      const isCreator = data.creatorId === clerkUser.id;
       return this.participantRepository.create({
         conversation: savedConversation,
         conversationId: savedConversation.id,
-        user: user,
-        userId: user.id,
+        // user: clerkUser, // Not assigning the full clerkUser to 'user' relation. Only userId.
+        userId: clerkUser.id, // Use clerkUser.id for userId
         role: isCreator ? ParticipantRole.OWNER : ParticipantRole.MEMBER,
         status: 'member',
-        tenantId: this.tenantService.getTenantId(),
+        tenantId: tenantId,
       });
     });
 
@@ -114,22 +126,25 @@ export class ConversationService {
   }
 
   async createOrGetDirectChat(
-    userId1: string,
-    userId2: string,
+    userId1: string, // Current user, assumed to be valid and in tenant
+    userId2: string, // Other user for the direct chat
   ): Promise<ConversationEntity> {
-    const tenantId = this.tenantService.getTenantId();
+    const tenantId = await this.tenantService.getTenantId();
 
-    const checkUser2TenantId = await this.userService.findById(userId2);
+    // Validate userId2
+    const { validClerkUsers: validatedUser2List, invalidUserIds: invalidUser2Ids } = 
+      await this.userService.validateUsersAreInTenant([userId2], tenantId);
 
-    if (!checkUser2TenantId) {
-      throw new NotFoundException('User 2 not found in the tenant');
+    if (invalidUser2Ids.length > 0 || validatedUser2List.length === 0) {
+      throw new NotFoundException(`User ${userId2} not found in the tenant or is invalid.`);
     }
+    const clerkUser2 = validatedUser2List[0]; // We only passed one ID
 
-    // Check if direct chat already exists
+    // Check if direct chat already exists using Clerk IDs
     const existingChat =
       await this.conversationRepository.findDirectConversation(
-        userId1,
-        userId2,
+        userId1, // Clerk ID of current user
+        clerkUser2.id, // Clerk ID of other user
         tenantId,
       );
 
@@ -138,15 +153,13 @@ export class ConversationService {
     }
 
     // Create new direct chat
-    const users = await this.userRepository.findBy({
-      id: In([userId1, userId2]),
-    });
-
-    this.logger.info({ usersRepo: users });
-
-    if (users.length !== 2) {
-      throw new NotFoundException('One or both users not found');
-    }
+    // We need clerkUser object for userId1 as well for consistency in participant creation
+    // Assuming userId1 is the current authenticated user, already implicitly validated.
+    // For participant creation, we'd ideally have clerkUser1 object.
+    // If not readily available, a quick fetch might be needed, or use a simpler structure if possible.
+    // Let's assume we can proceed with just userId1 for its participant record for now,
+    // or if we had currentClerkUser object, we'd use it.
+    // For this refactor, let's focus on using IDs and assume the local User entity is not directly populated.
 
     const conversation = this.conversationRepository.create({
       type: ConversationType.DIRECT,
@@ -155,17 +168,79 @@ export class ConversationService {
 
     const savedConversation =
       await this.conversationRepository.save(conversation);
-
+    
     // Create participants
-    const participants = users.map((user) => {
+    // Participant for userId1 (current user)
+    const participant1 = this.participantRepository.create({
+      conversation: savedConversation,
+      conversationId: savedConversation.id,
+      userId: userId1, // Clerk ID of current user
+      role: ParticipantRole.MEMBER,
+      status: 'member',
+      tenantId,
+    });
+
+    // Participant for userId2 (clerkUser2)
+    const participant2 = this.participantRepository.create({
+      conversation: savedConversation,
+      conversationId: savedConversation.id,
+      userId: clerkUser2.id, // Clerk ID of other user
+      role: ParticipantRole.MEMBER,
+      status: 'member',
+      tenantId,
+    });
+
+    const participants = [participant1, participant2];
+    await this.participantRepository.save(participants);
+    savedConversation.participants = participants; // Attach for return, though they might not have full 'user' objects
+
+    return savedConversation;
+  }
+
+  async createGroupChat(
+    name: string,
+    participantIds: string[], // All user IDs for the group, including creator
+    creatorId: string,
+  ): Promise<ConversationEntity> {
+    const tenantId = await this.tenantService.getTenantId();
+    
+    // Validate all participantIds including the creator
+    const { validClerkUsers, invalidUserIds } = 
+      await this.userService.validateUsersAreInTenant([...new Set([creatorId, ...participantIds])], tenantId);
+
+    if (invalidUserIds.length > 0) {
+      throw new NotFoundException(`One or more users are invalid, not found, or do not belong to the tenant: ${invalidUserIds.join(', ')}`);
+    }
+    if (validClerkUsers.length === 0) {
+        throw new NotFoundException('No valid users found to create a group chat.');
+    }
+    
+    // Ensure creator is among the valid users
+    if (!validClerkUsers.some(u => u.id === creatorId)) {
+        throw new NotFoundException(`Creator (ID: ${creatorId}) is not among the valid participants for this tenant or is invalid.`);
+    }
+
+    const conversation = this.conversationRepository.create({
+      name,
+      type: ConversationType.GROUP,
+      tenantId: tenantId,
+    });
+
+    const savedConversation =
+      await this.conversationRepository.save(conversation);
+
+    // Create participants with creator as owner
+    const participants = validClerkUsers.map((clerkUser) => {
       return this.participantRepository.create({
         conversation: savedConversation,
         conversationId: savedConversation.id,
-        user: user,
-        userId: user.id,
-        role: ParticipantRole.MEMBER,
+        userId: clerkUser.id,
+        role:
+          clerkUser.id === creatorId
+            ? ParticipantRole.OWNER
+            : ParticipantRole.MEMBER,
         status: 'member',
-        tenantId,
+        tenantId: tenantId,
       });
     });
 

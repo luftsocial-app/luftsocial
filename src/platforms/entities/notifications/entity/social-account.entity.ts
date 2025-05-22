@@ -18,6 +18,9 @@ export class SocialAccount {
   @Column({ nullable: false })
   tenantId: string;
 
+  @Column({ nullable: true }) // As per instructions, defaulting to nullable: true
+  userId: string; // To store the Clerk User ID
+
   @Column({ type: 'enum', enum: SocialPlatform })
   platform: SocialPlatform;
 

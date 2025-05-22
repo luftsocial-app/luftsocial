@@ -11,7 +11,7 @@ import {
 import { CurrentUser } from '../decorators/current-user.decorator';
 import { Permission, UserRole } from '../common/enums/roles';
 import { UserService } from './user.service';
-import { AuthObject } from '@clerk/express';
+import { AuthObject, User as clerkUser } from '@clerk/express'; // Use User from @clerk/express as per other files, or @clerk/backend if that's the exact type from service
 
 @Controller('users')
 export class UserController {
@@ -55,15 +55,26 @@ export class UserController {
   }
 
   @Get(':tenantId/:clerkId')
-  async findUser(@Param('clerkId') clerkId: string) {
+  async findUser(@Param('clerkId') clerkId: string): Promise<clerkUser> { // Adjusted return type
     try {
-      const user = await this.userService.findById(clerkId);
-      if (!user) {
-        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
-      }
+      // The userService.findById now returns a clerkUser directly
+      // and handles its own not-found logic by potentially throwing an error that we catch here.
+      const user: clerkUser = await this.userService.findById(clerkId);
       return user;
     } catch (error) {
-      throw new HttpException(error.message, HttpStatus.INTERNAL_SERVER_ERROR);
+      // Check if the error from userService.findById (or Clerk client) indicates a "not found" status
+      // This condition matches what was used in UserService for Clerk errors.
+      if (error.status === 404 || (error.errors && error.errors[0]?.code === 'resource_not_found')) {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      }
+      
+      // For other types of errors, throw a generic internal server error
+      // It's good practice to log the original error for debugging purposes if a logger is available
+      // this.logger.error(`Error in findUser for clerkId ${clerkId}:`, error); // Example if logger was injected
+      throw new HttpException(
+        error.message || 'An error occurred while fetching the user.',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }

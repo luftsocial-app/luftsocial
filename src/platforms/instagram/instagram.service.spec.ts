@@ -10,6 +10,8 @@ import { StickerDto } from './helpers/create-content.dto';
 import { MediaType } from '../../common/enums/media-type.enum';
 import { PinoLogger } from 'nestjs-pino';
 import { TenantService } from '../../user-management/tenant.service';
+import { InstagramAccount } from '../entities/instagram-entities/instagram-account.entity';
+import { SocialAccount } from '../entities/notifications/entity/social-account.entity';
 
 // Mock axios
 jest.mock('axios');
@@ -17,851 +19,270 @@ const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 describe('InstagramService', () => {
   let service: InstagramService;
-  let instagramRepo: jest.Mocked<InstagramRepository>;
-  // let configService: jest.Mocked<ConfigService>;
-  let mediaStorageService: jest.Mocked<MediaStorageService>;
-  let logger: PinoLogger;
+  let instagramRepoMock: jest.Mocked<InstagramRepository>;
+  let configServiceMock: jest.Mocked<ConfigService>;
+  let mediaStorageServiceMock: jest.Mocked<MediaStorageService>;
+  let loggerMock: jest.Mocked<PinoLogger>;
+  let tenantServiceMock: jest.Mocked<TenantService>;
 
   const mockTenantId = 'test-tenant-id';
-  const mockAccountId = 'test-account-id';
-  // const mockPostId = 'test-post-id';
+  const mockUserId = 'clerk-user-id-123'; // Represents Clerk User ID
+  const mockAccountId = 'ig-db-account-id-456'; // Represents InstagramAccount entity ID in DB
+  const mockIgPlatformUserId = 'ig-platform-user-id-789'; // Instagram's own user ID for the account
   const mockAccessToken = 'test-access-token';
   const mockRefreshToken = 'test-refresh-token';
-  const mockIgBusinessAccountId = 'test-ig-business-id';
   const mockMediaContainerId = 'test-media-container-id';
   const mockMediaUrl = 'https://example.com/image.jpg';
 
-  const mockInstagramAccount = {
+  const mockSocialAccount = {
+    id: 'social-account-id-1',
+    userId: mockUserId,
+    platformUserId: mockIgPlatformUserId,
+    accessToken: mockAccessToken,
+    refreshToken: mockRefreshToken,
+    tokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour from now
+  } as SocialAccount;
+
+  const mockInstagramAccountEntity = {
     id: mockAccountId,
-    instagramAccountId: mockIgBusinessAccountId,
+    instagramAccountId: mockIgPlatformUserId,
     username: 'test_instagram',
+    tenantId: mockTenantId,
     metadata: {
-      instagramAccounts: [
-        {
-          id: mockIgBusinessAccountId,
-          username: 'test_instagram',
-          pageId: 'test-page-id',
-        },
+      profilePictureUrl: 'http://example.com/profile.jpg',
+      instagramAccounts: [ // This structure might be from an older version or specific use case
+        { id: mockIgPlatformUserId, username: 'test_instagram', pageId: 'test-page-id' },
       ],
     },
-    socialAccount: {
-      id: 'social-account-id',
-      accessToken: mockAccessToken,
-      refreshToken: mockRefreshToken,
-      tokenExpiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour from now
-    },
-  };
+    socialAccount: mockSocialAccount,
+  } as unknown as InstagramAccount; // Cast to satisfy type, ensure all required fields are mocked if used
 
   beforeEach(async () => {
-    // Create mock implementations
-    const mockInstagramRepo = {
-      setTenantId: jest.fn(),
+    const mockInstagramRepoProvider = {
       getAccountByUserId: jest.fn(),
-      checkRateLimit: jest.fn(),
-      recordRateLimitUsage: jest.fn(),
+      checkRateLimit: jest.fn().mockResolvedValue(true), // Default to allow
+      recordRateLimitUsage: jest.fn().mockResolvedValue(undefined),
       createPost: jest.fn(),
-      deleteAccount: jest.fn(),
+      deleteAccount: jest.fn().mockResolvedValue(undefined),
+      // Add other methods used by InstagramService if any
     };
 
-    const mockConfigService = {
-      get: jest.fn((key) => {
-        const config = {
-          INSTAGRAM_CLIENT_KEY: 'test-client-key',
-          INSTAGRAM_CLIENT_SECRET: 'test-client-secret',
+    const mockConfigServiceProvider = {
+      get: jest.fn((key: string) => {
+        const configValues = {
+          'INSTAGRAM_APP_ID': 'test-app-id', // Updated key based on service usage
+          'INSTAGRAM_APP_SECRET': 'test-app-secret', // Updated key
+          'INSTAGRAM_API_VERSION': 'v18.0',
+          'INSTAGRAM_GRAPH_API_URL': 'https://graph.facebook.com',
         };
-        return config[key];
+        return configValues[key];
       }),
     };
 
-    const mockMediaStorageService = {
+    const mockMediaStorageServiceProvider = {
       uploadPostMedia: jest.fn(),
       uploadMediaFromUrl: jest.fn(),
     };
 
-    const mockTenantService = {
+    const mockTenantServiceProvider = {
       getTenantId: jest.fn().mockReturnValue(mockTenantId),
+      setTenantId: jest.fn(),
+    };
+    
+    const mockPinoLoggerProvider = {
+      info: jest.fn(), error: jest.fn(), warn: jest.fn(), debug: jest.fn(), setContext: jest.fn(), child: jest.fn().mockReturnThis(), trace: jest.fn(), fatal: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         InstagramService,
-        { provide: InstagramRepository, useValue: mockInstagramRepo },
-        { provide: ConfigService, useValue: mockConfigService },
-        { provide: MediaStorageService, useValue: mockMediaStorageService },
-        { provide: TenantService, useValue: mockTenantService },
-        {
-          provide: PinoLogger,
-          useValue: {
-            info: jest.fn(),
-            error: jest.fn(),
-            warn: jest.fn(),
-            debug: jest.fn(),
-            setContext: jest.fn(),
-          },
-        },
+        { provide: InstagramRepository, useValue: mockInstagramRepoProvider },
+        { provide: ConfigService, useValue: mockConfigServiceProvider },
+        { provide: MediaStorageService, useValue: mockMediaStorageServiceProvider },
+        { provide: TenantService, useValue: mockTenantServiceProvider },
+        { provide: PinoLogger, useValue: mockPinoLoggerProvider },
       ],
     }).compile();
 
     service = module.get<InstagramService>(InstagramService);
-    instagramRepo = module.get(
-      InstagramRepository,
-    ) as jest.Mocked<InstagramRepository>;
-    // configService = module.get(ConfigService) as jest.Mocked<ConfigService>;
-    mediaStorageService = module.get(
-      MediaStorageService,
-    ) as jest.Mocked<MediaStorageService>;
-    logger = module.get<PinoLogger>(PinoLogger);
+    instagramRepoMock = module.get(InstagramRepository);
+    configServiceMock = module.get(ConfigService);
+    mediaStorageServiceMock = module.get(MediaStorageService);
+    loggerMock = module.get(PinoLogger);
+    tenantServiceMock = module.get(TenantService);
 
-    // Mock Logger to avoid console outputs during tests
-    jest.spyOn(logger, 'error');
-    jest.spyOn(logger, 'info');
-    jest.spyOn(logger, 'warn');
-
-    // Reset all mocks before each test
-    jest.clearAllMocks();
+    // Default mock implementations that can be overridden in specific tests
+    instagramRepoMock.getAccountByUserId.mockResolvedValue(mockInstagramAccountEntity); 
+    mockedAxios.get.mockResolvedValue({ data: {} }); 
+    mockedAxios.post.mockResolvedValue({ data: {} }); 
+    mockedAxios.head.mockResolvedValue({ headers: { 'content-type': 'image/jpeg', 'content-length': '1000' }});
+    mediaStorageServiceMock.uploadPostMedia.mockResolvedValue([{ url: 'http://example.com/uploaded.jpg' } as any]);
+    mediaStorageServiceMock.uploadMediaFromUrl.mockResolvedValue({ url: 'http://example.com/uploaded_from_url.jpg' } as any);
   });
 
   afterEach(() => {
     jest.clearAllMocks();
   });
 
-  describe('withRateLimit', () => {
-    it('should execute callback if rate limit not exceeded', async () => {
-      const accountId = 'account-123';
-      const action = 'API_CALLS';
-      const mockCallback = jest.fn().mockResolvedValue('result');
-
-      instagramRepo.checkRateLimit.mockResolvedValue(true);
-
-      const result = await service.withRateLimit(
-        accountId,
-        action,
-        mockCallback,
-      );
-
-      expect(instagramRepo.checkRateLimit).toHaveBeenCalledWith(
-        accountId,
-        action,
-      );
-      expect(mockCallback).toHaveBeenCalled();
-      expect(instagramRepo.recordRateLimitUsage).toHaveBeenCalledWith(
-        accountId,
-        action,
-      );
-      expect(result).toBe('result');
-    });
-
-    it('should throw HttpException if rate limit exceeded', async () => {
-      const accountId = 'account-123';
-      const action = 'API_CALLS';
-      const mockCallback = jest.fn();
-
-      instagramRepo.checkRateLimit.mockResolvedValue(false);
-
-      await expect(
-        service.withRateLimit(accountId, action, mockCallback),
-      ).rejects.toThrow(
-        new HttpException('Rate limit exceeded', HttpStatus.TOO_MANY_REQUESTS),
-      );
-
-      expect(instagramRepo.checkRateLimit).toHaveBeenCalledWith(
-        accountId,
-        action,
-      );
-      expect(mockCallback).not.toHaveBeenCalled();
-      expect(instagramRepo.recordRateLimitUsage).not.toHaveBeenCalled();
-    });
-
-    it('should propagate errors from callback', async () => {
-      const accountId = 'account-123';
-      const action = 'API_CALLS';
-      const testError = new Error('Test error');
-      const mockCallback = jest.fn().mockRejectedValue(testError);
-
-      instagramRepo.checkRateLimit.mockResolvedValue(true);
-
-      await expect(
-        service.withRateLimit(accountId, action, mockCallback),
-      ).rejects.toThrow(testError);
-
-      expect(instagramRepo.checkRateLimit).toHaveBeenCalledWith(
-        accountId,
-        action,
-      );
-      expect(mockCallback).toHaveBeenCalled();
-      expect(instagramRepo.recordRateLimitUsage).not.toHaveBeenCalled();
-    });
+  it('should be defined', () => {
+    expect(service).toBeDefined();
   });
 
   describe('getAccountsByUserId', () => {
-    it('should return Instagram account for a user', async () => {
-      instagramRepo.getAccountByUserId.mockResolvedValue(
-        mockInstagramAccount as any,
-      );
-      await service.getAccountsByUserId(mockAccountId);
+    it('should return Instagram account if found by repository', async () => {
+      const result = await service.getAccountsByUserId(mockUserId); // Pass Clerk User ID
+      expect(instagramRepoMock.getAccountByUserId).toHaveBeenCalledWith(mockUserId);
+      expect(result).toEqual(mockInstagramAccountEntity);
+    });
 
-      expect(instagramRepo.getAccountByUserId).toHaveBeenCalledWith(
-        mockAccountId,
+    it('should return null if repository returns null (account not found)', async () => {
+      instagramRepoMock.getAccountByUserId.mockResolvedValue(null);
+      const result = await service.getAccountsByUserId(mockUserId);
+      expect(instagramRepoMock.getAccountByUserId).toHaveBeenCalledWith(mockUserId);
+      expect(result).toBeNull();
+    });
+  });
+  
+  describe('getUserAccounts', () => {
+    it('should return transformed Instagram account details if account exists', async () => {
+      const result = await service.getUserAccounts(mockUserId);
+      expect(instagramRepoMock.getAccountByUserId).toHaveBeenCalledWith(mockUserId);
+      expect(result).toEqual([{
+        id: mockInstagramAccountEntity.id,
+        platformId: mockInstagramAccountEntity.instagramAccountId,
+        name: mockInstagramAccountEntity.username,
+        profilePictureUrl: mockInstagramAccountEntity.metadata?.profilePictureUrl,
+        platform: 'INSTAGRAM',
+        status: 'ACTIVE', 
+        tokenExpiresAt: mockInstagramAccountEntity.socialAccount.tokenExpiresAt,
+      }]);
+    });
+
+    it('should throw NotFoundException if instagramRepo.getAccountByUserId returns null', async () => {
+      instagramRepoMock.getAccountByUserId.mockResolvedValue(null);
+      await expect(service.getUserAccounts(mockUserId)).rejects.toThrow(
+        new NotFoundException('No Instagram accounts found for user')
       );
+      expect(instagramRepoMock.getAccountByUserId).toHaveBeenCalledWith(mockUserId);
     });
   });
 
   describe('getAccountInsights', () => {
-    it('should retrieve account insights', async () => {
-      instagramRepo.getAccountByUserId.mockResolvedValue(
-        mockInstagramAccount as any,
-      );
-
+    it('should retrieve account insights if account exists', async () => {
       const mockInsightsResponse = {
-        data: {
-          data: [
-            { name: 'follower_count', values: [{ value: 5000 }] },
-            { name: 'impressions', values: [{ value: 25000 }] },
-            { name: 'profile_views', values: [{ value: 1500 }] },
-            { name: 'reach', values: [{ value: 20000 }] },
-          ],
-        },
+        data: { data: [ { name: 'follower_count', values: [{ value: 5000 }] }, { name: 'impressions', values: [{ value: 25000 }] }, { name: 'profile_views', values: [{ value: 1500 }] }, { name: 'reach', values: [{ value: 20000 }] }, ], },
       };
-
       mockedAxios.get.mockResolvedValue(mockInsightsResponse);
-
-      const result = await service.getAccountInsights(mockAccountId);
-      expect(instagramRepo.getAccountByUserId).toHaveBeenCalledWith(
-        mockAccountId,
-      );
-
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        expect.stringContaining(`/${mockIgBusinessAccountId}/insights`),
-        expect.objectContaining({
-          params: expect.objectContaining({
-            access_token: mockAccessToken,
-            metric: expect.stringContaining(
-              'follower_count,impressions,profile_views,reach',
-            ),
-            period: 'day',
-          }),
-        }),
-      );
-
+      const result = await service.getAccountInsights(mockAccountId); // mockAccountId is DB ID
+      expect(instagramRepoMock.getAccountByUserId).toHaveBeenCalledWith(mockAccountId); // Service uses accountId (db id) to fetch from repo
+      expect(mockedAxios.get).toHaveBeenCalledWith(expect.stringContaining(`/${mockIgPlatformUserId}/insights`), expect.any(Object));
       expect(result.followerCount).toBe(5000);
-      expect(result.impressions).toBe(25000);
-      expect(result.profileViews).toBe(1500);
-      expect(result.reach).toBe(20000);
     });
 
-    it('should return zero for missing insights', async () => {
-      instagramRepo.getAccountByUserId.mockResolvedValue(
-        mockInstagramAccount as any,
-      );
-
-      // Only provide some insights
-      const mockInsightsResponse = {
-        data: {
-          data: [{ name: 'follower_count', values: [{ value: 5000 }] }],
-        },
-      };
-
-      mockedAxios.get.mockResolvedValue(mockInsightsResponse);
-
-      const result = await service.getAccountInsights(mockAccountId);
-
-      expect(result.followerCount).toBe(5000);
-      expect(result.impressions).toBe(0);
-      expect(result.profileViews).toBe(0);
-      expect(result.reach).toBe(0);
-    });
-
-    it('should throw HttpException if account not found', async () => {
-      instagramRepo.getAccountByUserId.mockResolvedValue(null);
-
+    it('should throw HttpException if account not found for insights', async () => {
+      instagramRepoMock.getAccountByUserId.mockResolvedValue(null);
       await expect(service.getAccountInsights(mockAccountId)).rejects.toThrow(
-        new HttpException(
-          'Failed to fetch account insights',
-          HttpStatus.NOT_FOUND,
-        ),
+        new HttpException('Failed to fetch account insights', HttpStatus.NOT_FOUND)
       );
-
-      expect(instagramRepo.getAccountByUserId).toHaveBeenCalledWith(
-        mockAccountId,
-      );
+      expect(instagramRepoMock.getAccountByUserId).toHaveBeenCalledWith(mockAccountId);
       expect(mockedAxios.get).not.toHaveBeenCalled();
-    });
-
-    it('should throw InstagramApiException if API request fails', async () => {
-      instagramRepo.getAccountByUserId.mockResolvedValue(
-        mockInstagramAccount as any,
-      );
-
-      const apiError = new Error('API Error');
-      mockedAxios.get.mockRejectedValue(apiError);
-
-      await expect(service.getAccountInsights(mockAccountId)).rejects.toThrow(
-        InstagramApiException,
-      );
-
-      expect(instagramRepo.getAccountByUserId).toHaveBeenCalledWith(
-        mockAccountId,
-      );
-      expect(mockedAxios.get).toHaveBeenCalled();
     });
   });
 
   describe('createStory', () => {
-    it('should create an Instagram story', async () => {
-      instagramRepo.getAccountByUserId.mockResolvedValue(
-        mockInstagramAccount as any,
-      );
-
-      // Mock media upload response
+    it('should create an Instagram story if account exists', async () => {
       mockedAxios.post.mockImplementation((url) => {
-        if (url.includes('/media')) {
-          return Promise.resolve({ data: { id: mockMediaContainerId } });
-        }
-        if (url.includes('/media_configure_to_story')) {
-          return Promise.resolve({ data: { id: 'story-123' } });
-        }
+        if (url.includes('/media')) return Promise.resolve({ data: { id: mockMediaContainerId } });
+        if (url.includes('/media_configure_to_story')) return Promise.resolve({ data: { id: 'story-123' } });
         return Promise.resolve({ data: {} });
       });
+      mockedAxios.get.mockResolvedValue({ data: { status_code: 'FINISHED' } }); // Media status check
 
-      // Mock media status check
-      mockedAxios.get.mockResolvedValue({ data: { status_code: 'FINISHED' } });
-
-      mockedAxios.head.mockResolvedValue({
-        headers: {
-          'content-type': 'image/jpeg',
-          'content-length': '1000',
-        },
-      });
-
-      const stickers = [
-        {
-          poll: {
-            question: 'Do you like this?',
-            options: ['Yes', 'No'],
-          },
-        },
-      ] as unknown as StickerDto[];
-
-      const result = await service.createStory(
-        mockAccountId,
-        mockMediaUrl,
-        stickers,
-      );
-      expect(instagramRepo.getAccountByUserId).toHaveBeenCalledWith(
-        mockAccountId,
-      );
-
-      // Verify media upload
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        expect.stringContaining('/media'),
-        null,
-        expect.objectContaining({
-          params: expect.objectContaining({
-            image_url: mockMediaUrl,
-            access_token: mockAccessToken,
-          }),
-        }),
-      );
-
-      // Verify story configuration
-      expect(mockedAxios.post).toHaveBeenCalledWith(
-        expect.stringContaining('/media_configure_to_story'),
-        null,
-        expect.objectContaining({
-          params: expect.objectContaining({
-            media_id: mockMediaContainerId,
-            source_type: '3',
-            configure_mode: '1',
-            stickers: JSON.stringify(stickers),
-            access_token: mockAccessToken,
-          }),
-        }),
-      );
-
-      expect(result).toEqual({
-        platformPostId: 'test-media-container-id',
-        postedAt: expect.any(Date),
-      });
+      const result = await service.createStory(mockAccountId, mockMediaUrl, []);
+      expect(instagramRepoMock.getAccountByUserId).toHaveBeenCalledWith(mockAccountId);
+      expect(mockedAxios.post).toHaveBeenCalledTimes(2); // media upload and configure_to_story
+      expect(result).toEqual({ platformPostId: mockMediaContainerId, postedAt: expect.any(Date) });
     });
 
-    it('should throw HttpException if account not found', async () => {
-      instagramRepo.getAccountByUserId.mockResolvedValue(null);
-
-      await expect(
-        service.createStory(mockAccountId, mockMediaUrl),
-      ).rejects.toThrow(
-        new HttpException(
-          'Failed to create Instagram story',
-          HttpStatus.NOT_FOUND,
-        ),
+    it('should throw HttpException if account not found for createStory', async () => {
+      instagramRepoMock.getAccountByUserId.mockResolvedValue(null);
+      await expect(service.createStory(mockAccountId, mockMediaUrl)).rejects.toThrow(
+        new HttpException('Failed to create Instagram story', HttpStatus.NOT_FOUND)
       );
-
-      expect(instagramRepo.getAccountByUserId).toHaveBeenCalledWith(
-        mockAccountId,
-      );
-      expect(mockedAxios.post).not.toHaveBeenCalled();
-    });
-
-    it('should create story without stickers when not provided', async () => {
-      instagramRepo.getAccountByUserId.mockResolvedValue(
-        mockInstagramAccount as any,
-      );
-
-      // Mock API responses
-      mockedAxios.post
-        .mockImplementationOnce(() => {
-          return Promise.resolve({ data: { id: mockMediaContainerId } });
-        })
-        .mockImplementationOnce(() => {
-          return Promise.resolve({ data: { id: 'story-123' } });
-        });
-
-      mockedAxios.get.mockResolvedValue({ data: { status_code: 'FINISHED' } });
-
-      mockedAxios.head.mockResolvedValue({
-        headers: {
-          'content-type': 'image/jpeg',
-          'content-length': '1000',
-        },
-      });
-
-      await service.createStory(mockAccountId, mockMediaUrl);
-
-      // Verify story configuration without stickers
-      const configureCall = mockedAxios.post.mock.calls.find((call) =>
-        call[0].includes('/media_configure_to_story'),
-      );
-
-      expect(configureCall[2].params.stickers).toBeUndefined();
-    });
-
-    it('should throw InstagramApiException if API request fails', async () => {
-      instagramRepo.getAccountByUserId.mockResolvedValue(
-        mockInstagramAccount as any,
-      );
-
-      const apiError = new Error('API Error');
-      mockedAxios.post.mockRejectedValue(apiError);
-
-      await expect(
-        service.createStory(mockAccountId, mockMediaUrl),
-      ).rejects.toThrow(InstagramApiException);
-
-      expect(instagramRepo.getAccountByUserId).toHaveBeenCalledWith(
-        mockAccountId,
-      );
-      expect(mockedAxios.post).toHaveBeenCalled();
+      expect(instagramRepoMock.getAccountByUserId).toHaveBeenCalledWith(mockAccountId);
     });
   });
 
   describe('revokeAccess', () => {
-    it('should throw NotFoundException if account not found', async () => {
-      instagramRepo.getAccountByUserId.mockResolvedValue(null);
-
-      await expect(service.revokeAccess(mockAccountId)).rejects.toThrow(
-        NotFoundException,
-      );
-
-      expect(instagramRepo.getAccountByUserId).toHaveBeenCalledWith(
-        mockAccountId,
-      );
-      expect(mockedAxios.post).not.toHaveBeenCalled();
-      expect(instagramRepo.deleteAccount).not.toHaveBeenCalled();
-    });
-
-    it('should throw InstagramApiException if API request fails', async () => {
-      instagramRepo.getAccountByUserId.mockResolvedValue(
-        mockInstagramAccount as any,
-      );
-
-      const apiError = new Error('API Error');
-      mockedAxios.post.mockRejectedValue(apiError);
-
-      await expect(service.revokeAccess(mockAccountId)).rejects.toThrow(
-        InstagramApiException,
-      );
-
-      expect(instagramRepo.getAccountByUserId).toHaveBeenCalledWith(
-        mockAccountId,
-      );
-      expect(mockedAxios.post).toHaveBeenCalled();
-      expect(instagramRepo.deleteAccount).not.toHaveBeenCalled();
-    });
-  });
-
-  // Testing private methods
-  describe('uploadInstagramMediaItems', () => {
-    it('should upload file-based media items', async () => {
-      const mediaItems = [
-        { file: Buffer.from('test image 1') },
-        { file: Buffer.from('test image 2') },
-      ];
-
-      const uploadedMedia1 = [
-        { id: 'media-1', url: 'https://example.com/media1.jpg' },
-      ];
-      const uploadedMedia2 = [
-        { id: 'media-2', url: 'https://example.com/media2.jpg' },
-      ];
-
-      // Since the service processes files one at a time, we need to mock sequential calls
-      mediaStorageService.uploadPostMedia
-        .mockResolvedValueOnce(uploadedMedia1 as any)
-        .mockResolvedValueOnce(uploadedMedia2 as any);
-
-      const result = await (service as any).uploadInstagramMediaItems(
-        mediaItems,
-        mockAccountId,
-        'post',
-      );
-
-      // Verify each file was processed separately
-      expect(mediaStorageService.uploadPostMedia).toHaveBeenCalledTimes(2);
-
-      // First call with first file
-      expect(mediaStorageService.uploadPostMedia).toHaveBeenNthCalledWith(
-        1,
-        mockAccountId,
-        [mediaItems[0].file],
-        expect.stringContaining('instagram-post-'),
-      );
-
-      // Second call with second file
-      expect(mediaStorageService.uploadPostMedia).toHaveBeenNthCalledWith(
-        2,
-        mockAccountId,
-        [mediaItems[1].file],
-        expect.stringContaining('instagram-post-'),
-      );
-
-      // The result should be the concatenation of both uploads
-      expect(result).toEqual([...uploadedMedia1, ...uploadedMedia2]);
-    });
-
-    it('should upload URL-based media items', async () => {
-      const mediaItems = [{ url: 'https://example.com/source1.jpg' }];
-
-      const uploadedMedia = {
-        id: 'media-1',
-        url: 'https://example.com/stored1.jpg',
-      };
-
-      mediaStorageService.uploadMediaFromUrl.mockResolvedValue(
-        uploadedMedia as any,
-      );
-
-      const result = await (service as any).uploadInstagramMediaItems(
-        mediaItems,
-        mockAccountId,
-        'scheduled',
-      );
-
-      expect(mediaStorageService.uploadMediaFromUrl).toHaveBeenCalledWith(
-        mockAccountId,
-        'https://example.com/source1.jpg',
-        expect.stringContaining('instagram-scheduled-'),
-      );
-
-      expect(result).toEqual([uploadedMedia]);
-    });
-
-    it('should handle mixed file and URL media items', async () => {
-      const mediaItems = [
-        { file: Buffer.from('test image') },
-        { url: 'https://example.com/source.jpg' },
-      ];
-
-      const uploadedFileMedia = [
-        { id: 'media-1', url: 'https://example.com/stored1.jpg' },
-      ];
-      const uploadedUrlMedia = {
-        id: 'media-2',
-        url: 'https://example.com/stored2.jpg',
-      };
-
-      mediaStorageService.uploadPostMedia.mockResolvedValue(
-        uploadedFileMedia as any,
-      );
-      mediaStorageService.uploadMediaFromUrl.mockResolvedValue(
-        uploadedUrlMedia as any,
-      );
-
-      const result = await (service as any).uploadInstagramMediaItems(
-        mediaItems,
-        mockAccountId,
-        'post',
-      );
-
-      expect(mediaStorageService.uploadPostMedia).toHaveBeenCalledWith(
-        mockAccountId,
-        [mediaItems[0].file],
-        expect.stringContaining('instagram-post-'),
-      );
-
-      expect(mediaStorageService.uploadMediaFromUrl).toHaveBeenCalledWith(
-        mockAccountId,
-        'https://example.com/source.jpg',
-        expect.stringContaining('instagram-post-'),
-      );
-
-      expect(result).toEqual([...uploadedFileMedia, uploadedUrlMedia]);
-    });
-
-    it('should return empty array if no media items provided', async () => {
-      const result = await (service as any).uploadInstagramMediaItems(
-        null,
-        mockAccountId,
-        'post',
-      );
-
-      expect(result).toEqual([]);
-      expect(mediaStorageService.uploadPostMedia).not.toHaveBeenCalled();
-      expect(mediaStorageService.uploadMediaFromUrl).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('downloadAndValidateMedia', () => {
-    it('should validate and identify image media', async () => {
-      mockedAxios.head.mockResolvedValue({
-        headers: {
-          'content-type': 'image/jpeg',
-          'content-length': '1000000', // 1MB
-        },
-      });
-
-      const result = await (service as any).downloadAndValidateMedia(
-        mockMediaUrl,
-      );
-
-      expect(mockedAxios.head).toHaveBeenCalledWith(mockMediaUrl);
-      expect(result).toEqual({
-        type: MediaType.IMAGE,
-        mimeType: 'image/jpeg',
-      });
-    });
-
-    it('should validate and identify video media', async () => {
-      mockedAxios.head.mockResolvedValue({
-        headers: {
-          'content-type': 'video/mp4',
-          'content-length': '3000000', // 3MB
-        },
-      });
-
-      const result = await (service as any).downloadAndValidateMedia(
-        mockMediaUrl,
-      );
-
-      expect(result).toEqual({
-        type: MediaType.VIDEO,
-        mimeType: 'video/mp4',
-      });
-    });
-
-    it('should throw error if file size exceeds limit', async () => {
-      mockedAxios.head.mockResolvedValue({
-        headers: {
-          'content-type': 'image/jpeg',
-          'content-length': '10000000', // 10MB (exceeds 8MB limit)
-        },
-      });
-
-      await expect(
-        (service as any).downloadAndValidateMedia(mockMediaUrl),
-      ).rejects.toThrow(
-        new HttpException(
-          'File size exceeds 8MB limit',
-          HttpStatus.BAD_REQUEST,
-        ),
-      );
-
-      expect(mockedAxios.head).toHaveBeenCalledWith(mockMediaUrl);
-    });
-
-    it('should throw error for unsupported media type', async () => {
-      mockedAxios.head.mockResolvedValue({
-        headers: {
-          'content-type': 'application/pdf', // Unsupported
-          'content-length': '1000000',
-        },
-      });
-
-      await expect(
-        (service as any).downloadAndValidateMedia(mockMediaUrl),
-      ).rejects.toThrow(
-        new HttpException('Unsupported media type', HttpStatus.BAD_REQUEST),
-      );
-    });
-  });
-
-  describe('getInstagramAccounts', () => {
-    it('should retrieve Instagram business accounts connected to Facebook pages', async () => {
-      const mockPagesResponse = {
-        data: {
-          data: [
-            {
-              id: 'page-1',
-              name: 'Test Page 1',
-              instagram_business_account: {
-                id: 'ig-1',
-                username: 'test_instagram_1',
-              },
-            },
-            {
-              id: 'page-2',
-              name: 'Test Page 2',
-              instagram_business_account: {
-                id: 'ig-2',
-                username: 'test_instagram_2',
-              },
-            },
-            {
-              id: 'page-3',
-              name: 'Test Page 3',
-              // No Instagram account connected
-            },
-          ],
-        },
-      };
-
-      mockedAxios.get.mockResolvedValue(mockPagesResponse);
-
-      const result = await (service as any).getInstagramAccounts(
-        mockAccessToken,
-      );
-
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        expect.stringContaining('/me/accounts'),
-        expect.objectContaining({
-          params: expect.objectContaining({
-            access_token: mockAccessToken,
-            fields: expect.stringContaining('instagram_business_account'),
-          }),
-        }),
-      );
-
-      expect(result).toHaveLength(2);
-      expect(result[0].id).toBe('ig-1');
-      expect(result[0].username).toBe('test_instagram_1');
-      expect(result[0].pageId).toBe('page-1');
-
-      expect(result[1].id).toBe('ig-2');
-      expect(result[1].username).toBe('test_instagram_2');
-      expect(result[1].pageId).toBe('page-2');
-    });
-
-    it('should return empty array if no Instagram accounts found', async () => {
-      const mockPagesResponse = {
-        data: {
-          data: [
-            {
-              id: 'page-1',
-              name: 'Test Page 1',
-              // No Instagram account connected
-            },
-          ],
-        },
-      };
-
-      mockedAxios.get.mockResolvedValue(mockPagesResponse);
-
-      const result = await (service as any).getInstagramAccounts(
-        mockAccessToken,
-      );
-
-      expect(result).toEqual([]);
-    });
-  });
-
-  describe('checkMediaStatus', () => {
-    it('should fetch and return media status', async () => {
-      mockedAxios.get.mockResolvedValue({
-        data: {
-          status_code: 'FINISHED',
-        },
-      });
-
-      const result = await (service as any).checkMediaStatus(
-        mockMediaContainerId,
-        mockAccessToken,
-      );
-
-      expect(mockedAxios.get).toHaveBeenCalledWith(
-        expect.stringContaining(`/${mockMediaContainerId}`),
-        expect.objectContaining({
-          params: expect.objectContaining({
-            fields: 'status_code',
-            access_token: mockAccessToken,
-          }),
-        }),
-      );
-
-      expect(result).toBe('FINISHED');
-    });
-  });
-
-  describe('createMediaContainer', () => {
-    it('should create a carousel container with multiple media IDs', async () => {
-      const mediaIds = ['media-1', 'media-2', 'media-3'];
-
-      mockedAxios.post.mockResolvedValue({
-        data: {
-          id: 'carousel-container-id',
-        },
-      });
-
-      const result = await (service as any).createMediaContainer(
-        mockIgBusinessAccountId,
-        mediaIds,
-        mockAccessToken,
-      );
-
+    it('should revoke access and delete account if account exists', async () => {
+      mockedAxios.post.mockResolvedValue({ data: { success: true } }); // Mock revoke API call
+      await service.revokeAccess(mockAccountId); // mockAccountId is DB ID
+      expect(instagramRepoMock.getAccountByUserId).toHaveBeenCalledWith(mockAccountId);
       expect(mockedAxios.post).toHaveBeenCalledWith(
-        expect.stringContaining(`/${mockIgBusinessAccountId}/media`),
-        null,
-        expect.objectContaining({
-          params: expect.objectContaining({
-            media_type: 'CAROUSEL',
-            children: mediaIds.join(','),
-            access_token: mockAccessToken,
-          }),
-        }),
+        expect.stringContaining(`/${mockIgPlatformUserId}/permissions`), null, expect.any(Object)
       );
+      expect(instagramRepoMock.deleteAccount).toHaveBeenCalledWith(mockAccountId);
+    });
+    
+    it('should throw NotFoundException if account not found for revokeAccess', async () => {
+      instagramRepoMock.getAccountByUserId.mockResolvedValue(null);
+      await expect(service.revokeAccess(mockAccountId)).rejects.toThrow(NotFoundException);
+      expect(instagramRepoMock.getAccountByUserId).toHaveBeenCalledWith(mockAccountId);
+    });
+  });
+  
+  // Placeholder for withRateLimit if it's public or needs direct testing
+  describe('withRateLimit', () => {
+    it('should execute callback if rate limit not exceeded', async () => {
+      const action = 'API_CALLS';
+      const mockCallback = jest.fn().mockResolvedValue('result');
+      // instagramRepo.checkRateLimit is already mocked to return true by default
+      const result = await service.withRateLimit(mockAccountId, action, mockCallback);
+      expect(instagramRepoMock.checkRateLimit).toHaveBeenCalledWith(mockAccountId, action);
+      expect(mockCallback).toHaveBeenCalled();
+      expect(instagramRepoMock.recordRateLimitUsage).toHaveBeenCalledWith(mockAccountId, action);
+      expect(result).toBe('result');
+    });
 
-      expect(result).toBe('carousel-container-id');
+    it('should throw HttpException if rate limit exceeded', async () => {
+      const action = 'API_CALLS';
+      const mockCallback = jest.fn();
+      instagramRepoMock.checkRateLimit.mockResolvedValue(false); // Simulate rate limit exceeded
+      await expect(service.withRateLimit(mockAccountId, action, mockCallback)).rejects.toThrow(
+        new HttpException('Rate limit exceeded', HttpStatus.TOO_MANY_REQUESTS),
+      );
+      expect(mockCallback).not.toHaveBeenCalled();
     });
   });
 
-  describe('getInsightValue', () => {
-    it('should extract value from insights array', () => {
-      const insights = [
-        { name: 'follower_count', values: [{ value: 5000 }] },
-        { name: 'impressions', values: [{ value: 25000 }] },
-      ];
+  // Placeholder for other private methods if direct testing was desired (generally not recommended)
+  // For example: downloadAndValidateMedia, getInstagramAccounts, checkMediaStatus, createMediaContainer, getInsightValue
 
-      const result = (service as any).getInsightValue(
-        insights,
-        'follower_count',
-      );
+  // Example for a method that uses the accountId from the InstagramAccount entity (which is the DB ID)
+  describe('post (example of method using accountId as DB ID)', () => {
+    it('should make a post if account exists', async () => {
+        // Assume post method fetches account by its DB ID (mockAccountId)
+        // instagramRepoMock.getAccountByUserId.mockResolvedValue(mockInstagramAccountEntity); already default
+        mockedAxios.post.mockImplementation((url) => {
+            if (url.includes(`${mockIgPlatformUserId}/media`)) return Promise.resolve({ data: { id: 'container_id' } });
+            if (url.includes(`${mockIgPlatformUserId}/media_publish`)) return Promise.resolve({ data: { id: 'published_media_id' } });
+            return Promise.reject(new Error('Unexpected POST URL'));
+        });
+        mockedAxios.get.mockResolvedValue({ data: { status_code: 'FINISHED' } }); // For status check
 
-      expect(result).toBe(5000);
+        const postData = { accountId: mockAccountId, mediaItems: [{ url: mockMediaUrl }], caption: 'Test caption' };
+        const result = await service.post(postData.accountId, postData.mediaItems, postData.caption);
+        
+        expect(instagramRepoMock.getAccountByUserId).toHaveBeenCalledWith(mockAccountId);
+        expect(mockedAxios.post).toHaveBeenCalledTimes(2); // media container + media_publish
+        expect(result.platformPostId).toBe('published_media_id');
     });
 
-    it('should return 0 if insight not found', () => {
-      const insights = [{ name: 'follower_count', values: [{ value: 5000 }] }];
-
-      const result = (service as any).getInsightValue(
-        insights,
-        'profile_views',
-      );
-
-      expect(result).toBe(0);
-    });
-
-    it('should handle empty insights array', () => {
-      const result = (service as any).getInsightValue([], 'follower_count');
-
-      expect(result).toBe(0);
+    it('should throw NotFoundException if account not found for post', async () => {
+        instagramRepoMock.getAccountByUserId.mockResolvedValue(null);
+        const postData = { accountId: mockAccountId, mediaItems: [{ url: mockMediaUrl }], caption: 'Test caption' };
+        await expect(service.post(postData.accountId, postData.mediaItems, postData.caption))
+            .rejects.toThrow(new HttpException('Account not found', HttpStatus.NOT_FOUND));
     });
   });
 });

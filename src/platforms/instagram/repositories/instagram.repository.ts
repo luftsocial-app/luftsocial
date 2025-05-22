@@ -12,6 +12,7 @@ import { InstagramRateLimit } from '../../entities/instagram-entities/instagram-
 import { InstagramAccount } from '../../entities/instagram-entities/instagram-account.entity';
 import { SocialAccount } from '../../../platforms/entities/notifications/entity/social-account.entity';
 import { TenantService } from '../../../user-management/tenant.service';
+import { PinoLogger } from 'nestjs-pino'; // Added PinoLogger import
 
 @Injectable()
 export class InstagramRepository {
@@ -31,21 +32,84 @@ export class InstagramRepository {
     @InjectEntityManager()
     private readonly entityManager: EntityManager,
     private readonly tenantService: TenantService,
-  ) {}
+    private readonly logger: PinoLogger, // Added PinoLogger injection
+  ) {
+    this.logger.setContext(InstagramRepository.name); // Set context for logger
+  }
+
+  async createAccount(data: any): Promise<InstagramAccount> {
+    return this.entityManager.transaction(async (transactionManager) => {
+      // 1. Create SocialAccount
+      const socialAccountData = data.socialAccount;
+      const socialAccountEntity = this.socialAccountRepo.create({
+        ...socialAccountData, // Spreads accessToken, refreshToken, tokenExpiresAt, scope, etc.
+        userId: socialAccountData.userId, // Clerk User ID
+        platformUserId: socialAccountData.platformUserId, // Instagram's user ID for the platform
+        platform: SocialPlatform.INSTAGRAM, // Explicitly set platform
+        tenantId: data.tenantId,
+        // expiresAt is also a field in SocialAccount, platformAuthService maps it to tokenExpiresAt
+        // Ensure tokenExpiresAt is correctly used from socialAccountData if it's the intended field.
+        // The provided data structure has both socialAccount.expiresAt and socialAccount.tokenExpiresAt.
+        // Assuming socialAccount.tokenExpiresAt is the correct one for SocialAccount.tokenExpiresAt
+        tokenExpiresAt: socialAccountData.tokenExpiresAt || socialAccountData.expiresAt,
+      });
+      const savedSocialAccount = await transactionManager.save(SocialAccount, socialAccountEntity);
+
+      // 2. Create InstagramAccount
+      const instagramAccountEntity = this.accountRepo.create({
+        tenantId: data.tenantId,
+        socialAccount: savedSocialAccount, // Link to the saved SocialAccount
+        instagramAccountId: data.instagramId, // This is platformUserId from Instagram (userInfo.id)
+        username: data.username,
+        name: data.name, // Assuming 'name' might come from userInfo for Instagram
+        profilePictureUrl: data.profilePictureUrl, // Assuming this might come from userInfo
+        permissions: data.permissions, // If InstagramAccount stores permissions
+        // any other Instagram-specific fields from data
+      });
+      const savedInstagramAccount = await transactionManager.save(InstagramAccount, instagramAccountEntity);
+      
+      // The returned account from repository.createAccount in PlatformAuthService is not directly used
+      // but returning the main platform account is good practice.
+      return savedInstagramAccount;
+    });
+  }
 
   async createPost(data: Partial<InstagramPost>): Promise<InstagramPost> {
     const post = this.mediaRepo.create(data);
     return this.mediaRepo.save(post);
   }
 
-  async getAccountByUserId(userId: string): Promise<InstagramAccount> {
-    return this.accountRepo.findOne({
+  async getAccountByUserId(userId: string): Promise<InstagramAccount | null> { // userId is Clerk User ID
+    const tenantId = this.tenantService.getTenantId(); // getTenantId is synchronous
+    const socialAccount = await this.socialAccountRepo.findOne({
       where: {
-        instagramAccountId: userId,
-        tenantId: this.tenantService.getTenantId(),
+        userId: userId, // Clerk User ID
+        platform: SocialPlatform.INSTAGRAM,
+        tenantId: tenantId,
       },
-      relations: ['socialAccount'],
     });
+  
+    if (!socialAccount) {
+      this.logger.warn(`No Instagram social account found for Clerk User ID: ${userId} in tenant: ${tenantId}`);
+      return null;
+    }
+  
+    // Now find the InstagramAccount associated with this SocialAccount
+    const instagramAccount = await this.accountRepo.findOne({
+      where: {
+        socialAccount: { id: socialAccount.id }, // Query by the relation's ID
+        tenantId: tenantId, // Ensures tenant consistency, though socialAccount.id should be unique
+      },
+      relations: ['socialAccount'], // Ensure the relation is loaded
+    });
+  
+    if (!instagramAccount) {
+      // This case should ideally not happen if data is consistent
+      this.logger.error(`Data inconsistency: Instagram SocialAccount ${socialAccount.id} found but no corresponding InstagramAccount for Clerk User ID: ${userId} in tenant: ${tenantId}`);
+      return null;
+    }
+    
+    return instagramAccount;
   }
 
   async getMediaInsights(
