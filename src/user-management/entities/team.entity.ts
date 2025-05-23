@@ -6,8 +6,11 @@ import {
   JoinTable,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { User } from './user.entity';
+import { Tenant } from './tenant.entity';
 
 @Entity('teams')
 export class Team {
@@ -28,8 +31,9 @@ export class Team {
   })
   users: User[];
 
-  @Column({ name: 'tenant_id' })
-  tenantId: string;
+  @ManyToOne(() => Tenant, (tenant) => tenant.teams)
+  @JoinColumn({ name: 'tenant_id' })
+  tenant: Tenant;
 
   @CreateDateColumn()
   createdAt: Date;
