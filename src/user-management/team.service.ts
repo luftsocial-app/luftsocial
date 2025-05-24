@@ -1,6 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Inject } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { CLERK_CLIENT } from '../clerk/clerk.provider'; // Adjusted path
+import { ClerkClient } from '@clerk/backend';
 import { Team } from './entities/team.entity';
 import { User } from './entities/user.entity';
 import { Tenant } from './entities/tenant.entity';
@@ -16,8 +18,7 @@ export class TeamService {
     private readonly teamRepository: Repository<Team>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    // We might not need TenantRepository directly if tenantId is always passed and validated upstream
-    // or if team entity already has tenant relation for queries.
+    @Inject(CLERK_CLIENT) private readonly clerkClient: ClerkClient,
   ) {}
 
   async createTeam(createTeamDto: CreateTeamDto, tenantId: string, createdByUserId: string): Promise<Team> {
@@ -82,23 +83,45 @@ export class TeamService {
   async addMember(teamId: string, userIdToAdd: string, tenantId: string): Promise<Team> {
     const team = await this.findById(teamId, tenantId); // Ensures team exists and belongs to tenant
     
-    const user = await this.userRepository.findOne({ where: { id: userIdToAdd } });
-    if (!user) {
-      throw new NotFoundException(`User with ID ${userIdToAdd} not found.`);
+    let clerkUser;
+    try {
+      clerkUser = await this.clerkClient.users.getUser(userIdToAdd);
+    } catch (error) {
+      // Clerk client throws an error if user not found, which is sufficient
+      // Log the error for debugging if necessary
+      // console.error("Clerk API error fetching user:", error);
+      throw new NotFoundException(`User with ID ${userIdToAdd} not found via Clerk.`);
     }
 
-    // Optional: Check if user belongs to the same tenant if users are globally unique but should be tenant-scoped for teams
-    // This depends on how Users and Tenants are structured. If User.activeTenantId is reliable:
-    // if (user.activeTenantId !== tenantId) { // Assuming User entity has activeTenantId
-    //   throw new ForbiddenException(`User does not belong to the current tenant.`);
-    // }
+    // Check if the Clerk user is part of the tenant associated with the team
+    const isMemberOfTenant = clerkUser.organizationMemberships?.some(
+      (membership) => membership.organization.id === tenantId,
+    );
 
-    const isAlreadyMember = team.users.some(member => member.id === userIdToAdd);
+    if (!isMemberOfTenant) {
+      throw new ForbiddenException(
+        `User ${userIdToAdd} is not a member of the organization (tenant: ${tenantId}) associated with this team.`,
+      );
+    }
+
+    // Important: The Team entity's 'users' relation expects instances of your local 'User' entity.
+    // You still need to fetch or reference the local User entity if you're saving it directly to the 'team.users' array.
+    // Option A: Fetch the local user by clerkId (if `userIdToAdd` is clerkId)
+    const localUser = await this.userRepository.findOne({ where: { clerkId: userIdToAdd } });
+    if (!localUser) {
+      // This implies a data inconsistency if a user exists in Clerk but not locally,
+      // which might need a separate sync mechanism or error handling.
+      // For now, we'll assume if they are in Clerk and the target org, they should have a local record
+      // or the system should be designed to handle on-the-fly creation/linking.
+      throw new NotFoundException(`Local user record for Clerk ID ${userIdToAdd} not found. Data may be out of sync.`);
+    }
+    
+    const isAlreadyMember = team.users.some(member => member.id === localUser.id); // Use localUser.id
     if (isAlreadyMember) {
-      throw new BadRequestException(`User ${userIdToAdd} is already a member of team ${teamId}.`);
+      throw new BadRequestException(`User ${localUser.username || localUser.id} is already a member of team ${teamId}.`);
     }
 
-    team.users.push(user);
+    team.users.push(localUser);
     return this.teamRepository.save(team);
   }
 

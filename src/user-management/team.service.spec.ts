@@ -1,23 +1,37 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { NotFoundException, BadRequestException } from '@nestjs/common'; // Removed ForbiddenException as it's not directly thrown by the service
+import { NotFoundException, BadRequestException, ForbiddenException } from '@nestjs/common'; // Added ForbiddenException
 import { TeamService } from './team.service';
 import { Team } from './entities/team.entity';
+import { CLERK_CLIENT } from '../clerk/clerk.provider'; // Added
+import { ClerkClient } from '@clerk/backend'; // Added
 import { User } from './entities/user.entity';
 import { Tenant } from './entities/tenant.entity';
 import { CreateTeamDto } from './dtos/team/create-team.dto';
 import { UpdateTeamDto } from './dtos/team/update-team.dto';
 
 // Mock User and Team data
-const mockCreatorUserId = 'user-uuid-creator';
-const mockMemberUserId = 'user-uuid-member';
-const mockOtherUserId = 'user-uuid-other';
-const mockTenantId = 'tenant-uuid-456';
+const mockCreatorUserId = 'user-uuid-creator'; // This is likely a local DB user ID
+const mockOldMemberLocalDbId = 'local-db-id-old-member'; // Example local DB ID for an existing user
+const mockOtherLocalDbId = 'local-db-id-other-member'; // Example local DB ID for another user
+
+const mockUserIdToAddViaClerk = 'clerk-user-id-to-add'; // This is a Clerk User ID
+const mockLocalUserCorrespToClerkId = { 
+  id: 'local-db-id-for-clerk-user', // Local DB primary key
+  clerkId: mockUserIdToAddViaClerk, 
+  username: 'addedUserViaClerk', 
+  teams: [], 
+  activeTenantId: mockTenantId 
+} as User;
+
+const mockTenantId = 'tenant-uuid-456'; // Clerk Organization ID
 const mockTeamId = 'team-uuid-789';
 
-const mockUser = { id: mockMemberUserId, username: 'testuser', teams: [], activeTenantId: mockTenantId } as User;
-const mockOtherUser = { id: mockOtherUserId, username: 'otheruser', teams: [], activeTenantId: mockTenantId } as User;
+
+// Kept for other tests like removeMember, assuming they use local DB IDs
+const mockUser = { id: mockOldMemberLocalDbId, clerkId: 'clerk-id-for-old-member', username: 'testuser', teams: [], activeTenantId: mockTenantId } as User;
+const mockOtherUser = { id: mockOtherLocalDbId, clerkId: 'clerk-id-for-other-member', username: 'otheruser', teams: [], activeTenantId: mockTenantId } as User;
 
 // Base mock team to be spread and customized in tests
 const baseMockTeam = {
@@ -37,6 +51,7 @@ describe('TeamService', () => {
   let service: TeamService;
   let teamRepository: Repository<Team>;
   let userRepository: Repository<User>;
+  // let clerkClient: ClerkClient; // Not strictly needed to type the mock instance itself
 
   // Deep copy of baseMockTeam for consistent fresh state in tests
   let currentMockTeam: Team;
@@ -47,11 +62,17 @@ describe('TeamService', () => {
     find: jest.fn(),
     findOne: jest.fn(),
     remove: jest.fn(),
-    update: jest.fn(), // Added for updateTeam scenario
+    update: jest.fn(),
   };
 
   const mockUserRepository = {
     findOne: jest.fn(),
+  };
+
+  const mockClerkClient = { // Added
+    users: {
+      getUser: jest.fn(),
+    },
   };
 
   beforeEach(async () => {
@@ -66,13 +87,18 @@ describe('TeamService', () => {
           provide: getRepositoryToken(User),
           useValue: mockUserRepository,
         },
+        { // Added ClerkClient mock provider
+          provide: CLERK_CLIENT,
+          useValue: mockClerkClient,
+        },
       ],
     }).compile();
 
     service = module.get<TeamService>(TeamService);
     teamRepository = module.get<Repository<Team>>(getRepositoryToken(Team));
     userRepository = module.get<Repository<User>>(getRepositoryToken(User));
-    
+    // clerkClient = module.get<ClerkClient>(CLERK_CLIENT); // Can be used to access the mock if needed
+
     // Reset mocks before each test
     jest.clearAllMocks();
 
@@ -200,58 +226,93 @@ describe('TeamService', () => {
   });
 
   describe('addMember', () => {
+    // mockUserIdToAddViaClerk, mockLocalUserCorrespToClerkId, mockTenantId, mockTeamId are defined above
+    const mockClerkUserFound = {
+      id: mockUserIdToAddViaClerk,
+      organizationMemberships: [{ organization: { id: mockTenantId }, role: 'member' }],
+    };
+
     beforeEach(() => {
-        // Ensure the currentMockTeam starts with no users for addMember tests
-        currentMockTeam.users = []; 
-        mockTeamRepository.findOne.mockResolvedValue(currentMockTeam); // Common setup for findById
-        mockUserRepository.findOne.mockResolvedValue(mockUser); // Common setup for finding user
-        mockTeamRepository.save.mockImplementation(team => Promise.resolve(team)); // Mock save to return the modified team
+      // Reset team state for each addMember test
+      currentMockTeam.users = []; 
+      
+      // Common mocks that might be overridden in specific tests
+      mockTeamRepository.findOne.mockResolvedValue(currentMockTeam);
+      mockClerkClient.users.getUser.mockResolvedValue(mockClerkUserFound);
+      mockUserRepository.findOne.mockResolvedValue(mockLocalUserCorrespToClerkId);
+      // mockTeamRepository.save.mockImplementation(team => Promise.resolve(team)); // More flexible save mock
+      mockTeamRepository.save.mockImplementation(async (team: Team) => team);
+
+
     });
     
     it('should successfully add a member to a team', async () => {
-      const result = await service.addMember(mockTeamId, mockMemberUserId, mockTenantId);
+      const result = await service.addMember(mockTeamId, mockUserIdToAddViaClerk, mockTenantId);
       
       expect(mockTeamRepository.findOne).toHaveBeenCalledWith({
         where: { id: mockTeamId, tenant: { id: mockTenantId } },
         relations: ['users'],
       });
-      expect(mockUserRepository.findOne).toHaveBeenCalledWith({ where: { id: mockMemberUserId } });
+      expect(mockClerkClient.users.getUser).toHaveBeenCalledWith(mockUserIdToAddViaClerk);
+      expect(mockUserRepository.findOne).toHaveBeenCalledWith({ where: { clerkId: mockUserIdToAddViaClerk } });
       expect(mockTeamRepository.save).toHaveBeenCalledWith(expect.objectContaining({
-        users: expect.arrayContaining([mockUser]),
+        users: expect.arrayContaining([mockLocalUserCorrespToClerkId]),
       }));
-      expect(result.users).toContainEqual(mockUser);
+      expect(result.users).toContainEqual(mockLocalUserCorrespToClerkId);
     });
 
     it('should throw NotFoundException if team not found', async () => {
-      mockTeamRepository.findOne.mockResolvedValue(null);
-      await expect(service.addMember('non-existent-team-id', mockMemberUserId, mockTenantId))
-        .rejects.toThrow(NotFoundException);
+      mockTeamRepository.findOne.mockResolvedValue(null); // Team not found
+      await expect(service.addMember('non-existent-team-id', mockUserIdToAddViaClerk, mockTenantId))
+        .rejects.toThrow(new NotFoundException(`Team with ID non-existent-team-id not found in this tenant.`));
     });
 
-    it('should throw NotFoundException if user to add not found', async () => {
-      mockUserRepository.findOne.mockResolvedValue(null);
-      await expect(service.addMember(mockTeamId, 'non-existent-user-id', mockTenantId))
-        .rejects.toThrow(NotFoundException);
+    it('should throw NotFoundException if user not found in Clerk', async () => {
+      mockClerkClient.users.getUser.mockRejectedValue(new Error('Clerk: User not found'));
+      await expect(service.addMember(mockTeamId, mockUserIdToAddViaClerk, mockTenantId))
+        .rejects.toThrow(new NotFoundException(`User with ID ${mockUserIdToAddViaClerk} not found via Clerk.`));
+    });
+
+    it('should throw ForbiddenException if Clerk user is not a member of the tenant', async () => {
+      mockClerkClient.users.getUser.mockResolvedValue({
+        ...mockClerkUserFound,
+        organizationMemberships: [{ organization: { id: 'other-tenant-id' }, role: 'member' }],
+      });
+      await expect(service.addMember(mockTeamId, mockUserIdToAddViaClerk, mockTenantId))
+        .rejects.toThrow(new ForbiddenException(`User ${mockUserIdToAddViaClerk} is not a member of the organization (tenant: ${mockTenantId}) associated with this team.`));
+    });
+    
+    it('should throw NotFoundException if local user record not found for a valid Clerk user', async () => {
+      mockUserRepository.findOne.mockResolvedValue(null); // Local user not found
+      await expect(service.addMember(mockTeamId, mockUserIdToAddViaClerk, mockTenantId))
+        .rejects.toThrow(new NotFoundException(`Local user record for Clerk ID ${mockUserIdToAddViaClerk} not found. Data may be out of sync.`));
     });
 
     it('should throw BadRequestException if user is already a member', async () => {
-      currentMockTeam.users = [mockUser]; // User is already a member
+      currentMockTeam.users = [mockLocalUserCorrespToClerkId]; // User is already a member
       mockTeamRepository.findOne.mockResolvedValue(currentMockTeam);
+      // Other mocks (Clerk user, local user) should still resolve successfully
+      mockClerkClient.users.getUser.mockResolvedValue(mockClerkUserFound);
+      mockUserRepository.findOne.mockResolvedValue(mockLocalUserCorrespToClerkId);
 
-      await expect(service.addMember(mockTeamId, mockMemberUserId, mockTenantId))
-        .rejects.toThrow(BadRequestException);
+      await expect(service.addMember(mockTeamId, mockUserIdToAddViaClerk, mockTenantId))
+        .rejects.toThrow(new BadRequestException(`User ${mockLocalUserCorrespToClerkId.username || mockLocalUserCorrespToClerkId.id} is already a member of team ${mockTeamId}.`));
     });
   });
 
+  // Tests for removeMember might need adjustment if userIdToRemove is a Clerk ID
+  // For now, assuming removeMember still operates on local DB user IDs (as per current service code)
   describe('removeMember', () => {
     beforeEach(() => {
-        currentMockTeam.users = [mockUser, mockOtherUser]; // Start with members
+        // Using the old mockUser and mockOtherUser which have local DB IDs
+        currentMockTeam.users = [mockUser, mockOtherUser]; 
         mockTeamRepository.findOne.mockResolvedValue(currentMockTeam);
-        mockTeamRepository.save.mockImplementation(team => Promise.resolve(team));
+        mockTeamRepository.save.mockImplementation(async (team: Team) => team);
     });
 
     it('should successfully remove a member from a team', async () => {
-      const result = await service.removeMember(mockTeamId, mockMemberUserId, mockTenantId);
+      // removeMember expects the local DB user ID
+      const result = await service.removeMember(mockTeamId, mockUser.id, mockTenantId); 
       
       expect(mockTeamRepository.findOne).toHaveBeenCalledWith({
         where: { id: mockTeamId, tenant: { id: mockTenantId } },
@@ -261,21 +322,21 @@ describe('TeamService', () => {
         users: expect.not.arrayContaining([mockUser]),
       }));
       expect(result.users).not.toContainEqual(mockUser);
-      expect(result.users).toContainEqual(mockOtherUser); // Ensure other users remain
+      expect(result.users).toContainEqual(mockOtherUser);
     });
 
-    it('should throw NotFoundException if team not found', async () => {
+    it('should throw NotFoundException if team not found (when trying to remove member)', async () => {
       mockTeamRepository.findOne.mockResolvedValue(null);
-      await expect(service.removeMember('non-existent-team-id', mockMemberUserId, mockTenantId))
-        .rejects.toThrow(NotFoundException);
+      await expect(service.removeMember('non-existent-team-id', mockUser.id, mockTenantId))
+        .rejects.toThrow(new NotFoundException(`Team with ID non-existent-team-id not found in this tenant.`));
     });
 
-    it('should throw NotFoundException if user to remove is not a member', async () => {
-      currentMockTeam.users = [mockOtherUser]; // Target user is not in the team
+    it('should throw NotFoundException if user to remove is not a member (using local DB ID)', async () => {
+      currentMockTeam.users = [mockOtherUser]; // mockUser (target for removal) is not in the team
       mockTeamRepository.findOne.mockResolvedValue(currentMockTeam);
       
-      await expect(service.removeMember(mockTeamId, mockMemberUserId, mockTenantId))
-        .rejects.toThrow(NotFoundException);
+      await expect(service.removeMember(mockTeamId, mockUser.id, mockTenantId))
+        .rejects.toThrow(new NotFoundException(`User ${mockUser.id} is not a member of team ${mockTeamId}.`));
     });
   });
 });
