@@ -198,6 +198,7 @@ export class PlatformAuthService {
       tokenExpiresAt: tokens.expiresIn
         ? new Date(Date.now() + tokens.expiresIn * 1000)
         : new Date(Date.now() + 60 * 24 * 60 * 60 * 1000),
+      tenantId: tenantId,
     };
 
     // Return the Instagram account data

@@ -59,13 +59,6 @@ export class InstagramRepository {
           existingAccount.id,
         );
 
-        existingAccount.socialAccount = {
-          ...existingAccount.socialAccount,
-          accessToken: accountData.socialAccount.accessToken,
-          refreshToken: accountData.socialAccount.refreshToken,
-          tokenExpiresAt: accountData.socialAccount.expiresAt,
-        };
-
         // Update the account properties
         existingAccount.permissions = accountData.permissions;
 
@@ -131,12 +124,17 @@ export class InstagramRepository {
         };
       }
 
+      const socialAccountEntity = this.socialAccountRepo.create(
+        accountData.socialAccount,
+      );
+      await this.socialAccountRepo.save(socialAccountEntity);
+
       // Create a new Instagram account
       const newAccount = this.accountRepo.create({
         userId: accountData.userId,
         tenantId: accountData.tenantId,
         permissions: accountData.permissions,
-        socialAccount: accountData.socialAccount,
+        socialAccount: socialAccountEntity[0],
         instagramId: accountData.instagramId,
         username: accountData.username,
         name: accountData.name || accountData.username,

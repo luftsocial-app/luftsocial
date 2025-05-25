@@ -110,5 +110,12 @@
       "userId": "user_2xADUbVb5oj59MUuKD9Ftq0MpJT"
     },
     "expires": 1747816139586
+  },
+  "oauth_state:53d67a869c7406b062d907a9733e99a3a3fe9d86fa1b25dbb6481fd9f46103af": {
+    "data": {
+      "platform": "instagram_business",
+      "userId": "user_2xADUbVb5oj59MUuKD9Ftq0MpJT"
+    },
+    "expires": 1748193425473
   }
 }
