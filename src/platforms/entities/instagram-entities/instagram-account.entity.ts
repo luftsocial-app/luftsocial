@@ -5,8 +5,8 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   OneToMany,
-  OneToOne,
   JoinColumn,
+  OneToOne,
 } from 'typeorm';
 import { InstagramPost } from './instagram-post.entity';
 import { SocialAccount } from '../notifications/entity/social-account.entity';
@@ -22,8 +22,11 @@ export class InstagramAccount {
   @Column({ nullable: false })
   tenantId: string;
 
+  @Column({ type: 'uuid', nullable: true })
+  socialAccountId: string;
+
   @OneToOne(() => SocialAccount)
-  @JoinColumn()
+  @JoinColumn({ name: 'socialAccountId' })
   socialAccount: SocialAccount;
 
   @Column({ nullable: true })

@@ -800,7 +800,7 @@ export class PlatformAuthService {
       // Make the first request to get the short-lived token
       const response = await axios.post(
         'https://api.instagram.com/oauth/access_token',
-        formData.toString(), // Send as string body
+        formData.toString(),
         {
           headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -813,7 +813,7 @@ export class PlatformAuthService {
 
       // Step 2: Exchange short-lived token for long-lived token
       const shortLivedToken = response.data.access_token;
-      const userId = response.data.user_id; // Save user ID from first response
+      const userId = response.data.user_id;
 
       const longLivedTokenResponse = await axios.get(
         'https://graph.instagram.com/access_token',
@@ -831,11 +831,10 @@ export class PlatformAuthService {
         longLivedTokenResponse.data,
       );
 
-      // Create a token object that matches the format expected by the rest of the system
       return {
         token: {
           access_token: longLivedTokenResponse.data.access_token,
-          user_id: userId, // Include the user ID from the first response
+          user_id: userId,
           token_type: 'bearer',
           expires_in: longLivedTokenResponse.data.expires_in,
         },
@@ -846,7 +845,6 @@ export class PlatformAuthService {
         error.response?.data || error.message,
       );
 
-      // Enhanced error logging
       if (error.response) {
         this.logger.error('Response status:', error.response.status);
         this.logger.error('Response headers:', error.response.headers);

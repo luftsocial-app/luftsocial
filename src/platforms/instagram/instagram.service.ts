@@ -56,20 +56,29 @@ export class InstagramService implements PlatformService {
     accessToken: string;
     instagramAccountId: string;
   } {
+    console.log('acdsdsd', account);
     if (account.isBusinessLogin) {
+      console.log('sdsdsdsd');
       // Direct Instagram Business Login
-      return {
+      const dsdsd = {
         baseUrl: this.instagramGraphUrl,
-        accessToken: account.socialAccount.accessToken,
-        instagramAccountId: account.instagramId,
+        accessToken: account?.socialAccount?.accessToken,
+        instagramAccountId: account?.instagramId,
       };
+      console.log(dsdsd, 'dsdsd');
+      return dsdsd;
+      // return {
+      //   baseUrl: this.instagramGraphUrl,
+      //   accessToken: account.socialAccount.accessToken,
+      //   instagramAccountId: account.instagramId,
+      // };
     } else {
       // Instagram with Facebook Login - use Page access token
       return {
         baseUrl: this.facebookGraphUrl,
         accessToken:
           account.facebookPageAccessToken || account.socialAccount.accessToken,
-        instagramAccountId: account.instagramId,
+        instagramAccountId: account?.instagramId,
       };
     }
   }
@@ -185,6 +194,8 @@ export class InstagramService implements PlatformService {
         throw new HttpException('Account not found', HttpStatus.NOT_FOUND);
       }
 
+      const tenantId = await this.tenantService.getTenantId();
+
       const { hashtags, mentions, caption } = content;
 
       // Build the full caption with hashtags and mentions
@@ -209,7 +220,10 @@ export class InstagramService implements PlatformService {
         'post',
       );
 
+      console.log('mediaItems', mediaItems);
+
       const apiConfig = this.getApiConfig(account);
+      console.log('apiConfig', apiConfig);
 
       if (!mediaItems?.length) {
         throw new HttpException(
@@ -217,6 +231,8 @@ export class InstagramService implements PlatformService {
           HttpStatus.BAD_REQUEST,
         );
       }
+
+      const isCarouselItem = mediaItems?.length > 1;
 
       // 1. Create media containers
       const mediaContainers = await Promise.all(
@@ -227,9 +243,12 @@ export class InstagramService implements PlatformService {
             fullCaption,
             apiConfig.baseUrl,
             apiConfig.accessToken,
+            isCarouselItem,
           ),
         ),
       );
+
+      console.log('mediaContainers', mediaContainers);
 
       // 2. Create post container (for single media) or carousel container (for multiple media)
       let containerId: string;
@@ -244,6 +263,7 @@ export class InstagramService implements PlatformService {
           apiConfig.accessToken,
         );
       }
+      console.log('containerId', containerId);
 
       // 3. Publish post
       const response = await axios.post(
@@ -257,9 +277,11 @@ export class InstagramService implements PlatformService {
         },
       );
 
+      console.log('response1212', response);
+
       // 4. Save post to database
-      await this.instagramRepo.createPost({
-        account: account,
+      const dsdsdsds = await this.instagramRepo.createPost({
+        accountId: account.id,
         caption: fullCaption,
         mentions: mentions || [],
         hashtags: hashtags || [],
@@ -267,8 +289,10 @@ export class InstagramService implements PlatformService {
         postId: response.data.id,
         isPublished: true,
         postedAt: new Date(),
+        tenantId: tenantId,
       });
 
+      console.log('dsdsdsds', dsdsdsds);
       return {
         platformPostId: response.data.id,
         postedAt: new Date(),
@@ -441,6 +465,7 @@ export class InstagramService implements PlatformService {
     caption: string,
     baseUrl: string,
     accessToken: string,
+    isCarouselItem: boolean = false,
   ): Promise<{ id: string; type: MediaType }> {
     try {
       // Validate and get media type first
@@ -449,12 +474,22 @@ export class InstagramService implements PlatformService {
       const params: any = {
         access_token: accessToken,
       };
-
       // Set media URL and type based on media type
       if (mediaData.type === MediaType.IMAGE) {
         params.image_url = mediaUrl;
+        // For carousel items, specify it's a carousel item
+        if (isCarouselItem) {
+          params.is_carousel_item = true;
+        }
       } else if (mediaData.type === MediaType.VIDEO) {
+        // For regular video posts (not reels), use VIDEO media type
+        params.media_type = 'VIDEO';
         params.video_url = mediaUrl;
+
+        if (isCarouselItem) {
+          params.is_carousel_item = true;
+        }
+        params.thumb_offset = 0;
       }
 
       // Add caption only for single media posts (not carousel children)
@@ -462,11 +497,22 @@ export class InstagramService implements PlatformService {
         params.caption = caption;
       }
 
+      console.log('params,', params);
+      const formData = new URLSearchParams();
+      Object.keys(params).forEach((key) => {
+        formData.append(key, params[key]);
+      });
       const response = await axios.post(
         `${baseUrl}/${instagramAccountId}/media`,
-        null,
-        { params },
+        formData,
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        },
       );
+
+      console.log('response1212', response);
 
       // Wait for media processing to complete
       await this.waitForMediaProcessing(response.data.id, baseUrl, accessToken);
@@ -476,6 +522,10 @@ export class InstagramService implements PlatformService {
         type: mediaData.type,
       };
     } catch (error) {
+      console.log('sersdsdsd', error);
+      if (error.response?.data) {
+        console.log('Instagram API Error:', error.response.data);
+      }
       this.logger.error('Failed to create media container', error);
       throw new InstagramApiException(
         'Failed to create media container',
@@ -664,6 +714,7 @@ export class InstagramService implements PlatformService {
         '', // Stories don't use captions
         apiConfig.baseUrl,
         apiConfig.accessToken,
+        false,
       );
 
       // 2. Publish story

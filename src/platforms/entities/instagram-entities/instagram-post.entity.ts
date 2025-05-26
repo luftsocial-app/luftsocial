@@ -6,6 +6,7 @@ import {
   UpdateDateColumn,
   OneToMany,
   ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { InstagramAccount } from './instagram-account.entity';
 import { InstagramMetric } from './instagram-metric.entity';
@@ -19,7 +20,11 @@ export class InstagramPost {
   @Column({ nullable: false })
   tenantId: string;
 
+  @Column({ type: 'uuid' })
+  accountId: string;
+
   @ManyToOne(() => InstagramAccount, (account) => account.media)
+  @JoinColumn({ name: 'accountId' })
   account: InstagramAccount;
 
   @Column()

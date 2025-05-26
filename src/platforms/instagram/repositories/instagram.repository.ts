@@ -50,7 +50,7 @@ export class InstagramRepository {
           tenantId: accountData.tenantId,
           instagramId: accountData.instagramId,
         },
-        relations: ['socialAccount'], // Important: Include the relation
+        // relations: ['socialAccount'],
       });
 
       if (existingAccount) {
@@ -110,6 +110,15 @@ export class InstagramRepository {
             accountData.facebookPageAccessToken;
         }
 
+        // Update social account if provided
+        if (accountData.socialAccount && existingAccount.socialAccount) {
+          Object.assign(
+            existingAccount.socialAccount,
+            accountData.socialAccount,
+          );
+          await this.socialAccountRepo.save(existingAccount.socialAccount);
+        }
+
         return await this.accountRepo.save(existingAccount);
       }
 
@@ -124,17 +133,22 @@ export class InstagramRepository {
         };
       }
 
-      const socialAccountEntity = this.socialAccountRepo.create(
-        accountData.socialAccount,
-      );
-      await this.socialAccountRepo.save(socialAccountEntity);
+      // Create and save the social account first
+      let socialAccountEntity = null;
+      if (accountData.socialAccount) {
+        socialAccountEntity = this.socialAccountRepo.create(
+          accountData.socialAccount,
+        );
+        socialAccountEntity =
+          await this.socialAccountRepo.save(socialAccountEntity);
+      }
 
       // Create a new Instagram account
       const newAccount = this.accountRepo.create({
         userId: accountData.userId,
         tenantId: accountData.tenantId,
         permissions: accountData.permissions,
-        socialAccount: socialAccountEntity[0],
+        socialAccountId: socialAccountEntity?.id || null,
         instagramId: accountData.instagramId,
         username: accountData.username,
         name: accountData.name || accountData.username,
@@ -145,7 +159,7 @@ export class InstagramRepository {
         facebookPageAccessToken: accountData.facebookPageAccessToken,
         accountType: accountData.accountType || 'business',
         isBusinessLogin: accountData.isBusinessLogin || false,
-        metadata: accountData.metadata, // Make sure this is always set with the required structure
+        metadata: accountData.metadata,
       });
 
       this.logger.debug(
@@ -153,11 +167,15 @@ export class InstagramRepository {
         JSON.stringify(newAccount.metadata),
       );
 
-      return await this.accountRepo.save(newAccount);
+      const savedAccount = await this.accountRepo.save(newAccount);
+
+      return await this.accountRepo.findOne({
+        where: { id: savedAccount.id },
+        relations: ['socialAccount'],
+      });
     } catch (error) {
       this.logger.error('Failed to create Instagram account', error);
 
-      // Enhanced error logging for database errors
       if (error.code) {
         this.logger.error(
           `Database error code: ${error.code}, column: ${error.column}`,
@@ -175,10 +193,11 @@ export class InstagramRepository {
   }
 
   async getAccountByUserId(userId: string): Promise<InstagramAccount> {
+    const tenantId = await this.tenantService.getTenantId();
     return this.accountRepo.findOne({
       where: {
         userId: userId,
-        tenantId: this.tenantService.getTenantId(),
+        tenantId: tenantId,
       },
       relations: ['socialAccount'],
     });
