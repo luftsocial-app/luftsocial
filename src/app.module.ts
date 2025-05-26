@@ -91,6 +91,8 @@ import { RoleGuard } from './guards/role-guard';
         PublishRecord,
         PostAsset,
       ],
+
+      extra: { family: 4 },
     }),
     LoggerModule.forRoot({
       ...JSON.parse(JSON.stringify(config.get('logger'))),
