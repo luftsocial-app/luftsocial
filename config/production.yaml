@@ -10,6 +10,5 @@ logger:
 db:
   options:
     extra:
-      family: 4
       ssl:
         rejectUnauthorized: false
