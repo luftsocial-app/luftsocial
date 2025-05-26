@@ -437,6 +437,11 @@ export class ContentPublisherService {
             params.platformSpecificParams?.accountId,
             params.platformSpecificParams,
             params.media,
+            {
+              shareToFeed: params.platformSpecificParams?.shareToFeed ?? true,
+              coverUrl: params.platformSpecificParams?.coverUrl,
+              thumbOffset: 5000,
+            },
           );
           return {
             platformPostId: igResult.platformPostId,

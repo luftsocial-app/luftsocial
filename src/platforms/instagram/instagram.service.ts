@@ -56,22 +56,13 @@ export class InstagramService implements PlatformService {
     accessToken: string;
     instagramAccountId: string;
   } {
-    console.log('acdsdsd', account);
     if (account.isBusinessLogin) {
-      console.log('sdsdsdsd');
       // Direct Instagram Business Login
-      const dsdsd = {
+      return {
         baseUrl: this.instagramGraphUrl,
-        accessToken: account?.socialAccount?.accessToken,
-        instagramAccountId: account?.instagramId,
+        accessToken: account.socialAccount.accessToken,
+        instagramAccountId: account.instagramId,
       };
-      console.log(dsdsd, 'dsdsd');
-      return dsdsd;
-      // return {
-      //   baseUrl: this.instagramGraphUrl,
-      //   accessToken: account.socialAccount.accessToken,
-      //   instagramAccountId: account.instagramId,
-      // };
     } else {
       // Instagram with Facebook Login - use Page access token
       return {
@@ -81,6 +72,229 @@ export class InstagramService implements PlatformService {
         instagramAccountId: account?.instagramId,
       };
     }
+  }
+
+  /**
+   * Enhanced debugging version with detailed logging
+   */
+  /**
+   * Fixed createMediaContainer - All videos must be uploaded as REELS
+   */
+  private async createMediaContainer(
+    instagramAccountId: string,
+    mediaUrl: string,
+    caption: string,
+    baseUrl: string,
+    accessToken: string,
+    isCarouselItem: boolean = false,
+    reelOptions?: {
+      shareToFeed?: boolean;
+      coverUrl?: string;
+      thumbOffset?: number;
+    },
+  ): Promise<{ id: string; type: MediaType }> {
+    try {
+      // Validate and get media type
+      const mediaData = await this.downloadAndValidateMedia(mediaUrl);
+
+      const params: any = {
+        access_token: accessToken,
+      };
+
+      if (mediaData.type === MediaType.IMAGE) {
+        params.image_url = mediaUrl;
+
+        if (isCarouselItem) {
+          params.is_carousel_item = true;
+        }
+
+        // Add caption for single images (not carousel items)
+        if (caption && !isCarouselItem) {
+          params.caption = caption;
+        }
+      } else if (mediaData.type === MediaType.VIDEO) {
+        // IMPORTANT: All videos must now be uploaded as REELS
+        params.media_type = 'REELS';
+        params.video_url = mediaUrl;
+
+        // For carousel videos
+        if (isCarouselItem) {
+          params.is_carousel_item = true;
+          // Note: Carousel videos don't support some reel-specific options
+        } else {
+          // For standalone videos (reels), add reel-specific parameters
+          params.share_to_feed = reelOptions?.shareToFeed ?? true; // Default to true so videos appear in feed
+
+          if (caption) {
+            params.caption = caption;
+          }
+
+          // Optional reel parameters
+          if (reelOptions?.coverUrl) {
+            params.cover_url = reelOptions.coverUrl;
+          }
+
+          if (reelOptions?.thumbOffset !== undefined) {
+            params.thumb_offset = reelOptions.thumbOffset;
+          }
+        }
+      }
+
+      const formData = new URLSearchParams();
+      Object.keys(params).forEach((key) => {
+        if (params[key] !== undefined && params[key] !== null) {
+          formData.append(key, params[key].toString());
+        }
+      });
+
+      const response = await axios.post(
+        `${baseUrl}/${instagramAccountId}/media`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          timeout: 30000,
+        },
+      );
+
+      // Wait for media processing
+      await this.waitForMediaProcessing(response.data.id, baseUrl, accessToken);
+
+      return {
+        id: response.data.id,
+        type: mediaData.type,
+      };
+    } catch (error) {
+      console.error(
+        'Failed to create media container:',
+        error.response?.data || error.message,
+      );
+      this.logger.error('Failed to create media container', error);
+      throw new InstagramApiException(
+        'Failed to create media container',
+        error,
+      );
+    }
+  }
+
+  /**
+   *  Media validation with more detailed checks
+   */
+  private async downloadAndValidateMedia(url: string): Promise<{
+    type: MediaType;
+    mimeType: string;
+  }> {
+    try {
+      const response = await axios.head(url, { timeout: 10000 });
+      const contentType = response.headers['content-type'];
+      const contentLength = parseInt(response.headers['content-length'] || '0');
+
+      if (contentType?.startsWith('image/')) {
+        // Validate image specs
+        if (contentLength > 8 * 1024 * 1024) {
+          throw new HttpException(
+            'Image file size exceeds 8MB limit',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+
+        return { type: MediaType.IMAGE, mimeType: contentType };
+      } else if (contentType?.startsWith('video/')) {
+        // Validate video specs for REELS
+        if (contentLength > 300 * 1024 * 1024) {
+          // 300MB limit for reels
+          throw new HttpException(
+            'Video file size exceeds 300MB limit for Reels',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+
+        // Check video format
+        if (
+          !contentType.includes('mp4') &&
+          !contentType.includes('quicktime')
+        ) {
+          console.warn(
+            'Video format may not be optimal for Reels:',
+            contentType,
+          );
+        }
+
+        return { type: MediaType.VIDEO, mimeType: contentType };
+      } else {
+        throw new HttpException(
+          `Unsupported media type: ${contentType}`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      console.error('Media validation failed:', error.message);
+      throw new HttpException(
+        `Failed to validate media: ${error.message}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  /**
+   * Enhanced wait for media processing with better error handling
+   */
+  private async waitForMediaProcessing(
+    mediaId: string,
+    baseUrl: string,
+    accessToken: string,
+    maxAttempts: number = 15,
+  ): Promise<void> {
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        this.logger.info(`Processing check attempt ${attempt}/${maxAttempts}`);
+
+        const response = await axios.get(`${baseUrl}/${mediaId}`, {
+          params: {
+            fields: 'status_code',
+            access_token: accessToken,
+          },
+          timeout: 10000,
+        });
+
+        const status = response.data.status_code;
+
+        if (status === 'FINISHED') {
+          console.log('Media processing completed ✓');
+          return;
+        } else if (status === 'ERROR') {
+          console.error('Media processing failed with ERROR status');
+          throw new Error('Media processing failed');
+        } else if (status === 'IN_PROGRESS') {
+          console.log('Media still processing...');
+        } else {
+          console.log(`Unknown status: ${status}, continuing...`);
+        }
+
+        // Wait before next attempt (progressive backoff)
+        const waitTime = Math.min(2000 + attempt * 1000, 5000);
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
+      } catch (error) {
+        console.error(
+          `Processing check attempt ${attempt} failed:`,
+          error.message,
+        );
+
+        if (attempt === maxAttempts) {
+          console.error('Media processing timeout - max attempts reached');
+          throw new InstagramApiException('Media processing timeout', error);
+        }
+
+        // Wait a bit before retrying
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+    }
+
+    throw new Error('Media processing timeout');
   }
 
   private async uploadInstagramMediaItems(
@@ -187,6 +401,11 @@ export class InstagramService implements PlatformService {
     accountId: string,
     content: CreateInstagramPostDto,
     media?: MediaItem[],
+    reelOptions?: {
+      shareToFeed?: boolean;
+      coverUrl?: string;
+      thumbOffset?: number;
+    },
   ): Promise<PostResponse> {
     try {
       const account = await this.instagramRepo.getAccountByUserId(accountId);
@@ -220,10 +439,7 @@ export class InstagramService implements PlatformService {
         'post',
       );
 
-      console.log('mediaItems', mediaItems);
-
       const apiConfig = this.getApiConfig(account);
-      console.log('apiConfig', apiConfig);
 
       if (!mediaItems?.length) {
         throw new HttpException(
@@ -232,9 +448,13 @@ export class InstagramService implements PlatformService {
         );
       }
 
-      const isCarouselItem = mediaItems?.length > 1;
+      // Default reel options - videos appear in feed by default
+      const defaultReelOptions = {
+        shareToFeed: true,
+        ...reelOptions,
+      };
 
-      // 1. Create media containers
+      // 1. Create media containers with reel options
       const mediaContainers = await Promise.all(
         mediaItems.map((mediaItem) =>
           this.createMediaContainer(
@@ -243,12 +463,11 @@ export class InstagramService implements PlatformService {
             fullCaption,
             apiConfig.baseUrl,
             apiConfig.accessToken,
-            isCarouselItem,
+            mediaItems.length > 1, // isCarouselItem = true if multiple items
+            defaultReelOptions, // Pass reel options for videos
           ),
         ),
       );
-
-      console.log('mediaContainers', mediaContainers);
 
       // 2. Create post container (for single media) or carousel container (for multiple media)
       let containerId: string;
@@ -263,24 +482,29 @@ export class InstagramService implements PlatformService {
           apiConfig.accessToken,
         );
       }
-      console.log('containerId', containerId);
 
-      // 3. Publish post
-      const response = await axios.post(
-        `${apiConfig.baseUrl}/${apiConfig.instagramAccountId}/media_publish`,
-        null,
-        {
-          params: {
-            creation_id: containerId,
-            access_token: apiConfig.accessToken,
+      let response;
+      try {
+        response = await axios.post(
+          `${apiConfig.baseUrl}/${apiConfig.instagramAccountId}/media_publish`,
+          null,
+          {
+            params: {
+              creation_id: containerId,
+              access_token: apiConfig.accessToken,
+            },
+            timeout: 30000,
           },
-        },
-      );
-
-      console.log('response1212', response);
+        );
+      } catch (publishError) {
+        throw new InstagramApiException(
+          `Failed to publish Instagram post: ${publishError.response?.data?.error?.message || publishError.message}`,
+          publishError,
+        );
+      }
 
       // 4. Save post to database
-      const dsdsdsds = await this.instagramRepo.createPost({
+      const postData = {
         accountId: account.id,
         caption: fullCaption,
         mentions: mentions || [],
@@ -290,16 +514,62 @@ export class InstagramService implements PlatformService {
         isPublished: true,
         postedAt: new Date(),
         tenantId: tenantId,
-      });
+      };
 
-      console.log('dsdsdsds', dsdsdsds);
+      try {
+        await this.instagramRepo.createPost(postData);
+      } catch (dbError) {
+        // Even if DB save fails, the post was published successfully
+        // Log the error but don't fail the entire operation
+        this.logger.error(
+          'Failed to save post to database, but post was published successfully',
+          {
+            platformPostId: response.data.id,
+            error: dbError,
+          },
+        );
+
+        // Return success response since the post was published
+        return {
+          platformPostId: response.data.id,
+          postedAt: new Date(),
+        };
+      }
+
       return {
         platformPostId: response.data.id,
         postedAt: new Date(),
       };
     } catch (error) {
-      this.logger.error('Failed to create Instagram post', error);
-      throw new InstagramApiException('Failed to create Instagram post', error);
+      console.error('=== OVERALL POST CREATION ERROR ===');
+      console.error('Error type:', error.constructor.name);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
+
+      if (error.response) {
+        console.error('HTTP Error Response:', {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data,
+        });
+      }
+
+      this.logger.error('Failed to create Instagram post', {
+        error: error.message,
+        stack: error.stack,
+        accountId,
+        content,
+      });
+
+      // Re-throw as InstagramApiException if not already
+      if (error instanceof InstagramApiException) {
+        throw error;
+      } else {
+        throw new InstagramApiException(
+          'Failed to create Instagram post',
+          error,
+        );
+      }
     }
   }
 
@@ -457,84 +727,6 @@ export class InstagramService implements PlatformService {
   }
 
   /**
-   * Creates a media container with caption for single media or carousel items
-   */
-  private async createMediaContainer(
-    instagramAccountId: string,
-    mediaUrl: string,
-    caption: string,
-    baseUrl: string,
-    accessToken: string,
-    isCarouselItem: boolean = false,
-  ): Promise<{ id: string; type: MediaType }> {
-    try {
-      // Validate and get media type first
-      const mediaData = await this.downloadAndValidateMedia(mediaUrl);
-
-      const params: any = {
-        access_token: accessToken,
-      };
-      // Set media URL and type based on media type
-      if (mediaData.type === MediaType.IMAGE) {
-        params.image_url = mediaUrl;
-        // For carousel items, specify it's a carousel item
-        if (isCarouselItem) {
-          params.is_carousel_item = true;
-        }
-      } else if (mediaData.type === MediaType.VIDEO) {
-        // For regular video posts (not reels), use VIDEO media type
-        params.media_type = 'VIDEO';
-        params.video_url = mediaUrl;
-
-        if (isCarouselItem) {
-          params.is_carousel_item = true;
-        }
-        params.thumb_offset = 0;
-      }
-
-      // Add caption only for single media posts (not carousel children)
-      if (caption) {
-        params.caption = caption;
-      }
-
-      console.log('params,', params);
-      const formData = new URLSearchParams();
-      Object.keys(params).forEach((key) => {
-        formData.append(key, params[key]);
-      });
-      const response = await axios.post(
-        `${baseUrl}/${instagramAccountId}/media`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-        },
-      );
-
-      console.log('response1212', response);
-
-      // Wait for media processing to complete
-      await this.waitForMediaProcessing(response.data.id, baseUrl, accessToken);
-
-      return {
-        id: response.data.id,
-        type: mediaData.type,
-      };
-    } catch (error) {
-      console.log('sersdsdsd', error);
-      if (error.response?.data) {
-        console.log('Instagram API Error:', error.response.data);
-      }
-      this.logger.error('Failed to create media container', error);
-      throw new InstagramApiException(
-        'Failed to create media container',
-        error,
-      );
-    }
-  }
-
-  /**
    * Creates a carousel container for multiple media items
    */
   private async createCarouselContainer(
@@ -555,98 +747,36 @@ export class InstagramService implements PlatformService {
         params.caption = caption;
       }
 
+      const formData = new URLSearchParams();
+      Object.keys(params).forEach((key) => {
+        if (params[key] !== undefined && params[key] !== null) {
+          formData.append(key, params[key].toString());
+        }
+      });
+
       const response = await axios.post(
         `${baseUrl}/${instagramAccountId}/media`,
-        null,
-        { params },
+        formData,
+        {
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+        },
       );
 
-      // Wait for carousel processing to complete
+      // Wait for carousel processing
       await this.waitForMediaProcessing(response.data.id, baseUrl, accessToken);
 
       return response.data.id;
     } catch (error) {
+      console.error(
+        'Failed to create carousel container:',
+        error.response?.data || error.message,
+      );
       this.logger.error('Failed to create carousel container', error);
       throw new InstagramApiException(
         'Failed to create carousel container',
         error,
-      );
-    }
-  }
-
-  /**
-   * Waits for media processing to complete before publishing
-   */
-  private async waitForMediaProcessing(
-    mediaId: string,
-    baseUrl: string,
-    accessToken: string,
-    maxAttempts: number = 10,
-  ): Promise<void> {
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      try {
-        const response = await axios.get(`${baseUrl}/${mediaId}`, {
-          params: {
-            fields: 'status_code',
-            access_token: accessToken,
-          },
-        });
-
-        const status = response.data.status_code;
-
-        if (status === 'FINISHED') {
-          return;
-        } else if (status === 'ERROR') {
-          throw new Error('Media processing failed');
-        }
-
-        // Wait before next attempt
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-      } catch (error) {
-        if (attempt === maxAttempts - 1) {
-          throw new InstagramApiException('Media processing timeout', error);
-        }
-      }
-    }
-
-    throw new Error('Media processing timeout');
-  }
-
-  private async downloadAndValidateMedia(url: string): Promise<{
-    type: MediaType;
-    mimeType: string;
-  }> {
-    try {
-      const response = await axios.head(url);
-      const contentType = response.headers['content-type'];
-      const contentLength = parseInt(response.headers['content-length'] || '0');
-
-      // Validate file size (Instagram limit is 8MB for photos, 100MB for videos)
-      const maxSize = contentType.startsWith('video/')
-        ? 100 * 1024 * 1024
-        : 8 * 1024 * 1024;
-      if (contentLength > maxSize) {
-        throw new HttpException(
-          `File size exceeds ${maxSize / (1024 * 1024)}MB limit`,
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      // Determine media type
-      if (contentType.startsWith('image/')) {
-        return { type: MediaType.IMAGE, mimeType: contentType };
-      } else if (contentType.startsWith('video/')) {
-        return { type: MediaType.VIDEO, mimeType: contentType };
-      }
-
-      throw new HttpException('Unsupported media type', HttpStatus.BAD_REQUEST);
-    } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
-      }
-      throw new HttpException(
-        'Failed to validate media',
-        HttpStatus.BAD_REQUEST,
       );
     }
   }
