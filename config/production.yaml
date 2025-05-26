@@ -4,11 +4,12 @@ logger:
     level: info
     redact:
       paths:
-      - req.headers.authorization
-      - req.headers.auth
-      censor: '***'
+        - req.headers.authorization
+        - req.headers.auth
+      censor: "***"
 db:
   options:
     extra:
+      family: 4
       ssl:
         rejectUnauthorized: false
