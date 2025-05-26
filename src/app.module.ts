@@ -58,9 +58,6 @@ import { PostAsset } from './asset-management/entities/post-asset.entity';
 import { PublishRecord } from './cross-platform/entities/publish.entity';
 import { RoleGuard } from './guards/role-guard';
 
-console.log({dbOptions: config.get('db.options')});
-
-
 @Module({
   imports: [
     ConfigModule.forRoot({
