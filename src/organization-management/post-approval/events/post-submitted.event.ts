@@ -6,5 +6,7 @@ export class PostSubmittedEvent {
     public readonly post: UserPost,
     public readonly userId: string,
     public readonly approvalSteps: ApprovalStep[],
+    public readonly completedTaskId?: string,
+    public readonly associatedTasks?: string[],
   ) {}
 }

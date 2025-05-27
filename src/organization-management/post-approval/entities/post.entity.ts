@@ -4,20 +4,12 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  ManyToOne,
   OneToMany,
-  JoinColumn,
 } from 'typeorm';
-import { User } from '../../../user-management/entities/user.entity';
 import { ApprovalStep } from './approval-step.entity';
-import { Organization } from 'src/user-management/entities/organization.entity';
-import { SocialPlatform } from 'src/common/enums/social-platform.enum';
+import { PlatformPostDto } from 'src/cross-platform/helpers/dtos/platform-post.dto';
+import { Task } from './task.entity';
 
-export class PlatformInterface {
-  platform: SocialPlatform;
-
-  platformAccountId?: string;
-}
 export enum PostStatus {
   DRAFT = 'draft',
   IN_REVIEW = 'in_review',
@@ -36,7 +28,7 @@ export class UserPost {
   title: string;
 
   @Column('text')
-  content: string;
+  description: string;
 
   @Column('jsonb', { nullable: true })
   mediaItems: string[];
@@ -49,23 +41,18 @@ export class UserPost {
   status: PostStatus;
 
   @Column({ type: 'json', nullable: true })
-  platforms: PlatformInterface[];
+  platforms: PlatformPostDto[];
+
+  @OneToMany(() => Task, (task) => task.post)
+  tasks: Task[];
 
   @Column({ nullable: true })
   scheduledFor: Date;
 
-  @ManyToOne(() => User)
-  @JoinColumn({ name: 'author_id' })
-  author: User;
-
-  @Column({ name: 'author_id' })
+  @Column()
   authorId: string;
 
-  @ManyToOne(() => Organization)
-  @JoinColumn({ name: 'organization_id' })
-  organization: Organization;
-
-  @Column({ name: 'organization_id' })
+  @Column({ name: 'organization_id', type: 'varchar', length: 255 })
   organizationId: string;
 
   @Column()

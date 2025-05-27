@@ -43,7 +43,6 @@ cache:
     oauth_state: 600 # 10 minutes for OAuth states
     access_token: 3600 # 1 hour for access tokens
     refresh_token: 604800 # 7 days for refresh tokens
-
 platforms:
   facebook:
     clientId: ${FACEBOOK_CLIENT_ID}

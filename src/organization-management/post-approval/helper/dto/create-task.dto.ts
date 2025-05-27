@@ -4,9 +4,13 @@ import {
   IsEnum,
   IsUUID,
   IsOptional,
+  IsArray,
+  ArrayNotEmpty,
+  ArrayMinSize,
 } from 'class-validator';
 import { TaskType } from '../../entities/task.entity';
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 
 export class CreateTaskDto {
   @ApiProperty({
@@ -35,11 +39,24 @@ export class CreateTaskDto {
   type: TaskType;
 
   @ApiProperty({
-    description: 'The ID of the user assigned to complete this task',
-    example: '123e4567-e89b-12d3-a456-426614174002',
+    description: 'Array of user IDs assigned to complete this task',
+    example: [
+      '123e4567-e89b-12d3-a456-426614174002',
+      '123e4567-e89b-12d3-a456-426614174003',
+    ],
+    type: [String],
   })
-  @IsNotEmpty()
-  assigneeId: string;
+  @IsArray()
+  @ArrayNotEmpty()
+  @ArrayMinSize(1)
+  @IsString({ each: true })
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return [value];
+    }
+    return value;
+  })
+  assigneeIds: string[];
 
   @ApiProperty({
     description: 'The ID of the post that this task is for',

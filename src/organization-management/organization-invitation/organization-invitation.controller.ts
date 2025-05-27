@@ -8,6 +8,7 @@ import {
   UseGuards,
   ValidationPipe,
   UsePipes,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -22,6 +23,7 @@ import { OrganizationInvitationService } from './organization-invitation.service
 import { CreateInvitationDto } from './helper/create-invitation.dto';
 import { CurrentUser } from 'src/decorators/current-user.decorator';
 import { Role, RoleGuard, Roles } from 'src/guards/role-guard';
+import { AuthObject } from '@clerk/express';
 
 @ApiTags('Organization Invitations')
 @Controller('organizations/invitations')
@@ -51,6 +53,39 @@ export class OrganizationInvitationController {
       user.orgId,
       createInvitationDto,
       user.userId,
+    );
+  }
+
+  @Post(':invitationId/:organizationId/accept')
+  @ApiOperation({ summary: 'Accept organization invitation' })
+  @ApiParam({ name: 'organizationId', description: 'Organization ID' })
+  @ApiParam({ name: 'invitationId', description: 'Invitation ID' })
+  @ApiResponse({ status: 200, description: 'Invitation accepted successfully' })
+  async acceptInvitation(
+    @Param('organizationId') organizationId: string,
+    @Param('invitationId') invitationId: string,
+    @CurrentUser() user: AuthObject,
+  ) {
+    const userId = user?.userId;
+    if (!userId) {
+      throw new BadRequestException('User authentication required');
+    }
+
+    // First validate if user can accept the invitation
+    const validation =
+      await this.organizationInvitationService.validateInvitationAcceptance(
+        organizationId,
+        invitationId,
+        userId,
+      );
+
+    if (!validation.canAccept) {
+      throw new BadRequestException(validation.reason);
+    }
+
+    return this.organizationInvitationService.acceptInvitation(
+      organizationId,
+      invitationId,
     );
   }
 

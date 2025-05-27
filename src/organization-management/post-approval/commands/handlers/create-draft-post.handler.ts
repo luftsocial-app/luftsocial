@@ -23,7 +23,7 @@ export class CreateDraftPostHandler
       // Create post with platform data
       const post = this.postRepository.create({
         title: createDraftPostDto.title,
-        content: createDraftPostDto.content,
+        description: createDraftPostDto.description,
         platforms: createDraftPostDto.platforms,
         mediaItems: createDraftPostDto.mediaUrls || [],
         authorId: userId,

@@ -63,7 +63,7 @@ export class PublishPostHandler implements ICommandHandler<PublishPostCommand> {
         // Call the publishing service
         const publishResult = await this.publisherService.publishContent(
           userId,
-          post.content,
+          post.description,
           post.platforms.filter((p) =>
             publishPostDto.platforms.includes(p.platform),
           ),

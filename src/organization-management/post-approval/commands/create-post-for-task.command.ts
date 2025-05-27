@@ -1,12 +1,12 @@
 import { CreateDraftPostDto } from '../helper/dto/create-draft-post.dto';
 
-export class CreateDraftPostCommand {
+export class CreatePostForTaskCommand {
   constructor(
+    public readonly taskId: string,
     public readonly createDraftPostDto: CreateDraftPostDto,
     public readonly userId: string,
     public readonly organizationId: string,
     public readonly tenantId: string,
-    public readonly taskId: string,
     public readonly files?: Express.Multer.File[],
   ) {}
 }

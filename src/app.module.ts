@@ -18,7 +18,6 @@ import { LoggerMiddleware } from './middleware/logger.middleware';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TenantMiddleware } from './middleware/tenant.middleware';
 import { ClerkAuthGuard } from './guards/clerk-auth.guard';
-import { TaskModule } from './task/task.module';
 import { MediaStorageModule } from './asset-management/media-storage/media-storage.module';
 import { CacheModule } from './cache/cache.module';
 import { PlatformsModule } from './platforms/platforms.module';
@@ -136,7 +135,6 @@ import { InstagramMetric } from './platforms/entities/instagram-entities/instagr
     ConversationModule,
     UserManagementModule,
     BullQueueModule,
-    TaskModule,
     TiktokModule,
     MessageModule,
     OrganizationManagementModule,

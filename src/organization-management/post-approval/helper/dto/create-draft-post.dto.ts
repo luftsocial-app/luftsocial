@@ -5,9 +5,12 @@ import {
   IsOptional,
   ValidateNested,
   IsEnum,
+  IsUUID,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { SocialPlatform } from '../../../../common/enums/social-platform.enum';
+import { PlatformPostDto } from 'src/cross-platform/helpers/dtos/platform-post.dto';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class PlatformDto {
   @IsNotEmpty()
@@ -26,19 +29,36 @@ export class CreateDraftPostDto {
 
   @IsNotEmpty()
   @IsString()
-  content: string;
+  description: string;
 
   @IsOptional()
   @IsArray()
   mediaUrls?: string[];
 
-  @IsNotEmpty()
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => PlatformDto)
-  platforms: PlatformDto[];
+  @Type(() => PlatformPostDto)
+  @IsNotEmpty({ message: 'At least one platform must be specified' })
+  platforms: PlatformPostDto[];
 
+  @ApiPropertyOptional({
+    description: 'Task ID this post is created for (usually from query param)',
+  })
+  @IsUUID()
+  taskId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Notes about how this post addresses the task requirements',
+  })
   @IsOptional()
+  @IsString()
+  taskNotes?: string;
+
+  @ApiPropertyOptional({
+    description: 'Tags related to the task or post requirements',
+  })
+  @IsOptional()
+  @IsArray()
   @IsString({ each: true })
-  tags?: string[];
+  taskTags?: string[];
 }
