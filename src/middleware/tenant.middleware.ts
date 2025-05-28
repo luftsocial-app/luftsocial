@@ -16,7 +16,8 @@ export class TenantMiddleware implements NestMiddleware {
     private tenantService: TenantService,
     private readonly logger: PinoLogger,
     private configService: ConfigService,
-  ) {}
+    // private readonly clerkService: ClerkService,
+  ) { }
 
   async use(req: Request, res: Response, next: NextFunction) {
     try {
@@ -53,5 +54,19 @@ export class TenantMiddleware implements NestMiddleware {
       this.logger.error(error);
       throw new NotFoundException(error);
     }
+    // // Verify organization membership using Clerk
+    // if (tenantId) {
+    //   const userId = req.auth?.userId;
+    //   const memberships = await this.clerkService.getUserOrganizations(userId);
+    //   const hasMembership = memberships.data.some(
+    //     (m) => m.organization.id === tenantId,
+    //   );
+
+    //   if (!hasMembership) {
+    //     throw new UnauthorizedException('User not part of organization');
+    //   }
+    // }
+
+
   }
 }
