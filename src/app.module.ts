@@ -66,8 +66,9 @@ import { TikTokRateLimit } from './platforms/entities/tiktok-entities/tiktok_rat
 @Module({
   imports: [
     ConfigModule.forRoot({
-      ignoreEnvFile: true,
-      ignoreEnvVars: true,
+      envFilePath: '.env',
+      // ignoreEnvFile: true,
+      // ignoreEnvVars: true,
       isGlobal: true,
       load: [config.util.toObject],
     }),
@@ -112,9 +113,7 @@ import { TikTokRateLimit } from './platforms/entities/tiktok-entities/tiktok_rat
         limit: 5,
       },
     ]),
-    RealtimeModule,
     ClerkWebhookModule,
-    RealtimeModule,
     HealthModule,
     ScheduleModule.forRoot(),
     MediaStorageModule,
@@ -129,6 +128,7 @@ import { TikTokRateLimit } from './platforms/entities/tiktok-entities/tiktok_rat
     TaskModule,
     TiktokModule,
     MessageModule,
+    RealtimeModule,
   ],
   controllers: [AppController],
   providers: [

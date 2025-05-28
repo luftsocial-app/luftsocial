@@ -19,10 +19,9 @@ export class MessageRepository extends Repository<MessageEntity> {
     query: MessageQueryDto,
   ): Promise<MessageEntity[]> {
     try {
-      const queryBuilder = this.createQueryBuilder('message').where(
-        'message.conversationId = :conversationId',
-        { conversationId },
-      );
+      const queryBuilder = this.createQueryBuilder('message')
+        .leftJoinAndSelect('message.attachments', 'attachments')
+        .where('message.conversationId = :conversationId', { conversationId });
 
       if (query.senderId) {
         queryBuilder.andWhere('message.senderId = :senderId', {

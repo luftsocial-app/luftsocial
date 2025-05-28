@@ -1,0 +1,17 @@
+meta {
+  name: Health-check
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}
+  body: none
+  auth: apikey
+}
+
+auth:apikey {
+  key: Authorization
+  value: {{clerkToken}}
+  placement: header
+}

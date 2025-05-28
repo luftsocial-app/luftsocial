@@ -53,6 +53,8 @@ import { MessageEventHandler } from './usecases/message.events';
 import { WebsocketHelpers } from '../utils/websocket.helpers';
 import { TenantService } from '../../../user-management/tenant.service';
 import { wsAuthMiddleware } from '../../../middleware/ws.middleware';
+import { Inject, forwardRef } from '@nestjs/common';
+
 @WebSocketGateway({
   cors: {
     origin: config.get('websocket.allowedOrigins'),
@@ -70,6 +72,7 @@ export class MessagingGateway
 
   constructor(
     private readonly conversationService: ConversationService,
+    @Inject(forwardRef(() => MessageService))
     private readonly messageService: MessageService,
     private readonly messageValidator: MessageValidatorService,
     private readonly configService: ConfigService,
@@ -90,6 +93,10 @@ export class MessagingGateway
 
   // @UseGuards(WsGuard)
   async handleConnection(client: SocketWithUser) {
+    // console.log(
+    //   'handleConnection called.............................................',
+    //   { id: client.id },
+    // );
     try {
       const { user } = client.data;
 
@@ -208,7 +215,9 @@ export class MessagingGateway
     const message = await this.messageService.createMessage(
       payload.conversationId,
       payload.content,
-      user.sub,
+      user.id,
+      payload.parentMessageId,
+      payload.uploadSessionId,
     );
 
     // Get conversation to ensure we have all participants
@@ -220,15 +229,12 @@ export class MessagingGateway
     const room = RoomNameFactory.conversationRoom(conversation.id);
     this.server.to(room).emit(MessageEventType.MESSAGE_CREATED, {
       id: message.id,
-      conversationId: conversation.id,
-      sender: {
-        id: user.id,
-        username: user.username,
-        // Include other sender info that's useful for the client
-      },
-      content: payload.content,
+      conversationId: message.conversationId,
+      sender: { id: user.id, username: user.username },
+      content: message.content,
       createdAt: message.createdAt,
-      parentMessageId: payload.parentMessageId,
+      parentMessageId: message.parentMessageId,
+      attachments: message.attachments,
     });
 
     return createSuccessResponse({
@@ -268,7 +274,7 @@ export class MessagingGateway
       content: message.content,
       updatedAt: message.updatedAt,
       isEdited: message.isEdited,
-      editVersion: message.metadata?.editHistory?.length || 1,
+      editVersion: message.editHistory?.length || 1,
     });
 
     return createSuccessResponse({
@@ -327,10 +333,13 @@ export class MessagingGateway
     client: SocketWithUser,
     conversationId: string,
   ): Promise<SocketResponse> {
-    return await this.participantEventHandler.joinConversation(
+    // console.log("client..................................:",client)
+    const result = await this.participantEventHandler.joinConversation(
       client,
       conversationId,
     );
+    client.emit(MessageEventType.JOIN_CONVERSATION, result);
+    return result;
   }
 
   @SubscribeMessage(MessageEventType.PARTICIPANT_ADD)

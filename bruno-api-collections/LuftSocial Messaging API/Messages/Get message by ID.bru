@@ -1,22 +1,26 @@
 meta {
   name: Get message by ID
   type: http
-  seq: 4
+  seq: 9
 }
 
 get {
-  url: {{baseUrl}}/messages/{{messageId}}
+  url: {{baseUrl}}/messages/:messageId
   body: none
   auth: bearer
 }
 
+params:path {
+  messageId: 985512ec-8932-4dd3-b3d0-65cc9a975991
+}
+
 headers {
-  x-tenant-id: {{x-tenant-id}}
+  x-tenant-id: 1
   ~Authorization: Bearer {{authToken}}
 }
 
 auth:bearer {
-  token: {{BearerToken}}
+  token: eyJhbGciOiJSUzI1NiIsImNhdCI6ImNsX0I3ZDRQRDExMUFBQSIsImtpZCI6Imluc18yc1NpQlRTclhVY0E5WDdOY3dRRzhQaEhHcmsiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE3NDgwMjYyMjUsImZ2YSI6WzgwLC0xXSwiaWF0IjoxNzQ4MDE2NjI1LCJpc3MiOiJodHRwczovL2VsZWdhbnQtY2FtZWwtNDEuY2xlcmsuYWNjb3VudHMuZGV2IiwianRpIjoiYjY2N2I3YzZiMzRhODhmY2IyZjYiLCJtZW1iZXJzaGlwIjp7Im9yZ18ydG9XUURqSE1Xd3cwbHhEZGV1Y0ZRaDVabGwiOiJvcmc6bWVtYmVyIiwib3JnXzJ4VXYwS0F3ZGUyR0dJNnVvN2ZjMEw1SlAybSI6Im9yZzptZW1iZXIifSwibWV0YWRhdGEiOnt9LCJuYmYiOjE3NDgwMTY2MTUsInBlcm1pc3Npb25zIjpudWxsLCJzaWQiOiJzZXNzXzJ4VjhLUURvRXR2ZVVsUFVIUFNWMXlCcW1rQyIsInN1YiI6InVzZXJfMnhTTHJPczZ4ZXpwT2JsVk1aQURrRVRTZ2paIn0.JLpTKlbxqiAkaqLuiJaDcKKQqycnlhCXcUVXKvH_4Frbzp1qAXntqp4GpO3jlTzlOCgzxLJwdtt-XuqWAktyRXcTZaj1EbPBqx76HHNas7TmW8F69UqHRGAVip_jIK8EsnUXTQSi_FvZ9xL2FkxiBZDTShJvWGgGp9v9lEtpZn_F1cSFzn18tUSYRyCHIVF7816e5WiT2LMFEMGx3pHwV5FgUKpn3liMy6vgo4GaD6rdGvbTHHMvALSXAjzQz5Ec06WXdEY74rAVeZVvaqkJldD2KdNNyb7f5ZcaXtV1BzOiZVcK67dadGFCp0E8gQ_tnpgHtls4sCWP8ypR9eEZ4w
 }
 
 docs {

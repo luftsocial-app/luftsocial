@@ -23,7 +23,7 @@ import { CommonEntity } from '../../shared/entities/common.entity';
 @Index('idx_msg_tenant', ['tenantId'], { unique: false })
 @Index('idx_msg_deleted_at', ['deletedAt'], { unique: false })
 export class MessageEntity extends CommonEntity {
-  @Column('text')
+  @Column('text', { nullable: true })
   content: string;
 
   @ManyToOne(() => ConversationEntity, (conversation) => conversation.messages)

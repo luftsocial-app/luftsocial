@@ -5,7 +5,7 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/auth/me
+  url: {{baseUrl}}/users
   body: none
   auth: apikey
 }
@@ -13,11 +13,12 @@ get {
 headers {
   Authorization: Bearer {{clerkToken}}
   Accept: application/json
+  X-TENANT-ID: 1
 }
 
 auth:apikey {
   key: Authorization
-  value: Bearer {{clerkToken}}
+  value: {{clerkToken}}
   placement: header
 }
 

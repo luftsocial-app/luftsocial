@@ -15,6 +15,11 @@ export class RedisIoAdapter extends IoAdapter {
     const redisPassword = `${encodeURIComponent(password)}` || '';
     const redisHost = host || 'localhost';
     const redisPort = port || 6379;
+
+    console.log('redisUsername', redisUsername);
+    console.log('redisPassword', redisPassword);
+    console.log('redisHost', redisHost);
+    console.log('redisPort', redisPort);
     const redisUrl =
       config.get<string>('redis.renderTestURL') ||
       `redis://${redisUsername}:${redisPassword}@${redisHost}:${redisPort}`;

@@ -34,6 +34,7 @@ export class ParticipantEventHandler {
     server: Server,
   ): Promise<SocketResponse> {
     const { user } = client.data;
+    user.id = user.sub;
 
     // Validate payload
     const validationError = validatePayload(payload, [
@@ -81,6 +82,7 @@ export class ParticipantEventHandler {
     server: Server,
   ): Promise<SocketResponse> {
     const { user } = client.data;
+    user.id = user.sub;
 
     // Validate payload
     const validationError = validatePayload(payload, [
@@ -137,10 +139,15 @@ export class ParticipantEventHandler {
   ): Promise<SocketResponse> {
     const { user } = client.data;
 
+    user.id = user.sub;
     const hasAccess = await this.conversationService.validateAccess(
       conversationId,
       user.id,
       user.tenantId,
+    );
+
+    console.log(
+      `user ${user.id} has access to conversation ${conversationId}: ${hasAccess}`,
     );
 
     if (hasAccess) {
@@ -155,6 +162,7 @@ export class ParticipantEventHandler {
 
       return createSuccessResponse({
         conversationId,
+        room: RoomNameFactory.conversationRoom(conversationId),
         message: 'Joined conversation successfully',
       });
     } else {

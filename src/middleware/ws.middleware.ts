@@ -1,15 +1,25 @@
 import * as jwt from 'jsonwebtoken';
 import { TenantService } from '../user-management/tenant.service';
 import { createSessionToken } from '../utils/createSessionToken';
+import { ConfigService } from '@nestjs/config';
 
 export function wsAuthMiddleware(
   tenantService: TenantService,
   logger,
-  configService,
+  configService: ConfigService,
 ) {
   return async (socket, next) => {
-    const tenantId = socket.handshake.headers['x-tenant-id'] as string;
-    tenantService.setTenantId(tenantId); // Use the TenantService to set the tenant ID
+    // console.log('clerk jwt public key', process.env.CLERK_JWT_PUBLIC_KEY);
+    // console.log('environment......:', process.env.NODE_ENV);
+    const tenantId =
+      socket.handshake.auth?.tenantId ||
+      socket.handshake.query?.['x-tenant-id'] ||
+      socket.handshake.headers['x-tenant-id'];
+    tenantService.setTenantId(tenantId);
+
+    console.log('socket auth....................;', socket.handshake.auth);
+
+    // console.log('tenant id................................:', tenantId);
 
     const token =
       socket.handshake.auth?.token || socket.handshake.headers?.authorization;
@@ -18,6 +28,11 @@ export function wsAuthMiddleware(
     }
 
     const isDev = process.env.NODE_ENV === 'development';
+    console.log('WebSocket connection attempt', {
+      headers: socket.handshake.headers,
+      auth: socket.handshake.auth,
+      query: socket.handshake.query,
+    });
     const publicKey = isDev
       ? process.env.CLERK_JWT_PUBLIC_KEY.replace(/\\n/g, '\n')
       : configService.get('clerk.clerkPublicKey');
@@ -26,7 +41,11 @@ export function wsAuthMiddleware(
       const user = jwt.verify(token, publicKey, {
         algorithms: ['RS256'], // Specify the RS256 algorithm
       });
+
+      user['tenantId'] = tenantId;
       socket.data.user = user; // Attach the user object to socket.data
+
+      console.log('user content..........................: ', user);
 
       const sessionId = user['sid'];
       const clerkSecretKey = configService.get('clerk.secretKey');
@@ -34,11 +53,15 @@ export function wsAuthMiddleware(
       // testing: renew session by 1 hr
 
       if (process.env.NODE_ENV === 'development')
-        await createSessionToken(sessionId, clerkSecretKey, this.logger);
+        await createSessionToken(sessionId, clerkSecretKey, logger);
 
       next();
     } catch (error) {
-      logger.error({ error });
+      logger.error({
+        message: error?.message,
+        stack: error?.stack,
+        error,
+      });
       next(new Error('Invalid authentication token'));
     }
   };

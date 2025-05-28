@@ -5,6 +5,7 @@ import { AuthObject } from '@clerk/express';
 import { CurrentUser } from '../../decorators/current-user.decorator';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { SocialPlatform } from '../../common/enums/social-platform.enum';
+import { UploadType } from '../../common/enums/upload.enum';
 
 @ApiTags('Media Storage')
 @ApiBearerAuth()
@@ -24,6 +25,8 @@ export class MediaStorageController {
     @Query('mimeType') fileType: string,
     @Query('fileHash') fileHash: string,
     @Query('platform', new ParseEnumPipe(SocialPlatform))
+    @Query('uploadType', new ParseEnumPipe(UploadType))
+    uploadType: UploadType = UploadType.POST,
     platform: SocialPlatform,
   ) {
     return await this.mediaStorageService.generatePreSignedUrl(
@@ -32,6 +35,7 @@ export class MediaStorageController {
       fileType,
       fileHash,
       platform,
+      uploadType,
     );
   }
 

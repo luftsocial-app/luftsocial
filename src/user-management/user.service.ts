@@ -39,13 +39,19 @@ export class UserService {
   }
 
   async findById(id: string) {
-    return this.userRepo.findOne({
-      where: {
-        id,
-        tenants: { id: this.tenantService.getTenantId() },
-      },
-      relations: ['roles'],
-    });
+    const tenandId = this.tenantService.getTenantId();
+    try {
+      const user = await this.userRepo.findOne({
+        where: {
+          id,
+          tenants: { id: tenandId },
+        },
+        relations: ['roles', 'tenants'],
+      });
+      return user;
+    } catch (error) {
+      throw new Error(error.message);
+    }
   }
 
   async findUserWithRelations(userId: string): Promise<User> {

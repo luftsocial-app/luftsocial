@@ -1,21 +1,25 @@
 meta {
   name: Get conversation by ID
   type: http
-  seq: 2
+  seq: 5
 }
 
 get {
-  url: {{baseUrl}}/conversations/{{conversationId}}
+  url: {{baseUrl}}/conversations/:conversationId
   body: none
   auth: bearer
 }
 
+params:path {
+  conversationId: 423feb57-19f4-4d4b-ab87-1b6596cd48d4
+}
+
 headers {
-  x-tenant-id: {{x-tenant-id}}
+  x-tenant-id: 1
 }
 
 auth:bearer {
-  token: {{BearerToken}}
+  token: eyJhbGciOiJSUzI1NiIsImNhdCI6ImNsX0I3ZDRQRDExMUFBQSIsImtpZCI6Imluc18yc1NpQlRTclhVY0E5WDdOY3dRRzhQaEhHcmsiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE3NDgwMjY5MDcsImZ2YSI6WzkxLC0xXSwiaWF0IjoxNzQ4MDE3MzA3LCJpc3MiOiJodHRwczovL2VsZWdhbnQtY2FtZWwtNDEuY2xlcmsuYWNjb3VudHMuZGV2IiwianRpIjoiMWU0ZDJjNDRjYmY2OTM4Nzk3NmMiLCJtZW1iZXJzaGlwIjp7Im9yZ18ydG9XUURqSE1Xd3cwbHhEZGV1Y0ZRaDVabGwiOiJvcmc6bWVtYmVyIiwib3JnXzJ4VXYwS0F3ZGUyR0dJNnVvN2ZjMEw1SlAybSI6Im9yZzptZW1iZXIifSwibWV0YWRhdGEiOnt9LCJuYmYiOjE3NDgwMTcyOTcsInBlcm1pc3Npb25zIjpudWxsLCJzaWQiOiJzZXNzXzJ4VjhLUURvRXR2ZVVsUFVIUFNWMXlCcW1rQyIsInN1YiI6InVzZXJfMnhTTHJPczZ4ZXpwT2JsVk1aQURrRVRTZ2paIn0.OF7eYSTFefiwFujZ9Fqh7pVPJYccEazyJLlBLVANOu0f7te2fZ1QXZf6d7dIBihxCTLJPHs3iNXZw21CtZRQClR67raYiCQlFoXGbXHcUBYwbzvAtqMPacBmXP7C-HAVkJqWKWY4OJAKdFRuNP4HmuIiblZFklscXxSh6B3lyRUTK-izyfOB5KhOxDr4tbv0RqrqPhF9q2rMo6UezldmomCZ3bDIT9T5lAR_o-WLS3A20QdBo50Oiq6rYzhK9_spplPg_BZbND9Fh_3c4aKtvsFISIDyP4MV-Xa9hrYD6iXaUq0YoWXRSg7O2d3VUjhE5irIzoTpUNQsw31ikkkL2Q
 }
 
 docs {

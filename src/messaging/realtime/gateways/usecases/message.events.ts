@@ -19,11 +19,13 @@ import { MessageValidatorService } from '../../services/message-validator.servic
 import { MessageService } from '../../../messages/services/message.service';
 import { Server } from 'socket.io';
 import { WebsocketHelpers } from '../../utils/websocket.helpers';
-
+import { Inject } from '@nestjs/common';
+import { forwardRef } from '@nestjs/common';
 @Injectable()
 export class MessageEventHandler {
   constructor(
     private readonly messageValidatorService: MessageValidatorService,
+    @Inject(forwardRef(() => MessageService))
     private readonly messageService: MessageService,
     private readonly websocketHelpers: WebsocketHelpers,
   ) {}

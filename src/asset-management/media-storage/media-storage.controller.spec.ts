@@ -4,6 +4,7 @@ import { MediaStorageService } from './media-storage.service';
 import { PinoLogger } from 'nestjs-pino';
 import { AuthObject } from '@clerk/express';
 import { SocialPlatform } from '../../common/enums/social-platform.enum';
+import { UploadType } from '../../common/enums/upload.enum';
 
 describe('MediaStorageController', () => {
   let controller: MediaStorageController;
@@ -68,6 +69,7 @@ describe('MediaStorageController', () => {
         fileName,
         fileType,
         fileHash,
+        UploadType.POST,
         platform,
       );
 
@@ -77,6 +79,7 @@ describe('MediaStorageController', () => {
         fileType,
         fileHash,
         platform,
+        UploadType.POST,
       );
       expect(result).toEqual(expectedResult);
     });

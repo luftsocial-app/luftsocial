@@ -1,11 +1,23 @@
 import { PinoLogger } from 'nestjs-pino';
+import * as config from 'config';
 
 export async function createSessionToken( // this function is for testing only, should be removed in production
   sessionId: string,
-  clerkSecretKey: string,
+  clerkSecretKeyParam: string,
   logger: PinoLogger,
-) {
+): Promise<string> {
+  const clerkSecretKey =
+    clerkSecretKeyParam || config.get<string>('clerk.clerkSecretKey');
+
+  if (process.env.NODE_ENV === 'development' && !clerkSecretKey) {
+    throw new Error('Clerk secret key is not configured');
+  }
+
   logger.debug({ sessionId, clerkSecretKey }, 'Creating session token');
+
+  // console.log('clerkSecretKey............', clerkSecretKey);
+
+  console.log('sessionId............:', sessionId);
 
   try {
     const response = await fetch(
@@ -24,6 +36,8 @@ export async function createSessionToken( // this function is for testing only, 
 
     if (!response.ok) {
       const errorDetails = await response.json();
+      console.log('errorDetails..................:', errorDetails);
+
       throw new Error(
         `Error Details ${response.status}: ${JSON.stringify(errorDetails)}`,
       );

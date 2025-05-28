@@ -8,6 +8,7 @@ import {
   IsEnum,
   IsArray,
   IsNotEmpty,
+  Max,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -146,7 +147,7 @@ export class MessageQueryDto {
   })
   @IsUUID()
   @IsString()
-  conversationId: string;
+  conversationId?: string;
 
   @ApiPropertyOptional({
     description: 'User ID for personalized responses like read status',
@@ -205,6 +206,7 @@ export class MessageQueryDto {
   @IsOptional()
   @IsInt()
   @Min(1)
+  @Max(100)
   @Type(() => Number)
   limit?: number = 20;
 

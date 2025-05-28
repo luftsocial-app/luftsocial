@@ -50,7 +50,9 @@ export class User {
   @Column({ type: 'jsonb', default: [] })
   permissions: Permission[];
 
-  @OneToMany(() => Role, (role) => role.id, {
+  // User has multiple roles
+  //N:B , You can't use oneToMany with joinTable
+  @ManyToMany(() => Role, (role) => role.users, {
     cascade: true,
   })
   @JoinTable({

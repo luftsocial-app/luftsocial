@@ -45,8 +45,9 @@ export class RoomNameFactory {
 // Event payload type definitions
 export interface MessageEventPayload {
   conversationId: string;
-  content: string;
+  content?: string;
   parentMessageId?: string;
+  uploadSessionId?: string;
   metadata?: Record<string, any>;
 }
 

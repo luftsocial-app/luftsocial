@@ -10,11 +10,12 @@ import { MessageEventHandler } from './gateways/usecases/message.events';
 import { WebsocketHelpers } from './utils/websocket.helpers';
 import { UserManagementModule } from '../../user-management/user-management.module';
 import { WebsocketSanitizationPipe } from './pipes/websocket-sanitization.pipe';
+import { forwardRef } from '@nestjs/common';
 
 @Module({
   imports: [
     ConversationModule,
-    MessageModule,
+    forwardRef(() => MessageModule),
     ConfigModule,
     UserManagementModule,
   ],

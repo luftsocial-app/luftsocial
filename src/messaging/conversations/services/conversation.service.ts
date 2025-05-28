@@ -122,7 +122,9 @@ export class ConversationService {
     const checkUser2TenantId = await this.userService.findById(userId2);
 
     if (!checkUser2TenantId) {
-      throw new NotFoundException('User 2 not found in the tenant');
+      throw new NotFoundException(
+        `User with ${userId2} not found in the tenant ${tenantId}`,
+      );
     }
 
     // Check if direct chat already exists
@@ -142,10 +144,21 @@ export class ConversationService {
       id: In([userId1, userId2]),
     });
 
+    const foundUserIds = users.map((user) => user.id);
+    const missingUserIds = [userId1, userId2].filter(
+      (id) => !foundUserIds.includes(id),
+    );
+
     this.logger.info({ usersRepo: users });
 
-    if (users.length !== 2) {
-      throw new NotFoundException('One or both users not found');
+    if (missingUserIds.length > 0) {
+      const userLabels = missingUserIds.map((id) =>
+        id === userId1 ? 'First user' : 'Second user',
+      );
+      const userList = missingUserIds.join(', ');
+      throw new NotFoundException(
+        `${userLabels.join(' and ')} not found in the current tenant (IDs: ${userList})`,
+      );
     }
 
     const conversation = this.conversationRepository.create({

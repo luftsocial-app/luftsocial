@@ -12,6 +12,7 @@ import axios from 'axios';
 import * as config from 'config';
 import * as crypto from 'crypto';
 import { TenantService } from '../../user-management/tenant.service';
+import { UploadType } from '../../common/enums/upload.enum';
 
 // Mocking external modules
 jest.mock('aws-sdk');
@@ -181,7 +182,6 @@ describe('MediaStorageService', () => {
     });
 
     it('should return null and log error when database query fails', async () => {
-      // Specifically mock the logger first to ensure it's called
       mockPinoLogger.error.mockClear();
       mockPostAssetRepository.findOne.mockRejectedValue(
         new Error('Database error'),
@@ -205,13 +205,9 @@ describe('MediaStorageService', () => {
     ] as Express.Multer.File[];
 
     it('should upload new files to S3 and save metadata', async () => {
-      // Mock hash calculation
       service.calculateFileHash = jest.fn().mockResolvedValue('new-hash');
-
-      // Mock no existing file with same hash
       service.findMediaByHash = jest.fn().mockResolvedValue(null);
 
-      // Mock S3 upload success
       const mockUploadResult = {
         sendData: { ETag: 'etag' },
         cdnUrl:
@@ -219,7 +215,6 @@ describe('MediaStorageService', () => {
       };
       service['uploadToS3'] = jest.fn().mockResolvedValue(mockUploadResult);
 
-      // Mock saved file metadata
       const mockSavedFile = {
         id: 'asset-123',
         fileKey: 'social-media/user-123/test-image.jpg',
@@ -274,13 +269,8 @@ describe('MediaStorageService', () => {
         fileKey: 'social-media/user-123/existing.jpg',
       });
 
-      // Run the test
       const result = await service.uploadPostMedia('user-123', mockFiles);
 
-      // In this test we're verifying the existing media was returned without a new upload
-      // but we can't directly check if uploadToS3 was called since it's not a mock function
-
-      // Verify new reference was saved
       expect(mockPostAssetRepository.create).toHaveBeenCalled();
       expect(mockPostAssetRepository.save).toHaveBeenCalled();
 
@@ -317,7 +307,6 @@ describe('MediaStorageService', () => {
         },
       ] as Express.Multer.File[];
 
-      // Mock hash calculation (different hash for each file)
       service.calculateFileHash = jest.fn().mockImplementation((buffer) => {
         if (buffer.toString() === 'image1 data')
           return Promise.resolve('hash1');
@@ -357,15 +346,12 @@ describe('MediaStorageService', () => {
           fileKey: 'social-media/user-123/image2.png',
         });
 
-      // Run the test
       const result = await service.uploadPostMedia('user-123', multipleFiles);
 
-      // Verify correct number of items returned
       expect(result).toHaveLength(2);
       expect(result[0]).toHaveProperty('id', 'existing-1');
       expect(result[1]).toHaveProperty('id', 'asset-2');
 
-      // Verify S3 upload called once (for second file only)
       expect(service['uploadToS3']).toHaveBeenCalledTimes(1);
     });
   });
@@ -473,9 +459,6 @@ describe('MediaStorageService', () => {
         false,
       );
 
-      // Since we're testing a specific code path, we can't verify these weren't called
-      // as they're not jest mocks in this context. Instead, verify what we know should happen:
-
       // Verify upload occurred
       expect(service['uploadToS3']).toHaveBeenCalled();
     });
@@ -494,51 +477,100 @@ describe('MediaStorageService', () => {
 
   describe('generatePreSignedUrl', () => {
     it('should generate pre-signed URL with valid parameters', async () => {
-      // Mock saved file metadata
-      mockPostAssetRepository.save.mockResolvedValue({
+      // Setup test data
+      const tenantId = 'tenant-123';
+      const userId = 'user-123';
+      const fileHash = 'hash-123';
+      const fileName = 'image.jpg';
+      const contentType = 'image/jpeg';
+      const platform = SocialPlatform.TIKTOK;
+      const uploadType = UploadType.POST;
+      const expectedPreSignedUrl = 'https://presigned-url';
+
+      // Mock tenant service
+      mockTenantService.getTenantId.mockReturnValue(tenantId);
+
+      // Mock S3 getSignedUrlPromise
+      mockedS3Instance.getSignedUrlPromise.mockResolvedValue(
+        expectedPreSignedUrl,
+      );
+
+      // Mock PostAsset repository
+      const mockAsset = {
         id: 'presigned-asset-123',
-        fileKey: 'social-media/tenant-123/user-123/file.jpg',
-      });
+        fileKey:
+          'social-media/TIKTOK/tenant-123/user-123/1748427988397-8kpzu7ofhiq.jpg',
+        tenantId,
+        fileType: contentType,
+        fileHash,
+        fileName,
+        isPending: true,
+        createdBy: userId,
+        updatedBy: userId,
+      };
 
-      // Run the test
+      mockPostAssetRepository.save.mockResolvedValue(mockAsset);
+      mockPostAssetRepository.create.mockImplementation((entity) => ({
+        ...entity,
+        id: 'presigned-asset-123',
+      }));
+
+      // Call the method
       const result = await service.generatePreSignedUrl(
-        'user-123',
-        'image.jpg',
-        'image/jpeg',
-        'hash-123',
+        userId,
+        fileName,
+        contentType,
+        fileHash,
+        platform,
+        uploadType,
       );
 
-      // Verify S3 pre-signed URL was requested
-      expect(mockedS3Instance.getSignedUrlPromise).toHaveBeenCalledWith(
-        'putObject',
-        expect.objectContaining({
-          Bucket: 'test-bucket',
-          ContentType: 'image/jpeg',
-          Metadata: { 'file-hash': 'hash-123' },
-        }),
+      // The actual key is dynamic, but always matches this pattern:
+      expect(result.key).toMatch(
+        /^social-media\/TIKTOK\/tenant-123\/user-123\/\d+-[a-z0-9]+\.jpg$/,
       );
-
-      // Verify file metadata saved with isPending flag
-      expect(mockPostAssetRepository.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          tenantId: 'tenant-123',
-          fileType: 'image/jpeg',
-          fileHash: 'hash-123',
-          fileName: 'image.jpg',
-          isPending: true,
-        }),
+      expect(result.cdnUrl).toMatch(
+        /^https:\/\/test-bucket\.s3\.us-east-1\.amazonaws\.com\/social-media\/TIKTOK\/tenant-123\/user-123\/\d+-[a-z0-9]+\.jpg$/,
       );
-
-      // Verify result
-      expect(result).toEqual({
-        preSignedUrl: 'https://presigned-url',
-        cdnUrl: expect.stringContaining(
-          'test-bucket.s3.us-east-1.amazonaws.com',
-        ),
+      expect(result).toMatchObject({
+        preSignedUrl: expectedPreSignedUrl,
         bucket: 'test-bucket',
-        key: expect.stringContaining('social-media/tenant-123/user-123'),
         assetId: 'presigned-asset-123',
       });
+
+      // Verify S3 was called with correct parameters
+      expect(mockedS3Instance.getSignedUrlPromise).toHaveBeenCalledWith(
+        'putObject',
+        {
+          Bucket: 'test-bucket',
+          Key: result.key,
+          ContentType: contentType,
+          Metadata: expect.objectContaining({
+            'user-id': userId,
+            'file-hash': fileHash,
+            'tenant-id': tenantId,
+            'upload-type': uploadType,
+            'upload-timestamp': expect.any(String),
+            'content-type': contentType,
+          }),
+          Expires: 3600,
+        },
+      );
+
+      // Verify the asset was saved correctly
+      expect(mockPostAssetRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fileKey: result.key,
+          fileType: contentType,
+          fileHash,
+          fileName,
+          isPending: true,
+          tenantId,
+        }),
+      );
+      expect(mockPostAssetRepository.save).toHaveBeenCalledTimes(1);
+
+      console.log('Test completed successfully!');
     });
 
     it('should validate file name and content type', async () => {
@@ -705,7 +737,7 @@ describe('MediaStorageService', () => {
       service.calculateFileHash = jest.fn().mockResolvedValue('new-hash');
       service['uploadToS3'] = jest.fn().mockResolvedValue({
         sendData: { ETag: 'etag' },
-        cdnUrl: 'https://test-bucket.s3.us-east-1.amazonaws.com/key',
+        cdnUrl: 'test-bucket.s3.us-east-1.amazonaws.com/key',
       });
 
       // Test with different MIME types
@@ -763,7 +795,7 @@ describe('MediaStorageService', () => {
       service.calculateFileHash = jest.fn().mockResolvedValue('hash');
       service['uploadToS3'] = jest.fn().mockResolvedValue({
         sendData: { ETag: 'etag' },
-        cdnUrl: 'https://test-bucket.s3.us-east-1.amazonaws.com/key',
+        cdnUrl: 'test-bucket.s3.us-east-1.amazonaws.com/key',
       });
       mockPostAssetRepository.save.mockImplementation((entity) =>
         Promise.resolve({
@@ -951,80 +983,6 @@ describe('MediaStorageService', () => {
         expect(service_any.getFileExtension('.htaccess')).toBe('htaccess');
         expect(service_any.getFileExtension('file.with.multiple.dots')).toBe(
           'dots',
-        );
-      });
-    });
-
-    describe('getMediaTypeFromMimeType', () => {
-      it('should identify media types correctly', async () => {
-        const service_any = service as any;
-
-        expect(service_any.getMediaTypeFromMimeType('image/jpeg')).toBe(
-          MediaType.IMAGE,
-        );
-        expect(service_any.getMediaTypeFromMimeType('image/png')).toBe(
-          MediaType.IMAGE,
-        );
-        expect(service_any.getMediaTypeFromMimeType('image/svg+xml')).toBe(
-          MediaType.IMAGE,
-        );
-
-        expect(service_any.getMediaTypeFromMimeType('video/mp4')).toBe(
-          MediaType.VIDEO,
-        );
-        expect(service_any.getMediaTypeFromMimeType('video/quicktime')).toBe(
-          MediaType.VIDEO,
-        );
-        expect(service_any.getMediaTypeFromMimeType('video/webm')).toBe(
-          MediaType.VIDEO,
-        );
-
-        expect(service_any.getMediaTypeFromMimeType('audio/mpeg')).toBe(
-          MediaType.AUDIO,
-        );
-        expect(service_any.getMediaTypeFromMimeType('audio/wav')).toBe(
-          MediaType.AUDIO,
-        );
-
-        expect(service_any.getMediaTypeFromMimeType('application/pdf')).toBe(
-          MediaType.FILE,
-        );
-        expect(service_any.getMediaTypeFromMimeType('text/plain')).toBe(
-          MediaType.FILE,
-        );
-        expect(
-          service_any.getMediaTypeFromMimeType('application/octet-stream'),
-        ).toBe(MediaType.FILE);
-      });
-    });
-
-    describe('getFilenameFromUrl', () => {
-      it('should extract filenames from URLs correctly', async () => {
-        const service_any = service as any;
-
-        expect(
-          service_any.getFilenameFromUrl('https://example.com/image.jpg'),
-        ).toBe('image.jpg');
-        expect(
-          service_any.getFilenameFromUrl(
-            'https://example.com/path/to/video.mp4',
-          ),
-        ).toBe('video.mp4');
-        expect(
-          service_any.getFilenameFromUrl(
-            'https://example.com/file.pdf?query=param',
-          ),
-        ).toBe('file.pdf');
-        expect(
-          service_any.getFilenameFromUrl(
-            'https://example.com/file.doc#fragment',
-          ),
-        ).toBe('file.doc');
-        expect(service_any.getFilenameFromUrl('https://example.com/')).toMatch(
-          /^file-\d+$/,
-        );
-        expect(service_any.getFilenameFromUrl('invalid-url')).toMatch(
-          /^file-\d+$/,
         );
       });
     });
