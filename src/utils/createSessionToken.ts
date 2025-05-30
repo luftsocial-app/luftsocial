@@ -15,9 +15,6 @@ export async function createSessionToken( // this function is for testing only, 
 
   logger.debug({ sessionId, clerkSecretKey }, 'Creating session token');
 
-  // console.log('clerkSecretKey............', clerkSecretKey);
-
-  console.log('sessionId............:', sessionId);
 
   try {
     const response = await fetch(
@@ -36,7 +33,6 @@ export async function createSessionToken( // this function is for testing only, 
 
     if (!response.ok) {
       const errorDetails = await response.json();
-      console.log('errorDetails..................:', errorDetails);
 
       throw new Error(
         `Error Details ${response.status}: ${JSON.stringify(errorDetails)}`,

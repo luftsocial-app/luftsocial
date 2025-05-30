@@ -70,4 +70,7 @@ terraform*
 
 
 #docker
-docker-compose.dev.yml
+docker-compose.dev.yaml
+
+
+test-output.log
