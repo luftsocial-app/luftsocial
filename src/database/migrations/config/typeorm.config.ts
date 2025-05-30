@@ -8,7 +8,7 @@ export default new DataSource({
   username: config.get('DB_USER') || 'root',
   password: config.get('DB_PASS') || 'admin',
   database: config.get('DB_NAME') || 'luftsocial',
-  synchronize: true,
+  synchronize: false,
   entities: ['dist/**/**.entity{.ts,.js}'],
 
   migrations: ['src/database/migrations/luftsocialDB/*.ts'],

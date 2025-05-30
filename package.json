@@ -74,7 +74,8 @@
     "svix": "^1.62.0",
     "swagger-ui-express": "^5.0.1",
     "typed-rest-client": "^2.1.0",
-    "typeorm": "^0.3.21"
+    "typeorm": "^0.3.21",
+    "zod": "^3.25.36"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

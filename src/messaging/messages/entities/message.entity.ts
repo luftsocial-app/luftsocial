@@ -105,6 +105,9 @@ export class MessageEntity extends CommonEntity {
   @Column({ type: 'jsonb', default: {}, name: 'read_by' })
   readBy: { [userId: string]: Date };
 
+  @Column({ name: 'sent_at', type: 'timestamp', nullable: true })
+  sentAt?: Date;
+
   // Helper methods
   markAsRead(userId: string): void {
     if (!this.readBy) {

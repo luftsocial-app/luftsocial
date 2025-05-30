@@ -33,7 +33,7 @@ import { Role as RoleEntity } from './user-management/entities/role.entity';
 import { ConversationEntity } from './messaging/conversations/entities/conversation.entity';
 import { MessageEntity } from './messaging/messages/entities/message.entity';
 import { AttachmentEntity } from './messaging/messages/entities/attachment.entity';
-
+import { MessageInboxEntity } from './messaging/messages/entities/inbox.entity';
 import { InstagramModule } from './platforms/instagram/instagram.module';
 import { AuthState } from './platforms/entities/facebook-entities/auth-state.entity';
 import { FacebookAccount } from './platforms/entities/facebook-entities/facebook-account.entity';
@@ -74,6 +74,8 @@ import { TikTokRateLimit } from './platforms/entities/tiktok-entities/tiktok_rat
     }),
     TypeOrmModule.forRoot({
       ...config.get('db.options'),
+      // This will automatically load all entities registered with TypeOrmModule.forFeature()
+      autoLoadEntities: true, 
       entities: [
         User,
         Tenant,
@@ -83,6 +85,7 @@ import { TikTokRateLimit } from './platforms/entities/tiktok-entities/tiktok_rat
         ConversationEntity,
         MessageEntity,
         AttachmentEntity,
+        MessageInboxEntity,
         Team,
         Notification,
         FacebookPostMetric,

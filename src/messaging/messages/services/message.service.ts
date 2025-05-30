@@ -27,6 +27,7 @@ import { QueryRunner } from 'typeorm';
 import { DataSource } from 'typeorm';
 import { lookup } from 'mime-types';
 import { AttachmentEntity } from '../entities/attachment.entity';
+import { MessageInboxEntity } from '../entities/inbox.entity';
 import { mapMediaTypeToAttachmentType } from '../../../common/helpers/app';
 import {
   MessageEventType,
@@ -34,6 +35,9 @@ import {
 } from '../../../messaging/realtime/events/message-events';
 import { Inject, forwardRef } from '@nestjs/common';
 import { MessagingGateway } from '../../../messaging/realtime/gateways/messaging.gateway';
+import { ParticipantRepository } from '../../conversations/repositories/participant.repository';
+import { MessageInboxRepository } from '../repositories/inbox.repository';
+import { appError } from 'lib/helpers/error';
 
 @Injectable()
 export class MessageService {
@@ -41,6 +45,8 @@ export class MessageService {
     @Inject(forwardRef(() => MessagingGateway))
     private readonly messagingGateway: MessagingGateway,
     private readonly messageRepository: MessageRepository,
+    private readonly participantRepository: ParticipantRepository,
+    private readonly inboxRepository: MessageInboxRepository,
     private readonly attachmentRepository: AttachmentRepository,
     private readonly conversationService: ConversationService,
     private readonly tenantService: TenantService,
@@ -220,33 +226,17 @@ export class MessageService {
         );
       }
 
-      await this.conversationService.updateLastMessageTimestamp(conversationId);
-      const room = RoomNameFactory.conversationRoom(conversationId);
-
-      const responseDto = this.mapToMessageDto(
-        savedMessage,
+      const recipients =
+        await this.participantRepository.findByConversationId(conversationId);
+      const inboxEntities = this.inboxRepository.createForRecipients(
+        recipients,
         senderId,
-        attachments,
+        savedMessage.id,
+        conversationId,
       );
-      const sockets = await this.messagingGateway.server
-        .in(room)
-        .fetchSockets();
-      console.log(
-        'Sockets in room....................:',
-        sockets.map((s) => s.id),
-      );
+      await queryRunner.manager.save(inboxEntities);
 
-      console.log(
-        `About to emit MESSAGE_CREATED to room: ${room} with messageId: ${savedMessage.id}`,
-      );
-
-      this.messagingGateway.server
-        .to(room)
-        .emit(MessageEventType.MESSAGE_CREATED, responseDto);
-
-      console.log(
-        `Emitted MESSAGE_CREATED event to room: ${room} with messageId: ${savedMessage.id}`,
-      );
+      await this.conversationService.updateLastMessageTimestamp(conversationId);
 
       await queryRunner.commitTransaction();
 
@@ -288,13 +278,6 @@ export class MessageService {
         { status },
       );
 
-      const room = RoomNameFactory.conversationRoom(message.conversationId);
-      this.messagingGateway.server
-        .to(room)
-        .emit(MessageEventType.MESSAGE_UPDATED, {
-          id: message.id,
-          status,
-        });
       this.logger.debug(`Message ${messageId} status updated to: ${status}`);
     } catch (error) {
       this.logger.error(
@@ -643,6 +626,14 @@ export class MessageService {
       message.markAsRead(userId);
       await this.messageRepository.save(message);
 
+      await this.inboxRepository.update(
+        {
+          messageId,
+          recipientId: userId,
+        },
+        { readAt: new Date(), read: true },
+      );
+
       this.logger.debug(
         `Message ${messageId} marked as read by user: ${userId}`,
       );
@@ -849,8 +840,88 @@ export class MessageService {
     );
     return attachments;
   }
+
+  // In MessageService:
+  async getUnreadInbox(
+    userId: string,
+    conversationIds: string[],
+  ): Promise<MessageInboxEntity[]> {
+    try {
+      const unread =
+        await this.inboxRepository.findUnreadByUserAndConversations(
+          userId,
+          conversationIds,
+        );
+      return unread;
+    } catch (error) {
+      this.logger.error(
+        `Error finding unread inbox for user and conversations: ${error.message}`,
+        error.stack,
+      );
+      throw appError(error);
+    }
+  }
+
+  async fetchAllInbox(userId: string, query: any = {}) {
+    try {
+      // Parse all query params here
+      const { page, limit, order, ...filters } = query;
+
+      const where = {
+        // always enforce this for fetchall
+        recipientId: userId,
+        ...filters,
+      };
+      const options = {
+        relations: ['message'],
+        order: order ? JSON.parse(order) : { createdAt: 'DESC' },
+        page: page ? Number(page) : 1,
+        limit: limit ? Number(limit) : 10,
+      };
+
+      return await this.inboxRepository.fetchAll(where, options);
+    } catch (error) {
+      this.logger.error(
+        `Error finding all inbox for user and conversations: ${error.message}`,
+        error.stack,
+      );
+      throw appError(error);
+    }
+  }
+
+  async markMessageAsDelivered(
+    messageId: string,
+    recipientId: string,
+    deliveredAt: Date = new Date(),
+  ): Promise<void> {
+    try {
+      await this.dataSource.transaction(async (transactionalEntityManager) => {
+        // Update the inbox entry
+        const result = await transactionalEntityManager
+          .createQueryBuilder()
+          .update(MessageInboxEntity)
+          .set({
+            delivered: true,
+            deliveredAt: deliveredAt,
+            updatedAt: new Date(),
+          })
+          .where('message_id = :messageId', { messageId })
+          .andWhere('recipient_id = :recipientId', { recipientId })
+          .andWhere('delivered = :delivered', { delivered: false })
+          .execute();
+
+        if (result.affected === 0) {
+          this.logger.warn(
+            `Message ${messageId} for recipient ${recipientId} not found or already marked as delivered`,
+          );
+        }
+      });
+    } catch (error) {
+      this.logger.error(
+        `Error marking message ${messageId} as delivered for recipient ${recipientId}: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
 }
-
-
-
-

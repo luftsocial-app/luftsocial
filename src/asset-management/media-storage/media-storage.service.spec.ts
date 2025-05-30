@@ -570,7 +570,6 @@ describe('MediaStorageService', () => {
       );
       expect(mockPostAssetRepository.save).toHaveBeenCalledTimes(1);
 
-      console.log('Test completed successfully!');
     });
 
     it('should validate file name and content type', async () => {

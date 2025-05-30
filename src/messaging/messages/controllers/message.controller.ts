@@ -11,8 +11,10 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UseGuards,
   UseInterceptors,
+  ValidationPipe,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -24,6 +26,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { ThrottlerGuard } from '@nestjs/throttler';
+import { Response } from 'express';
 
 // Internal dependencies
 import { CurrentUser } from '../../../decorators/current-user.decorator';
@@ -47,6 +50,10 @@ import {
 // Services
 import { MessageService } from '../services/message.service';
 import { AuthObject } from '@clerk/express';
+import { MessageInboxEntity } from '../entities/inbox.entity';
+import { appError } from 'lib/helpers/error';
+import { apiResponse } from 'lib/helpers/app';
+import { InboxQueryDto } from '../dto/inbox.query.dto';
 
 @ApiTags('Messages')
 @ApiBearerAuth()
@@ -103,6 +110,28 @@ export class MessageController {
       messageDto.parentMessageId,
       messageDto.uploadSessionId,
     );
+  }
+
+  // Get inbox by recipient id
+  @Get('inbox')
+  async getAllInbox(
+    @CurrentUser() user: AuthObject,
+    @Query(new ValidationPipe({ transform: true })) query: InboxQueryDto,
+    @Res() res: Response
+  ) {
+    try {
+      const { data:inboxes, pagination } = await this.messageService.fetchAllInbox(user.userId, query);
+      return apiResponse(res, {
+        success: true,
+        message: 'Inbox retrieved successfully',
+        data: { inboxes, pagination },
+      });
+    } catch (error) {
+      return apiResponse(res, {
+        success: false,
+        error: error.message,
+      });
+    }
   }
 
   // Get Message History
@@ -321,4 +350,5 @@ export class MessageController {
   async finalizeAttachment(@Param('id') attachmentId: string) {
     return this.messageService.confirmAttachment(attachmentId);
   }
+
 }

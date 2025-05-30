@@ -16,8 +16,8 @@ services:
     container_name: luftsocial-dev-app
     build:
       context: .
-      # dockerfile: Dockerfile.dev #using seperate dockerfile for dev
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev #using seperate dockerfile for dev
+      # dockerfile: Dockerfile
       target: dev
     environment:
       - PORT=3000
