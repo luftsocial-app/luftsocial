@@ -34,7 +34,7 @@ export function wsAuthMiddleware(
       user['tenantId'] = tenantId;
       socket.data.user = user; // Attach the user object to socket.data
 
-      console.log("user............................:",user)
+      console.log('user............................:', user);
 
       const sessionId = user['sid'];
       const clerkSecretKey = configService.get('clerk.secretKey');

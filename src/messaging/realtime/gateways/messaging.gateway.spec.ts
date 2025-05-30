@@ -118,11 +118,11 @@ describe('MessagingGateway', () => {
           useValue: {
             getTenantId: jest.fn(),
             setTenantId: jest.fn(),
-          }
+          },
         },
         {
           provide: 'TenantRepository',
-          useClass: MockTenantRepository
+          useClass: MockTenantRepository,
         },
         {
           provide: PinoLogger,
@@ -182,11 +182,17 @@ describe('MessagingGateway', () => {
 
     gateway = module.get<MessagingGateway>(MessagingGateway);
     participantHandler = module.get(ParticipantEventHandler);
-    conversationService = module.get(ConversationService) as jest.Mocked<ConversationService>;
+    conversationService = module.get(
+      ConversationService,
+    ) as jest.Mocked<ConversationService>;
     messageService = module.get(MessageService) as jest.Mocked<MessageService>;
-    messageValidator = module.get(MessageValidatorService) as jest.Mocked<MessageValidatorService>;
+    messageValidator = module.get(
+      MessageValidatorService,
+    ) as jest.Mocked<MessageValidatorService>;
     configService = module.get(ConfigService) as jest.Mocked<ConfigService>;
-    websocketHelpers = module.get(WebsocketHelpers) as jest.Mocked<WebsocketHelpers>;
+    websocketHelpers = module.get(
+      WebsocketHelpers,
+    ) as jest.Mocked<WebsocketHelpers>;
     logger = module.get(PinoLogger);
 
     gateway.server = mockServer;
@@ -195,16 +201,23 @@ describe('MessagingGateway', () => {
   describe('handleJoinConversation', () => {
     it('should join conversation and emit success', async () => {
       conversationService.validateAccess.mockResolvedValue(true);
-      conversationService.updateParticipantLastActive.mockResolvedValue(undefined);
+      conversationService.updateParticipantLastActive.mockResolvedValue(
+        undefined,
+      );
 
-      const result = await participantHandler.joinConversation(mockClient, mockConversationId);
+      const result = await participantHandler.joinConversation(
+        mockClient,
+        mockConversationId,
+      );
 
       expect(conversationService.validateAccess).toHaveBeenCalledWith(
         mockConversationId,
         mockUserId,
         mockTenantId,
       );
-      expect(mockClient.join).toHaveBeenCalledWith(RoomNameFactory.conversationRoom(mockConversationId));
+      expect(mockClient.join).toHaveBeenCalledWith(
+        RoomNameFactory.conversationRoom(mockConversationId),
+      );
       expect(result.success).toBeTruthy();
       expect(result.data).toMatchObject({
         conversationId: mockConversationId,
@@ -215,7 +228,10 @@ describe('MessagingGateway', () => {
     it('should return error if no access', async () => {
       conversationService.validateAccess.mockResolvedValue(false);
 
-      const result = await participantHandler.joinConversation(mockClient, mockConversationId);
+      const result = await participantHandler.joinConversation(
+        mockClient,
+        mockConversationId,
+      );
 
       expect(result.success).toBeFalsy();
       expect(result.error.code).toBe('ACCESS_DENIED');
@@ -224,18 +240,27 @@ describe('MessagingGateway', () => {
 
   describe('participantAdded', () => {
     it('should add participants and emit update', async () => {
-      const payload = { conversationId: mockConversationId, participantIds: ['user-b'] };
+      const payload = {
+        conversationId: mockConversationId,
+        participantIds: ['user-b'],
+      };
       const fakeConv = { id: mockConversationId, participants: [] };
       conversationService.addParticipantsToGroup.mockResolvedValue(fakeConv);
 
-      const out = await participantHandler.participantAdded(mockClient, payload, mockServer);
+      const out = await participantHandler.participantAdded(
+        mockClient,
+        payload,
+        mockServer,
+      );
 
       expect(conversationService.addParticipantsToGroup).toHaveBeenCalledWith(
         mockConversationId,
         ['user-b'],
         mockUserId,
       );
-      expect(mockServer.to).toHaveBeenCalledWith(RoomNameFactory.conversationRoom(mockConversationId));
+      expect(mockServer.to).toHaveBeenCalledWith(
+        RoomNameFactory.conversationRoom(mockConversationId),
+      );
       expect(mockServer.emit).toHaveBeenCalledWith(
         MessageEventType.PARTICIPANTS_UPDATED,
         expect.objectContaining({
@@ -247,8 +272,15 @@ describe('MessagingGateway', () => {
     });
 
     it('should return error for invalid payload', async () => {
-      const payload = { conversationId: mockConversationId, participantIds: [] };
-      const out = await participantHandler.participantAdded(mockClient, payload, mockServer);
+      const payload = {
+        conversationId: mockConversationId,
+        participantIds: [],
+      };
+      const out = await participantHandler.participantAdded(
+        mockClient,
+        payload,
+        mockServer,
+      );
       expect(out.success).toBeFalsy();
       expect(out.error.code).toBe('VALIDATION_ERROR');
     });
@@ -256,21 +288,33 @@ describe('MessagingGateway', () => {
 
   describe('participantRemoved', () => {
     it('should remove participants and emit update', async () => {
-      const payload = { conversationId: mockConversationId, participantIds: ['user-b'] };
-      const fakeConv = { id: mockConversationId, participants: [{ id: 'user-a' }, { id: 'user-b' }] };
-      conversationService.removeParticipantsFromGroup.mockResolvedValue(fakeConv);
+      const payload = {
+        conversationId: mockConversationId,
+        participantIds: ['user-b'],
+      };
+      const fakeConv = {
+        id: mockConversationId,
+        participants: [{ id: 'user-a' }, { id: 'user-b' }],
+      };
+      conversationService.removeParticipantsFromGroup.mockResolvedValue(
+        fakeConv,
+      );
       mockServer.in = jest.fn().mockReturnValue({
         fetchSockets: jest.fn().mockResolvedValue([{ leave: jest.fn() }]),
       } as any);
 
-      const out = await participantHandler.participantRemoved(mockClient, payload, mockServer);
-
-      expect(conversationService.removeParticipantsFromGroup).toHaveBeenCalledWith(
-        mockConversationId,
-        ['user-b'],
-        mockUserId,
+      const out = await participantHandler.participantRemoved(
+        mockClient,
+        payload,
+        mockServer,
       );
-      expect(mockServer.to).toHaveBeenCalledWith(RoomNameFactory.conversationRoom(mockConversationId));
+
+      expect(
+        conversationService.removeParticipantsFromGroup,
+      ).toHaveBeenCalledWith(mockConversationId, ['user-b'], mockUserId);
+      expect(mockServer.to).toHaveBeenCalledWith(
+        RoomNameFactory.conversationRoom(mockConversationId),
+      );
       expect(mockServer.emit).toHaveBeenCalledWith(
         MessageEventType.PARTICIPANTS_UPDATED,
         expect.objectContaining({
@@ -282,8 +326,15 @@ describe('MessagingGateway', () => {
     });
 
     it('should return error for invalid payload', async () => {
-      const payload = { conversationId: mockConversationId, participantIds: [] };
-      const out = await participantHandler.participantRemoved(mockClient, payload, mockServer);
+      const payload = {
+        conversationId: mockConversationId,
+        participantIds: [],
+      };
+      const out = await participantHandler.participantRemoved(
+        mockClient,
+        payload,
+        mockServer,
+      );
       expect(out.success).toBeFalsy();
       expect(out.error.code).toBe('VALIDATION_ERROR');
     });
@@ -291,8 +342,13 @@ describe('MessagingGateway', () => {
 
   describe('leaveConversation', () => {
     it('should leave conversation room and return success', async () => {
-      const out = await participantHandler.leaveConversation(mockClient, mockConversationId);
-      expect(mockClient.leave).toHaveBeenCalledWith(RoomNameFactory.conversationRoom(mockConversationId));
+      const out = await participantHandler.leaveConversation(
+        mockClient,
+        mockConversationId,
+      );
+      expect(mockClient.leave).toHaveBeenCalledWith(
+        RoomNameFactory.conversationRoom(mockConversationId),
+      );
       expect(out.success).toBeTruthy();
     });
   });

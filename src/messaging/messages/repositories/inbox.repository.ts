@@ -4,7 +4,6 @@ import { MessageInboxEntity } from '../entities/inbox.entity';
 import { appError } from 'lib/helpers/error';
 import { BaseRepository } from '../../../common/repositories/base.repository';
 
-
 @Injectable()
 export class MessageInboxRepository extends BaseRepository<MessageInboxEntity> {
   private readonly logger = new Logger(MessageInboxRepository.name);
@@ -62,9 +61,4 @@ export class MessageInboxRepository extends BaseRepository<MessageInboxEntity> {
       throw appError(error);
     }
   }
-
-
-
-  
-
 }

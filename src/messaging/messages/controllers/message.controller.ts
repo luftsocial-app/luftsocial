@@ -117,10 +117,11 @@ export class MessageController {
   async getAllInbox(
     @CurrentUser() user: AuthObject,
     @Query(new ValidationPipe({ transform: true })) query: InboxQueryDto,
-    @Res() res: Response
+    @Res() res: Response,
   ) {
     try {
-      const { data:inboxes, pagination } = await this.messageService.fetchAllInbox(user.userId, query);
+      const { data: inboxes, pagination } =
+        await this.messageService.fetchAllInbox(user.userId, query);
       return apiResponse(res, {
         success: true,
         message: 'Inbox retrieved successfully',
@@ -350,5 +351,4 @@ export class MessageController {
   async finalizeAttachment(@Param('id') attachmentId: string) {
     return this.messageService.confirmAttachment(attachmentId);
   }
-
 }

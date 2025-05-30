@@ -426,5 +426,4 @@ export class ConversationService {
 
     return conversation;
   }
-
 }

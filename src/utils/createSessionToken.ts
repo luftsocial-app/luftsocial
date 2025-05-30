@@ -15,7 +15,6 @@ export async function createSessionToken( // this function is for testing only, 
 
   logger.debug({ sessionId, clerkSecretKey }, 'Creating session token');
 
-
   try {
     const response = await fetch(
       'https://api.clerk.com/v1/sessions/' + sessionId + '/tokens',

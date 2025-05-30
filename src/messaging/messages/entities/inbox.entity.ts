@@ -1,10 +1,21 @@
-import { Entity, Column, PrimaryGeneratedColumn, Index, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  Index,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { MessageEntity } from './message.entity';
 import { CommonEntity } from '../../shared/entities/common.entity';
 
 @Entity('message_inboxes')
-@Index('idx_msg_inbox_search', ['conversationId', 'createdAt'], { unique: false })
-@Index('idx_msg_inbox_tenant_created', ['tenantId', 'createdAt'], { unique: false })
+@Index('idx_msg_inbox_search', ['conversationId', 'createdAt'], {
+  unique: false,
+})
+@Index('idx_msg_inbox_tenant_created', ['tenantId', 'createdAt'], {
+  unique: false,
+})
 @Index('idx_msg_inbox_created_at', ['createdAt'], { unique: false })
 @Index('idx_msg_inbox_tenant', ['tenantId'], { unique: false })
 @Index('idx_msg_inbox_deleted_at', ['deletedAt'], { unique: false })
@@ -29,13 +40,12 @@ export class MessageInboxEntity extends CommonEntity {
   @Column({ default: false })
   delivered: boolean;
 
-  @Column({ name:'delivered_at', type: 'timestamp', nullable: true })
+  @Column({ name: 'delivered_at', type: 'timestamp', nullable: true })
   deliveredAt: Date;
 
   @Column({ default: false })
   read: boolean;
 
-  @Column({ name:'read_at', type: 'timestamp', nullable: true })
+  @Column({ name: 'read_at', type: 'timestamp', nullable: true })
   readAt: Date;
-
 }

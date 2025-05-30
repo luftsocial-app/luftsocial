@@ -16,7 +16,10 @@ import {
   Inject,
 } from '@nestjs/common';
 import { MessageEntity } from '../entities/message.entity';
-import { AttachmentEntity, AttachmentStatus } from '../entities/attachment.entity';
+import {
+  AttachmentEntity,
+  AttachmentStatus,
+} from '../entities/attachment.entity';
 import { PinoLogger } from 'nestjs-pino';
 import { TenantService } from '../../../user-management/tenant.service';
 import { ContentSanitizer } from '../../shared/utils/content-sanitizer';
@@ -41,7 +44,7 @@ describe('MessageService', () => {
   const mockUserId = 'user-123';
   const mockConversationId = 'conv-123';
   const mockMessageId = 'msg-123';
-  const mockUploadSessionId = "session-123"
+  const mockUploadSessionId = 'session-123';
 
   const mockMessage: MessageEntity = Object.assign(new MessageEntity(), {
     id: mockMessageId,
@@ -141,7 +144,7 @@ describe('MessageService', () => {
       isReleased: false,
       isConnected: true,
     } as unknown as jest.Mocked<QueryRunner>;
-    
+
     // Create a mock server for the messaging gateway
     const mockServer = {
       in: jest.fn().mockReturnThis(),
@@ -216,11 +219,15 @@ describe('MessageService', () => {
           provide: ContentSanitizer,
           useValue: {
             sanitize: jest.fn().mockImplementation((content) => content),
-            sanitizeRealtimeMessage: jest.fn().mockImplementation((content) => ({
-              isValid: true,
-              sanitized: content,
-            })),
-            sanitizeMetadata: jest.fn().mockImplementation((metadata) => metadata),
+            sanitizeRealtimeMessage: jest
+              .fn()
+              .mockImplementation((content) => ({
+                isValid: true,
+                sanitized: content,
+              })),
+            sanitizeMetadata: jest
+              .fn()
+              .mockImplementation((metadata) => metadata),
           },
         },
         {
@@ -261,180 +268,189 @@ describe('MessageService', () => {
     conversationService = module.get(ConversationService);
     tenantService = module.get(TenantService);
     contentSanitizer = module.get(ContentSanitizer);
-    messagingGateway = module.get(MessagingGateway);   
-    
+    messagingGateway = module.get(MessagingGateway);
   });
 
   describe('createMessage', () => {
     // Update the test to properly mock the query runner and its manager
-  it('should create a message successfully', async () => {
-    console.log('Starting test: should create a message successfully');
-    
-    // Setup mocks
-    const validateAccessSpy = jest.spyOn(conversationService, 'validateAccess')
-      .mockImplementation(async () => {
-        console.log('validateAccess called');
-        return true;
-      });
-    
-    // Create a mock message that will be returned by save
-    const savedMessage = new MessageEntity();
-    Object.assign(savedMessage, {
-      ...mockMessage,
-      id: mockMessageId,
-      content: 'Test message',
-      senderId: mockUserId,
-      conversationId: mockConversationId,
-      status: MessageStatus.SENT,
-      tenantId: mockTenantId,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
-    
-    console.log('Created savedMessage:', savedMessage);
+    it('should create a message successfully', async () => {
+      console.log('Starting test: should create a message successfully');
 
-    // Mock the query runner's manager.save
-    const mockSave = jest.fn().mockImplementation((entity) => {
-      console.log('mockSave called with:', entity);
-      return Promise.resolve(savedMessage);
-    });
-    queryRunner.manager.save = mockSave;
+      // Setup mocks
+      const validateAccessSpy = jest
+        .spyOn(conversationService, 'validateAccess')
+        .mockImplementation(async () => {
+          console.log('validateAccess called');
+          return true;
+        });
 
-    // Mock the message repository
-    const createSpy = jest.spyOn(messageRepository, 'create').mockImplementation((data) => {
-      console.log('messageRepository.create called with:', data);
-      return Object.assign(new MessageEntity(), data);
-    });
-    
-    // Mock the WebSocket server method chaining
-    const mockSockets = [
-      { id: 'socket-1', data: { userId: 'user-1' } },
-      { id: 'socket-2', data: { userId: 'user-2' } },
-    ];
-    
-    console.log('Mocking WebSocket server...');
-    
-    // Create mock functions for WebSocket methods
-    const mockFetchSockets = jest.fn().mockResolvedValue(mockSockets);
-    const mockEmit = jest.fn().mockReturnThis();
-    
-    // Create a mock for the server.in() method chain
-    const mockInReturn = {
-      fetchSockets: mockFetchSockets
-    };
-    
-    // Create a mock for the server.to() method chain
-    const mockToReturn = {
-      emit: mockEmit
-    };
-    
-    // Create a typed mock server
-    const mockServer = {
-      // Socket.io Server methods
-      in: jest.fn().mockReturnValue(mockInReturn),
-      to: jest.fn().mockReturnValue(mockToReturn),
-      emit: jest.fn(),
-      on: jest.fn(),
-      off: jest.fn(),
-      use: jest.fn(),
-      // Other required server properties
-      sockets: new Map(),
-      fetchSockets: jest.fn()
-    };
-    
-    // Assign the mock server to the gateway
-    messagingGateway.server = mockServer as any;
-    
-    // Mock the tenant service
-    jest.spyOn(tenantService, 'getTenantId').mockImplementation(() => {
-      console.log('getTenantId called, returning:', mockTenantId);
-      return mockTenantId;
-    });
-    
-    // Mock the sanitize method
-    jest.spyOn(contentSanitizer, 'sanitize').mockImplementation((content) => {
-      console.log('sanitize called with:', content);
-      return content; // Return content as-is for testing
-    });
-    
-    // Mock the updateLastMessageTimestamp method
-    jest.spyOn(conversationService, 'updateLastMessageTimestamp').mockImplementation(async (conversationId) => {
-      console.log('updateLastMessageTimestamp called with:', conversationId);
-      return Promise.resolve();
-    });
-
-    // Execute
-    const result = await service.createMessage(
-      mockConversationId,
-      'Test message',
-      mockUserId,
-    );
-
-    // Verify
-    expect(result).toBeDefined();
-    expect(result.id).toBe(mockMessageId);
-    expect(result.content).toBe('Test message');
-    
-    // Verify access was validated
-    expect(validateAccessSpy).toHaveBeenCalledWith(
-      mockConversationId,
-      mockUserId,
-      mockTenantId
-    );
-    
-    // Verify query runner was used correctly
-    expect(queryRunner.connect).toHaveBeenCalled();
-    expect(queryRunner.startTransaction).toHaveBeenCalled();
-    expect(queryRunner.commitTransaction).toHaveBeenCalled();
-    expect(queryRunner.release).toHaveBeenCalled();
-    
-    // Verify message was created with correct data
-    expect(createSpy).toHaveBeenCalledWith({
-      conversationId: mockConversationId,
-      content: 'Test message',
-      senderId: mockUserId,
-      status: MessageStatus.SENT,
-      tenantId: mockTenantId,
-    });
-    
-    // Verify message was saved through the transaction with the correct properties
-    expect(mockSave).toHaveBeenCalledWith(
-      expect.objectContaining({
+      // Create a mock message that will be returned by save
+      const savedMessage = new MessageEntity();
+      Object.assign(savedMessage, {
+        ...mockMessage,
+        id: mockMessageId,
         content: 'Test message',
+        senderId: mockUserId,
         conversationId: mockConversationId,
+        status: MessageStatus.SENT,
+        tenantId: mockTenantId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      console.log('Created savedMessage:', savedMessage);
+
+      // Mock the query runner's manager.save
+      const mockSave = jest.fn().mockImplementation((entity) => {
+        console.log('mockSave called with:', entity);
+        return Promise.resolve(savedMessage);
+      });
+      queryRunner.manager.save = mockSave;
+
+      // Mock the message repository
+      const createSpy = jest
+        .spyOn(messageRepository, 'create')
+        .mockImplementation((data) => {
+          console.log('messageRepository.create called with:', data);
+          return Object.assign(new MessageEntity(), data);
+        });
+
+      // Mock the WebSocket server method chaining
+      const mockSockets = [
+        { id: 'socket-1', data: { userId: 'user-1' } },
+        { id: 'socket-2', data: { userId: 'user-2' } },
+      ];
+
+      console.log('Mocking WebSocket server...');
+
+      // Create mock functions for WebSocket methods
+      const mockFetchSockets = jest.fn().mockResolvedValue(mockSockets);
+      const mockEmit = jest.fn().mockReturnThis();
+
+      // Create a mock for the server.in() method chain
+      const mockInReturn = {
+        fetchSockets: mockFetchSockets,
+      };
+
+      // Create a mock for the server.to() method chain
+      const mockToReturn = {
+        emit: mockEmit,
+      };
+
+      // Create a typed mock server
+      const mockServer = {
+        // Socket.io Server methods
+        in: jest.fn().mockReturnValue(mockInReturn),
+        to: jest.fn().mockReturnValue(mockToReturn),
+        emit: jest.fn(),
+        on: jest.fn(),
+        off: jest.fn(),
+        use: jest.fn(),
+        // Other required server properties
+        sockets: new Map(),
+        fetchSockets: jest.fn(),
+      };
+
+      // Assign the mock server to the gateway
+      messagingGateway.server = mockServer as any;
+
+      // Mock the tenant service
+      jest.spyOn(tenantService, 'getTenantId').mockImplementation(() => {
+        console.log('getTenantId called, returning:', mockTenantId);
+        return mockTenantId;
+      });
+
+      // Mock the sanitize method
+      jest.spyOn(contentSanitizer, 'sanitize').mockImplementation((content) => {
+        console.log('sanitize called with:', content);
+        return content; // Return content as-is for testing
+      });
+
+      // Mock the updateLastMessageTimestamp method
+      jest
+        .spyOn(conversationService, 'updateLastMessageTimestamp')
+        .mockImplementation(async (conversationId) => {
+          console.log(
+            'updateLastMessageTimestamp called with:',
+            conversationId,
+          );
+          return Promise.resolve();
+        });
+
+      // Execute
+      const result = await service.createMessage(
+        mockConversationId,
+        'Test message',
+        mockUserId,
+      );
+
+      // Verify
+      expect(result).toBeDefined();
+      expect(result.id).toBe(mockMessageId);
+      expect(result.content).toBe('Test message');
+
+      // Verify access was validated
+      expect(validateAccessSpy).toHaveBeenCalledWith(
+        mockConversationId,
+        mockUserId,
+        mockTenantId,
+      );
+
+      // Verify query runner was used correctly
+      expect(queryRunner.connect).toHaveBeenCalled();
+      expect(queryRunner.startTransaction).toHaveBeenCalled();
+      expect(queryRunner.commitTransaction).toHaveBeenCalled();
+      expect(queryRunner.release).toHaveBeenCalled();
+
+      // Verify message was created with correct data
+      expect(createSpy).toHaveBeenCalledWith({
+        conversationId: mockConversationId,
+        content: 'Test message',
         senderId: mockUserId,
         status: MessageStatus.SENT,
-        tenantId: mockTenantId
-      })
-    );
-    
-    // Verify conversation was updated
-    expect(conversationService.updateLastMessageTimestamp).toHaveBeenCalledWith(mockConversationId);
-    
-    // Verify WebSocket room was joined and event was emitted
-    expect(messagingGateway.server.in).toHaveBeenCalledWith(
-      `conversation:${mockConversationId}`
-    );
-    
-    // Verify fetchSockets was called on the room
-    expect(mockInReturn.fetchSockets).toHaveBeenCalled();
-    
-    // Verify the message was emitted to the room
-    expect(mockServer.to).toHaveBeenCalledWith(
-      `conversation:${mockConversationId}`
-    );
-    
-    // Verify the message was emitted with the correct data
-    expect(mockToReturn.emit).toHaveBeenCalledWith(
-      MessageEventType.MESSAGE_CREATED,
-      expect.objectContaining({
-        id: mockMessageId,
-        conversationId: mockConversationId,
-        senderId: mockUserId,
-        content: 'Test message',
-      })
-    );
-});
+        tenantId: mockTenantId,
+      });
+
+      // Verify message was saved through the transaction with the correct properties
+      expect(mockSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: 'Test message',
+          conversationId: mockConversationId,
+          senderId: mockUserId,
+          status: MessageStatus.SENT,
+          tenantId: mockTenantId,
+        }),
+      );
+
+      // Verify conversation was updated
+      expect(
+        conversationService.updateLastMessageTimestamp,
+      ).toHaveBeenCalledWith(mockConversationId);
+
+      // Verify WebSocket room was joined and event was emitted
+      expect(messagingGateway.server.in).toHaveBeenCalledWith(
+        `conversation:${mockConversationId}`,
+      );
+
+      // Verify fetchSockets was called on the room
+      expect(mockInReturn.fetchSockets).toHaveBeenCalled();
+
+      // Verify the message was emitted to the room
+      expect(mockServer.to).toHaveBeenCalledWith(
+        `conversation:${mockConversationId}`,
+      );
+
+      // Verify the message was emitted with the correct data
+      expect(mockToReturn.emit).toHaveBeenCalledWith(
+        MessageEventType.MESSAGE_CREATED,
+        expect.objectContaining({
+          id: mockMessageId,
+          conversationId: mockConversationId,
+          senderId: mockUserId,
+          content: 'Test message',
+        }),
+      );
+    });
 
     it('should handle sanitization failure', async () => {
       jest.spyOn(contentSanitizer, 'sanitize').mockReturnValue('');

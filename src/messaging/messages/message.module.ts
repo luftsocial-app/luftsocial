@@ -18,9 +18,9 @@ import { MessageInboxRepository } from './repositories/inbox.repository';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
-      MessageEntity, 
-      AttachmentEntity, 
-      MessageInboxEntity
+      MessageEntity,
+      AttachmentEntity,
+      MessageInboxEntity,
     ]),
     UserManagementModule,
     ConversationModule,
@@ -33,7 +33,6 @@ import { MessageInboxRepository } from './repositories/inbox.repository';
     AttachmentRepository,
     MessageInboxRepository,
     ContentSanitizer,
-
   ],
   controllers: [MessageController],
   exports: [

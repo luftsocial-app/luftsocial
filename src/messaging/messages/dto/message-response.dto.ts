@@ -248,5 +248,3 @@ export class MessageWithPresignedUrlDto extends MessageResponseDto {
     thumbnailUrl?: string;
   }[];
 }
-
-

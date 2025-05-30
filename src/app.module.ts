@@ -75,7 +75,7 @@ import { TikTokRateLimit } from './platforms/entities/tiktok-entities/tiktok_rat
     TypeOrmModule.forRoot({
       ...config.get('db.options'),
       // This will automatically load all entities registered with TypeOrmModule.forFeature()
-      autoLoadEntities: true, 
+      autoLoadEntities: true,
       entities: [
         User,
         Tenant,
