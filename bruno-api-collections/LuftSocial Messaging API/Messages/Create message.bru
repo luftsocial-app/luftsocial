@@ -6,7 +6,7 @@ meta {
 
 post {
   url: {{baseUrl}}/messages
-  body: multipartForm
+  body: json
   auth: bearer
 }
 
@@ -17,7 +17,7 @@ headers {
 }
 
 auth:bearer {
-  token: eyJhbGciOiJSUzI1NiIsImNhdCI6ImNsX0I3ZDRQRDExMUFBQSIsImtpZCI6Imluc18yc1NpQlRTclhVY0E5WDdOY3dRRzhQaEhHcmsiLCJ0eXAiOiJKV1QifQ.eyJleHAiOjE3NDgxMTkzMzcsImZ2YSI6WzUsLTFdLCJpYXQiOjE3NDgxMDk3MzcsImlzcyI6Imh0dHBzOi8vZWxlZ2FudC1jYW1lbC00MS5jbGVyay5hY2NvdW50cy5kZXYiLCJqdGkiOiIzNTM1YjA5NjIwYWI0NTZkYjg2OCIsIm1lbWJlcnNoaXAiOnt9LCJtZXRhZGF0YSI6e30sIm5iZiI6MTc0ODEwOTcyNywicGVybWlzc2lvbnMiOm51bGwsInNpZCI6InNlc3NfMnhZSzc3dHFFb3R5YlhxOUFuRWpxRzRnWGptIiwic3ViIjoidXNlcl8yeFZBMUxhN0xxZm52bjB2RDFRcEhZZ0NlYloifQ.PFbtUubMOsOzkU3KCtPyb5y4-wQl7sW3vjqb3jSSiDhNwiAaZ3amIvr-w1sIkFVmla9Qo4UHE-HZ6443-ESWv3nc-F4kTFxlWZHsl8r2de_Zh-e48ZeZecRLmxtUdNcEfcxqGSJ-952cSgaeOwsxW_DCnvyAsuh-vgU0O0QnwT-rgUXUxFJVgrF_4Woijd5vVrWVq29llHwZ0KP4aajAPmEhK9lCvcsnG0Q3XcLyJq6sf1DmpUB0rGPk_0qUjEXwAtCIa95TRxDXJfji4_a4sy7NtpcAbIGcKfe8G_tk1hljAm6divXI7Xfc0xtbSVAJrzVKndYMyKXyejpxQkmS8g
+  token: {{token}}
 }
 
 body:json {
@@ -26,12 +26,6 @@ body:json {
       "content": "Hello, this is a reply message",
       "parentMessageId": null
   }
-}
-
-body:multipart-form {
-  attachments: @file(/Users/mac/Downloads/Ayomide Wilfred Adeyemi Birth Certificate.jpeg)
-  conversationId: cc3f35e4-722b-4166-8a6e-f019bf78cc4c
-  content: Here is the file
 }
 
 docs {
