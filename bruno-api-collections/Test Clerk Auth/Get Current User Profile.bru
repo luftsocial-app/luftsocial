@@ -5,21 +5,19 @@ meta {
 }
 
 get {
-  url: {{baseUrl}}/users
+  url: {{base_url}}/users
   body: none
-  auth: apikey
+  auth: bearer
 }
 
 headers {
-  Authorization: Bearer {{clerkToken}}
   Accept: application/json
-  X-TENANT-ID: 1
+  x-tenant-id: {{tenant-id}}
+  ~Authorization: Bearer {{clerkToken}}
 }
 
-auth:apikey {
-  key: Authorization
-  value: {{clerkToken}}
-  placement: header
+auth:bearer {
+  token: 
 }
 
 docs {
