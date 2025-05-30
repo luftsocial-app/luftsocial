@@ -1,6 +1,5 @@
 import {
   BadRequestException,
-  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -12,8 +11,7 @@ import { UserPost } from '../entities/post.entity';
 import { ApprovalStep } from '../entities/approval-step.entity';
 import { User } from '../../../user-management/entities/user.entity';
 import { CreateTaskDto } from '../helper/dto/create-task.dto';
-import { ClerkClient } from '@clerk/express';
-import { CLERK_CLIENT } from 'src/clerk/clerk.provider';
+import { clerkClient } from '@clerk/express';
 
 @Injectable()
 export class TaskService {
@@ -22,7 +20,6 @@ export class TaskService {
     private readonly taskRepository: Repository<Task>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    @Inject(CLERK_CLIENT) private readonly clerkClient: ClerkClient,
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(TaskService.name);
@@ -33,8 +30,6 @@ export class TaskService {
     organizationId: string,
     tenantId: string,
   ): Promise<Task> {
-    console.log('createTaskDto assigneeIds:', createTaskDto.assigneeIds);
-
     const assigneeIds = createTaskDto.assigneeIds;
 
     if (!assigneeIds || assigneeIds.length === 0) {
@@ -67,8 +62,6 @@ export class TaskService {
         `The following users were not found in the organization: ${failedValidations.join(', ')}`,
       );
     }
-
-    console.log(`Validated ${validAssignees.length} assignees successfully`);
 
     // Create the task with multiple assignees
     const task = this.taskRepository.create({
@@ -275,8 +268,6 @@ export class TaskService {
     organizationId: string,
     status?: TaskStatus,
   ): Promise<Task[]> {
-    console.log('Getting tasks for user:', userId, 'org:', organizationId);
-
     if (!userId) {
       throw new BadRequestException('User ID is required');
     }
@@ -461,15 +452,13 @@ export class TaskService {
       // relations: ['post', 'approvalStep'],
     });
 
-    console.log('tsdsds', tasks);
-
     // Enhance tasks with assignee information from Clerk
     const tasksWithAssignees = await Promise.all(
       tasks.map(async (task) => {
         if (task.assigneeIds && task.assigneeIds.length > 0) {
           try {
             const assignees = await Promise.all(
-              task.assigneeIds.map((id) => this.clerkClient.users.getUser(id)),
+              task.assigneeIds.map((id) => clerkClient.users.getUser(id)),
             );
 
             return {
@@ -547,7 +536,7 @@ export class TaskService {
     if (task.assigneeIds && task.assigneeIds.length > 0) {
       try {
         const assignees = await Promise.all(
-          task.assigneeIds.map((id) => this.clerkClient.users.getUser(id)),
+          task.assigneeIds.map((id) => clerkClient.users.getUser(id)),
         );
 
         return {
@@ -688,7 +677,7 @@ export class TaskService {
     const workloadWithDetails = await Promise.all(
       workload.map(async (item) => {
         try {
-          const user = await this.clerkClient.users.getUser(item.userId);
+          const user = await clerkClient.users.getUser(item.userId);
           return {
             ...item,
             user: {
@@ -726,7 +715,7 @@ export class TaskService {
   ): Promise<boolean> {
     try {
       const membershipsResponse =
-        await this.clerkClient.organizations.getOrganizationMembershipList({
+        await clerkClient.organizations.getOrganizationMembershipList({
           organizationId,
         });
 

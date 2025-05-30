@@ -27,7 +27,6 @@ import { CrossPlatformModule } from 'src/cross-platform/cross-platform.module';
 import { AuditModule } from 'src/audit/audit.module';
 import { OrganizationAccessGuard } from 'src/guards/organization-access.guard';
 import { RoleGuard } from 'src/guards/role-guard';
-import { ClerkModule } from 'src/clerk/clerk.module';
 import { PostWorkflowController } from './controllers/post-workflow.controller';
 
 @Module({
@@ -63,7 +62,6 @@ import { PostWorkflowController } from './controllers/post-workflow.controller';
     PostSubmittedHandler,
     StepApprovedHandler,
     StepRejectedHandler,
-    ClerkModule,
   ],
   exports: [ApprovalService, TaskService],
 })

@@ -63,7 +63,6 @@ import { Task } from './organization-management/post-approval/entities/task.enti
 import { WorkflowStep } from './organization-management/post-approval/entities/workflow-step.entity';
 import { WorkflowTemplate } from './organization-management/post-approval/entities/workflow-template.entity';
 import { UserPost } from './organization-management/post-approval/entities/post.entity';
-import { ClerkModule } from './clerk/clerk.module';
 import { InstagramAccount } from './platforms/entities/instagram-entities/instagram-account.entity';
 import { InstagramPost } from './platforms/entities/instagram-entities/instagram-post.entity';
 import { InstagramMetric } from './platforms/entities/instagram-entities/instagram-metric.entity';
@@ -120,7 +119,6 @@ import { InstagramMetric } from './platforms/entities/instagram-entities/instagr
         limit: 5,
       },
     ]),
-    ClerkModule,
     RealtimeModule,
     ClerkWebhookModule,
     RealtimeModule,

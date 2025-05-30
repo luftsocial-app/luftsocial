@@ -914,7 +914,7 @@ describe('MediaStorageService', () => {
           SocialPlatform.INSTAGRAM,
         );
         expect(keyWithPlatform).toMatch(
-          /^social-media\/INSTAGRAM\/user-123\/\d+-[a-z0-9]+\.jpg$/,
+          /^social-media\/instagram\/user-123\/\d+-[a-z0-9]+\.jpg$/,
         );
 
         // All parameters
@@ -926,7 +926,7 @@ describe('MediaStorageService', () => {
           SocialPlatform.FACEBOOK,
         );
         expect(fullKey).toMatch(
-          /^social-media\/FACEBOOK\/tenant-789\/user-123\/post-456\/\d+-[a-z0-9]+\.jpg$/,
+          /^social-media\/facebook\/tenant-789\/user-123\/post-456\/\d+-[a-z0-9]+\.jpg$/,
         );
       });
 

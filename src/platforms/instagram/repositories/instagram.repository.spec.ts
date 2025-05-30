@@ -173,7 +173,7 @@ describe('InstagramRepository', () => {
       const userId = 'user-123';
       const expectedAccount = {
         id: userId,
-        instagramAccountId: userId,
+        userId: userId,
         username: 'testuser',
       };
 

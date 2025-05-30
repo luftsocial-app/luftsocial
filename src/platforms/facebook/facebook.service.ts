@@ -212,7 +212,7 @@ export class FacebookService implements PlatformService {
    */
   private async uploadFacebookMediaItems(
     media: MediaItem[],
-    facebookAccountId: string,
+    accountId: string,
     context: 'post' | 'scheduled',
   ): Promise<MediaStorageItem[]> {
     if (!media?.length) {
@@ -227,7 +227,7 @@ export class FacebookService implements PlatformService {
       if (mediaItem.file) {
         // Case 1: Direct file upload
         const uploadedMedia = await this.mediaStorageService.uploadPostMedia(
-          facebookAccountId,
+          accountId,
           [mediaItem.file],
           prefix,
           SocialPlatform.FACEBOOK,
@@ -245,7 +245,7 @@ export class FacebookService implements PlatformService {
       } else if (mediaItem.url) {
         // Case 3: Media from URL
         const uploadedMedia = await this.mediaStorageService.uploadMediaFromUrl(
-          facebookAccountId,
+          accountId,
           mediaItem.url,
           prefix,
           SocialPlatform.FACEBOOK,
@@ -1200,7 +1200,7 @@ export class FacebookService implements PlatformService {
       // Upload media to S3 first
       const mediaItems = await this.uploadFacebookMediaItems(
         updateDto.media,
-        post.account.id,
+        post.account.userId,
         'post',
       );
 

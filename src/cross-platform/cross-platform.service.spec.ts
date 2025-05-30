@@ -135,7 +135,7 @@ describe('CrossPlatformService', () => {
       expect(instagramPlatform).toBeDefined();
       expect(instagramPlatform.accounts).toHaveLength(1);
       expect(instagramPlatform.accounts[0].id).toBe('ig123');
-      expect(instagramPlatform.accounts[0].type).toBe('individual');
+      expect(instagramPlatform.accounts[0].type).toBe('business');
 
       const linkedinPlatform = result.find(
         (p) => p.platform === SocialPlatform.LINKEDIN,
