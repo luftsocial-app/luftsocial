@@ -402,6 +402,7 @@ export class ContentPublisherService {
   /**
    * Publish to a specific platform
    */
+  // TODO: Refactor this to use platform-specific services if we need to publish to more than one specific platform account. We'll to change the specific platform account ID an array.
   private async publishToPlatform(params: {
     platform: SocialPlatform;
     content: string;
@@ -427,6 +428,7 @@ export class ContentPublisherService {
           };
 
         case SocialPlatform.INSTAGRAM:
+        case SocialPlatform.INSTAGRAM_BUSINESS:
           if (!params.media?.length) {
             throw new BadRequestException(
               'Instagram requires at least one media',
@@ -436,6 +438,11 @@ export class ContentPublisherService {
             params.platformSpecificParams?.accountId,
             params.platformSpecificParams,
             params.media,
+            {
+              shareToFeed: params.platformSpecificParams?.shareToFeed ?? true,
+              coverUrl: params.platformSpecificParams?.coverUrl,
+              thumbOffset: 5000,
+            },
           );
           return {
             platformPostId: igResult.platformPostId,

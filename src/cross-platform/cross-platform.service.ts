@@ -14,7 +14,6 @@ export class CrossPlatformService {
     private readonly instagramService: InstagramService,
     private readonly linkedinService: LinkedInService,
     private readonly tiktokService: TikTokService,
-
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(CrossPlatformService.name);
@@ -23,6 +22,7 @@ export class CrossPlatformService {
   async getConnectedPlatforms(userId: string): Promise<ConnectedPlatform[]> {
     const connectedPlatforms: ConnectedPlatform[] = [];
 
+    // Facebook
     try {
       const facebookAccounts =
         await this.facebookService.getUserAccounts(userId);
@@ -39,25 +39,88 @@ export class CrossPlatformService {
     } catch (error) {
       this.logger.error('Error fetching Facebook accounts:', error);
     }
-    // Instagram
+
+    // Instagram (handles both INSTAGRAM and INSTAGRAM_BUSINESS)
     try {
       const instagramAccounts =
         await this.instagramService.getUserAccounts(userId);
-      if (instagramAccounts?.length) {
+      if (
+        instagramAccounts &&
+        Array.isArray(instagramAccounts) &&
+        instagramAccounts.length > 0
+      ) {
+        // Group accounts by authentication method
+        const facebookLoginAccounts = instagramAccounts.filter(
+          (account) => !account.platformSpecific?.isBusinessLogin,
+        );
+        const businessLoginAccounts = instagramAccounts.filter(
+          (account) => account.platformSpecific?.isBusinessLogin,
+        );
+
+        // Add Instagram with Facebook Login accounts
+        if (facebookLoginAccounts.length > 0) {
+          connectedPlatforms.push({
+            platform: SocialPlatform.INSTAGRAM,
+            accounts: facebookLoginAccounts.map((account) => ({
+              id: account.id,
+              name: account.name,
+              type: 'business',
+              avatarUrl: account.avatarUrl,
+              platformSpecific: {
+                authMethod: 'facebook_login',
+                instagramId: account.platformSpecific?.instagramId,
+                facebookPageId: account.platformSpecific?.facebookPageId,
+              },
+            })),
+          });
+        }
+
+        // Add Instagram Business Login accounts
+        if (businessLoginAccounts.length > 0) {
+          connectedPlatforms.push({
+            platform: SocialPlatform.INSTAGRAM_BUSINESS,
+            accounts: businessLoginAccounts.map((account) => ({
+              id: account.id,
+              name: account.name,
+              type: account.type || 'business',
+              avatarUrl: account.avatarUrl,
+              platformSpecific: {
+                authMethod: 'instagram_business_login',
+                instagramId: account.platformSpecific?.instagramId,
+              },
+            })),
+          });
+        }
+      } else if (instagramAccounts && !Array.isArray(instagramAccounts)) {
+        // Handle case where getUserAccounts returns a single account object
+        const account = instagramAccounts;
+        const isBusinessLogin = account.platformSpecific?.isBusinessLogin;
+
         connectedPlatforms.push({
-          platform: SocialPlatform.INSTAGRAM,
-          accounts: instagramAccounts.map((account) => ({
-            id: account.id,
-            name: account.name,
-            type: 'individual',
-          })),
+          platform: isBusinessLogin
+            ? SocialPlatform.INSTAGRAM_BUSINESS
+            : SocialPlatform.INSTAGRAM,
+          accounts: [
+            {
+              id: account.id,
+              name: account.name,
+              type: account.type || 'business',
+              platformSpecific: {
+                authMethod: isBusinessLogin
+                  ? 'instagram_business_login'
+                  : 'facebook_login',
+                instagramId: account.platformSpecific?.instagramId,
+                facebookPageId: account.platformSpecific?.facebookPageId,
+              },
+            },
+          ],
         });
       }
     } catch (error) {
-      this.logger.error('Error fetching instagram accounts:', error);
+      this.logger.error('Error fetching Instagram accounts:', error);
     }
-    // LinkedIn
 
+    // LinkedIn
     try {
       const linkedInAccounts =
         await this.linkedinService.getUserAccounts(userId);
@@ -72,7 +135,7 @@ export class CrossPlatformService {
         });
       }
     } catch (error) {
-      this.logger.error('Error fetching linkedin accounts:', error);
+      this.logger.error('Error fetching LinkedIn accounts:', error);
     }
 
     // TikTok
@@ -101,21 +164,153 @@ export class CrossPlatformService {
     platform: SocialPlatform,
     accountId: string,
   ): Promise<void> {
+    try {
+      switch (platform) {
+        case SocialPlatform.FACEBOOK:
+          await this.facebookService.revokeAccess(accountId);
+          break;
+        case SocialPlatform.INSTAGRAM:
+          // Handle Instagram with Facebook Login
+          await this.instagramService.revokeAccess(accountId);
+          break;
+        case SocialPlatform.INSTAGRAM_BUSINESS:
+          // Handle Instagram Business Login
+          await this.instagramService.revokeAccess(accountId);
+          break;
+        case SocialPlatform.LINKEDIN:
+          await this.linkedinService.revokeAccess(accountId);
+          break;
+        case SocialPlatform.TIKTOK:
+          await this.tiktokService.revokeAccess(accountId);
+          break;
+        default:
+          throw new BadRequestException(`Unsupported platform: ${platform}`);
+      }
+
+      this.logger.info(
+        `Successfully disconnected ${platform} account ${accountId} for user ${userId}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to disconnect ${platform} account ${accountId} for user ${userId}:`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Get a specific connected account across all platforms
+   */
+  async getConnectedAccount(
+    userId: string,
+    platform: SocialPlatform,
+    accountId: string,
+  ): Promise<any> {
+    try {
+      switch (platform) {
+        case SocialPlatform.FACEBOOK:
+          return await this.facebookService.getAccountsByUserId(userId);
+        case SocialPlatform.INSTAGRAM:
+        case SocialPlatform.INSTAGRAM_BUSINESS:
+          return await this.instagramService.getAccountsByUserId(userId);
+        case SocialPlatform.LINKEDIN:
+          return await this.linkedinService.getAccountsByUserId(userId);
+        case SocialPlatform.TIKTOK:
+          return await this.tiktokService.getAccountsByUserId(userId);
+        default:
+          throw new BadRequestException(`Unsupported platform: ${platform}`);
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to get ${platform} account ${accountId} for user ${userId}:`,
+        error,
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Get platform-specific service instance
+   */
+  private getPlatformService(platform: SocialPlatform) {
     switch (platform) {
       case SocialPlatform.FACEBOOK:
-        await this.facebookService.revokeAccess(accountId);
-        break;
+        return this.facebookService;
       case SocialPlatform.INSTAGRAM:
-        await this.instagramService.revokeAccess(accountId);
-        break;
+      case SocialPlatform.INSTAGRAM_BUSINESS:
+        return this.instagramService;
       case SocialPlatform.LINKEDIN:
-        await this.linkedinService.revokeAccess(accountId);
-        break;
+        return this.linkedinService;
       case SocialPlatform.TIKTOK:
-        await this.tiktokService.revokeAccess(accountId);
-        break;
+        return this.tiktokService;
       default:
         throw new BadRequestException(`Unsupported platform: ${platform}`);
     }
+  }
+
+  /**
+   * Check if a user has any connected accounts for a specific platform
+   */
+  async hasConnectedAccounts(
+    userId: string,
+    platform: SocialPlatform,
+  ): Promise<boolean> {
+    try {
+      const service = this.getPlatformService(platform);
+      const accounts = await service.getUserAccounts(userId);
+
+      if (!accounts) {
+        return false;
+      }
+
+      // Handle both array and single object returns
+      if (Array.isArray(accounts)) {
+        return accounts.length > 0;
+      } else {
+        // Single account object means there's at least one account
+        return true;
+      }
+    } catch (error) {
+      this.logger.error(
+        `Error checking connected accounts for ${platform}:`,
+        error,
+      );
+      return false;
+    }
+  }
+
+  /**
+   * Get total count of connected platforms for a user
+   */
+  async getConnectedPlatformsCount(userId: string): Promise<number> {
+    const connectedPlatforms = await this.getConnectedPlatforms(userId);
+    return connectedPlatforms.length;
+  }
+
+  /**
+   * Get all connected account IDs across all platforms for a user
+   */
+  async getAllConnectedAccountIds(
+    userId: string,
+  ): Promise<Record<SocialPlatform, string[]>> {
+    const connectedPlatforms = await this.getConnectedPlatforms(userId);
+    const accountIds: Record<SocialPlatform, string[]> = {} as Record<
+      SocialPlatform,
+      string[]
+    >;
+
+    // Initialize all platforms with empty arrays
+    Object.values(SocialPlatform).forEach((platform) => {
+      accountIds[platform] = [];
+    });
+
+    connectedPlatforms.forEach((platformData) => {
+      accountIds[platformData.platform] = platformData.accounts.map(
+        (account) => account.id,
+      );
+    });
+
+    return accountIds;
   }
 }

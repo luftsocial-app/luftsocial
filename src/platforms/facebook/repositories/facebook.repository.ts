@@ -53,6 +53,21 @@ export class FacebookRepository {
     const { socialAccount, ...facebookAccountData } = data;
 
     return this.dataSource.transaction(async (manager) => {
+      const existingAccount = await this.accountRepo.findOne({
+        where: {
+          userId: data.userId,
+          tenantId: data.tenantId,
+          facebookUserId: data.facebookUserId,
+        },
+        relations: ['socialAccount'],
+      });
+
+      if (existingAccount) {
+        this.logger.warn(
+          `Account with userId ${data.userId} and facebookUserId ${data.facebookUserId} already exists.`,
+        );
+        return existingAccount;
+      }
       // First create the social account
       const socialAccount = this.socialAccountRepo.create({
         ...socialAccountData,

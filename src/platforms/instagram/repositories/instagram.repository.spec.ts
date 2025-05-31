@@ -173,7 +173,7 @@ describe('InstagramRepository', () => {
       const userId = 'user-123';
       const expectedAccount = {
         id: userId,
-        instagramAccountId: userId,
+        userId: userId,
         username: 'testuser',
       };
 
@@ -182,7 +182,7 @@ describe('InstagramRepository', () => {
       const result = await repository.getAccountByUserId(userId);
 
       expect(accountRepository.findOne).toHaveBeenCalledWith({
-        where: { instagramAccountId: userId, tenantId: 'test-tenant-id' },
+        where: { userId: userId, tenantId: 'test-tenant-id' },
         relations: ['socialAccount'],
       });
       expect(result).toEqual(expectedAccount);

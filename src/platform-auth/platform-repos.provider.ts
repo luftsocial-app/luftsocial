@@ -14,6 +14,7 @@ export const PlatformRepositoriesProvider = {
   ) => ({
     [SocialPlatform.FACEBOOK]: facebookRepo,
     [SocialPlatform.INSTAGRAM]: instagramRepo,
+    [SocialPlatform.INSTAGRAM_BUSINESS]: instagramRepo,
     [SocialPlatform.LINKEDIN]: linkedinRepo,
     [SocialPlatform.TIKTOK]: tiktokRepo,
   }),

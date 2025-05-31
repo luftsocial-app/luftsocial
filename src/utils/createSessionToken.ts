@@ -31,6 +31,7 @@ export async function createSessionToken( // this function is for testing only, 
 
     const data = await response.json();
     logger.info(`Session Token: ${data.jwt}`);
+    console.log(`SessionToken: ${data.jwt}`);
     return data.jwt;
   } catch (error) {
     logger.error('Failed to create session token:', error);

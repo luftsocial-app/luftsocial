@@ -3,11 +3,11 @@ import * as config from 'config';
 
 export default new DataSource({
   type: 'postgres',
-  host: config.get('DB_HOST') || 'localhost',
-  port: parseInt(config.get('DB_PORT')) || 5434,
-  username: config.get('DB_USER') || 'root',
-  password: config.get('DB_PASS') || 'admin',
-  database: config.get('DB_NAME') || 'luftsocial',
+  host: config.get('db.options.host') || 'localhost',
+  port: parseInt(config.get('db.options.port')) || 5434,
+  username: config.get('db.options.username') || 'root',
+  password: config.get('db.options.password') || 'admin',
+  database: config.get('db.options.database') || 'luftsocial',
   synchronize: false,
   entities: ['dist/**/**.entity{.ts,.js}'],
 

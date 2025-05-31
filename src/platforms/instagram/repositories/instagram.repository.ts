@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan, LessThan, EntityManager } from 'typeorm';
 import * as crypto from 'crypto';
@@ -15,6 +15,8 @@ import { TenantService } from '../../../user-management/tenant.service';
 
 @Injectable()
 export class InstagramRepository {
+  private readonly logger = new Logger(InstagramRepository.name);
+
   constructor(
     @InjectRepository(InstagramAccount)
     private readonly accountRepo: Repository<InstagramAccount>,
@@ -33,16 +35,169 @@ export class InstagramRepository {
     private readonly tenantService: TenantService,
   ) {}
 
+  async createAccount(accountData: any): Promise<InstagramAccount> {
+    try {
+      this.logger.debug('Creating Instagram account with data:', {
+        userId: accountData.userId,
+        instagramId: accountData.instagramId,
+        username: accountData.username,
+      });
+
+      // First check if an account already exists with this user ID and Instagram ID
+      const existingAccount = await this.accountRepo.findOne({
+        where: {
+          userId: accountData.userId,
+          tenantId: accountData.tenantId,
+          instagramId: accountData.instagramId,
+        },
+        // relations: ['socialAccount'],
+      });
+
+      if (existingAccount) {
+        this.logger.debug(
+          'Updating existing Instagram account:',
+          existingAccount.id,
+        );
+
+        // Update the account properties
+        existingAccount.permissions = accountData.permissions;
+
+        // Make sure metadata has the required structure
+        if (
+          !existingAccount.metadata ||
+          !existingAccount.metadata.instagramAccounts
+        ) {
+          existingAccount.metadata = {
+            instagramAccounts: [
+              {
+                id: accountData.instagramId || '',
+              },
+            ],
+          };
+        }
+
+        // Update other fields
+        if (accountData.isBusinessLogin !== undefined) {
+          existingAccount.isBusinessLogin = accountData.isBusinessLogin;
+        }
+
+        if (accountData.username) {
+          existingAccount.username = accountData.username;
+        }
+
+        if (accountData.name) {
+          existingAccount.name = accountData.name;
+        }
+
+        if (accountData.profilePictureUrl) {
+          existingAccount.profilePictureUrl = accountData.profilePictureUrl;
+        }
+
+        if (accountData.biography) {
+          existingAccount.biography = accountData.biography;
+        }
+
+        if (accountData.facebookPageId) {
+          existingAccount.facebookPageId = accountData.facebookPageId;
+        }
+
+        if (accountData.facebookPageName) {
+          existingAccount.facebookPageName = accountData.facebookPageName;
+        }
+
+        if (accountData.facebookPageAccessToken) {
+          existingAccount.facebookPageAccessToken =
+            accountData.facebookPageAccessToken;
+        }
+
+        // Update social account if provided
+        if (accountData.socialAccount && existingAccount.socialAccount) {
+          Object.assign(
+            existingAccount.socialAccount,
+            accountData.socialAccount,
+          );
+          await this.socialAccountRepo.save(existingAccount.socialAccount);
+        }
+
+        return await this.accountRepo.save(existingAccount);
+      }
+
+      // Ensure metadata has the required structure
+      if (!accountData.metadata || !accountData.metadata.instagramAccounts) {
+        accountData.metadata = {
+          instagramAccounts: [
+            {
+              id: accountData.instagramId || '',
+            },
+          ],
+        };
+      }
+
+      // Create and save the social account first
+      let socialAccountEntity = null;
+      if (accountData.socialAccount) {
+        socialAccountEntity = this.socialAccountRepo.create(
+          accountData.socialAccount,
+        );
+        socialAccountEntity =
+          await this.socialAccountRepo.save(socialAccountEntity);
+      }
+
+      // Create a new Instagram account
+      const newAccount = this.accountRepo.create({
+        userId: accountData.userId,
+        tenantId: accountData.tenantId,
+        permissions: accountData.permissions,
+        socialAccountId: socialAccountEntity?.id || null,
+        instagramId: accountData.instagramId,
+        username: accountData.username,
+        name: accountData.name || accountData.username,
+        profilePictureUrl: accountData.profilePictureUrl,
+        biography: accountData.biography,
+        facebookPageId: accountData.facebookPageId,
+        facebookPageName: accountData.facebookPageName,
+        facebookPageAccessToken: accountData.facebookPageAccessToken,
+        accountType: accountData.accountType || 'business',
+        isBusinessLogin: accountData.isBusinessLogin || false,
+        metadata: accountData.metadata,
+      });
+
+      this.logger.debug(
+        'Created new Instagram account entity with metadata:',
+        JSON.stringify(newAccount.metadata),
+      );
+
+      const savedAccount = await this.accountRepo.save(newAccount);
+
+      return await this.accountRepo.findOne({
+        where: { id: savedAccount.id },
+        relations: ['socialAccount'],
+      });
+    } catch (error) {
+      this.logger.error('Failed to create Instagram account', error);
+
+      if (error.code) {
+        this.logger.error(
+          `Database error code: ${error.code}, column: ${error.column}`,
+        );
+        this.logger.error(`Detailed error: ${error.detail}`);
+      }
+
+      throw error;
+    }
+  }
+
   async createPost(data: Partial<InstagramPost>): Promise<InstagramPost> {
     const post = this.mediaRepo.create(data);
     return this.mediaRepo.save(post);
   }
 
   async getAccountByUserId(userId: string): Promise<InstagramAccount> {
+    const tenantId = await this.tenantService.getTenantId();
     return this.accountRepo.findOne({
       where: {
-        instagramAccountId: userId,
-        tenantId: this.tenantService.getTenantId(),
+        userId: userId,
+        tenantId: tenantId,
       },
       relations: ['socialAccount'],
     });
@@ -180,6 +335,40 @@ export class InstagramRepository {
       },
       relations: ['socialAccount'],
     });
+  }
+
+  async getAccountsByPlatform(
+    userId: string,
+    tenantId: string,
+    platform: SocialPlatform,
+  ): Promise<InstagramAccount[]> {
+    try {
+      // For INSTAGRAM_BUSINESS, filter by isBusinessLogin = true
+      // For regular INSTAGRAM, filter by isBusinessLogin = false
+      const isBusinessLogin = platform === SocialPlatform.INSTAGRAM_BUSINESS;
+
+      // Use query builder to filter by nested property
+      return await this.accountRepo
+        .createQueryBuilder('account')
+        .where('account.userId = :userId', { userId })
+        .andWhere('account.tenantId = :tenantId', { tenantId })
+        .andWhere('account.isBusinessLogin = :isBusinessLogin', {
+          isBusinessLogin,
+        })
+        // Use JSON operations to check the platform in the socialAccount JSON column
+        .andWhere(`account.socialAccount->>'platform' = :platform`, {
+          platform: isBusinessLogin
+            ? SocialPlatform.INSTAGRAM_BUSINESS
+            : SocialPlatform.INSTAGRAM,
+        })
+        .getMany();
+    } catch (error) {
+      this.logger.error(
+        `Failed to get Instagram accounts by platform: ${platform} for user: ${userId}`,
+        error,
+      );
+      throw error;
+    }
   }
 
   async checkRateLimit(accountId: string, action: string): Promise<boolean> {

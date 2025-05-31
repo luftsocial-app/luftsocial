@@ -28,6 +28,7 @@ export enum INSTAGRAM_SCOPES {
   CONTENT_PUBLISH = 'instagram_content_publish',
   MANAGE_COMMENTS = 'instagram_manage_comments',
   MANAGE_INSIGHTS = 'instagram_manage_insights',
+  MANAGE_MESSAGES = 'instagram_manage_messages',
 }
 
 export enum LINKEDIN_SCOPES {

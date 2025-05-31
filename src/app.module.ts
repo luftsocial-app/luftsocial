@@ -18,7 +18,6 @@ import { LoggerMiddleware } from './middleware/logger.middleware';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TenantMiddleware } from './middleware/tenant.middleware';
 import { ClerkAuthGuard } from './guards/clerk-auth.guard';
-import { TaskModule } from './task/task.module';
 import { MediaStorageModule } from './asset-management/media-storage/media-storage.module';
 import { CacheModule } from './cache/cache.module';
 import { PlatformsModule } from './platforms/platforms.module';
@@ -50,24 +49,29 @@ import { ConversationModule } from './messaging/conversations/conversation.modul
 import { RealtimeModule } from './messaging/realtime/realtime.module';
 import { ClerkWebhookModule } from './webhooks/clerk-webhook/clerk-webhook.module';
 import { SocialAccount } from './platforms/entities/notifications/entity/social-account.entity';
-import { Team } from './user-management/entities/team.entity';
 import { Tenant } from './user-management/entities/tenant.entity';
 import { Notification } from './platforms/entities/notifications/notification.entity';
 import { TiktokModule } from './webhooks/tiktok/tiktok.module';
 import { PostAsset } from './asset-management/entities/post-asset.entity';
 import { PublishRecord } from './cross-platform/entities/publish.entity';
-import { RoleGuard } from './guards/role-guard';
-import { TikTokAccount } from './platforms/entities/tiktok-entities/tiktok-account.entity';
-import { TikTokMetric } from './platforms/entities/tiktok-entities/tiktok-metric.entity';
-import { TikTokVideo } from './platforms/entities/tiktok-entities/tiktok-video.entity';
-import { TikTokComment } from './platforms/entities/tiktok-entities/tiktok_comments.entity';
-import { TikTokRateLimit } from './platforms/entities/tiktok-entities/tiktok_rate_limits.entity';
+import { Organization } from './user-management/entities/organization.entity';
+import { OrganizationManagementModule } from './organization-management/organization-management.module';
+import { AuditModule } from './audit/audit.module';
+import { ApprovalAction } from './organization-management/post-approval/entities/approval-action.entity';
+import { ApprovalStep } from './organization-management/post-approval/entities/approval-step.entity';
+import { Task } from './organization-management/post-approval/entities/task.entity';
+import { WorkflowStep } from './organization-management/post-approval/entities/workflow-step.entity';
+import { WorkflowTemplate } from './organization-management/post-approval/entities/workflow-template.entity';
+import { UserPost } from './organization-management/post-approval/entities/post.entity';
+import { InstagramAccount } from './platforms/entities/instagram-entities/instagram-account.entity';
+import { InstagramPost } from './platforms/entities/instagram-entities/instagram-post.entity';
+import { InstagramMetric } from './platforms/entities/instagram-entities/instagram-metric.entity';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
-      ignoreEnvFile: true,
-      ignoreEnvVars: true,
+      // ignoreEnvFile: true,
+      // ignoreEnvVars: true,
       isGlobal: true,
       load: [config.util.toObject],
     }),
@@ -82,7 +86,7 @@ import { TikTokRateLimit } from './platforms/entities/tiktok-entities/tiktok_rat
         ConversationEntity,
         MessageEntity,
         AttachmentEntity,
-        Team,
+        Organization,
         Notification,
         FacebookPostMetric,
         FacebookPost,
@@ -91,16 +95,19 @@ import { TikTokRateLimit } from './platforms/entities/tiktok-entities/tiktok_rat
         AuthState,
         ParticipantEntity,
         FacebookAccount,
-        TikTokAccount,
-        TikTokAccount,
-        TikTokVideo,
-        TikTokMetric,
-        TikTokRateLimit,
-        TikTokComment,
+        InstagramAccount,
+        InstagramPost,
+        InstagramMetric,
         SocialAccount,
         PostAsset,
         PublishRecord,
         PostAsset,
+        UserPost,
+        ApprovalStep,
+        ApprovalAction,
+        Task,
+        WorkflowTemplate,
+        WorkflowStep,
       ],
     }),
     LoggerModule.forRoot({
@@ -126,9 +133,10 @@ import { TikTokRateLimit } from './platforms/entities/tiktok-entities/tiktok_rat
     ConversationModule,
     UserManagementModule,
     BullQueueModule,
-    TaskModule,
     TiktokModule,
     MessageModule,
+    OrganizationManagementModule,
+    AuditModule,
   ],
   controllers: [AppController],
   providers: [
@@ -137,10 +145,7 @@ import { TikTokRateLimit } from './platforms/entities/tiktok-entities/tiktok_rat
       provide: APP_INTERCEPTOR,
       useClass: RequestInterceptor,
     },
-    {
-      provide: APP_GUARD,
-      useClass: RoleGuard,
-    },
+
     {
       provide: APP_GUARD,
       useClass: ClerkAuthGuard,

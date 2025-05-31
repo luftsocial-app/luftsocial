@@ -147,6 +147,7 @@ describe('PlatformsService', () => {
       expect(result).toEqual({
         [SocialPlatform.FACEBOOK]: [],
         [SocialPlatform.INSTAGRAM]: [],
+        [SocialPlatform.INSTAGRAM_BUSINESS]: [],
         [SocialPlatform.LINKEDIN]: [],
         [SocialPlatform.TIKTOK]: [],
       });
@@ -201,6 +202,7 @@ describe('PlatformsService', () => {
       expect(result).toEqual({
         [SocialPlatform.FACEBOOK]: facebookAccountsArray,
         [SocialPlatform.INSTAGRAM]: instagramAccountsArray,
+        [SocialPlatform.INSTAGRAM_BUSINESS]: instagramAccountsArray,
         [SocialPlatform.LINKEDIN]: linkedinAccountsArray,
         [SocialPlatform.TIKTOK]: tiktokAccountsArray,
       });
@@ -224,6 +226,7 @@ describe('PlatformsService', () => {
       expect(result).toEqual({
         [SocialPlatform.FACEBOOK]: [],
         [SocialPlatform.INSTAGRAM]: [],
+        [SocialPlatform.INSTAGRAM_BUSINESS]: [],
         [SocialPlatform.LINKEDIN]: [],
         [SocialPlatform.TIKTOK]: [],
       });
@@ -258,6 +261,7 @@ describe('PlatformsService', () => {
       expect(result).toEqual({
         [SocialPlatform.FACEBOOK]: facebookAccountsArray,
         [SocialPlatform.INSTAGRAM]: [],
+        [SocialPlatform.INSTAGRAM_BUSINESS]: [],
         [SocialPlatform.LINKEDIN]: linkedinAccountsArray,
         [SocialPlatform.TIKTOK]: [],
       });

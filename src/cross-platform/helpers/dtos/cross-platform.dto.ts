@@ -15,6 +15,7 @@ import { DateRange, ScheduleStatus } from '../cross-platform.interface';
 import { IsNotPastDate } from '../../../utils/IsNotPastDate';
 import { SocialPlatform } from '../../../common/enums/social-platform.enum';
 import { PlatformPostDto } from './platform-post.dto';
+
 export class CreateCrossPlatformPostDto {
   @IsString()
   @MinLength(1)

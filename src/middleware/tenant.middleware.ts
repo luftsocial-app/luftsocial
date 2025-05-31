@@ -16,16 +16,16 @@ export class TenantMiddleware implements NestMiddleware {
     private readonly logger: PinoLogger,
     private configService: ConfigService,
     // private readonly clerkService: ClerkService,
-  ) { }
+  ) {}
 
   async use(req: Request, res: Response, next: NextFunction) {
     const sessionId = req.auth?.sessionId;
     const clerkSecretKey = this.configService.get('clerk.secretKey');
 
     // testing: renew session by 1 hr
-    if (process.env.NODE_ENV === 'development')
+    if (process.env.NODE_ENV === 'development') {
       await createSessionToken(sessionId, clerkSecretKey, this.logger);
-    // req.headers['authorization'] = `Bearer ${customJWT}`;
+    }
     const tenantId =
       (req.headers['X-TENANT-ID'] as string) ||
       (req.headers['x-tenant-id'] as string);

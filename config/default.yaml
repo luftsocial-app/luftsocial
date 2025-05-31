@@ -44,12 +44,6 @@ cache:
     oauth_state: 600 # 10 minutes for OAuth states
     access_token: 3600 # 1 hour for access tokens
     refresh_token: 604800 # 7 days for refresh tokens
-aws:
-  region: eu-central-1
-  accessKeyId:
-  secretAccessKey:
-  s3:
-    bucket: uploads-123-456
 platforms:
   facebook:
     clientId: ${FACEBOOK_CLIENT_ID}
@@ -57,7 +51,7 @@ platforms:
     redirectUri: ${FACEBOOK_REDIRECT_URI}
     apiVersion: v22.0
   instagram:
-    clientId: INSTAGRAM_CLIENT_ID
+    clientId: ${INSTAGRAM_CLIENT_ID}
     clientSecret: INSTAGRAM_CLIENT_SECRET
     redirectUri: INSTAGRAM_REDIRECT_URI
     apiVersion: INSTAGRAM_API_VERSION

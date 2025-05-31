@@ -12,8 +12,8 @@ import { Tenant } from './tenant.entity';
 import { Role } from './role.entity';
 import { Permission } from '../../common/enums/roles';
 import { MessageEntity } from '../../messaging/messages/entities/message.entity';
-import { Team } from './team.entity';
 import { ParticipantEntity } from '../../messaging/conversations/entities/participant.entity';
+import { Organization } from './organization.entity';
 
 @Entity({ name: 'tbl_users' })
 export class User {
@@ -50,7 +50,7 @@ export class User {
   @Column({ type: 'jsonb', default: [] })
   permissions: Permission[];
 
-  @OneToMany(() => Role, (role) => role.id, {
+  @ManyToMany(() => Role, (role) => role.users, {
     cascade: true,
   })
   @JoinTable({
@@ -92,9 +92,9 @@ export class User {
   })
   tenants: Tenant[];
 
-  // User belongs to multiple teams
-  @ManyToMany(() => Team, (team) => team.users)
-  teams: Team[];
+  // User belongs to multiple organizations
+  @ManyToMany(() => Organization, (organization) => organization.users)
+  organizations: Organization[];
 
   // Tracks the currently active Tenant
   @Column({ nullable: true })

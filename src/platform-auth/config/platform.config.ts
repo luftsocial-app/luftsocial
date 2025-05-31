@@ -1,7 +1,10 @@
 import { ConfigService } from '@nestjs/config';
 import { PlatformOAuthConfig } from '../../platforms/platform-service.interface';
 import { SocialPlatform } from '../../common/enums/social-platform.enum';
-import { FACEBOOK_SCOPES } from '../../common/enums/scopes.enum';
+import {
+  FACEBOOK_SCOPES,
+  INSTAGRAM_SCOPES,
+} from '../../common/enums/scopes.enum';
 
 export const PlatformConfigsProvider = {
   provide: 'PLATFORM_CONFIGS',
@@ -12,7 +15,7 @@ export const PlatformConfigsProvider = {
       clientId: configService.get('FACEBOOK_CLIENT_ID'),
       clientSecret: configService.get('FACEBOOK_CLIENT_SECRET'),
       redirectUri: configService.get('FACEBOOK_REDIRECT_URI'),
-      tokenHost: 'https://www.facebook.com',
+      tokenHost: configService.get('FACEBOOK_BASE_URL'),
       tokenPath: '/v18.0/oauth/access_token',
       authorizePath: '/v18.0/dialog/oauth',
       revokePath: '/v18.0/oauth/revoke',
@@ -29,18 +32,48 @@ export const PlatformConfigsProvider = {
         refreshTokenTTL: 7200, // 2 hours
       },
     },
+    // Instagram with Facebook Login for Business configuration
     [SocialPlatform.INSTAGRAM]: {
-      clientId: configService.get('INSTAGRAM_CLIENT_ID'),
-      clientSecret: configService.get('INSTAGRAM_CLIENT_SECRET'),
-      redirectUri: configService.get('INSTAGRAM_REDIRECT_URI'),
-      tokenHost: 'https://api.instagram.com',
+      clientId: configService.get<string>('FACEBOOK_CLIENT_ID'),
+      clientSecret: configService.get<string>('FACEBOOK_CLIENT_SECRET'),
+      tokenHost: configService.get('FACEBOOK_BASE_URL'),
+      tokenPath: '/v22.0/oauth/access_token',
+      authorizePath: '/v22.0/dialog/oauth',
+      revokePath: '/v22.0/auth/revoke',
+      redirectUri: configService.get<string>('FACEBOOK_REDIRECT_URI'),
+      scopes: [
+        INSTAGRAM_SCOPES.BASIC,
+        INSTAGRAM_SCOPES.CONTENT_PUBLISH,
+        INSTAGRAM_SCOPES.MANAGE_COMMENTS,
+        INSTAGRAM_SCOPES.MANAGE_INSIGHTS,
+        INSTAGRAM_SCOPES.MANAGE_MESSAGES,
+        FACEBOOK_SCOPES.PAGES_SHOW_LIST,
+        FACEBOOK_SCOPES.PAGES_READ_ENGAGEMENT,
+      ],
+      cacheOptions: {
+        tokenTTL: 60 * 60, // 1 hour
+        refreshTokenTTL: 60 * 60 * 24, // 24 hours
+      },
+    },
+    // Instagram with Business Login for Instagram configuration
+    [SocialPlatform.INSTAGRAM_BUSINESS]: {
+      clientId: configService.get<string>('INSTAGRAM_CLIENT_ID'),
+      clientSecret: configService.get<string>('INSTAGRAM_CLIENT_SECRET'),
+      tokenHost: configService.get('INSTAGRAM_BASE_URL'),
       tokenPath: '/oauth/access_token',
       authorizePath: '/oauth/authorize',
       revokePath: '/oauth/revoke',
-      scopes: ['basic', 'comments', 'relationships', 'media'],
+      redirectUri: configService.get<string>('INSTAGRAM_REDIRECT_URI'),
+      scopes: [
+        INSTAGRAM_SCOPES.BASIC,
+        INSTAGRAM_SCOPES.CONTENT_PUBLISH,
+        INSTAGRAM_SCOPES.MANAGE_COMMENTS,
+        INSTAGRAM_SCOPES.MANAGE_INSIGHTS,
+        INSTAGRAM_SCOPES.MANAGE_MESSAGES,
+      ],
       cacheOptions: {
-        tokenTTL: 3600,
-        refreshTokenTTL: 7200,
+        tokenTTL: 60 * 60, // 1 hour
+        refreshTokenTTL: 60 * 60 * 24, // 24 hours
       },
     },
     [SocialPlatform.LINKEDIN]: {
@@ -68,7 +101,7 @@ export const PlatformConfigsProvider = {
       clientId: configService.get('TIKTOK_CLIENT_KEY'),
       clientSecret: configService.get('TIKTOK_CLIENT_SECRET'),
       redirectUri: configService.get('TIKTOK_REDIRECT_URI'),
-      tokenHost: 'https://www.tiktok.com',
+      tokenHost: configService.get('TIKTOK_BASE_URL'),
       tokenPath: '/v2/auth/authorize/',
       authorizePath: '/v2/auth/authorize/',
       revokePath: '/v2/oauth/revoke/',

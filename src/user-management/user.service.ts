@@ -1,18 +1,16 @@
 import {
   Injectable,
   BadRequestException,
-  Inject,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { Role } from './entities/role.entity';
-import { ClerkClient, clerkClient, User as clerkUser } from '@clerk/express';
+import { clerkClient, User as clerkUser } from '@clerk/express';
 import { UserRole } from '../common/enums/roles';
 import { UserWebhookEvent } from '@clerk/express';
 import { PinoLogger } from 'nestjs-pino';
-import { CLERK_CLIENT } from '../clerk/clerk.provider';
 import { Tenant } from './entities/tenant.entity';
 import { TenantService } from './tenant.service';
 
@@ -28,7 +26,6 @@ export class UserService {
     private readonly roleRepo: Repository<Role>,
     private readonly tenantService: TenantService,
     private readonly logger: PinoLogger,
-    @Inject(CLERK_CLIENT) private readonly clerkClient: ClerkClient,
   ) {
     this.logger.setContext(UserService.name);
   }
@@ -46,6 +43,20 @@ export class UserService {
       },
       relations: ['roles'],
     });
+  }
+
+  async checkUserInorganization(
+    userId: string,
+    organizationId: string,
+  ): Promise<boolean> {
+    const count = await this.userRepo
+      .createQueryBuilder('user')
+      .innerJoin('user.organizations', 'organization')
+      .where('user.id = :userId', { userId })
+      .andWhere('organization.id = :organizationId', { organizationId })
+      .getCount();
+
+    return count > 0;
   }
 
   async findUserWithRelations(userId: string): Promise<User> {

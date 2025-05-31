@@ -8,9 +8,9 @@ import {
   PrimaryColumn,
   ManyToMany,
 } from 'typeorm';
-import { Team } from './team.entity';
 import { User } from './user.entity';
 import { Role } from './role.entity';
+import { Organization } from './organization.entity';
 @Entity('tbl_tenants')
 export class Tenant {
   @PrimaryColumn()
@@ -32,8 +32,10 @@ export class Tenant {
   @OneToMany(() => Role, (role) => role.tenant)
   roles: Role[];
 
-  @OneToMany(() => Team, (team) => team.tenantId, { cascade: true })
-  teams: Team[];
+  @OneToMany(() => Organization, (organization) => organization.tenantId, {
+    cascade: true,
+  })
+  organizations: Organization[];
 
   @Column({ name: 'settings', type: 'jsonb', default: {} })
   settings: {

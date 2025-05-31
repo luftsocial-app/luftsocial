@@ -79,6 +79,6 @@ import { BullQueueModule } from '../bull-queue/bull-queue.module';
     MediaStorageModule,
   ],
   controllers: [CrossPlatformController],
-  exports: [CrossPlatformService],
+  exports: [CrossPlatformService, ContentPublisherService],
 })
 export class CrossPlatformModule {}

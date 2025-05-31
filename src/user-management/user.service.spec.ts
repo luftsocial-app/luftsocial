@@ -65,14 +65,6 @@ describe('UserService', () => {
         { provide: getRepositoryToken(User), useValue: mockUserRepo },
         { provide: getRepositoryToken(Role), useValue: mockRoleRepo },
         { provide: getRepositoryToken(Tenant), useValue: mockTenantRepo },
-        {
-          provide: 'CLERK_CLIENT',
-          useValue: {
-            users: {
-              getUserList: jest.fn().mockResolvedValue({ data: [mockUser] }),
-            },
-          },
-        },
       ],
     }).compile();
 
