@@ -626,20 +626,44 @@ export class MessageService {
       message.markAsRead(userId);
       await this.messageRepository.save(message);
 
-      await this.inboxRepository.update(
-        {
-          messageId,
-          recipientId: userId,
-        },
-        { readAt: new Date(), read: true },
-      );
-
       this.logger.debug(
         `Message ${messageId} marked as read by user: ${userId}`,
       );
     } catch (error) {
       this.logger.error(
         `Failed to mark message as read: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  // Mark inbox messages as read
+  async markInboxMessagesAsRead(
+    userId: string,
+    conversationId: string,
+  ): Promise<void> {
+    try {
+      const messages = await this.inboxRepository.find({
+        where: {
+          recipientId: userId,
+          conversationId,
+          read: false,
+        },
+      });
+
+      for (const message of messages) {
+        message.read = true;
+        message.readAt = new Date();
+        await this.inboxRepository.save(message);
+      }
+
+      this.logger.debug(
+        `Marked inbox messages as read for user ${userId} in conversation ${conversationId}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to mark inbox messages as read: ${error.message}`,
         error.stack,
       );
       throw error;

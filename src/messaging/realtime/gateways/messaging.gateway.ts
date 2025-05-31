@@ -153,7 +153,7 @@ export class MessagingGateway
         client.join(room);
       }
 
-      // Send undelivered or unread messages
+      // Fetch undelivered or unread messages just once
       const offLineMessages = await this.messageService.getUnreadInbox(
         user.sub,
         conversationIds,
@@ -163,35 +163,34 @@ export class MessagingGateway
         return;
       }
 
-      const emittedMessages = new Set<string>();
+      // Emit all offline messages at once
+      this.server.to(client.id).emit(MessageEventType.OFFLINE_MESSAGES, {
+        messages: offLineMessages.map((inboxMessage) => ({
+          id: inboxMessage.message.id,
+          content: inboxMessage.message.content,
+          conversationId: inboxMessage.message.conversationId,
+          senderId: inboxMessage.message.senderId,
+          type: inboxMessage.message.type,
+          createdAt: inboxMessage.message.createdAt,
+          status: inboxMessage.message.status,
+          isEdited: inboxMessage.message.isEdited,
+          isDeleted: inboxMessage.message.isDeleted,
+          isPinned: inboxMessage.message.isPinned,
+          read: inboxMessage.read,
+          readAt: inboxMessage.readAt,
+        })),
+      });
+
+      // After emitting, mark each message as read (async, but sequential)
       for (const inboxMessage of offLineMessages) {
         try {
-          if (emittedMessages.has(inboxMessage.message.id)) {
-            continue;
-          }
-          // Emit the message data
-          this.server.to(client.id).emit(MessageEventType.MESSAGE_CREATED, {
-            id: inboxMessage.message.id,
-            content: inboxMessage.message.content,
-            conversationId: inboxMessage.message.conversationId,
-            senderId: inboxMessage.message.senderId,
-            type: inboxMessage.message.type,
-            createdAt: inboxMessage.message.createdAt,
-            status: inboxMessage.message.status,
-            isEdited: inboxMessage.message.isEdited,
-            isDeleted: inboxMessage.message.isDeleted,
-            isPinned: inboxMessage.message.isPinned,
-            read: inboxMessage.read,
-            readAt: inboxMessage.readAt,
-          });
-          // Then mark as read
-          await this.messageService.markMessageAsRead(
-            inboxMessage.id,
+          await this.messageService.markInboxMessagesAsRead(
             user.sub,
+            inboxMessage.conversationId,
           );
         } catch (error) {
           this.logger.error(
-            `Error processing unread message ${inboxMessage.id} for user ${user.sub}: ${error.message}`,
+            `Error marking message ${inboxMessage.id} as read for user ${user.sub}: ${error.message}`,
             error.stack,
           );
         }
