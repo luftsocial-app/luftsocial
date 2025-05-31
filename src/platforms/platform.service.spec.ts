@@ -202,6 +202,7 @@ describe('PlatformsService', () => {
       expect(result).toEqual({
         [SocialPlatform.FACEBOOK]: facebookAccountsArray,
         [SocialPlatform.INSTAGRAM]: instagramAccountsArray,
+        [SocialPlatform.INSTAGRAM_BUSINESS]: instagramAccountsArray,
         [SocialPlatform.LINKEDIN]: linkedinAccountsArray,
         [SocialPlatform.TIKTOK]: tiktokAccountsArray,
       });

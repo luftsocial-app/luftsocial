@@ -9,7 +9,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { SocialPlatform } from '../../../../common/enums/social-platform.enum';
-import { PlatformPostDto } from 'src/cross-platform/helpers/dtos/platform-post.dto';
+import { PlatformPostDto } from '../../../../cross-platform/helpers/dtos/platform-post.dto';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 
 export class PlatformDto {

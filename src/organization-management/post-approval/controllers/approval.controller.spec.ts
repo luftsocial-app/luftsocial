@@ -1,620 +1,402 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CommandBus } from '@nestjs/cqrs';
-import {
-  BadRequestException,
-  NotFoundException,
-  ForbiddenException,
-} from '@nestjs/common';
 import { ApprovalController } from './approval.controller';
+import { TenantService } from '../../../user-management/tenant.service';
 import { ApproveStepCommand } from '../commands/approve-step.command';
 import { RejectStepCommand } from '../commands/reject-step.command';
 import { PublishPostCommand } from '../commands/publish-post.command';
-import { ApprovePostDto } from '../helper/dto/approve-post.dto';
-import { RejectPostDto } from '../helper/dto/reject-post.dto';
-import { PublishPostDto } from '../helper/dto/publish-post.dto';
 import { PostResponseDto } from '../helper/dto/post-response.dto';
-import { SocialPlatform } from 'src/common/enums/social-platform.enum';
+import { PinoLogger } from 'nestjs-pino';
 
 describe('ApprovalController', () => {
   let controller: ApprovalController;
   let commandBus: jest.Mocked<CommandBus>;
+  let tenantService: jest.Mocked<TenantService>;
+
+  const mockLogger = {
+    setContext: jest.fn(),
+    info: jest.fn(),
+  };
 
   const mockUser = {
-    id: 'user-1',
-    userId: 'user-1',
-    orgId: 'org-1',
-    tenantId: 'tenant-1',
+    userId: 'user-123',
+    orgRole: 'admin',
     roles: ['admin'],
   };
 
-  const mockUserWithMultipleRoles = {
-    id: 'user-2',
-    userId: 'user-2',
-    orgId: 'org-1',
-    tenantId: 'tenant-1',
-    roles: ['reviewer', 'member'],
-  };
-
-  const mockPost = {
-    id: 'post-1',
-    title: 'Test Post',
-    content: 'Test Content',
-    status: 'approved',
-    organizationId: 'org-1',
-    tenantId: 'tenant-1',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-
-  const mockFiles: Express.Multer.File[] = [
-    {
-      fieldname: 'files',
-      originalname: 'test-image.jpg',
-      encoding: '7bit',
-      mimetype: 'image/jpeg',
-      size: 1024 * 1024, // 1MB
-      buffer: Buffer.from('fake-image-data'),
-      destination: '',
-      filename: 'test-image.jpg',
-      path: '',
-      stream: null,
-    } as Express.Multer.File,
-    {
-      fieldname: 'files',
-      originalname: 'test-document.pdf',
-      encoding: '7bit',
-      mimetype: 'application/pdf',
-      size: 2 * 1024 * 1024, // 2MB
-      buffer: Buffer.from('fake-pdf-data'),
-      destination: '',
-      filename: 'test-document.pdf',
-      path: '',
-      stream: null,
-    } as Express.Multer.File,
-  ];
+  const mockTenantId = 'tenant-123';
+  const mockPostId = 'post-123';
+  const mockStepId = 'step-123';
 
   beforeEach(async () => {
-    const mockCommandBus = {
-      execute: jest.fn(),
-    };
-
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ApprovalController],
       providers: [
         {
           provide: CommandBus,
-          useValue: mockCommandBus,
+          useValue: {
+            execute: jest.fn(),
+          },
+        },
+        {
+          provide: TenantService,
+          useValue: {
+            getTenantId: jest.fn().mockReturnValue(mockTenantId),
+          },
+        },
+        {
+          provide: PinoLogger,
+          useValue: mockLogger,
         },
       ],
     }).compile();
 
     controller = module.get<ApprovalController>(ApprovalController);
-    commandBus = module.get(CommandBus) as jest.Mocked<CommandBus>;
+    commandBus = module.get(CommandBus);
+    tenantService = module.get(TenantService);
+  });
 
-    // Reset all mocks before each test
+  afterEach(() => {
     jest.clearAllMocks();
   });
 
-  describe('approveStep', () => {
-    const approvePostDto: ApprovePostDto = {
-      comment: 'This post looks good to me',
-    };
-
-    it('should approve a step successfully', async () => {
-      const expectedResult = {
-        success: true,
-        message: 'Step approved successfully',
-        post: mockPost,
+  describe('approveMultipleSteps', () => {
+    it('should approve multiple steps successfully', async () => {
+      const approveMultipleDto = {
+        stepIds: ['step-1', 'step-2'],
+        comment: 'Approved multiple steps',
       };
-      commandBus.execute.mockResolvedValue(expectedResult);
 
-      const result = await controller.approveStep(
-        'post-1',
-        'step-1',
-        approvePostDto,
+      const mockResult = [
+        { id: 'step-1', status: 'approved' },
+        { id: 'step-2', status: 'approved' },
+      ];
+
+      commandBus.execute.mockResolvedValue(mockResult);
+
+      const result = await controller.approveMultipleSteps(
+        mockPostId,
+        approveMultipleDto,
         mockUser,
       );
 
+      expect(tenantService.getTenantId).toHaveBeenCalled();
       expect(commandBus.execute).toHaveBeenCalledWith(
         expect.any(ApproveStepCommand),
       );
 
-      const commandArg = commandBus.execute.mock
+      const executedCommand = commandBus.execute.mock
         .calls[0][0] as ApproveStepCommand;
-      expect(commandArg.postId).toBe('post-1');
-      expect(commandArg.stepId).toBe('step-1');
-      expect(commandArg.approvePostDto).toBe(approvePostDto);
-      expect(commandArg.userId).toBe('user-1');
-      expect(commandArg.userRole).toBe('admin');
-      expect(commandArg.tenantId).toBe('tenant-1');
-
-      expect(result).toBe(expectedResult);
-    });
-
-    it('should handle user with multiple roles (use first role)', async () => {
-      const expectedResult = { success: true, message: 'Step approved' };
-      commandBus.execute.mockResolvedValue(expectedResult);
-
-      await controller.approveStep(
-        'post-1',
-        'step-1',
-        approvePostDto,
-        mockUserWithMultipleRoles,
+      expect(executedCommand.postId).toBe(mockPostId);
+      expect(executedCommand.stepIds).toEqual(['step-1', 'step-2']);
+      expect(executedCommand.approvePostDto.comment).toBe(
+        'Approved multiple steps',
       );
+      expect(executedCommand.userId).toBe(mockUser.userId);
+      expect(executedCommand.userRole).toBe(mockUser.orgRole);
+      expect(executedCommand.tenantId).toBe(mockTenantId);
 
-      const commandArg = commandBus.execute.mock
-        .calls[0][0] as ApproveStepCommand;
-      expect(commandArg.userRole).toBe('reviewer'); // First role in array
+      expect(result).toBe(mockResult);
     });
 
-    it('should handle user with no roles gracefully', async () => {
-      const userWithNoRoles = { ...mockUser, roles: [] };
-      const expectedResult = { success: true, message: 'Step approved' };
-      commandBus.execute.mockResolvedValue(expectedResult);
+    it('should approve multiple steps without comment', async () => {
+      const approveMultipleDto = {
+        stepIds: ['step-1', 'step-2'],
+      };
 
-      await controller.approveStep(
-        'post-1',
-        'step-1',
-        approvePostDto,
-        userWithNoRoles,
-      );
+      const mockResult = [
+        { id: 'step-1', status: 'approved' },
+        { id: 'step-2', status: 'approved' },
+      ];
 
-      const commandArg = commandBus.execute.mock
-        .calls[0][0] as ApproveStepCommand;
-      expect(commandArg.userRole).toBeUndefined();
-    });
+      commandBus.execute.mockResolvedValue(mockResult);
 
-    it('should handle user with undefined roles', async () => {
-      const userWithUndefinedRoles = { ...mockUser, roles: undefined };
-      const expectedResult = { success: true, message: 'Step approved' };
-      commandBus.execute.mockResolvedValue(expectedResult);
-
-      await controller.approveStep(
-        'post-1',
-        'step-1',
-        approvePostDto,
-        userWithUndefinedRoles,
-      );
-
-      const commandArg = commandBus.execute.mock
-        .calls[0][0] as ApproveStepCommand;
-      expect(commandArg.userRole).toBeUndefined();
-    });
-
-    it('should handle approval with minimal data', async () => {
-      const minimalApproveDto: ApprovePostDto = {};
-      const expectedResult = { success: true };
-      commandBus.execute.mockResolvedValue(expectedResult);
-
-      const result = await controller.approveStep(
-        'post-1',
-        'step-1',
-        minimalApproveDto,
+      await controller.approveMultipleSteps(
+        mockPostId,
+        approveMultipleDto,
         mockUser,
       );
 
-      expect(result).toBe(expectedResult);
+      const executedCommand = commandBus.execute.mock
+        .calls[0][0] as ApproveStepCommand;
+      expect(executedCommand.approvePostDto.comment).toBeUndefined();
     });
 
-    it('should handle command bus execution errors', async () => {
-      commandBus.execute.mockRejectedValue(
-        new BadRequestException('Invalid approval step'),
-      );
+    it('should handle command bus errors', async () => {
+      const approveMultipleDto = {
+        stepIds: ['step-1'],
+        comment: 'Test approval',
+      };
+
+      const error = new Error('Command execution failed');
+      commandBus.execute.mockRejectedValue(error);
 
       await expect(
-        controller.approveStep('post-1', 'step-1', approvePostDto, mockUser),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('should handle step not found error', async () => {
-      commandBus.execute.mockRejectedValue(
-        new NotFoundException('Approval step not found'),
-      );
-
-      await expect(
-        controller.approveStep(
-          'post-1',
-          'invalid-step',
-          approvePostDto,
+        controller.approveMultipleSteps(
+          mockPostId,
+          approveMultipleDto,
           mockUser,
         ),
-      ).rejects.toThrow(NotFoundException);
-    });
-
-    it('should handle insufficient permissions error', async () => {
-      commandBus.execute.mockRejectedValue(
-        new ForbiddenException('Insufficient permissions to approve this step'),
-      );
-
-      await expect(
-        controller.approveStep('post-1', 'step-1', approvePostDto, mockUser),
-      ).rejects.toThrow(ForbiddenException);
-    });
-
-    it('should handle network/database errors', async () => {
-      commandBus.execute.mockRejectedValue(
-        new Error('Database connection failed'),
-      );
-
-      await expect(
-        controller.approveStep('post-1', 'step-1', approvePostDto, mockUser),
-      ).rejects.toThrow(Error);
+      ).rejects.toThrow('Command execution failed');
     });
   });
 
   describe('rejectStep', () => {
-    const rejectPostDto: RejectPostDto = {
-      comment: 'Please revise the introduction section',
-    };
-
     it('should reject a step successfully', async () => {
-      const expectedResult = {
-        success: true,
-        message: 'Step rejected successfully',
-        post: mockPost,
+      const rejectPostDto = {
+        reason: 'Content not appropriate',
+        comment: 'Please revise the content',
       };
-      commandBus.execute.mockResolvedValue(expectedResult);
+
+      const mockResult = {
+        id: mockStepId,
+        status: 'rejected',
+        reason: rejectPostDto.reason,
+      };
+
+      commandBus.execute.mockResolvedValue(mockResult);
 
       const result = await controller.rejectStep(
-        'post-1',
-        'step-1',
+        mockPostId,
+        mockStepId,
         rejectPostDto,
         mockUser,
       );
 
+      expect(tenantService.getTenantId).toHaveBeenCalled();
       expect(commandBus.execute).toHaveBeenCalledWith(
         expect.any(RejectStepCommand),
       );
 
-      const commandArg = commandBus.execute.mock
+      const executedCommand = commandBus.execute.mock
         .calls[0][0] as RejectStepCommand;
-      expect(commandArg.postId).toBe('post-1');
-      expect(commandArg.stepId).toBe('step-1');
-      expect(commandArg.rejectPostDto).toBe(rejectPostDto);
-      expect(commandArg.userId).toBe('user-1');
-      expect(commandArg.userRole).toBe('admin');
-      expect(commandArg.tenantId).toBe('tenant-1');
+      expect(executedCommand.postId).toBe(mockPostId);
+      expect(executedCommand.stepId).toBe(mockStepId);
+      expect(executedCommand.rejectPostDto).toBe(rejectPostDto);
+      expect(executedCommand.userId).toBe(mockUser.userId);
+      expect(executedCommand.userRole).toBe(mockUser.roles[0]);
+      expect(executedCommand.tenantId).toBe(mockTenantId);
 
-      expect(result).toBe(expectedResult);
+      expect(result).toBe(mockResult);
     });
 
-    it('should handle user with multiple roles for rejection', async () => {
-      commandBus.execute.mockResolvedValue({ success: true });
+    it('should handle rejection with minimal data', async () => {
+      const rejectPostDto = {
+        reason: 'Rejected',
+      };
+
+      const mockResult = {
+        id: mockStepId,
+        status: 'rejected',
+      };
+
+      commandBus.execute.mockResolvedValue(mockResult);
 
       await controller.rejectStep(
-        'post-1',
-        'step-1',
+        mockPostId,
+        mockStepId,
         rejectPostDto,
-        mockUserWithMultipleRoles,
+        mockUser,
       );
 
-      const commandArg = commandBus.execute.mock
+      const executedCommand = commandBus.execute.mock
         .calls[0][0] as RejectStepCommand;
-      expect(commandArg.userRole).toBe('reviewer');
+      expect(executedCommand.rejectPostDto.reason).toBe('Rejected');
     });
 
-    it('should handle command bus execution errors for rejection', async () => {
-      commandBus.execute.mockRejectedValue(
-        new BadRequestException('Invalid rejection reason'),
-      );
+    it('should handle command bus errors for rejection', async () => {
+      const rejectPostDto = {
+        reason: 'Test rejection',
+      };
+
+      const error = new Error('Rejection failed');
+      commandBus.execute.mockRejectedValue(error);
 
       await expect(
-        controller.rejectStep('post-1', 'step-1', rejectPostDto, mockUser),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('should handle post not found error', async () => {
-      commandBus.execute.mockRejectedValue(
-        new NotFoundException('Post not found'),
-      );
-
-      await expect(
-        controller.rejectStep(
-          'invalid-post',
-          'step-1',
-          rejectPostDto,
-          mockUser,
-        ),
-      ).rejects.toThrow(NotFoundException);
-    });
-
-    it('should handle already processed step error', async () => {
-      commandBus.execute.mockRejectedValue(
-        new BadRequestException('Step has already been processed'),
-      );
-
-      await expect(
-        controller.rejectStep('post-1', 'step-1', rejectPostDto, mockUser),
-      ).rejects.toThrow(BadRequestException);
+        controller.rejectStep(mockPostId, mockStepId, rejectPostDto, mockUser),
+      ).rejects.toThrow('Rejection failed');
     });
   });
 
   describe('publishPost', () => {
-    const publishPostDto: PublishPostDto = {
-      scheduledFor: new Date(),
-      platforms: [SocialPlatform.FACEBOOK, SocialPlatform.INSTAGRAM],
-    };
+    it('should publish a post successfully', async () => {
+      const publishPostDto = {
+        scheduledFor: new Date('2024-01-01T12:00:00Z'),
+        platforms: ['instagram', 'facebook'],
+      };
 
-    it('should publish a post successfully with files', async () => {
+      const mockFiles = [
+        {
+          fieldname: 'files',
+          originalname: 'test.jpg',
+          encoding: '7bit',
+          mimetype: 'image/jpeg',
+          buffer: Buffer.from('test image'),
+          size: 1024,
+        },
+      ] as Express.Multer.File[];
+
+      const mockPost = {
+        id: mockPostId,
+        title: 'Test Post',
+        status: 'published',
+        publishedAt: new Date(),
+      };
+
       commandBus.execute.mockResolvedValue(mockPost);
 
       const result = await controller.publishPost(
-        'post-1',
+        mockPostId,
         publishPostDto,
         mockFiles,
         mockUser,
       );
 
+      expect(tenantService.getTenantId).toHaveBeenCalled();
       expect(commandBus.execute).toHaveBeenCalledWith(
         expect.any(PublishPostCommand),
       );
 
-      const commandArg = commandBus.execute.mock
+      const executedCommand = commandBus.execute.mock
         .calls[0][0] as PublishPostCommand;
-      expect(commandArg.postId).toBe('post-1');
-      expect(commandArg.publishPostDto).toBe(publishPostDto);
-      expect(commandArg.userId).toBe('user-1');
-      expect(commandArg.userRole).toBe('admin');
-      expect(commandArg.tenantId).toBe('tenant-1');
-      expect(commandArg.files).toBe(mockFiles);
+      expect(executedCommand.postId).toBe(mockPostId);
+      expect(executedCommand.publishPostDto).toBe(publishPostDto);
+      expect(executedCommand.userId).toBe(mockUser.userId);
+      expect(executedCommand.userRole).toBe(mockUser.roles[0]);
+      expect(executedCommand.tenantId).toBe(mockTenantId);
+      expect(executedCommand.files).toBe(mockFiles);
 
       expect(result).toBeInstanceOf(PostResponseDto);
     });
 
-    it('should publish a post successfully without files', async () => {
+    it('should publish post without files', async () => {
+      const publishPostDto = {
+        scheduledFor: new Date('2024-01-01T12:00:00Z'),
+        platforms: ['twitter'],
+      };
+
+      const mockPost = {
+        id: mockPostId,
+        title: 'Text Only Post',
+        status: 'published',
+      };
+
       commandBus.execute.mockResolvedValue(mockPost);
 
       const result = await controller.publishPost(
-        'post-1',
+        mockPostId,
         publishPostDto,
-        [],
+        [], // No files
         mockUser,
       );
 
-      const commandArg = commandBus.execute.mock
+      const executedCommand = commandBus.execute.mock
         .calls[0][0] as PublishPostCommand;
-      expect(commandArg.files).toEqual([]);
+      expect(executedCommand.files).toEqual([]);
       expect(result).toBeInstanceOf(PostResponseDto);
     });
 
-    it('should handle maximum allowed files (10 files)', async () => {
-      const maxFiles = Array(10).fill(mockFiles[0]);
-      commandBus.execute.mockResolvedValue(mockPost);
+    it('should handle publish command errors', async () => {
+      const publishPostDto = {
+        platforms: ['instagram'],
+      };
 
-      await controller.publishPost(
-        'post-1',
-        publishPostDto,
-        maxFiles,
-        mockUser,
-      );
-
-      const commandArg = commandBus.execute.mock
-        .calls[0][0] as PublishPostCommand;
-      expect(commandArg.files).toHaveLength(10);
-    });
-
-    it('should handle user with multiple roles for publishing', async () => {
-      commandBus.execute.mockResolvedValue(mockPost);
-
-      await controller.publishPost(
-        'post-1',
-        publishPostDto,
-        mockFiles,
-        mockUserWithMultipleRoles,
-      );
-
-      const commandArg = commandBus.execute.mock
-        .calls[0][0] as PublishPostCommand;
-      expect(commandArg.userRole).toBe('reviewer');
-    });
-
-    it('should handle different file types', async () => {
-      const diverseFiles: Express.Multer.File[] = [
-        { ...mockFiles[0], mimetype: 'image/png', originalname: 'image.png' },
-        { ...mockFiles[1], mimetype: 'text/plain', originalname: 'readme.txt' },
-        { ...mockFiles[0], mimetype: 'video/mp4', originalname: 'video.mp4' },
-      ];
-      commandBus.execute.mockResolvedValue(mockPost);
-
-      await controller.publishPost(
-        'post-1',
-        publishPostDto,
-        diverseFiles,
-        mockUser,
-      );
-
-      const commandArg = commandBus.execute.mock
-        .calls[0][0] as PublishPostCommand;
-      expect(commandArg.files).toHaveLength(3);
-      expect(commandArg.files.map((f) => f.mimetype)).toEqual([
-        'image/png',
-        'text/plain',
-        'video/mp4',
-      ]);
-    });
-
-    it('should handle command bus execution errors for publishing', async () => {
-      commandBus.execute.mockRejectedValue(
-        new BadRequestException('Post is not ready for publishing'),
-      );
+      const error = new Error('Publishing failed');
+      commandBus.execute.mockRejectedValue(error);
 
       await expect(
-        controller.publishPost('post-1', publishPostDto, mockFiles, mockUser),
-      ).rejects.toThrow(BadRequestException);
+        controller.publishPost(mockPostId, publishPostDto, [], mockUser),
+      ).rejects.toThrow('Publishing failed');
     });
 
-    it('should handle post not found error', async () => {
-      commandBus.execute.mockRejectedValue(
-        new NotFoundException('Post not found'),
+    it('should handle user with different role structure', async () => {
+      const userWithMultipleRoles = {
+        userId: 'user-456',
+        orgRole: 'manager',
+        roles: ['manager', 'editor'],
+      };
+
+      const publishPostDto = {
+        platforms: ['facebook'],
+      };
+
+      const mockPost = {
+        id: mockPostId,
+        status: 'published',
+      };
+
+      commandBus.execute.mockResolvedValue(mockPost);
+
+      await controller.publishPost(
+        mockPostId,
+        publishPostDto,
+        [],
+        userWithMultipleRoles,
       );
 
+      const executedCommand = commandBus.execute.mock
+        .calls[0][0] as PublishPostCommand;
+      expect(executedCommand.userRole).toBe('manager'); // Should use first role
+    });
+  });
+
+  describe('Integration Tests', () => {
+    it('should handle tenant service errors gracefully', async () => {
+      tenantService.getTenantId.mockImplementation(() => {
+        throw new Error('Tenant service unavailable');
+      });
+
+      const approveMultipleDto = {
+        stepIds: ['step-1'],
+      };
+
       await expect(
-        controller.publishPost(
-          'invalid-post',
-          publishPostDto,
-          mockFiles,
+        controller.approveMultipleSteps(
+          mockPostId,
+          approveMultipleDto,
           mockUser,
         ),
-      ).rejects.toThrow(NotFoundException);
+      ).rejects.toThrow('Tenant service unavailable');
     });
 
-    it('should handle insufficient permissions for publishing', async () => {
-      commandBus.execute.mockRejectedValue(
-        new ForbiddenException('Only admins can publish posts'),
-      );
-
-      await expect(
-        controller.publishPost('post-1', publishPostDto, mockFiles, mockUser),
-      ).rejects.toThrow(ForbiddenException);
-    });
-
-    it('should handle post already published error', async () => {
-      commandBus.execute.mockRejectedValue(
-        new BadRequestException('Post has already been published'),
-      );
-
-      await expect(
-        controller.publishPost('post-1', publishPostDto, mockFiles, mockUser),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('should handle file processing errors', async () => {
-      commandBus.execute.mockRejectedValue(
-        new BadRequestException('File processing failed'),
-      );
-
-      await expect(
-        controller.publishPost('post-1', publishPostDto, mockFiles, mockUser),
-      ).rejects.toThrow(BadRequestException);
-    });
-
-    it('should handle large file scenarios', async () => {
-      const largeFile: Express.Multer.File = {
-        ...mockFiles[0],
-        size: 45 * 1024 * 1024, // 45MB (under 50MB limit)
-        originalname: 'large-video.mp4',
+    it('should pass correct parameters across all methods', async () => {
+      // Test that all methods correctly extract and pass parameters
+      const testUser = {
+        userId: 'test-user',
+        orgRole: 'reviewer',
+        roles: ['reviewer'],
       };
-      commandBus.execute.mockResolvedValue(mockPost);
 
+      commandBus.execute.mockResolvedValue({});
+
+      // Test approve
+      await controller.approveMultipleSteps(
+        'test-post',
+        { stepIds: ['test-step'] },
+        testUser,
+      );
+
+      // Test reject
+      await controller.rejectStep(
+        'test-post',
+        'test-step',
+        { reason: 'test' },
+        testUser,
+      );
+
+      // Test publish
       await controller.publishPost(
-        'post-1',
-        publishPostDto,
-        [largeFile],
-        mockUser,
+        'test-post',
+        { platforms: ['test'] },
+        [],
+        testUser,
       );
 
-      const commandArg = commandBus.execute.mock
-        .calls[0][0] as PublishPostCommand;
-      expect(commandArg.files[0].size).toBe(45 * 1024 * 1024);
-    });
-  });
-
-  describe('Command Construction', () => {
-    it('should construct ApproveStepCommand with correct parameters', async () => {
-      const approveDto: ApprovePostDto = { comment: 'Approved' };
-      commandBus.execute.mockResolvedValue({ success: true });
-
-      await controller.approveStep('post-1', 'step-1', approveDto, mockUser);
-
-      expect(commandBus.execute).toHaveBeenCalledWith(
-        expect.objectContaining({
-          postId: 'post-1',
-          stepId: 'step-1',
-          approvePostDto: approveDto,
-          userId: 'user-1',
-          userRole: 'admin',
-          tenantId: 'tenant-1',
-        }),
-      );
-    });
-
-    it('should construct RejectStepCommand with correct parameters', async () => {
-      const rejectDto: RejectPostDto = { comment: 'Needs work' };
-      commandBus.execute.mockResolvedValue({ success: true });
-
-      await controller.rejectStep('post-1', 'step-1', rejectDto, mockUser);
-
-      expect(commandBus.execute).toHaveBeenCalledWith(
-        expect.objectContaining({
-          postId: 'post-1',
-          stepId: 'step-1',
-          rejectPostDto: rejectDto,
-          userId: 'user-1',
-          userRole: 'admin',
-          tenantId: 'tenant-1',
-        }),
-      );
-    });
-  });
-
-  describe('Response Handling', () => {
-    it('should return command result directly for approve step', async () => {
-      const commandResult = {
-        success: true,
-        message: 'Approved',
-        postId: 'post-1',
-        stepId: 'step-1',
-      };
-      commandBus.execute.mockResolvedValue(commandResult);
-
-      const result = await controller.approveStep(
-        'post-1',
-        'step-1',
-        { comment: 'Good' },
-        mockUser,
-      );
-
-      expect(result).toBe(commandResult);
-    });
-
-    it('should return command result directly for reject step', async () => {
-      const commandResult = {
-        success: true,
-        message: 'Rejected',
-        postId: 'post-1',
-        stepId: 'step-1',
-      };
-      commandBus.execute.mockResolvedValue(commandResult);
-
-      const result = await controller.rejectStep(
-        'post-1',
-        'step-1',
-        { comment: 'Not ready' },
-        mockUser,
-      );
-
-      expect(result).toBe(commandResult);
-    });
-  });
-
-  describe('Edge Cases', () => {
-    it('should handle empty string parameters', async () => {
-      commandBus.execute.mockResolvedValue({ success: true });
-
-      await controller.approveStep('', '', {}, mockUser);
-
-      const commandArg = commandBus.execute.mock
-        .calls[0][0] as ApproveStepCommand;
-      expect(commandArg.postId).toBe('');
-      expect(commandArg.stepId).toBe('');
-    });
-
-    it('should handle user object variations', async () => {
-      const variations = [
-        { ...mockUser, roles: null },
-        { ...mockUser, roles: [] },
-        { ...mockUser, roles: [''] },
-        { ...mockUser, id: '', tenantId: '' },
-      ];
-
-      commandBus.execute.mockResolvedValue({ success: true });
-
-      for (const userVariation of variations) {
-        await controller.approveStep('post-1', 'step-1', {}, userVariation);
-        commandBus.execute.mockClear();
-      }
-
-      expect(commandBus.execute).toHaveBeenCalledTimes(0); // Cleared after each call
+      // Verify all calls have correct tenant ID
+      expect(commandBus.execute).toHaveBeenCalledTimes(3);
+      commandBus.execute.mock.calls.forEach((call) => {
+        expect(call[0].tenantId).toBe(mockTenantId);
+      });
     });
   });
 });

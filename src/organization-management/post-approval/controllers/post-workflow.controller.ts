@@ -23,9 +23,9 @@ import {
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
-import { CurrentUser } from 'src/decorators/current-user.decorator';
-import { OrganizationAccessGuard } from 'src/guards/organization-access.guard';
-import { RoleGuard } from 'src/guards/role-guard';
+import { CurrentUser } from '../../../decorators/current-user.decorator';
+import { OrganizationAccessGuard } from '../../../guards/organization-access.guard';
+import { RoleGuard } from '../../../guards/role-guard';
 import { CreateDraftPostCommand } from '../commands/create-draft-post.command';
 import { SubmitPostForReviewCommand } from '../commands/submit-post-for-review.command';
 import { PublishPostCommand } from '../commands/publish-post.command';
@@ -37,7 +37,7 @@ import { PublishPostDto } from '../helper/dto/publish-post.dto';
 import { RejectPostDto } from '../helper/dto/reject-post.dto';
 import { GetorganizationPostsQuery } from '../queries/get-team-posts.query';
 import { GetPostDetailsQuery } from '../queries/get-post-details.query';
-import { TenantService } from 'src/user-management/tenant.service';
+import { TenantService } from '../../../user-management/tenant.service';
 
 @ApiTags('Post Workflow')
 @Controller('posts')

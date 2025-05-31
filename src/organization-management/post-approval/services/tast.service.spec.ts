@@ -71,6 +71,27 @@ describe('TaskService', () => {
     requiredRole: 'reviewer',
   };
 
+  const mockClerkUser = {
+    id: 'user-1',
+    firstName: 'John',
+    lastName: 'Doe',
+    emailAddresses: [{ emailAddress: 'john@example.com' }],
+    imageUrl: 'http://example.com/image.jpg',
+  };
+
+  const mockClerkMembershipResponse = {
+    data: [
+      {
+        publicUserData: { userId: 'user-1' },
+        role: 'org:admin',
+      },
+      {
+        publicUserData: { userId: 'user-2' },
+        role: 'admin',
+      },
+    ],
+  };
+
   beforeEach(async () => {
     // Create mock query builder
     queryBuilder = {
@@ -81,6 +102,7 @@ describe('TaskService', () => {
       getCount: jest.fn(),
       createQueryBuilder: jest.fn().mockReturnThis(),
       innerJoin: jest.fn().mockReturnThis(),
+      setParameters: jest.fn().mockReturnThis(),
     } as any;
 
     const module: TestingModule = await Test.createTestingModule({
@@ -196,9 +218,10 @@ describe('TaskService', () => {
 
   describe('createReviewTask', () => {
     it('should create a review task successfully', async () => {
-      jest
-        .spyOn(service as any, 'getOrganizationMembersWithLowestWorkload')
-        .mockResolvedValue([mockUser]);
+      // Mock Clerk API response
+      clerkClient.organizations.getOrganizationMembershipList.mockResolvedValue(
+        mockClerkMembershipResponse,
+      );
 
       taskRepository.create.mockReturnValue(mockTask as any);
       taskRepository.save.mockResolvedValue(mockTask as any);
@@ -209,25 +232,31 @@ describe('TaskService', () => {
       );
 
       expect(
-        service['getOrganizationMembersWithLowestWorkload'],
-      ).toHaveBeenCalledWith('org-1', 'reviewer', 1);
+        clerkClient.organizations.getOrganizationMembershipList,
+      ).toHaveBeenCalledWith({
+        organizationId: 'org-1',
+        limit: 100,
+      });
       expect(taskRepository.create).toHaveBeenCalledWith({
         title: 'Review required: Test Post',
         description: 'Please review the post for approval at step: Review Step',
         type: TaskType.REVIEW,
         postId: 'post-1',
         approvalStepId: 'step-1',
-        assigneeIds: ['user-1'],
+        assigneeIds: ['user-1', 'user-2'], // All admin user IDs
         organizationId: 'org-1',
         tenantId: 'tenant-1',
       });
       expect(result).toBe(mockTask);
     });
 
-    it('should return null when no assignees found', async () => {
-      jest
-        .spyOn(service as any, 'getOrganizationMembersWithLowestWorkload')
-        .mockResolvedValue([]);
+    it('should return null when no admin found', async () => {
+      // Mock empty response
+      clerkClient.organizations.getOrganizationMembershipList.mockResolvedValue(
+        {
+          data: [],
+        },
+      );
 
       const result = await service.createReviewTask(
         mockPost as UserPost,
@@ -235,13 +264,15 @@ describe('TaskService', () => {
       );
 
       expect(result).toBeNull();
-      expect(logger.warn).toHaveBeenCalled();
+      expect(logger.warn).toHaveBeenCalledWith(
+        'No admin found in organization org-1',
+      );
     });
 
     it('should use entity manager when provided', async () => {
-      jest
-        .spyOn(service as any, 'getOrganizationMembersWithLowestWorkload')
-        .mockResolvedValue([mockUser]);
+      clerkClient.organizations.getOrganizationMembershipList.mockResolvedValue(
+        mockClerkMembershipResponse,
+      );
 
       taskRepository.create.mockReturnValue(mockTask as any);
       entityManager.save.mockResolvedValue(mockTask as any);
@@ -259,37 +290,57 @@ describe('TaskService', () => {
 
   describe('createPublishTask', () => {
     it('should create a publish task successfully', async () => {
-      jest
-        .spyOn(service as any, 'findOrganizationMembersWithRole')
-        .mockResolvedValue([mockUser]);
-      jest
-        .spyOn(service as any, 'getOrganizationMembersWithLowestWorkload')
-        .mockResolvedValue([mockUser]);
+      clerkClient.organizations.getOrganizationMembershipList.mockResolvedValue(
+        mockClerkMembershipResponse,
+      );
 
       taskRepository.create.mockReturnValue(mockTask as any);
       taskRepository.save.mockResolvedValue(mockTask as any);
 
       const result = await service.createPublishTask(mockPost as UserPost);
 
-      expect(service['findOrganizationMembersWithRole']).toHaveBeenCalledWith(
-        'org-1',
-        'admin',
-      );
       expect(
-        service['getOrganizationMembersWithLowestWorkload'],
-      ).toHaveBeenCalledWith('org-1', 'admin', 1);
+        clerkClient.organizations.getOrganizationMembershipList,
+      ).toHaveBeenCalledWith({
+        organizationId: 'org-1',
+        limit: 100,
+      });
+      expect(taskRepository.create).toHaveBeenCalledWith({
+        title: 'Publish approved post: Test Post',
+        description: 'The post has been approved and is ready for publishing',
+        type: TaskType.PUBLISH,
+        postId: 'post-1',
+        assigneeIds: ['user-1', 'user-2'], // All admin Clerk IDs
+        organizationId: 'org-1',
+        tenantId: 'tenant-1',
+      });
       expect(result).toBe(mockTask);
     });
 
     it('should return null when no admin found', async () => {
-      jest
-        .spyOn(service as any, 'findOrganizationMembersWithRole')
-        .mockResolvedValue([]);
+      clerkClient.organizations.getOrganizationMembershipList.mockResolvedValue(
+        {
+          data: [],
+        },
+      );
 
       const result = await service.createPublishTask(mockPost as UserPost);
 
       expect(result).toBeNull();
-      expect(logger.warn).toHaveBeenCalled();
+      expect(logger.warn).toHaveBeenCalledWith(
+        'No admin found in organization org-1',
+      );
+    });
+
+    it('should handle Clerk API errors', async () => {
+      clerkClient.organizations.getOrganizationMembershipList.mockRejectedValue(
+        new Error('Clerk API Error'),
+      );
+
+      await expect(
+        service.createPublishTask(mockPost as UserPost),
+      ).rejects.toThrow();
+      expect(logger.error).toHaveBeenCalled();
     });
   });
 
@@ -512,13 +563,7 @@ describe('TaskService', () => {
   describe('getTasksWithAssigneeDetails', () => {
     it('should get tasks with assignee details successfully', async () => {
       taskRepository.find.mockResolvedValue([mockTask] as any);
-      clerkClient.users.getUser.mockResolvedValue({
-        id: 'user-1',
-        firstName: 'John',
-        lastName: 'Doe',
-        emailAddresses: [{ emailAddress: 'john@example.com' }],
-        imageUrl: 'http://example.com/image.jpg',
-      });
+      clerkClient.users.getUser.mockResolvedValue(mockClerkUser);
 
       const result = await service.getTasksWithAssigneeDetails('org-1');
 
@@ -554,12 +599,7 @@ describe('TaskService', () => {
         { ...mockTask, assigneeIds: ['user-1'] },
       ];
       taskRepository.find.mockResolvedValue(tasks as any);
-      clerkClient.users.getUser.mockResolvedValue({
-        id: 'user-1',
-        firstName: 'John',
-        lastName: 'Doe',
-        emailAddresses: [{ emailAddress: 'john@example.com' }],
-      });
+      clerkClient.users.getUser.mockResolvedValue(mockClerkUser);
 
       const result = await service.getAssigneeWorkload('org-1');
 
@@ -677,59 +717,6 @@ describe('TaskService', () => {
 
       expect(result).toBe(false);
       expect(logger.error).toHaveBeenCalled();
-    });
-  });
-
-  describe('getOrganizationMembersWithLowestWorkload', () => {
-    it('should return users with lowest workload', async () => {
-      const users = [
-        { id: 'user-1', name: 'User 1' },
-        { id: 'user-2', name: 'User 2' },
-      ];
-      jest
-        .spyOn(service as any, 'findOrganizationMembersWithRole')
-        .mockResolvedValue(users);
-
-      queryBuilder.getCount
-        .mockResolvedValueOnce(2) // user-1 has 2 tasks
-        .mockResolvedValueOnce(1); // user-2 has 1 task
-
-      const result = await service['getOrganizationMembersWithLowestWorkload'](
-        'org-1',
-        'reviewer',
-        1,
-      );
-
-      expect(result).toEqual([{ id: 'user-2', name: 'User 2' }]);
-    });
-
-    it('should return all users when count is greater than available users', async () => {
-      const users = [{ id: 'user-1', name: 'User 1' }];
-      jest
-        .spyOn(service as any, 'findOrganizationMembersWithRole')
-        .mockResolvedValue(users);
-
-      const result = await service['getOrganizationMembersWithLowestWorkload'](
-        'org-1',
-        'reviewer',
-        5,
-      );
-
-      expect(result).toEqual(users);
-    });
-
-    it('should return empty array when no users found', async () => {
-      jest
-        .spyOn(service as any, 'findOrganizationMembersWithRole')
-        .mockResolvedValue([]);
-
-      const result = await service['getOrganizationMembersWithLowestWorkload'](
-        'org-1',
-        'reviewer',
-        1,
-      );
-
-      expect(result).toEqual([]);
     });
   });
 

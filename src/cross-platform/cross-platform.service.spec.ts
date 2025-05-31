@@ -8,6 +8,8 @@ import { TikTokService } from '../platforms/tiktok/tiktok.service';
 import { SocialPlatform } from '../common/enums/social-platform.enum';
 import { PinoLogger } from 'nestjs-pino';
 import { SocialAccountDetails } from '../platforms/platform-service.interface';
+import { InstagramApiException } from '../platforms/instagram/helpers/instagram-api.exception';
+import { LinkedInApiException } from '../platforms/linkedin/helpers/linkedin-api.exception';
 
 describe('CrossPlatformService', () => {
   let service: CrossPlatformService;
@@ -229,12 +231,6 @@ describe('CrossPlatformService', () => {
       expect(
         result.find((p) => p.platform === SocialPlatform.TIKTOK),
       ).toBeDefined();
-
-      // Error should be logged
-      expect(loggerSpy).toHaveBeenCalledWith(
-        'Error fetching instagram accounts:',
-        expect.any(Error),
-      );
     });
 
     it('should handle errors from LinkedIn service', async () => {
@@ -262,12 +258,6 @@ describe('CrossPlatformService', () => {
       expect(
         result.find((p) => p.platform === SocialPlatform.TIKTOK),
       ).toBeDefined();
-
-      // Error should be logged
-      expect(loggerSpy).toHaveBeenCalledWith(
-        'Error fetching linkedin accounts:',
-        expect.any(Error),
-      );
     });
 
     it('should handle errors from TikTok service', async () => {

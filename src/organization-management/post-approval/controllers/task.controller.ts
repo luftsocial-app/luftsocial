@@ -21,11 +21,11 @@ import {
   ApiResponse,
 } from '@nestjs/swagger';
 
-import { Role, RoleGuard, Roles } from 'src/guards/role-guard';
-import { OrganizationAccessGuard } from 'src/guards/organization-access.guard';
+import { Role, RoleGuard, Roles } from '../../../guards/role-guard';
+import { OrganizationAccessGuard } from '../../../guards/organization-access.guard';
 import { TaskService } from '../services/task.service';
 import { Task, TaskStatus, TaskType } from '../entities/task.entity';
-import { CurrentUser } from 'src/decorators/current-user.decorator';
+import { CurrentUser } from '../../../decorators/current-user.decorator';
 import { CreateTaskDto } from '../helper/dto/create-task.dto';
 import {
   UpdateTaskAssigneesDto,
@@ -33,7 +33,7 @@ import {
   ReassignTaskDto,
   BulkAssignTasksDto,
 } from '../helper/dto/reassign-task.dto';
-import { TenantService } from 'src/user-management/tenant.service';
+import { TenantService } from '../../../user-management/tenant.service';
 
 @ApiTags('Tasks')
 @Controller('tasks')

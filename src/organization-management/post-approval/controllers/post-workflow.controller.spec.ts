@@ -17,8 +17,10 @@ import { PublishPostDto } from '../helper/dto/publish-post.dto';
 import { RejectPostDto } from '../helper/dto/reject-post.dto';
 import { PostResponseDto } from '../helper/dto/post-response.dto';
 import { PostStatus } from '../entities/post.entity';
-import { PlatformPostDto } from 'src/cross-platform/helpers/dtos/platform-post.dto';
-import { SocialPlatform } from 'src/common/enums/social-platform.enum';
+import { PlatformPostDto } from '../../../cross-platform/helpers/dtos/platform-post.dto';
+import { SocialPlatform } from '../../../common/enums/social-platform.enum';
+import { PinoLogger } from 'nestjs-pino';
+import { TenantService } from '../../../user-management/tenant.service';
 
 describe('PostWorkflowController', () => {
   let controller: PostWorkflowController;
@@ -56,6 +58,11 @@ describe('PostWorkflowController', () => {
     updatedAt: new Date(),
   };
 
+  const mockLogger = {
+    setContext: jest.fn(),
+    info: jest.fn(),
+  };
+
   const mockFiles: Express.Multer.File[] = [
     {
       fieldname: 'files',
@@ -83,6 +90,10 @@ describe('PostWorkflowController', () => {
     } as Express.Multer.File,
   ];
 
+  const mockTenantService = {
+    getTenantId: jest.fn().mockReturnValue('tenant-123'),
+  };
+
   const mockPlatformPostDto: PlatformPostDto = {
     platform: SocialPlatform.TWITTER,
     content: 'Twitter specific content',
@@ -108,6 +119,14 @@ describe('PostWorkflowController', () => {
         {
           provide: QueryBus,
           useValue: mockQueryBus,
+        },
+        {
+          provide: PinoLogger,
+          useValue: mockLogger,
+        },
+        {
+          provide: TenantService,
+          useValue: mockTenantService,
         },
       ],
     }).compile();
@@ -161,7 +180,7 @@ describe('PostWorkflowController', () => {
 
       const commandArg = commandBus.execute.mock
         .calls[0][0] as CreateDraftPostCommand;
-      expect(commandArg.createDraftDto).toBe(createDraftDto);
+      expect(commandArg.createDraftPostDto).toBe(createDraftDto);
       expect(commandArg.userId).toBe('user-1');
       expect(commandArg.organizationId).toBe('org-1');
       expect(commandArg.tenantId).toBe('org-1');
@@ -171,42 +190,13 @@ describe('PostWorkflowController', () => {
       expect(result).toBeInstanceOf(PostResponseDto);
     });
 
-    it('should create draft with minimal required data', async () => {
-      const minimalDto: CreateDraftPostDto = {
-        title: 'Minimal Draft',
-        description: 'Minimal description',
-        platforms: [
-          {
-            platform: SocialPlatform.TWITTER,
-            content: 'Simple tweet',
-          },
-        ],
-      };
-      commandBus.execute.mockResolvedValue(mockPost);
-
-      const result = await controller.createDraft(
-        [],
-        minimalDto,
-        'org-1',
-        mockUser,
-      );
-
-      const commandArg = commandBus.execute.mock
-        .calls[0][0] as CreateDraftPostCommand;
-      expect(commandArg.createDraftDto.platforms).toHaveLength(1);
-      expect(commandArg.createDraftDto.platforms[0].platform).toBe(
-        SocialPlatform.TWITTER,
-      );
-      expect(result).toBeInstanceOf(PostResponseDto);
-    });
-
     it('should create draft with multiple platforms', async () => {
       const multiPlatformDto: CreateDraftPostDto = {
         title: 'Multi-platform Post',
         description: 'Post for multiple platforms',
         platforms: [
           {
-            platform: SocialPlatform.TWITTER,
+            platform: SocialPlatform.INSTAGRAM_BUSINESS,
             content: 'Twitter version with hashtags #social #media',
             mediaUrls: ['https://example.com/twitter.jpg'],
           },
@@ -235,11 +225,11 @@ describe('PostWorkflowController', () => {
 
       const commandArg = commandBus.execute.mock
         .calls[0][0] as CreateDraftPostCommand;
-      expect(commandArg.createDraftDto.platforms).toHaveLength(3);
+      expect(commandArg.createDraftPostDto.platforms).toHaveLength(3);
       expect(
-        commandArg.createDraftDto.platforms.map((p) => p.platform),
+        commandArg.createDraftPostDto.platforms.map((p) => p.platform),
       ).toEqual([
-        SocialPlatform.TWITTER,
+        SocialPlatform.INSTAGRAM_BUSINESS,
         SocialPlatform.LINKEDIN,
         SocialPlatform.FACEBOOK,
       ]);
@@ -364,7 +354,7 @@ describe('PostWorkflowController', () => {
         .calls[0][0] as SubmitPostForReviewCommand;
       expect(commandArg.postId).toBe('post-1');
       expect(commandArg.userId).toBe('user-1');
-      expect(commandArg.tenantId).toBe('tenant-1');
+      expect(commandArg.tenantId).toBe('tenant-123');
 
       expect(result).toBeInstanceOf(PostResponseDto);
     });
@@ -423,11 +413,11 @@ describe('PostWorkflowController', () => {
 
       const commandArg = commandBus.execute.mock
         .calls[0][0] as PublishPostCommand;
-      expect(commandArg.id).toBe('post-1');
+      expect(commandArg.postId).toBe('post-1');
       expect(commandArg.publishPostDto).toBe(publishPostDto);
       expect(commandArg.userId).toBe('user-1');
-      expect(commandArg.userRole).toBe('admin');
-      expect(commandArg.tenantId).toBe('tenant-1');
+      expect(commandArg.userRole).toBe('member');
+      expect(commandArg.tenantId).toBe('tenant-123');
       expect(commandArg.files).toBe(mockFiles);
 
       expect(result).toBeInstanceOf(PostResponseDto);
@@ -562,7 +552,7 @@ describe('PostWorkflowController', () => {
       expect(commandArg.rejectPostDto).toBe(rejectPostDto);
       expect(commandArg.userId).toBe('user-1');
       expect(commandArg.userRole).toBe('admin');
-      expect(commandArg.tenantId).toBe('tenant-1');
+      expect(commandArg.tenantId).toBe('tenant-123');
 
       expect(result).toBeInstanceOf(PostResponseDto);
     });
@@ -676,7 +666,7 @@ describe('PostWorkflowController', () => {
 
       const queryArg = queryBus.execute.mock.calls[0][0] as GetPostDetailsQuery;
       expect(queryArg.postId).toBe('post-1');
-      expect(queryArg.tenantId).toBe('tenant-1');
+      expect(queryArg.tenantId).toBe('tenant-123');
 
       expect(result).toBe(mockPostDetails);
     });
@@ -719,7 +709,7 @@ describe('PostWorkflowController', () => {
       const queryArg = queryBus.execute.mock
         .calls[0][0] as GetorganizationPostsQuery;
       expect(queryArg.organizationId).toBe('org-1');
-      expect(queryArg.tenantId).toBe('tenant-1');
+      expect(queryArg.tenantId).toBe('tenant-123');
       expect(queryArg.status).toBe(PostStatus.DRAFT);
       expect(queryArg.page).toBe(1);
       expect(queryArg.limit).toBe(10);
@@ -815,7 +805,7 @@ describe('PostWorkflowController', () => {
       const queryArg = queryBus.execute.mock
         .calls[0][0] as GetorganizationPostsQuery;
       expect(queryArg.organizationId).toBe('org-1');
-      expect(queryArg.tenantId).toBe('tenant-1');
+      expect(queryArg.tenantId).toBe('tenant-123');
       expect(queryArg.taskId).toBe('task-1');
       expect(queryArg.page).toBe(1);
       expect(queryArg.limit).toBe(100);
@@ -853,7 +843,7 @@ describe('PostWorkflowController', () => {
       const queryArg = queryBus.execute.mock
         .calls[0][0] as GetorganizationPostsQuery;
       expect(queryArg.organizationId).toBe('org-1');
-      expect(queryArg.tenantId).toBe('tenant-1');
+      expect(queryArg.tenantId).toBe('tenant-123');
       expect(queryArg.status).toBe(PostStatus.IN_REVIEW);
       expect(queryArg.assignedToUserId).toBe('user-1');
       expect(queryArg.taskStatus).toBe('pending');

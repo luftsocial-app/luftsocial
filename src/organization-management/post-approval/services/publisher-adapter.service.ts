@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { CrossPlatformService } from 'src/cross-platform/cross-platform.service';
-import { ContentPublisherService } from 'src/cross-platform/services/content-publisher.service';
+import { CrossPlatformService } from '../../../cross-platform/cross-platform.service';
+import { ContentPublisherService } from '../../../cross-platform/services/content-publisher.service';
 
 export interface PublishResult {
   success: boolean;

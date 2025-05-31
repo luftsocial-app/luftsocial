@@ -10,18 +10,16 @@ import {
 import { CommandBus } from '@nestjs/cqrs';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiConsumes } from '@nestjs/swagger';
-
-import { CurrentUser } from 'src/decorators/current-user.decorator';
-import { OrganizationAccessGuard } from 'src/guards/organization-access.guard';
-import { RoleGuard } from 'src/guards/role-guard';
-import { ApprovePostDto } from '../helper/dto/approve-post.dto';
+import { CurrentUser } from '../../../decorators/current-user.decorator';
+import { OrganizationAccessGuard } from '../../../guards/organization-access.guard';
+import { RoleGuard } from '../../../guards/role-guard';
 import { ApproveStepCommand } from '../commands/approve-step.command';
 import { RejectPostDto } from '../helper/dto/reject-post.dto';
 import { RejectStepCommand } from '../commands/reject-step.command';
 import { PublishPostDto } from '../helper/dto/publish-post.dto';
 import { PostResponseDto } from '../helper/dto/post-response.dto';
 import { PublishPostCommand } from '../commands/publish-post.command';
-import { TenantService } from 'src/user-management/tenant.service';
+import { TenantService } from '../../../user-management/tenant.service';
 
 @ApiTags('Post Approval Workflow')
 @Controller('post-approval')

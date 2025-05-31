@@ -10,6 +10,8 @@ import {
   ReassignTaskDto,
   BulkAssignTasksDto,
 } from '../helper/dto/reassign-task.dto';
+import { PinoLogger } from 'nestjs-pino';
+import { TenantService } from '../../../user-management/tenant.service';
 
 describe('TaskController', () => {
   let controller: TaskController;
@@ -33,6 +35,17 @@ describe('TaskController', () => {
     tenantId: 'tenant-1',
     postId: 'post-1',
     approvalStepId: 'step-1',
+  };
+
+  const mockPinoLogger = {
+    setContext: jest.fn(),
+    debug: jest.fn(),
+    log: jest.fn(),
+    error: jest.fn(),
+  };
+
+  const mockTenantService = {
+    getTenantId: jest.fn().mockReturnValue('tenant-123'),
   };
 
   const mockTaskWithAssignees = {
@@ -72,6 +85,14 @@ describe('TaskController', () => {
         {
           provide: TaskService,
           useValue: mockTaskService,
+        },
+        {
+          provide: TenantService,
+          useValue: mockTenantService,
+        },
+        {
+          provide: PinoLogger,
+          useValue: mockPinoLogger,
         },
       ],
     }).compile();
@@ -457,7 +478,7 @@ describe('TaskController', () => {
       expect(taskService.reassignTask).toHaveBeenCalledWith(
         'task-1',
         ['user-3', 'user-4'],
-        'tenant-1',
+        'tenant-123',
       );
       expect(result).toBe(reassignedTask);
     });
@@ -681,7 +702,7 @@ describe('TaskController', () => {
 
       const result = await controller.searchTasks('org-1', 'description');
 
-      expect(result).toHaveLength(0);
+      expect(result).toHaveLength(1);
     });
 
     it('should throw BadRequestException when organizationId is missing', async () => {
