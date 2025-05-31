@@ -50,7 +50,7 @@ export class User {
   @Column({ type: 'jsonb', default: [] })
   permissions: Permission[];
 
-  @OneToMany(() => Role, (role) => role.id, {
+  @ManyToMany(() => Role, (role) => role.users, {
     cascade: true,
   })
   @JoinTable({

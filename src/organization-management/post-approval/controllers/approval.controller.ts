@@ -21,34 +21,35 @@ import { RejectStepCommand } from '../commands/reject-step.command';
 import { PublishPostDto } from '../helper/dto/publish-post.dto';
 import { PostResponseDto } from '../helper/dto/post-response.dto';
 import { PublishPostCommand } from '../commands/publish-post.command';
+import { TenantService } from 'src/user-management/tenant.service';
 
 @ApiTags('Post Approval Workflow')
-@Controller('posts')
+@Controller('post-approval')
 @UseGuards(RoleGuard, OrganizationAccessGuard)
 export class ApprovalController {
-  constructor(private readonly commandBus: CommandBus) {}
+  constructor(
+    private readonly commandBus: CommandBus,
+    private readonly tenantService: TenantService,
+  ) {}
 
-  @Post(':postId/steps/:stepId/approve')
-  @ApiOperation({ summary: 'Approve an approval step' })
-  async approveStep(
+  @Post(':postId/steps/approve-multiple')
+  async approveMultipleSteps(
     @Param('postId') postId: string,
-    @Param('stepId') stepId: string,
-    @Body() approvePostDto: ApprovePostDto,
+    @Body() approveMultipleDto: { stepIds: string[]; comment?: string },
     @CurrentUser() user: any,
-  ): Promise<any> {
-    // Extract the user's role
-    const userRole = user.roles[0];
+  ) {
+    const tenantId = this.tenantService.getTenantId();
 
     const command = new ApproveStepCommand(
       postId,
-      stepId,
-      approvePostDto,
-      user.id,
-      userRole,
-      user.tenantId,
+      approveMultipleDto.stepIds, // Array of step IDs
+      { comment: approveMultipleDto.comment },
+      user.userId,
+      user.orgRole,
+      tenantId,
     );
 
-    return this.commandBus.execute(command);
+    return await this.commandBus.execute(command);
   }
 
   @Post(':postId/steps/:stepId/reject')
@@ -62,13 +63,15 @@ export class ApprovalController {
     // Extract the user's role
     const userRole = user.roles[0];
 
+    const tenantId = this.tenantService.getTenantId();
+
     const command = new RejectStepCommand(
       postId,
       stepId,
       rejectPostDto,
-      user.id,
+      user.userId,
       userRole,
-      user.tenantId,
+      tenantId,
     );
 
     return this.commandBus.execute(command);
@@ -90,13 +93,14 @@ export class ApprovalController {
   ): Promise<PostResponseDto> {
     // Extract the user's role
     const userRole = user.roles[0];
+    const tenantId = this.tenantService.getTenantId();
 
     const command = new PublishPostCommand(
       id,
       publishPostDto,
-      user.id,
+      user.userId,
       userRole,
-      user.tenantId,
+      tenantId,
       files,
     );
 

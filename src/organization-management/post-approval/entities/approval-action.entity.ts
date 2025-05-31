@@ -6,7 +6,6 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
-import { User } from '../../../user-management/entities/user.entity';
 import { ApprovalStep } from './approval-step.entity';
 
 export enum ApprovalActionType {
@@ -35,12 +34,8 @@ export class ApprovalAction {
   @Column({ name: 'approval_step_id' })
   approvalStepId: string;
 
-  @ManyToOne(() => User)
-  @JoinColumn({ name: 'user_id' })
-  user: User;
-
-  @Column({ name: 'user_id' })
-  userId: string;
+  @Column({ name: 'user_id', type: 'varchar' })
+  userId: string; // Clerk user ID as string
 
   @CreateDateColumn()
   createdAt: Date;

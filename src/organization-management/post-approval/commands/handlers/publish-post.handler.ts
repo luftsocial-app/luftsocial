@@ -28,7 +28,6 @@ export class PublishPostHandler implements ICommandHandler<PublishPostCommand> {
 
   async execute(command: PublishPostCommand): Promise<UserPost> {
     const { postId, publishPostDto, userId, userRole, tenantId } = command;
-
     // Find post
     const post = await this.postRepository.findOne({
       where: { id: postId, tenantId },
@@ -45,8 +44,8 @@ export class PublishPostHandler implements ICommandHandler<PublishPostCommand> {
     }
 
     // Check if user has permission to publish
-    if (userRole !== 'manager') {
-      throw new ForbiddenException('Only managers can publish posts');
+    if (userRole !== 'org:admin') {
+      throw new ForbiddenException('Only admins can publish posts');
     }
 
     // Check if scheduling for future publication
@@ -64,9 +63,7 @@ export class PublishPostHandler implements ICommandHandler<PublishPostCommand> {
         const publishResult = await this.publisherService.publishContent(
           userId,
           post.description,
-          post.platforms.filter((p) =>
-            publishPostDto.platforms.includes(p.platform),
-          ),
+          post.platforms.map((p) => p.platform),
           post.mediaItems || [],
         );
 
@@ -91,7 +88,7 @@ export class PublishPostHandler implements ICommandHandler<PublishPostCommand> {
           new PostPublishedEvent(
             publishedPost,
             userId,
-            publishPostDto.platforms,
+            post.platforms.map((p) => p.platform),
             publishResult.publishId,
           ),
         );

@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler, EventBus } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, In } from 'typeorm';
 import {
   Logger,
   NotFoundException,
@@ -36,11 +36,14 @@ export class ApproveStepHandler implements ICommandHandler<ApproveStepCommand> {
     private readonly eventBus: EventBus,
   ) {}
 
-  async execute(command: ApproveStepCommand): Promise<ApprovalStep> {
-    const { postId, stepId, approvePostDto, userId, userRole, tenantId } =
+  async execute(command: ApproveStepCommand): Promise<ApprovalStep[]> {
+    const { postId, stepIds, approvePostDto, userId, userRole, tenantId } =
       command;
 
-    // Find post and approval step
+    // Handle backward compatibility - if stepId is provided, convert to array
+    const stepsToApprove = Array.isArray(stepIds) ? stepIds : [stepIds];
+
+    // Find post and approval steps
     const post = await this.postRepository.findOne({
       where: { id: postId, tenantId },
       relations: ['approvalSteps'],
@@ -56,93 +59,154 @@ export class ApproveStepHandler implements ICommandHandler<ApproveStepCommand> {
       );
     }
 
-    const step = await this.approvalStepRepository.findOne({
-      where: { id: stepId, postId },
+    // Find all steps to approve
+    const steps = await this.approvalStepRepository.find({
+      where: {
+        id: In(stepsToApprove),
+        postId,
+      },
     });
 
-    if (!step) {
-      throw new NotFoundException(`Approval step with ID ${stepId} not found`);
+    if (steps.length !== stepsToApprove.length) {
+      throw new NotFoundException(`Some approval steps not found`);
     }
 
-    // Check if user has permission to approve this step
-    if (step.requiredRole !== userRole) {
-      throw new ForbiddenException(
-        `Only users with role '${step.requiredRole}' can approve this step`,
-      );
-    }
+    // Check permissions for each step
+    for (const step of steps) {
+      if (step.requiredRole !== userRole) {
+        throw new ForbiddenException(
+          `Only users with role '${step.requiredRole}' can approve step ${step.id}`,
+        );
+      }
 
-    if (step.status !== ApprovalStepStatus.PENDING) {
-      throw new BadRequestException(
-        `This step has already been ${step.status}`,
-      );
+      if (step.status !== ApprovalStepStatus.PENDING) {
+        throw new BadRequestException(
+          `Step ${step.name} has already been ${step.status}`,
+        );
+      }
     }
 
     // Use transaction for atomic operations
     return this.dataSource.transaction(async (entityManager) => {
-      // Record approval action
-      const approvalAction = entityManager.create(ApprovalAction, {
-        action: ApprovalActionType.APPROVE,
-        comment: approvePostDto.comment,
-        approvalStepId: stepId,
-        userId,
-      });
+      try {
+        const updatedSteps: ApprovalStep[] = [];
 
-      await entityManager.save(ApprovalAction, approvalAction);
+        // Process each step
+        for (const stepId of stepsToApprove) {
+          this.logger.log(`Processing approval for step ${stepId}`);
 
-      // Update step status
-      step.status = ApprovalStepStatus.APPROVED;
-      const updatedStep = await entityManager.save(ApprovalStep, step);
+          // Record approval action
+          const approvalAction = entityManager.create(ApprovalAction, {
+            action: ApprovalActionType.APPROVE,
+            comment: approvePostDto.comment,
+            approvalStepId: stepId,
+            userId,
+          });
 
-      // Complete the task for this step
-      await this.taskService.completeTaskForStep(stepId, userId, entityManager);
+          await entityManager.save(ApprovalAction, approvalAction);
+          this.logger.log(`Approval action created for step ${stepId}`);
 
-      // Check if all steps are approved
-      const allSteps = await entityManager.find(ApprovalStep, {
-        where: { postId },
-        order: { order: 'ASC' },
-      });
+          // Update step status
+          await entityManager.update(
+            ApprovalStep,
+            { id: stepId },
+            { status: ApprovalStepStatus.APPROVED },
+          );
+          this.logger.log(`Step ${stepId} status updated to APPROVED`);
 
-      const allApproved = allSteps.every(
-        (s) => s.status === ApprovalStepStatus.APPROVED,
-      );
-
-      if (allApproved) {
-        // Update post status to approved
-        post.status = PostStatus.APPROVED;
-        await entityManager.save(UserPost, post);
-
-        // Create a publish task for managers
-        await this.taskService.createPublishTask(post, entityManager);
-      } else {
-        // Find the next pending step
-        const nextStep = allSteps.find(
-          (s) => s.status === ApprovalStepStatus.PENDING,
-        );
-
-        if (nextStep) {
-          // Create task for the next step
-          await this.taskService.createReviewTask(
-            post,
-            nextStep,
+          // Complete the task for this step
+          await this.taskService.completeTaskForStep(
+            stepId,
+            userId,
             entityManager,
           );
+
+          // Get updated step for response
+          const updatedStep = await entityManager.findOne(ApprovalStep, {
+            where: { id: stepId },
+            relations: ['actions'],
+          });
+          updatedSteps.push(updatedStep);
         }
+
+        // Get fresh data for all steps to check if all are approved
+        const allSteps = await entityManager.find(ApprovalStep, {
+          where: { postId },
+          order: { order: 'ASC' },
+        });
+
+        this.logger.log(`Found ${allSteps.length} steps for post ${postId}`);
+        allSteps.forEach((s) => {
+          this.logger.log(
+            `Step ${s.id} (order: ${s.order}) status: ${s.status}`,
+          );
+        });
+
+        const allApproved = allSteps.every(
+          (s) => s.status === ApprovalStepStatus.APPROVED,
+        );
+
+        this.logger.log(`All steps approved: ${allApproved}`);
+
+        let currentPost = post;
+
+        if (allApproved) {
+          this.logger.log(
+            `All steps approved - updating post ${postId} to APPROVED status`,
+          );
+
+          // Update post status
+          await entityManager.update(
+            UserPost,
+            { id: postId },
+            { status: PostStatus.APPROVED },
+          );
+
+          // Get updated post
+          currentPost = await entityManager.findOne(UserPost, {
+            where: { id: postId },
+          });
+
+          this.logger.log(`Post ${postId} final status: ${currentPost.status}`);
+
+          // Create publish task
+          await this.taskService.createPublishTask(currentPost, entityManager);
+        } else {
+          // Find the next pending step
+          const nextStep = allSteps.find(
+            (s) => s.status === ApprovalStepStatus.PENDING,
+          );
+
+          if (nextStep) {
+            this.logger.log(`Creating task for next step: ${nextStep.id}`);
+            await this.taskService.createReviewTask(
+              currentPost,
+              nextStep,
+              entityManager,
+            );
+          }
+        }
+
+        // Publish events for each approved step
+        for (const updatedStep of updatedSteps) {
+          this.eventBus.publish(
+            new StepApprovedEvent(
+              updatedStep,
+              currentPost,
+              userId,
+              approvePostDto.comment,
+            ),
+          );
+        }
+
+        return updatedSteps;
+      } catch (error) {
+        this.logger.error(
+          `Error in approval transaction: ${error.message}`,
+          error.stack,
+        );
+        throw error;
       }
-
-      // Publish event
-      this.eventBus.publish(
-        new StepApprovedEvent(
-          updatedStep,
-          post,
-          userId,
-          approvePostDto.comment,
-        ),
-      );
-
-      return this.approvalStepRepository.findOne({
-        where: { id: stepId },
-        relations: ['actions'],
-      });
     });
   }
 }

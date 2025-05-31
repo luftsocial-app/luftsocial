@@ -33,12 +33,16 @@ import {
   ReassignTaskDto,
   BulkAssignTasksDto,
 } from '../helper/dto/reassign-task.dto';
+import { TenantService } from 'src/user-management/tenant.service';
 
 @ApiTags('Tasks')
 @Controller('tasks')
 @UseGuards(RoleGuard, OrganizationAccessGuard)
 export class TaskController {
-  constructor(private readonly taskService: TaskService) {}
+  constructor(
+    private readonly taskService: TaskService,
+    private readonly tenantService: TenantService,
+  ) {}
 
   @Post('new')
   @ApiOperation({ summary: 'Create a new task with multiple assignees' })
@@ -336,11 +340,12 @@ export class TaskController {
         'organizationId query parameter is required',
       );
     }
+    const tenantId = this.tenantService.getTenantId();
 
     return this.taskService.reassignTask(
       id,
       reassignTaskDto.newAssigneeIds,
-      user.tenantId,
+      tenantId,
     );
   }
 

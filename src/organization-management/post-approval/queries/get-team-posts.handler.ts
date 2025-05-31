@@ -21,8 +21,7 @@ export class GetorganizationPostsHandler
 
     const queryBuilder = this.postRepository
       .createQueryBuilder('post')
-      .where('post.organizationId = :organizationId', { organizationId })
-      .andWhere('post.tenantId = :tenantId', { tenantId });
+      .where('post.tenantId = :tenantId', { tenantId });
 
     if (status) {
       queryBuilder.andWhere('post.status = :status', { status });
@@ -31,8 +30,6 @@ export class GetorganizationPostsHandler
     // Add relations
     queryBuilder
       .leftJoinAndSelect('post.approvalSteps', 'approvalStep')
-      .leftJoinAndSelect('post.categories', 'category')
-      .leftJoinAndSelect('post.author', 'author')
       .orderBy('post.createdAt', 'DESC')
       .skip((page - 1) * limit)
       .take(limit);

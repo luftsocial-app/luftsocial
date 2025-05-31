@@ -4,7 +4,6 @@ import { UserPost } from './entities/post.entity';
 import { ApprovalStep } from './entities/approval-step.entity';
 import { ApprovalAction } from './entities/approval-action.entity';
 import { Task } from './entities/task.entity';
-import { ApprovalService } from './services/approval.service';
 import { TaskService } from './services/task.service';
 import { ApprovalController } from './controllers/approval.controller';
 import { TaskController } from './controllers/task.controller';
@@ -28,12 +27,14 @@ import { AuditModule } from 'src/audit/audit.module';
 import { OrganizationAccessGuard } from 'src/guards/organization-access.guard';
 import { RoleGuard } from 'src/guards/role-guard';
 import { PostWorkflowController } from './controllers/post-workflow.controller';
+import { UserManagementModule } from 'src/user-management/user-management.module';
 
 @Module({
   imports: [
     CqrsModule,
     CrossPlatformModule,
     AuditModule,
+    UserManagementModule,
     TypeOrmModule.forFeature([
       UserPost,
       ApprovalStep,
@@ -49,7 +50,6 @@ import { PostWorkflowController } from './controllers/post-workflow.controller';
     RoleGuard,
     OrganizationAccessGuard,
     PublisherAdapterService,
-    ApprovalService,
     TaskService,
     ApproveStepHandler,
     CreateDraftPostHandler,
@@ -63,6 +63,6 @@ import { PostWorkflowController } from './controllers/post-workflow.controller';
     StepApprovedHandler,
     StepRejectedHandler,
   ],
-  exports: [ApprovalService, TaskService],
+  exports: [TaskService],
 })
 export class PostApprovalModule {}

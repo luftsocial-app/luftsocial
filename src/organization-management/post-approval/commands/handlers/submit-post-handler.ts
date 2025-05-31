@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler, EventBus } from '@nestjs/cqrs';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, EntityManager } from 'typeorm';
 import {
   Logger,
   NotFoundException,
@@ -42,7 +42,6 @@ export class SubmitPostForReviewHandler
     // Fetch post with necessary relations
     const post = await this.postRepository.findOne({
       where: { id: postId, tenantId },
-      relations: ['organization', 'organization.workflowTemplates'],
     });
 
     if (!post) {
@@ -97,19 +96,24 @@ export class SubmitPostForReviewHandler
 
   private async initializeWorkflow(
     post: UserPost,
-    entityManager,
+    entityManager: EntityManager,
   ): Promise<ApprovalStep[]> {
     try {
-      // Try to get organization workflow template
-      let workflowTemplate: WorkflowTemplate = null;
+      // Attempt to retrieve organization workflow template
+      let workflowTemplate: WorkflowTemplate | null = null;
 
-      // if (post.organization?.workflowTemplates?.length > 0) {
-      //   workflowTemplate = post.organization.workflowTemplates.find(
-      //     (t) => t.isActive,
-      //   );
-      // }
+      if (post.tenantId) {
+        workflowTemplate = await this.workflowTemplateRepository.findOne({
+          where: {
+            tenantId: post.tenantId,
+            isActive: true,
+          },
+          relations: ['steps'],
+          order: { steps: { order: 'ASC' } },
+        });
+      }
 
-      // If no organization template, get default template
+      // Fallback to default template if no organization template exists
       if (!workflowTemplate) {
         workflowTemplate = await this.workflowTemplateRepository.findOne({
           where: { isDefault: true },
@@ -118,9 +122,9 @@ export class SubmitPostForReviewHandler
         });
       }
 
-      // If we found a template with steps, create approval steps from it
+      // Create approval steps from template if available
       if (workflowTemplate?.steps?.length > 0) {
-        const steps = workflowTemplate.steps.map((templateStep) =>
+        const approvalSteps = workflowTemplate.steps.map((templateStep) =>
           entityManager.create(ApprovalStep, {
             name: templateStep.name,
             description: templateStep.description,
@@ -133,20 +137,22 @@ export class SubmitPostForReviewHandler
           }),
         );
 
-        return entityManager.save(ApprovalStep, steps);
+        return await entityManager.save(ApprovalStep, approvalSteps);
       }
 
-      // Fall back to default steps if no template available
+      // Fallback to default steps when no template is available
       this.logger.warn(
-        `No workflow template found for post ${post.id}. Using default steps.`,
+        `No workflow template found for post ${post.id}. Creating default approval steps.`,
       );
-      return this.createDefaultSteps(post.id, entityManager);
+
+      return await this.createDefaultSteps(post.id, entityManager);
     } catch (error) {
       this.logger.error(
-        `Error creating approval workflow: ${error.message}`,
+        `Failed to initialize workflow for post ${post.id}: ${error.message}`,
         error.stack,
       );
-      return this.createDefaultSteps(post.id, entityManager);
+
+      return await this.createDefaultSteps(post.id, entityManager);
     }
   }
 
@@ -159,7 +165,7 @@ export class SubmitPostForReviewHandler
         name: 'Content Review',
         description: 'Review content for accuracy, quality and brand alignment',
         order: 1,
-        requiredRole: 'reviewer',
+        requiredRole: 'org:member',
         status: ApprovalStepStatus.PENDING,
         postId,
       }),
@@ -167,7 +173,7 @@ export class SubmitPostForReviewHandler
         name: 'Final Approval',
         description: 'Final approval and publishing authorization',
         order: 2,
-        requiredRole: 'manager',
+        requiredRole: 'org:admin',
         status: ApprovalStepStatus.PENDING,
         postId,
       }),

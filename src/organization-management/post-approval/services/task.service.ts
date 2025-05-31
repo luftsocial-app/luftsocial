@@ -84,19 +84,26 @@ export class TaskService {
     approvalStep: ApprovalStep,
     entityManager?: EntityManager,
   ): Promise<Task> {
-    // Find organization members with the required role
-    const assignees = await this.getOrganizationMembersWithLowestWorkload(
-      post.organizationId,
-      approvalStep.requiredRole,
-      1, // Get one assignee for now, but can be changed to get multiple
+    const clerkOrgMembers =
+      await clerkClient.organizations.getOrganizationMembershipList({
+        organizationId: post.organizationId,
+        limit: 100, // Adjust as needed
+      });
+
+    // Filter members with admin role
+    const adminMembers = clerkOrgMembers.data.filter(
+      (member) => member.role === 'org:admin' || member.role === 'admin',
     );
 
-    if (!assignees || assignees.length === 0) {
-      this.logger.warn(
-        `No users with role ${approvalStep.requiredRole} found in organization ${post.organizationId}`,
-      );
+    if (adminMembers.length === 0) {
+      this.logger.warn(`No admin found in organization ${post.organizationId}`);
       return null;
     }
+
+    // Extract all Clerk user IDs from admin members
+    const adminClerkUserIds = adminMembers.map(
+      (member) => member.publicUserData.userId,
+    );
 
     const task = this.taskRepository.create({
       title: `Review required: ${post.title}`,
@@ -104,7 +111,7 @@ export class TaskService {
       type: TaskType.REVIEW,
       postId: post.id,
       approvalStepId: approvalStep.id,
-      assigneeIds: assignees.map((user) => user.id), // Use multiple assignees
+      assigneeIds: adminClerkUserIds,
       organizationId: post.organizationId,
       tenantId: post.tenantId,
     });
@@ -120,41 +127,53 @@ export class TaskService {
     post: UserPost,
     entityManager?: EntityManager,
   ): Promise<Task> {
-    // Find users with admin role in the organization
-    const managers = await this.findOrganizationMembersWithRole(
-      post.organizationId,
-      'admin',
-    );
+    try {
+      const clerkOrgMembers =
+        await clerkClient.organizations.getOrganizationMembershipList({
+          organizationId: post.organizationId,
+          limit: 100, // Adjust as needed
+        });
 
-    if (managers.length === 0) {
-      this.logger.warn(`No admin found in organization ${post.organizationId}`);
-      return null;
+      // Filter members with admin role
+      const adminMembers = clerkOrgMembers.data.filter(
+        (member) => member.role === 'org:admin' || member.role === 'admin',
+      );
+
+      if (adminMembers.length === 0) {
+        this.logger.warn(
+          `No admin found in organization ${post.organizationId}`,
+        );
+        return null;
+      }
+
+      // Extract all Clerk user IDs from admin members
+      const adminClerkUserIds = adminMembers.map(
+        (member) => member.publicUserData.userId,
+      );
+
+      const task = this.taskRepository.create({
+        title: `Publish approved post: ${post.title}`,
+        description: `The post has been approved and is ready for publishing`,
+        type: TaskType.PUBLISH,
+        postId: post.id,
+        assigneeIds: adminClerkUserIds, // Assign all admin Clerk IDs
+        organizationId: post.organizationId,
+        tenantId: post.tenantId,
+      });
+
+      if (entityManager) {
+        return entityManager.save(Task, task);
+      }
+
+      return this.taskRepository.save(task);
+    } catch (error) {
+      this.logger.error(
+        `Error creating publish task for post ${post.id}: ${error.message}`,
+        error.stack,
+      );
+      throw error;
     }
-
-    // Find admin with lowest workload
-    const assignees = await this.getOrganizationMembersWithLowestWorkload(
-      post.organizationId,
-      'admin',
-      1, // Get one admin for now
-    );
-
-    const task = this.taskRepository.create({
-      title: `Publish approved post: ${post.title}`,
-      description: `The post has been approved and is ready for publishing`,
-      type: TaskType.PUBLISH,
-      postId: post.id,
-      assigneeIds: assignees.map((user) => user.id), // Use multiple assignees
-      organizationId: post.organizationId,
-      tenantId: post.tenantId,
-    });
-
-    if (entityManager) {
-      return entityManager.save(Task, task);
-    }
-
-    return this.taskRepository.save(task);
   }
-
   async completeTaskForStep(
     stepId: string,
     userId: string,
@@ -741,13 +760,11 @@ export class TaskService {
   ): Promise<User[]> {
     return this.userRepository
       .createQueryBuilder('user')
-      .innerJoin(
-        'user.organizations',
-        'organization',
-        'organization.id = :organizationId',
-        { organizationId },
-      )
-      .innerJoin('user.roles', 'role', 'role.name = :roleName', { roleName })
+      .innerJoin('user.organizations', 'organization')
+      .innerJoin('user.roles', 'role')
+      .where('organization.id = :organizationId')
+      .andWhere('role.name = :roleName')
+      .setParameters({ organizationId, roleName })
       .getMany();
   }
 

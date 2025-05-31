@@ -20,12 +20,7 @@ export class GetPostDetailsHandler
 
     const post = await this.postRepository.findOne({
       where: { id: postId, tenantId },
-      relations: [
-        'approvalSteps',
-        'approvalSteps.actions',
-        'categories',
-        'author',
-      ],
+      relations: ['approvalSteps', 'approvalSteps.actions'],
       order: {
         approvalSteps: {
           order: 'ASC',

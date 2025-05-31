@@ -37,6 +37,7 @@ import { PublishPostDto } from '../helper/dto/publish-post.dto';
 import { RejectPostDto } from '../helper/dto/reject-post.dto';
 import { GetorganizationPostsQuery } from '../queries/get-team-posts.query';
 import { GetPostDetailsQuery } from '../queries/get-post-details.query';
+import { TenantService } from 'src/user-management/tenant.service';
 
 @ApiTags('Post Workflow')
 @Controller('posts')
@@ -45,6 +46,7 @@ export class PostWorkflowController {
   constructor(
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
+    private readonly tenantService: TenantService,
   ) {}
 
   @Post('drafts')
@@ -109,7 +111,9 @@ export class PostWorkflowController {
     @CurrentUser() user: any,
   ): Promise<PostResponseDto> {
     // Execute command - this will also update the associated task status
-    const command = new SubmitPostForReviewCommand(id, user.id, user.tenantId);
+    const tenantId = this.tenantService.getTenantId();
+
+    const command = new SubmitPostForReviewCommand(id, user.userId, tenantId);
     const post = await this.commandBus.execute(command);
     return new PostResponseDto(post);
   }
@@ -131,12 +135,14 @@ export class PostWorkflowController {
     @UploadedFiles() files: Express.Multer.File[],
     @CurrentUser() user: any,
   ): Promise<PostResponseDto> {
+    const tenantId = this.tenantService.getTenantId();
+
     const command = new PublishPostCommand(
       id,
       publishPostDto,
-      user.id,
-      user.role || 'member',
-      user.tenantId,
+      user.userId,
+      user.orgRole || 'member',
+      tenantId,
       files,
     );
 
@@ -156,13 +162,15 @@ export class PostWorkflowController {
     @Body() rejectPostDto: RejectPostDto,
     @CurrentUser() user: any,
   ): Promise<PostResponseDto> {
+    const tenantId = this.tenantService.getTenantId();
+
     const command = new RejectStepCommand(
       id,
       stepId,
       rejectPostDto,
-      user.id,
+      user.userId,
       user.role || 'member',
-      user.tenantId,
+      tenantId,
     );
 
     const post = await this.commandBus.execute(command);
@@ -177,7 +185,9 @@ export class PostWorkflowController {
     @Param('id') id: string,
     @CurrentUser() user: any,
   ): Promise<PostResponseDto> {
-    const query = new GetPostDetailsQuery(id, user.tenantId);
+    const tenantId = this.tenantService.getTenantId();
+
+    const query = new GetPostDetailsQuery(id, tenantId);
     return this.queryBus.execute(query);
   }
 
@@ -232,21 +242,20 @@ export class PostWorkflowController {
       );
     }
 
+    const tenantId = this.tenantService.getTenantId();
     // Execute query with task filtering
     const query = new GetorganizationPostsQuery(
       organizationId,
-      user.tenantId,
+      tenantId,
       status,
       page,
       limit,
       taskId,
-      assignedToMe ? user.id : undefined,
+      assignedToMe ? user.userId : undefined,
     );
 
     return this.queryBus.execute(query);
   }
-
-  // New endpoints for task-specific operations
 
   @Get('tasks/:taskId/posts')
   @ApiOperation({ summary: 'Get all posts created for a specific task' })
@@ -266,11 +275,11 @@ export class PostWorkflowController {
         'organizationId query parameter is required',
       );
     }
+    const tenantId = this.tenantService.getTenantId();
 
-    // This would be a new query to get posts by task ID
     const query = new GetorganizationPostsQuery(
       organizationId,
-      user.tenantId,
+      tenantId,
       undefined, // status
       1, // page
       100, // limit
@@ -309,15 +318,16 @@ export class PostWorkflowController {
         'organizationId query parameter is required',
       );
     }
+    const tenantId = this.tenantService.getTenantId();
 
     const query = new GetorganizationPostsQuery(
       organizationId,
-      user.tenantId,
+      tenantId,
       status,
       1,
       100,
       undefined, // taskId
-      user.id, // assignedToUserId
+      user.userId, // assignedToUserId
       taskStatus,
     );
 
@@ -336,8 +346,10 @@ export class PostWorkflowController {
     canPublish: boolean;
     nextActions: string[];
   }> {
+    const tenantId = this.tenantService.getTenantId();
+
     // This would return task progress information for the post
-    const query = new GetPostDetailsQuery(id, user.tenantId);
+    const query = new GetPostDetailsQuery(id, tenantId);
     const result = await this.queryBus.execute(query);
 
     return {

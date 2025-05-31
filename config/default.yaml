@@ -10,6 +10,7 @@ logger:
       - req.headers.auth
       censor: '***'
 port: 3000
+
 messaging:
   throttle:
     messageRateMs: 500 # Time between messages (ms)
