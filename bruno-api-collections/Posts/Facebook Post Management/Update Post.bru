@@ -1,0 +1,25 @@
+meta {
+  name: Update Post
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{baseUrl}}/api/platforms/facebook/posts/{{postId}}
+  body: multipartForm
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+  Content-Type: application/json
+}
+
+body:multipart-form {
+  content: This is an updated post content
+  files: @file()
+}
+
+docs {
+  Update the content of an existing Facebook post
+}

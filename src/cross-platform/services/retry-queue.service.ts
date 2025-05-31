@@ -78,7 +78,7 @@ export class RetryQueueService {
       // Update the results for this specific platform
       const results = Array.isArray(record.results) ? [...record.results] : [];
       const platformIndex = results.findIndex(
-        (r) => r.platform === item.platform && r.accountId === item.accountId,
+        (r) => r.platform === item.platform && r.accountId === item.userId,
       );
 
       if (platformIndex >= 0) {

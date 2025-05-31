@@ -241,12 +241,12 @@ export class ContentPublisherService {
             });
 
             this.logger.info(
-              `Successfully published to ${platform.platform} for account ${platform.accountId}`,
+              `Successfully published to ${platform.platform} for account ${params.userId}`,
             );
 
             return {
               platform: platform.platform,
-              accountId: platform.accountId,
+              accountId: params.userId,
               success: true,
               postId: result.platformPostId,
               postedAt: result.postedAt,
@@ -254,7 +254,7 @@ export class ContentPublisherService {
           } catch (error) {
             // Log the failure
             this.logger.error(
-              `Failed to publish to ${platform.platform} for account ${platform.accountId}: ${error.message}`,
+              `Failed to publish to ${platform.platform} for account ${params.userId}: ${error.message}`,
               error.stack,
             );
 
@@ -262,7 +262,7 @@ export class ContentPublisherService {
             await this.retryQueueService.addToRetryQueue({
               publishRecordId: publishRecord.id,
               platform: platform.platform,
-              accountId: platform.accountId,
+              userId: params.userId,
               content: params.content,
               mediaUrls,
               platformSpecificParams: platform.platformSpecificParams,
@@ -271,7 +271,7 @@ export class ContentPublisherService {
 
             return {
               platform: platform.platform,
-              accountId: platform.accountId,
+              accountId: params.userId,
               success: false,
               error: error.message,
               scheduled_for_retry: true,
@@ -289,7 +289,7 @@ export class ContentPublisherService {
             ? result.value
             : {
                 platform: result.reason.platform,
-                accountId: result.reason.accountId,
+                userId: result.reason.userId,
                 success: false,
                 error: result.reason.message,
                 scheduled_for_retry: true,
@@ -303,6 +303,7 @@ export class ContentPublisherService {
 
       return {
         publishId: publishRecord.id,
+        userId: params.userId,
         status,
         mediaItems,
         results: results.map((result) =>

@@ -1,0 +1,19 @@
+meta {
+  name: get tenant post assets
+  type: http
+  seq: 5
+}
+
+get {
+  url: http://localhost:3000/api/uploads/tenant-posts
+  body: none
+  auth: bearer
+}
+
+headers {
+  x-tenantId: {{x-tenantId}}
+}
+
+auth:bearer {
+  token: {{authToken}}
+}

@@ -1,0 +1,20 @@
+meta {
+  name: Get Scheduled Posts
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{base_url}}/cross-platform/schedule?startDate=2024-01-01&endDate=2024-12-31
+  body: none
+  auth: none
+}
+
+params:query {
+  startDate: 2024-01-01
+  endDate: 2024-12-31
+}
+
+headers {
+  Authorization: Bearer {{access_token}}
+}

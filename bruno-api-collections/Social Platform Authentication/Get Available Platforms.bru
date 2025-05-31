@@ -1,0 +1,24 @@
+meta {
+  name: Get Available Platforms
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{base_url}}/auth/platforms
+  body: none
+  auth: bearer
+}
+
+headers {
+  X-TENANT-ID: {{tenant-id}}
+  ~Authorization: Bearer {{clerk_token}}
+}
+
+auth:bearer {
+  token: {{BearerToken}}
+}
+
+docs {
+  Get a list of all available social platforms
+}

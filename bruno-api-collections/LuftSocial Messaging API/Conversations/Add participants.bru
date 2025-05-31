@@ -1,0 +1,27 @@
+meta {
+  name: Add participants
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/conversations/{{conversationId}}/participants
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  x-tenant-id: {{tenantId}}
+  Authorization: Bearer {{authToken}}
+}
+
+body:json {
+  {
+      "participantIds": ["user-id-1", "user-id-2"]
+  }
+}
+
+docs {
+  Add participants to a conversation
+}

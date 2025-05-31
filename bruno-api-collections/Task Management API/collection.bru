@@ -1,0 +1,56 @@
+meta {
+  name: Task Management API
+  seq: 1
+}
+
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{auth_token}}
+}
+
+vars:pre-request {
+  baseUrl: http://localhost:3000
+  authToken: your-auth-token-here
+  organizationId: org-id-here
+  postId: post-id-here
+  taskId: task-id-here
+  taskStatus: PENDING
+  newAssigneeId: user-id-here
+}
+
+script:pre-request {
+  // You can add pre-request scripts here if needed
+  // For example, to set environment variables or perform authentication
+}
+
+tests {
+  // Basic test to verify successful response
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  // Parse response JSON
+  var jsonData = res.getBody();
+  
+  // Test for array response on GET requests
+  if (req.getMethod() === 'GET') {
+      test("Response is an array", function () {
+          expect(Array.isArray(jsonData)).to.be.true;
+      });
+  }
+  
+  // Test for object response on PATCH requests
+  if (req.getMethod() === 'PATCH') {
+      test("Response is an object", function () {
+          expect(jsonData).to.be.an('object');
+          expect(jsonData).to.have.property('id');
+      });
+  }
+}
+
+docs {
+  Collection for interacting with the Task Management API endpoints
+}

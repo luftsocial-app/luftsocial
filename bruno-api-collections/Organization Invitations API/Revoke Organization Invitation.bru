@@ -1,0 +1,19 @@
+meta {
+  name: Revoke Organization Invitation
+  type: http
+  seq: 3
+}
+
+delete {
+  url: {{baseUrl}}/organizations/{{organizationId}}/invitations/{{invitationId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+docs {
+  Revokes a pending organization invitation. Only organization administrators can revoke invitations.
+}

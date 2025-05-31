@@ -10,7 +10,10 @@ logger:
       - req.headers.auth
       censor: '***'
 port: 3000
-
+clerk:
+  perishableKey: 
+  secretKey: 
+  clerkPublicKey: ""
 messaging:
   throttle:
     messageRateMs: 500 # Time between messages (ms)
@@ -62,6 +65,7 @@ platforms:
     clientSecret: TIKTOK_CLIENT_SECRET
     redirectUri: TIKTOK_REDIRECT_URI
     apiVersion: TIKTOK_API_VERSION
+    baseUrl: TITKOK_BASE_URL
 websocket:
   namespace: 'messaging'
   transports:

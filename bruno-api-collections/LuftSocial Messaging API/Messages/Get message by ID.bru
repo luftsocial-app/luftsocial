@@ -1,0 +1,24 @@
+meta {
+  name: Get message by ID
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/messages/{{messageId}}
+  body: none
+  auth: bearer
+}
+
+headers {
+  x-tenant-id: {{x-tenant-id}}
+  ~Authorization: Bearer {{authToken}}
+}
+
+auth:bearer {
+  token: {{BearerToken}}
+}
+
+docs {
+  Get message by ID
+}

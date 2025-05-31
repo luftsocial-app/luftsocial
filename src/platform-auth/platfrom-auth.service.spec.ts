@@ -302,17 +302,6 @@ describe('PlatformAuthService', () => {
       });
     });
 
-    it('should add client_key for TikTok authorization URL', async () => {
-      await service.getAuthorizationUrl(SocialPlatform.TIKTOK, mockUserId);
-
-      expect(mockAuthorizationCode.authorizeURL).toHaveBeenCalledWith({
-        redirect_uri: mockPlatformConfigs[SocialPlatform.TIKTOK].redirectUri,
-        scope: mockPlatformConfigs[SocialPlatform.TIKTOK].scopes,
-        state: mockState,
-        client_key: mockPlatformConfigs[SocialPlatform.TIKTOK].clientId,
-      });
-    });
-
     it('should throw PlatformError when authorization URL generation fails', async () => {
       mockAuthorizationCode.authorizeURL.mockImplementationOnce(() => {
         throw new Error('Authorization error');

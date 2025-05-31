@@ -1,0 +1,28 @@
+meta {
+  name: Refresh long lived Instagram access token
+  type: http
+  seq: 4
+}
+
+get {
+  url: https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token=IGAAJVcKzK0PJBZAFBsUEp5SGxHSWM3c3VTcWRYMjFIVGxHTzVNY0tRaU1WMlBiYnRFZAmd6SnZAlU3lwc1FWeElONmxLZAEVDLXVNcXJISVRFanppejlUbXkyNHRBVUo5V3dZAeVdmUndleE9vc1YzSjkxQnVn
+  body: none
+  auth: apikey
+}
+
+params:query {
+  grant_type: ig_refresh_token
+  access_token: IGAAJVcKzK0PJBZAFBsUEp5SGxHSWM3c3VTcWRYMjFIVGxHTzVNY0tRaU1WMlBiYnRFZAmd6SnZAlU3lwc1FWeElONmxLZAEVDLXVNcXJISVRFanppejlUbXkyNHRBVUo5V3dZAeVdmUndleE9vc1YzSjkxQnVn
+}
+
+auth:apikey {
+  key: Authorization
+  value: Bearer {{clerkToken}}
+  placement: header
+}
+
+docs {
+  Generated from cURL: curl -i -X GET "https://graph.instagram.com/refresh_access_token
+    ?grant_type=ig_refresh_token
+    &access_token=EAACEdEose0..."
+}

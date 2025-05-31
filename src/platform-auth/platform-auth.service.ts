@@ -63,18 +63,28 @@ export class PlatformAuthService {
       const config = this.platformConfigs[platform];
       const state = crypto.randomBytes(32).toString('hex');
 
-      // Store state in cache
       await this.tokenCacheService.storeState(state, { platform, userId });
 
+      if (platform === SocialPlatform.TIKTOK) {
+        const baseUrl = 'https://www.tiktok.com/v2/auth/authorize/';
+        const scope = encodeURIComponent(config.scopes.join(',')); // comma-separated + encoded
+
+        const url =
+          `${baseUrl}?client_key=${config.clientId}` +
+          `&scope=${scope}` +
+          `&response_type=code` +
+          `&redirect_uri=${encodeURIComponent(config.redirectUri)}` +
+          `&state=${state}`;
+
+        return url;
+      }
+
+      // Default path for other platforms
       const options = {
         redirect_uri: config.redirectUri,
         scope: config.scopes,
         state,
       };
-
-      if (platform === SocialPlatform.TIKTOK) {
-        options['client_key'] = config.clientId;
-      }
 
       return this.oauthClients[platform].authorizeURL(options);
     } catch (error) {
@@ -406,13 +416,16 @@ export class PlatformAuthService {
 
   private async fetchTikTokUserInfo(accessToken: string): Promise<any> {
     const config = this.platformConfigs[SocialPlatform.TIKTOK];
-    const response = await axios.get(`${config.tokenHost}/user/info/`, {
+    const response = await axios.get(`${config.baseUrl}/user/info/`, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
       params: {
-        access_token: accessToken,
-        fields: 'open_id,union_id,avatar_url,display_name',
+        fields:
+          'open_id,union_id,avatar_url,display_name,avatar_url_100,avatar_large_url,bio_description,profile_deep_link,is_verified,username,follower_count,following_count,likes_count,video_count',
       },
     });
-    return response.data;
+    return response.data.data;
   }
 
   private createAccountData(
@@ -490,10 +503,19 @@ export class PlatformAuthService {
       case SocialPlatform.TIKTOK:
         return {
           ...baseAccountData,
-          tiktokId: userInfo.open_id,
           openId: tokens.openId || userInfo.open_id,
-          displayName: userInfo.display_name,
-          avatarUrl: userInfo.avatar_url,
+          displayName: userInfo.user?.display_name,
+          avatarUrl: userInfo.user?.avatar_url,
+          tiktokUserName: userInfo.user?.username,
+          isVerified: userInfo.user?.is_verified,
+          bio_description: userInfo.user?.bio_description,
+          avatarLargeUrl: userInfo.user?.avatar_large_url,
+          avatarUrl100: userInfo.user?.avatar_url_100,
+          profileDeepLink: userInfo.user?.profile_deep_link, //The link to user's TikTok profile page
+          followerCount: userInfo.user?.follower_count,
+          followingCount: userInfo.user?.following_count,
+          likesCount: userInfo.user?.likes_count,
+          videoCount: userInfo.user?.video_count,
         };
       default:
         return baseAccountData;

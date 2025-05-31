@@ -1,0 +1,62 @@
+meta {
+  name: Post Workflow API
+  seq: 1
+}
+
+auth {
+  mode: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+vars:pre-request {
+  baseUrl: http://localhost:3000
+  authToken: your-auth-token-here
+  organizationId: org-id-here
+  postId: post-id-here
+  postStatus: DRAFT
+  page: 1
+  limit: 10
+}
+
+script:pre-request {
+  // You can add pre-request scripts here if needed
+  // For example, to set environment variables or perform authentication
+}
+
+tests {
+  // Basic test to verify successful response
+  test("Status code is 200", function () {
+      expect(res.getStatus()).to.equal(200);
+  });
+  
+  // Parse response JSON
+  var jsonData = res.getBody();
+  
+  // Test for specific GET endpoints that return posts array
+  if (req.getUrl().path.indexOf('posts') === 0 && req.getUrl().path.length === 1) {
+      test("Response has posts array and total count", function () {
+          expect(jsonData).to.have.property('posts');
+          expect(jsonData).to.have.property('total');
+          expect(jsonData.posts).to.be.an('array');
+          expect(jsonData.total).to.be.a('number');
+      });
+  }
+  
+  // Test for endpoints that return a single post
+  if ((req.getMethod() === 'POST' && req.getUrl().path.indexOf('drafts') > -1) || 
+      (req.getUrl().path.indexOf('submit') > -1) || 
+      (req.getMethod() === 'GET' && req.getUrl().path.length === 2)) {
+      test("Response is a valid post object", function () {
+          expect(jsonData).to.have.property('id');
+          expect(jsonData).to.have.property('title');
+          expect(jsonData).to.have.property('status');
+      });
+  }
+}
+
+docs {
+  Collection for interacting with the Post Workflow API endpoints
+}

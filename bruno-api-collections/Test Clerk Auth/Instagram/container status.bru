@@ -1,0 +1,33 @@
+meta {
+  name: container status
+  type: http
+  seq: 8
+}
+
+get {
+  url: https://graph.instagram.com/v22.0/17938614890881373?fields=status_code
+  body: none
+  auth: bearer
+}
+
+params:query {
+  fields: status_code
+}
+
+headers {
+  Authorization: OAuth <ACCESS_TOKEN>
+  offset: 0
+  file_size: Your_file_size_in_bytes
+}
+
+auth:bearer {
+  token: IGAAJVcKzK0PJBZAE8tZAHNqX2FTTExPN1ZAkYngtZAkJ4b2J2WlV2eXJNRC1kakVkZAUN4OU5KaVBraEl6ZAXdzVEdSWnNsdUJ3VGQzYzh3U21SWUNfWUEzR1poTmhYeDJEdzUtMlNpMVk2TVJnQ1JzTm1ERVV3
+}
+
+docs {
+  Generated from cURL: curl -X POST "https://rupload.facebook.com/ig-api-upload/<API_VERSION>/<IG_MEDIA_CONTAINER_ID>`" \
+       -H "Authorization: OAuth <ACCESS_TOKEN>" \
+       -H "offset: 0" \
+       -H "file_size: Your_file_size_in_bytes" \
+       --data-binary "@my_video_file.mp4"
+}

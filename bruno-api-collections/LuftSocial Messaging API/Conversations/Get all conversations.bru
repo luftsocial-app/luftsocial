@@ -1,0 +1,24 @@
+meta {
+  name: Get all conversations
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/conversations
+  body: none
+  auth: bearer
+}
+
+headers {
+  x-tenant-id: {{x-tenant-id}}
+  ~Authorization: Bearer {{authToken}}
+}
+
+auth:bearer {
+  token: {{BearerToken}}
+}
+
+docs {
+  Get all conversations for the current user
+}

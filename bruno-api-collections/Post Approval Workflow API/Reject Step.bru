@@ -1,0 +1,35 @@
+meta {
+  name: Reject Step
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/posts/{{postId}}/steps/{{stepId}}/reject
+  body: json
+  auth: bearer
+}
+
+headers {
+  Content-Type: application/json
+  Authorization: Bearer {{authToken}}
+}
+
+auth:bearer {
+  token: {{auth_token}}
+}
+
+body:json {
+  {
+      "reason": "The content needs revision.",
+      "comment": "Please update the introduction section to better reflect our brand voice.",
+      "metadata": {
+          "rejectedSections": ["introduction"],
+          "revisionNumber": 2
+      }
+  }
+}
+
+docs {
+  Rejects a specific approval step for a post
+}

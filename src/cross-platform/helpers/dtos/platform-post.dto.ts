@@ -1,5 +1,5 @@
 // Map platform enum values to their respective DTOs
-import { IsEnum, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsEnum, IsOptional, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { SocialPlatform } from '../../../common/enums/social-platform.enum';
 import { BasePlatformParams } from './base-platform-params.dto';
@@ -11,9 +11,6 @@ import { CreateInstagramPostDto } from '../../../platforms/instagram/helpers/cre
 export class PlatformPostDto {
   @IsEnum(SocialPlatform)
   platform: SocialPlatform;
-
-  @IsString()
-  accountId: string;
 
   @IsOptional()
   @ValidateNested()

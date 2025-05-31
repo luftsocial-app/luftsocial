@@ -103,7 +103,6 @@ export interface PublishParams {
   files?: Express.Multer.File[];
   platforms: {
     platform: SocialPlatform;
-    accountId: string;
     platformSpecificParams?: any;
   }[];
   scheduleTime?: Date;
@@ -112,6 +111,7 @@ export interface PublishParams {
 export interface PublishResult {
   publishId: string;
   status: PublishStatus;
+  userId: string;
   mediaItems: MediaStorageItem[];
   results: PublishPlatformResult[];
 }
@@ -119,7 +119,7 @@ export interface PublishResult {
 export interface RetryQueueItem {
   publishRecordId: string;
   platform: SocialPlatform;
-  accountId: string;
+  userId: string;
   content: string;
   mediaUrls?: string[];
   platformSpecificParams?: any;

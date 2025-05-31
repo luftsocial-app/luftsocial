@@ -1,0 +1,19 @@
+meta {
+  name: Get Post Metrics
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/platforms/facebook/posts/{{accountId}}/{{postId}}/metrics
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+docs {
+  Get metrics and insights for a specific Facebook post
+}

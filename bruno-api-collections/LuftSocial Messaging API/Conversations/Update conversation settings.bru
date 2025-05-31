@@ -1,0 +1,29 @@
+meta {
+  name: Update conversation settings
+  type: http
+  seq: 6
+}
+
+patch {
+  url: {{baseUrl}}/conversations/{{conversationId}}/settings
+  body: json
+  auth: none
+}
+
+headers {
+  content-type: application/json
+  x-tenant-id: {{tenantId}}
+  Authorization: Bearer {{authToken}}
+}
+
+body:json {
+  {
+      "name": "Updated Group Name",
+      "avatar": "avatar-url",
+      "color": "#FF5733"
+  }
+}
+
+docs {
+  Update conversation settings
+}

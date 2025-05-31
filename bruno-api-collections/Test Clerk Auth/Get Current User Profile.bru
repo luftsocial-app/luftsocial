@@ -1,0 +1,25 @@
+meta {
+  name: Get Current User Profile
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{base_url}}/users
+  body: none
+  auth: bearer
+}
+
+headers {
+  Accept: application/json
+  x-tenant-id: {{tenant-id}}
+  ~Authorization: Bearer {{clerkToken}}
+}
+
+auth:bearer {
+  token: 
+}
+
+docs {
+  Retrieves the profile of the currently logged-in user. Requires the Clerk authentication token in the Authorization header.
+}

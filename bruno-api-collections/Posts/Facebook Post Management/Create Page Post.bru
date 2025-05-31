@@ -1,0 +1,29 @@
+meta {
+  name: Create Page Post
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/platforms/facebook/pages/{{pageId}}/posts
+  body: multipartForm
+  auth: bearer
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+  X-TENANT-ID: org_2uZOR03wjeSoIKDTPAEauh1ZEjb
+}
+
+auth:bearer {
+  token: {{auth_token}}
+}
+
+body:multipart-form {
+  content: This is a test post for a Facebook page
+  files: @file(/Users/mac/Downloads/WhatsApp Image 2025-03-09 at 04.12.32.jpeg)
+}
+
+docs {
+  Create a new post on a specific Facebook page
+}

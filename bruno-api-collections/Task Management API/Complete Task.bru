@@ -1,0 +1,24 @@
+meta {
+  name: Complete Task
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{baseUrl}}/tasks/{{taskId}}/complete
+  body: json
+  auth: bearer
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{auth_token}}
+}
+
+docs {
+  Marks a specific task as completed. The task must be assigned to the current user.
+}

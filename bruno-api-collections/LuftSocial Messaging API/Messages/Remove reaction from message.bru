@@ -1,0 +1,31 @@
+meta {
+  name: Remove reaction from message
+  type: http
+  seq: 8
+}
+
+delete {
+  url: {{baseUrl}}/messages/{{messageId}}/reactions
+  body: json
+  auth: bearer
+}
+
+headers {
+  content-type: application/json
+  x-tenant-id: {{x-tenant-id}}
+  ~Authorization: Bearer {{authToken}}
+}
+
+auth:bearer {
+  token: {{BearerToken}}
+}
+
+body:json {
+  {
+      "emoji": "👍"
+  }
+}
+
+docs {
+  Remove a reaction from a message
+}

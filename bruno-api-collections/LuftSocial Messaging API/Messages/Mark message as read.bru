@@ -1,0 +1,23 @@
+meta {
+  name: Mark message as read
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/messages/{{messageId}}/read
+  body: none
+  auth: bearer
+}
+
+headers {
+  x-tenant-id: {{x-tenant-id}}
+}
+
+auth:bearer {
+  token: {{BearerToken}}
+}
+
+docs {
+  Mark message as read
+}

@@ -1,0 +1,20 @@
+meta {
+  name: Disconnect Platform
+  type: http
+  seq: 2
+}
+
+delete {
+  url: {{base_url}}/cross-platform/platforms/:platform/:accountId
+  body: none
+  auth: none
+}
+
+params:path {
+  platform: FACEBOOK
+  accountId: account123
+}
+
+headers {
+  Authorization: Bearer {{access_token}}
+}

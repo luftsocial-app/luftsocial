@@ -1,0 +1,34 @@
+meta {
+  name: Handle OAuth Callback
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{base_url}}/auth/:platform/callback?code={{auth_code}}&state={{state_param}}
+  body: none
+  auth: bearer
+}
+
+params:query {
+  code: {{auth_code}}
+  state: {{state_param}}
+  ~X-TENANT-ID: {{tenant-id}}
+}
+
+params:path {
+  platform: FACEBOOK
+}
+
+headers {
+  X-TENANT-ID: {{tenant-id}}
+  ~Authorization: Bearer {{clerk_token}}
+}
+
+auth:bearer {
+  token: {{BearerToken}}
+}
+
+docs {
+  Handle the callback from the OAuth provider after user authorization
+}

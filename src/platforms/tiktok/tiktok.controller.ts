@@ -14,6 +14,7 @@ import { TikTokService } from './tiktok.service';
 import { CreateTiktokVideoDto } from './helpers/create-video.dto';
 import { FileInterceptor } from '@nestjs/platform-express/multer';
 import { MediaItem } from '../platform-service.interface';
+import { CurrentUser } from '../../decorators/current-user.decorator';
 
 @Controller('platforms/tiktok')
 @UseInterceptors(TikTokErrorInterceptor, RateLimitInterceptor)
@@ -35,6 +36,12 @@ export class TikTokController {
     ];
 
     return this.tiktokService.post(accountId, createVideoDto, media);
+  }
+
+  @Get('creator-info')
+  async queryCreatorInfo(@CurrentUser() user: any) {
+    const { userId } = user;
+    return this.tiktokService.getUserAccounts(userId);
   }
 
   @Get(':accountId/videos/:videoId/comments')

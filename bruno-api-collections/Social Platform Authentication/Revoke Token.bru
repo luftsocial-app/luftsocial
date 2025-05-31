@@ -1,0 +1,30 @@
+meta {
+  name: Revoke Token
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{base_url}}/api/auth/:platform/revoke
+  body: json
+  auth: none
+}
+
+params:path {
+  platform: facebook
+}
+
+headers {
+  Authorization: Bearer {{clerk_token}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+      "token": "{{access_token}}"
+  }
+}
+
+docs {
+  Revoke an active token
+}

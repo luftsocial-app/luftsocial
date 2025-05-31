@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "Cross-Platform API",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}
