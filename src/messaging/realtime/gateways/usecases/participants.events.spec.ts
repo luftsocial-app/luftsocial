@@ -18,7 +18,8 @@ describe('ParticipantEventHandler', () => {
     id: mockClientId,
     data: {
       user: {
-        id: mockUserId,
+        // id: mockUserId,
+        sub: mockUserId,
         tenantId: 'tenant-123',
       },
     },

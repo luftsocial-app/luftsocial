@@ -1,7 +1,7 @@
 meta {
   name: Get all conversations
   type: http
-  seq: 1
+  seq: 4
 }
 
 get {
@@ -11,12 +11,12 @@ get {
 }
 
 headers {
-  x-tenant-id: {{x-tenant-id}}
+  x-tenant-id: 1
   ~Authorization: Bearer {{authToken}}
 }
 
 auth:bearer {
-  token: {{BearerToken}}
+  token: {{token}}
 }
 
 docs {

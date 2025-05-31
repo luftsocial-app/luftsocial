@@ -1,21 +1,25 @@
 meta {
   name: Get conversation by ID
   type: http
-  seq: 2
+  seq: 5
 }
 
 get {
-  url: {{baseUrl}}/conversations/{{conversationId}}
+  url: {{baseUrl}}/conversations/:conversationId
   body: none
   auth: bearer
 }
 
+params:path {
+  conversationId: 423feb57-19f4-4d4b-ab87-1b6596cd48d4
+}
+
 headers {
-  x-tenant-id: {{x-tenant-id}}
+  x-tenant-id: 1
 }
 
 auth:bearer {
-  token: {{BearerToken}}
+  token: {{token}}
 }
 
 docs {

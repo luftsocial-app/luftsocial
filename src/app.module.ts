@@ -33,7 +33,7 @@ import { Role as RoleEntity } from './user-management/entities/role.entity';
 import { ConversationEntity } from './messaging/conversations/entities/conversation.entity';
 import { MessageEntity } from './messaging/messages/entities/message.entity';
 import { AttachmentEntity } from './messaging/messages/entities/attachment.entity';
-
+import { MessageInboxEntity } from './messaging/messages/entities/inbox.entity';
 import { InstagramModule } from './platforms/instagram/instagram.module';
 import { AuthState } from './platforms/entities/facebook-entities/auth-state.entity';
 import { FacebookAccount } from './platforms/entities/facebook-entities/facebook-account.entity';
@@ -66,13 +66,16 @@ import { TikTokRateLimit } from './platforms/entities/tiktok-entities/tiktok_rat
 @Module({
   imports: [
     ConfigModule.forRoot({
-      ignoreEnvFile: true,
-      ignoreEnvVars: true,
+      envFilePath: '.env',
+      // ignoreEnvFile: true,
+      // ignoreEnvVars: true,
       isGlobal: true,
       load: [config.util.toObject],
     }),
     TypeOrmModule.forRoot({
       ...config.get('db.options'),
+      // This will automatically load all entities registered with TypeOrmModule.forFeature()
+      autoLoadEntities: true,
       entities: [
         User,
         Tenant,
@@ -82,6 +85,7 @@ import { TikTokRateLimit } from './platforms/entities/tiktok-entities/tiktok_rat
         ConversationEntity,
         MessageEntity,
         AttachmentEntity,
+        MessageInboxEntity,
         Team,
         Notification,
         FacebookPostMetric,
@@ -112,9 +116,7 @@ import { TikTokRateLimit } from './platforms/entities/tiktok-entities/tiktok_rat
         limit: 5,
       },
     ]),
-    RealtimeModule,
     ClerkWebhookModule,
-    RealtimeModule,
     HealthModule,
     ScheduleModule.forRoot(),
     MediaStorageModule,
@@ -129,6 +131,7 @@ import { TikTokRateLimit } from './platforms/entities/tiktok-entities/tiktok_rat
     TaskModule,
     TiktokModule,
     MessageModule,
+    RealtimeModule,
   ],
   controllers: [AppController],
   providers: [

@@ -11,6 +11,7 @@ export enum MessageEventType {
   TYPING_START = 'typing',
   TYPING_STOP = 'stopTyping',
   MARK_AS_READ = 'markAsRead',
+  MARK_AS_UNREAD = 'markAsUnread',
   ADD_REACTION = 'addReaction',
   REMOVE_REACTION = 'removeReaction',
   PARTICIPANT_ADD = 'addParticipant',
@@ -20,6 +21,7 @@ export enum MessageEventType {
   MESSAGE_CREATED = 'messageCreated',
   MESSAGE_UPDATED = 'messageUpdated',
   MESSAGE_DELETED = 'messageDeleted',
+  OFFLINE_MESSAGES = 'offlineMessages',
   USER_TYPING = 'userTyping',
   USER_STOPPED_TYPING = 'userStoppedTyping',
   MESSAGE_READ = 'messageRead',
@@ -45,8 +47,9 @@ export class RoomNameFactory {
 // Event payload type definitions
 export interface MessageEventPayload {
   conversationId: string;
-  content: string;
+  content?: string;
   parentMessageId?: string;
+  uploadSessionId?: string;
   metadata?: Record<string, any>;
 }
 
@@ -68,6 +71,13 @@ export interface TypingEventPayload {
 export interface ReadReceiptPayload {
   messageId: string;
   conversationId: string;
+}
+
+export interface OfflineMessagesPayload {
+  messageId: string;
+  conversationId: string;
+  deliveredAt?: string;
+  recipientId: string;
 }
 
 export interface ReactionPayload {

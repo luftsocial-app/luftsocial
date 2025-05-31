@@ -1,32 +1,32 @@
 meta {
   name: Get messages from conversation
   type: http
-  seq: 1
+  seq: 7
 }
 
 get {
-  url: {{baseUrl}}/messages/conversations/:conversationId?conversationId=22b2628f-8025-44dd-ba38-3facb42df1c1
+  url: {{baseUrl}}/messages/conversations/:conversationId?conversationId=423feb57-19f4-4d4b-ab87-1b6596cd48d4
   body: json
   auth: bearer
 }
 
 params:query {
-  conversationId: 22b2628f-8025-44dd-ba38-3facb42df1c1
+  conversationId: 423feb57-19f4-4d4b-ab87-1b6596cd48d4
   ~cursor: last-message-id
   ~direction: older
 }
 
 params:path {
-  conversationId: 22b2628f-8025-44dd-ba38-3facb42df1c1
+  conversationId: 423feb57-19f4-4d4b-ab87-1b6596cd48d4
 }
 
 headers {
-  x-tenant-id: {{x-tenant-id}}
+  x-tenant-id: 1
   ~Authorization: Bearer {{authToken}}
 }
 
 auth:bearer {
-  token: {{BearerToken}}
+  token: {{token}}
 }
 
 docs {

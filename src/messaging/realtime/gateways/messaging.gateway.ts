@@ -26,6 +26,7 @@ import {
   MessageEventPayload,
   MessageEventType,
   MessageUpdatePayload,
+  OfflineMessagesPayload,
   ParticipantActionPayload,
   ReactionPayload,
   ReadReceiptPayload,
@@ -53,6 +54,8 @@ import { MessageEventHandler } from './usecases/message.events';
 import { WebsocketHelpers } from '../utils/websocket.helpers';
 import { TenantService } from '../../../user-management/tenant.service';
 import { wsAuthMiddleware } from '../../../middleware/ws.middleware';
+import { Inject, forwardRef } from '@nestjs/common';
+
 @WebSocketGateway({
   cors: {
     origin: config.get('websocket.allowedOrigins'),
@@ -70,6 +73,7 @@ export class MessagingGateway
 
   constructor(
     private readonly conversationService: ConversationService,
+    @Inject(forwardRef(() => MessageService))
     private readonly messageService: MessageService,
     private readonly messageValidator: MessageValidatorService,
     private readonly configService: ConfigService,
@@ -87,6 +91,20 @@ export class MessagingGateway
       wsAuthMiddleware(this.tenantService, this.logger, this.configService),
     );
   }
+  // afterInit(server: Server) {
+  //   console.log('WebSocket Gateway initialized');
+  //   server.use(
+  //     wsAuthMiddleware(this.tenantService, this.logger, this.configService),
+  //   );
+  //   server.on('connection', (socket) => {
+  //     socket.on('disconnect', (reason) => {
+  //       console.log(`Socket ${socket.id} disconnected. Reason: ${reason}`);
+  //     });
+  //     socket.on('error', (err) => {
+  //       console.log(`Socket error: ${socket.id}: ${err}`);
+  //     });
+  //   });
+  // }
 
   // @UseGuards(WsGuard)
   async handleConnection(client: SocketWithUser) {
@@ -127,15 +145,59 @@ export class MessagingGateway
 
       // Get user's conversations and join their rooms
       const conversations =
-        await this.conversationService.getConversationsByUserId(user.id);
+        await this.conversationService.getConversationsByUserId(user.sub);
+      const conversationIds = conversations.map((c) => c.id);
 
       for (const conversation of conversations) {
         const room = RoomNameFactory.conversationRoom(conversation.id);
         client.join(room);
       }
 
+      // Fetch undelivered or unread messages just once
+      const offLineMessages = await this.messageService.getUnreadInbox(
+        user.sub,
+        conversationIds,
+      );
+
+      if (!offLineMessages || offLineMessages.length === 0) {
+        return;
+      }
+
+      // Emit all offline messages at once
+      this.server.to(client.id).emit(MessageEventType.OFFLINE_MESSAGES, {
+        messages: offLineMessages.map((inboxMessage) => ({
+          id: inboxMessage.message.id,
+          content: inboxMessage.message.content,
+          conversationId: inboxMessage.message.conversationId,
+          senderId: inboxMessage.message.senderId,
+          type: inboxMessage.message.type,
+          createdAt: inboxMessage.message.createdAt,
+          status: inboxMessage.message.status,
+          isEdited: inboxMessage.message.isEdited,
+          isDeleted: inboxMessage.message.isDeleted,
+          isPinned: inboxMessage.message.isPinned,
+          read: inboxMessage.read,
+          readAt: inboxMessage.readAt,
+        })),
+      });
+
+      // After emitting, mark each message as read (async, but sequential)
+      for (const inboxMessage of offLineMessages) {
+        try {
+          await this.messageService.markInboxMessagesAsRead(
+            user.sub,
+            inboxMessage.conversationId,
+          );
+        } catch (error) {
+          this.logger.error(
+            `Error marking message ${inboxMessage.id} as read for user ${user.sub}: ${error.message}`,
+            error.stack,
+          );
+        }
+      }
+
       this.logger.debug(
-        `Client connected: ${client.id} (User: ${user.id}, ${user.username})`,
+        `Client connected: ${client.id} (User: ${user.sub}, ${user.username})`,
       );
     } catch (error) {
       this.logger.error(
@@ -193,7 +255,7 @@ export class MessagingGateway
     // Validate access
     const hasAccess = await this.conversationService.validateAccess(
       payload.conversationId,
-      user.id,
+      user.sub,
       this.tenantService.getTenantId(),
     );
 
@@ -209,6 +271,8 @@ export class MessagingGateway
       payload.conversationId,
       payload.content,
       user.sub,
+      payload.parentMessageId,
+      payload.uploadSessionId,
     );
 
     // Get conversation to ensure we have all participants
@@ -220,15 +284,12 @@ export class MessagingGateway
     const room = RoomNameFactory.conversationRoom(conversation.id);
     this.server.to(room).emit(MessageEventType.MESSAGE_CREATED, {
       id: message.id,
-      conversationId: conversation.id,
-      sender: {
-        id: user.id,
-        username: user.username,
-        // Include other sender info that's useful for the client
-      },
-      content: payload.content,
+      conversationId: message.conversationId,
+      sender: { id: user.id, username: user.username },
+      content: message.content,
       createdAt: message.createdAt,
-      parentMessageId: payload.parentMessageId,
+      parentMessageId: message.parentMessageId,
+      attachments: message.attachments,
     });
 
     return createSuccessResponse({
@@ -257,7 +318,7 @@ export class MessagingGateway
     const message = await this.messageService.updateMessage(
       payload.messageId,
       { content: payload.content },
-      user.id,
+      user.sub,
     );
 
     // Notify other participants about the update
@@ -268,7 +329,7 @@ export class MessagingGateway
       content: message.content,
       updatedAt: message.updatedAt,
       isEdited: message.isEdited,
-      editVersion: message.metadata?.editHistory?.length || 1,
+      editVersion: message.editHistory?.length || 1,
     });
 
     return createSuccessResponse({
@@ -304,14 +365,14 @@ export class MessagingGateway
     const conversationId = message.conversationId;
 
     // Delete message
-    await this.messageService.deleteMessage(payload.messageId, user.id);
+    await this.messageService.deleteMessage(payload.messageId, user.sub);
 
     // Broadcast deletion to all participants
     const room = RoomNameFactory.conversationRoom(conversationId);
     this.server.to(room).emit(MessageEventType.MESSAGE_DELETED, {
       id: payload.messageId,
       conversationId,
-      deletedBy: user.id,
+      deletedBy: user.sub,
       deletedAt: new Date(),
     });
 
@@ -327,10 +388,13 @@ export class MessagingGateway
     client: SocketWithUser,
     conversationId: string,
   ): Promise<SocketResponse> {
-    return await this.participantEventHandler.joinConversation(
+    // console.log("client..................................:",client)
+    const result = await this.participantEventHandler.joinConversation(
       client,
       conversationId,
     );
+    client.emit(MessageEventType.JOIN_CONVERSATION, result);
+    return result;
   }
 
   @SubscribeMessage(MessageEventType.PARTICIPANT_ADD)
@@ -344,6 +408,20 @@ export class MessagingGateway
       client,
       payload,
       server,
+    );
+  }
+
+  // Hnalde offline messages
+  @SubscribeMessage(MessageEventType.OFFLINE_MESSAGES)
+  @SocketHandler()
+  async handleOfflineMessages(
+    client: SocketWithUser,
+    payload: OfflineMessagesPayload,
+  ): Promise<SocketResponse> {
+    return this.messageEventHandler.offlineMessages(
+      client,
+      payload,
+      this.server,
     );
   }
 

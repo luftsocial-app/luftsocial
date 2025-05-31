@@ -1,22 +1,26 @@
 meta {
   name: Get message by ID
   type: http
-  seq: 4
+  seq: 9
 }
 
 get {
-  url: {{baseUrl}}/messages/{{messageId}}
+  url: {{baseUrl}}/messages/:messageId
   body: none
   auth: bearer
 }
 
+params:path {
+  messageId: 985512ec-8932-4dd3-b3d0-65cc9a975991
+}
+
 headers {
-  x-tenant-id: {{x-tenant-id}}
+  x-tenant-id: 1
   ~Authorization: Bearer {{authToken}}
 }
 
 auth:bearer {
-  token: {{BearerToken}}
+  token: {{token}}
 }
 
 docs {

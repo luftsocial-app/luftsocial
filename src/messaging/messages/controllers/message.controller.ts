@@ -11,8 +11,10 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UseGuards,
   UseInterceptors,
+  ValidationPipe,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -24,6 +26,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { ThrottlerGuard } from '@nestjs/throttler';
+import { Response } from 'express';
 
 // Internal dependencies
 import { CurrentUser } from '../../../decorators/current-user.decorator';
@@ -33,6 +36,7 @@ import { ResponseInterceptor } from '../../shared/interceptors/response.intercep
 import { MessageQueryDto } from '../../conversations/dto/conversation.dto';
 import {
   CreateMessageDto,
+  PrepareAttachmentDto,
   ReactionDto,
   UpdateMessageDto,
 } from '../dto/message.dto';
@@ -46,6 +50,8 @@ import {
 // Services
 import { MessageService } from '../services/message.service';
 import { AuthObject } from '@clerk/express';
+import { apiResponse } from '../../../../lib/helpers/app';
+import { InboxQueryDto } from '../dto/inbox.query.dto';
 
 @ApiTags('Messages')
 @ApiBearerAuth()
@@ -53,6 +59,8 @@ import { AuthObject } from '@clerk/express';
 @UseInterceptors(ResponseInterceptor)
 export class MessageController {
   constructor(private readonly messageService: MessageService) {}
+
+  // Get messages from conversationId
 
   @ApiOperation({ summary: 'Get messages from a conversation' })
   @ApiParam({
@@ -68,13 +76,17 @@ export class MessageController {
   })
   @ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Access denied' })
   @Get('conversations/:conversationId')
-  getMessages(
+  async getMessages(
     @Param('conversationId', ParseUUIDPipe) conversationId: string,
-    @Query() query: MessageQueryDto,
+    @Query() query: Omit<MessageQueryDto, 'conversationId'>,
   ): Promise<MessageListResponseDto> {
-    return this.messageService.getMessages(conversationId, query);
+    return this.messageService.getMessages(conversationId, {
+      ...query,
+      conversationId,
+    });
   }
 
+  // Create mesaage
   @ApiOperation({ summary: 'Create a new message' })
   @ApiBody({ type: CreateMessageDto })
   @ApiResponse({
@@ -94,9 +106,34 @@ export class MessageController {
       messageDto.content,
       user.userId,
       messageDto.parentMessageId,
+      messageDto.uploadSessionId,
     );
   }
 
+  // Get inbox by recipient id
+  @Get('inbox')
+  async getAllInbox(
+    @CurrentUser() user: AuthObject,
+    @Query(new ValidationPipe({ transform: true })) query: InboxQueryDto,
+    @Res() res: Response,
+  ) {
+    try {
+      const { data: inboxes, pagination } =
+        await this.messageService.fetchAllInbox(user.userId, query);
+      return apiResponse(res, {
+        success: true,
+        message: 'Inbox retrieved successfully',
+        data: { inboxes, pagination },
+      });
+    } catch (error) {
+      return apiResponse(res, {
+        success: false,
+        error: error.message,
+      });
+    }
+  }
+
+  // Get Message History
   @ApiOperation({ summary: 'Get message history for a user' })
   @ApiParam({ name: 'userId', description: 'ID of the user' })
   @ApiResponse({
@@ -114,6 +151,7 @@ export class MessageController {
     return this.messageService.getMessageHistory(userId);
   }
 
+  // Get Message by ID
   @ApiOperation({ summary: 'Get message by ID' })
   @ApiParam({ name: 'id', description: 'ID of the message' })
   @ApiResponse({
@@ -129,6 +167,7 @@ export class MessageController {
     return this.messageService.findMessageById(messageId, user.userId);
   }
 
+  // Update Message
   @ApiOperation({ summary: 'Update a message' })
   @ApiParam({ name: 'id', description: 'ID of the message to update' })
   @ApiBody({ type: UpdateMessageDto })
@@ -158,6 +197,7 @@ export class MessageController {
     );
   }
 
+  // Delete Message
   @ApiOperation({ summary: 'Delete a message' })
   @ApiParam({ name: 'id', description: 'ID of the message to delete' })
   @ApiResponse({
@@ -181,6 +221,7 @@ export class MessageController {
     return this.messageService.deleteMessage(messageId, user.userId);
   }
 
+  // Add Reaction
   @ApiOperation({ summary: 'Add a reaction to a message' })
   @ApiParam({ name: 'id', description: 'ID of the message' })
   @ApiBody({ type: ReactionDto })
@@ -202,6 +243,7 @@ export class MessageController {
     );
   }
 
+  // Remove Reaction
   @ApiOperation({ summary: 'Remove a reaction from a message' })
   @ApiParam({ name: 'id', description: 'ID of the message' })
   @ApiBody({ type: ReactionDto })
@@ -223,6 +265,7 @@ export class MessageController {
     );
   }
 
+  // Get Attachments
   @ApiOperation({ summary: 'Get attachments for a message' })
   @ApiParam({ name: 'id', description: 'ID of the message' })
   @ApiResponse({
@@ -237,6 +280,7 @@ export class MessageController {
     return this.messageService.getAttachments(messageId);
   }
 
+  // Get Thread Replies
   @ApiOperation({ summary: 'Get thread replies' })
   @ApiParam({ name: 'id', description: 'ID of the parent message' })
   @ApiResponse({
@@ -281,5 +325,28 @@ export class MessageController {
     @Param('conversationId', ParseUUIDPipe) conversationId: string,
   ): Promise<number> {
     return this.messageService.getUnreadCount(conversationId, user.userId);
+  }
+
+  // ATACHMENT CONTROLLER
+
+  @HttpCode(HttpStatus.CREATED)
+  @Post('attachments')
+  @ApiOperation({ summary: 'Get presigned URL for file upload' })
+  async prepareAttachmentUpload(
+    @CurrentUser() user: AuthObject,
+    @Body() dto: PrepareAttachmentDto,
+  ) {
+    return this.messageService.prepareAttachment(
+      user.userId,
+      dto.fileName,
+      dto.conversationId,
+      dto.uploadSessionId,
+    );
+  }
+
+  @Post('attachments/:id/confirm')
+  @ApiOperation({ summary: 'Confirm successful file upload' })
+  async finalizeAttachment(@Param('id') attachmentId: string) {
+    return this.messageService.confirmAttachment(attachmentId);
   }
 }

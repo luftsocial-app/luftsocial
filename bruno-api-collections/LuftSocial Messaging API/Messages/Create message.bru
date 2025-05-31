@@ -1,7 +1,7 @@
 meta {
   name: Create message
   type: http
-  seq: 2
+  seq: 1
 }
 
 post {
@@ -12,18 +12,18 @@ post {
 
 headers {
   content-type: application/json
-  x-tenant-id: {{x-tenant-id}}
-  Authorization: Bearer {{authToken}}
+  x-tenant-id: 1
+  Authorization: {{Bearer_token}}
 }
 
 auth:bearer {
-  token: {{BearerToken}}
+  token: {{token}}
 }
 
 body:json {
   {
-      "conversationId": "24bc5804-50a5-4424-a6bd-6c1e9c59a6fe",
-      "content": "Hello, this is a message",
+      "conversationId": "423feb57-19f4-4d4b-ab87-1b6596cd48d4",
+      "content": "Hello, this is a reply message",
       "parentMessageId": null
   }
 }

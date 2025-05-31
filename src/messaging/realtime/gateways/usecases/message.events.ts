@@ -6,6 +6,7 @@ import {
   MessageEventType,
   TypingEventPayload,
   ReadReceiptPayload,
+  OfflineMessagesPayload,
 } from '../../events/message-events';
 import {
   SocketWithUser,
@@ -19,11 +20,13 @@ import { MessageValidatorService } from '../../services/message-validator.servic
 import { MessageService } from '../../../messages/services/message.service';
 import { Server } from 'socket.io';
 import { WebsocketHelpers } from '../../utils/websocket.helpers';
-
+import { Inject } from '@nestjs/common';
+import { forwardRef } from '@nestjs/common';
 @Injectable()
 export class MessageEventHandler {
   constructor(
     private readonly messageValidatorService: MessageValidatorService,
+    @Inject(forwardRef(() => MessageService))
     private readonly messageService: MessageService,
     private readonly websocketHelpers: WebsocketHelpers,
   ) {}
@@ -190,5 +193,58 @@ export class MessageEventHandler {
     });
 
     return createSuccessResponse();
+  }
+
+  async offlineMessages(
+    client: SocketWithUser,
+    payload: OfflineMessagesPayload,
+    server: Server,
+  ): Promise<SocketResponse> {
+    const { user } = client.data;
+
+    // Validate payload
+    const validationError = validatePayload(payload, [
+      'messageId',
+      'conversationId',
+      'recipientId',
+    ]);
+    if (validationError) {
+      return createErrorResponse('VALIDATION_ERROR', validationError);
+    }
+
+    // Verify the recipient matches the current user
+    if (payload.recipientId !== user.id) {
+      return createErrorResponse(
+        'UNAUTHORIZED',
+        'Not authorized to mark this message as delivered',
+      );
+    }
+
+    try {
+      // Mark message as delivered in the database
+      await this.messageService.markMessageAsDelivered(
+        payload.messageId,
+        payload.recipientId,
+        payload.deliveredAt ? new Date(payload.deliveredAt) : new Date(),
+      );
+
+      // Notify the recipient that the message was delivered
+      const room = RoomNameFactory.conversationRoom(payload.conversationId);
+      server.to(room).emit(MessageEventType.OFFLINE_MESSAGES, {
+        messageId: payload.messageId,
+        conversationId: payload.conversationId,
+        recipientId: payload.recipientId,
+        deliveredAt: payload.deliveredAt
+          ? new Date(payload.deliveredAt)
+          : new Date(),
+      });
+
+      return createSuccessResponse();
+    } catch {
+      return createErrorResponse(
+        'INTERNAL_ERROR',
+        'Failed to mark message as delivered',
+      );
+    }
   }
 }

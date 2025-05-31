@@ -234,6 +234,7 @@ describe('MessageController', () => {
         mockCreateMessageDto.content,
         mockUser.userId,
         mockCreateMessageDto.parentMessageId,
+        mockCreateMessageDto.uploadSessionId,
       );
       expect(result).toEqual(mockMessageResponse);
     });

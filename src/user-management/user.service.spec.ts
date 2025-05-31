@@ -128,7 +128,7 @@ describe('UserService', () => {
       });
 
       expect(userRepository.findOne).toHaveBeenCalledWith({
-        relations: ['roles'],
+        relations: ['roles', 'tenants'],
         where: { id: 'clerk123', tenants: { id: 'tenant123' } },
       });
       expect(roleRepository.findOne).toHaveBeenCalledWith({
@@ -197,7 +197,7 @@ describe('UserService', () => {
       const result = await service.findById('clerk123');
 
       expect(userRepository.findOne).toHaveBeenCalledWith({
-        relations: ['roles'],
+        relations: ['roles', 'tenants'],
         where: { id: 'clerk123', tenants: { id: 'tenant123' } },
       });
       expect(result).toEqual(mockUser);

@@ -1,0 +1,562 @@
+ts-jest[ts-jest-transformer] (WARN) Define `ts-jest` config under `globals` is deprecated. Please do
+transform: {
+    <transform_regex>: ['ts-jest', { /* ts-jest config goes here in Jest */ }],
+},
+See more at https://kulshekhar.github.io/ts-jest/docs/getting-started/presets#advanced
+ts-jest[config] (WARN) 
+    The "ts-jest" config option "isolatedModules" is deprecated and will be removed in v30.0.0. Please use "isolatedModules: true" in /Users/mac/Desktop/luftsocial-project/luftsocial/tsconfig.json instead, see https://www.typescriptlang.org/tsconfig/#isolatedModules
+  
+  console.log
+    Starting generatePreSignedUrl test...
+
+      at Object.<anonymous> (asset-management/media-storage/media-storage.service.spec.ts:483:15)
+
+  console.log
+    Mocked tenant service to return tenantId: tenant-123
+
+      at Object.<anonymous> (asset-management/media-storage/media-storage.service.spec.ts:494:15)
+
+  console.log
+    Set up mockPostAssetRepository.create to return: {
+      id: 'presigned-asset-123',
+      fileKey: 'social-media/tenant-123/user-123/image.jpg',
+      tenantId: 'tenant-123',
+      fileType: 'image/jpeg',
+      fileHash: 'hash-123',
+      fileName: 'image.jpg',
+      isPending: true,
+      createdBy: 'user-123',
+      updatedBy: 'user-123'
+    }
+
+      at Object.<anonymous> (asset-management/media-storage/media-storage.service.spec.ts:514:15)
+
+  console.log
+    Calling generatePreSignedUrl with: {
+      userId: 'user-123',
+      fileName: 'image.jpg',
+      contentType: 'image/jpeg',
+      fileHash: 'hash-123',
+      platform: 'TIKTOK',
+      uploadType: 'POST'
+    }
+
+      at Object.<anonymous> (asset-management/media-storage/media-storage.service.spec.ts:516:15)
+
+  console.log
+    File validation passed - FileName: image.jpg, ContentType: image/jpeg
+
+      at MediaStorageService.log [as generatePreSignedUrl] (asset-management/media-storage/media-storage.service.ts:380:13)
+
+  console.log
+    isValidFileName: true, isValidContentType: true
+
+      at MediaStorageService.log [as generatePreSignedUrl] (asset-management/media-storage/media-storage.service.ts:383:13)
+
+  console.log
+    generatePreSignedUrl result: {
+      preSignedUrl: 'https://presigned-url',
+      cdnUrl: 'https://test-bucket.s3.us-east-1.amazonaws.com/social-media/TIKTOK/tenant-123/user-123/1748425553525-51pf5jtmwp7.jpg',
+      bucket: 'test-bucket',
+      key: 'social-media/TIKTOK/tenant-123/user-123/1748425553525-51pf5jtmwp7.jpg',
+      assetId: 'presigned-asset-123'
+    }
+
+      at Object.<anonymous> (asset-management/media-storage/media-storage.service.spec.ts:534:15)
+
+  console.log
+    Verifying result matches expected structure...
+
+      at Object.<anonymous> (asset-management/media-storage/media-storage.service.spec.ts:544:15)
+
+  console.log
+    Verifying S3.getSignedUrlPromise was called...
+
+      at Object.<anonymous> (asset-management/media-storage/media-storage.service.spec.ts:547:15)
+
+  console.log
+    S3.getSignedUrlPromise calls: [
+      [
+        "putObject",
+        {
+          "Bucket": "test-bucket",
+          "Key": "social-media/TIKTOK/tenant-123/user-123/1748425553525-51pf5jtmwp7.jpg",
+          "ContentType": "image/jpeg",
+          "Metadata": {
+            "user-id": "user-123",
+            "tenant-id": "tenant-123",
+            "upload-type": "POST",
+            "content-type": "image/jpeg",
+            "upload-timestamp": "1748425553525",
+            "file-hash": "hash-123"
+          },
+          "Expires": 3600
+        }
+      ]
+    ]
+
+      at Object.<anonymous> (asset-management/media-storage/media-storage.service.spec.ts:551:15)
+
+  console.log
+    S3.getSignedUrlPromise call: {
+      operation: 'putObject',
+      params: {
+        Bucket: 'test-bucket',
+        Key: 'social-media/TIKTOK/tenant-123/user-123/1748425553525-51pf5jtmwp7.jpg',
+        ContentType: 'image/jpeg',
+        Metadata: {
+          'user-id': 'user-123',
+          'tenant-id': 'tenant-123',
+          'upload-type': 'POST',
+          'content-type': 'image/jpeg',
+          'upload-timestamp': 'TIMESTAMP',
+          'file-hash': 'hash-123'
+        },
+        Expires: 3600
+      }
+    }
+
+      at Object.<anonymous> (asset-management/media-storage/media-storage.service.spec.ts:556:15)
+
+  console.log
+    Verifying S3 call parameters...
+
+      at Object.<anonymous> (asset-management/media-storage/media-storage.service.spec.ts:568:15)
+
+  console.log
+    saveCall: {
+      "tenantId": "tenant-123",
+      "fileKey": "social-media/TIKTOK/tenant-123/user-123/1748425553525-51pf5jtmwp7.jpg",
+      "fileType": "image/jpeg",
+      "fileHash": "hash-123",
+      "fileName": "image.jpg",
+      "isPending": true,
+      "uploadedAt": "2025-05-28T09:45:53.526Z",
+      "id": "presigned-asset-123"
+    }
+
+      at Object.<anonymous> (asset-management/media-storage/media-storage.service.spec.ts:575:15)
+
+  console.log
+    File validation passed - FileName: valid.jpg, ContentType: image/jpeg
+
+      at MediaStorageService.log [as generatePreSignedUrl] (asset-management/media-storage/media-storage.service.ts:380:13)
+
+  console.log
+    isValidFileName: true, isValidContentType: true
+
+      at MediaStorageService.log [as generatePreSignedUrl] (asset-management/media-storage/media-storage.service.ts:383:13)
+
+FAIL Default name src/asset-management/media-storage/media-storage.service.spec.ts
+  MediaStorageService
+    ○ skipped should be defined
+    calculateFileHash
+      ○ skipped should calculate the SHA-256 hash of a buffer
+    findMediaByHash
+      ○ skipped should find media by hash when it exists
+      ○ skipped should return null when media with hash does not exist
+      ○ skipped should return null and log error when database query fails
+    uploadPostMedia
+      ○ skipped should upload new files to S3 and save metadata
+      ○ skipped should reuse existing media when file with same hash exists
+      ○ skipped should handle upload errors
+      ○ skipped should handle multiple files
+    uploadMediaFromUrl
+      ○ skipped should download and upload media from URL
+      ○ skipped should reuse existing media when URL file has same hash
+      ○ skipped should skip deduplication when disabled
+      ○ skipped should handle URL download errors
+    generatePreSignedUrl
+      ✕ should generate pre-signed URL with valid parameters (56 ms)
+      ✓ should validate file name and content type (25 ms)
+      ✓ should handle pre-signed URL generation failure (7 ms)
+    finalizePendingUpload
+      ○ skipped should finalize a pending upload with valid asset ID
+      ○ skipped should throw NotFoundException for non-existent asset
+    verifyUpload
+      ○ skipped should return true when file exists in S3
+      ○ skipped should return false when file does not exist in S3
+    getTenantUploads and getPostUploads
+      ○ skipped should get uploads for a tenant
+      ○ skipped should get uploads for a post
+    helper methods through public interface
+      ○ skipped should correctly determine media type from MIME type
+      ○ skipped should extract filenames from URLs correctly
+    private methods testing
+      uploadToS3
+        ○ skipped should upload buffer to S3 with correct parameters
+        ○ skipped should handle upload errors
+        ○ skipped should use custom bucket when provided
+      generatePostMediaKey
+        ○ skipped should generate keys with appropriate structure
+        ○ skipped should handle filenames without extensions
+      getFileExtension
+        ○ skipped should extract file extensions correctly
+      getMediaTypeFromMimeType
+        ○ skipped should identify media types correctly
+      getFilenameFromUrl
+        ○ skipped should extract filenames from URLs correctly
+    edge cases and error handling
+      ○ skipped should handle database errors when saving file metadata
+
+  ● MediaStorageService › generatePreSignedUrl › should generate pre-signed URL with valid parameters
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "social-media/tiktok/tenant-123/user-123"
+    Received string:    "social-media/TIKTOK/tenant-123/user-123/1748425553525-51pf5jtmwp7.jpg"
+
+      575 |       console.log('saveCall:', JSON.stringify(saveCall, null, 2));
+      576 |       
+    > 577 |       expect(saveCall.fileKey).toContain(`social-media/${platform.toLowerCase()}/${tenantId}/${userId}`);
+          |                                ^
+      578 |       expect(saveCall).toMatchObject({
+      579 |         fileType: contentType,
+      580 |         fileHash: fileHash,
+
+      at Object.<anonymous> (asset-management/media-storage/media-storage.service.spec.ts:577:32)
+
+---------------------------------------------|---------|----------|---------|---------|--------------------------------------------------
+File                                         | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s                                
+---------------------------------------------|---------|----------|---------|---------|--------------------------------------------------
+All files                                    |    4.97 |     3.88 |    1.67 |    4.88 |                                                  
+ src                                         |       0 |        0 |       0 |       0 |                                                  
+  app.controller.ts                          |       0 |        0 |       0 |       0 | 1-10                                             
+  app.service.ts                             |       0 |      100 |       0 |       0 | 1-6                                              
+  main.ts                                    |       0 |        0 |       0 |       0 | 1-119                                            
+ src/asset-management/entities               |     100 |       75 |     100 |     100 |                                                  
+  post-asset.entity.ts                       |     100 |       75 |     100 |     100 | 43-49                                            
+ src/asset-management/media-storage          |   36.92 |    28.91 |      25 |   36.55 |                                                  
+  media-storage.controller.ts                |       0 |        0 |       0 |       0 | 1-45                                             
+  media-storage.dto.ts                       |       0 |      100 |     100 |       0 | 4-9                                              
+  media-storage.module.ts                    |       0 |      100 |     100 |       0 | 1-14                                             
+  media-storage.service.ts                   |   43.63 |    41.37 |   29.41 |    42.5 | 61-63,76-338,393-402,444,499-552,588-595,634-669 
+ src/bull-queue                              |       0 |        0 |       0 |       0 |                                                  
+  bull-queue.module.ts                       |       0 |        0 |       0 |       0 | 1-54                                             
+  constants.ts                               |       0 |      100 |     100 |       0 | 2-8                                              
+ src/cache                                   |       0 |        0 |       0 |       0 |                                                  
+  cache.module.ts                            |       0 |        0 |       0 |       0 | 1-36                                             
+  token-cache.service.ts                     |       0 |        0 |       0 |       0 | 1-192                                            
+ src/clerk                                   |       0 |      100 |       0 |       0 |                                                  
+  clerk.provider.ts                          |       0 |      100 |       0 |       0 | 1-9                                              
+ src/common/dtos                             |       0 |        0 |       0 |       0 |                                                  
+  base.dto.ts                                |       0 |        0 |       0 |       0 | 1-181                                            
+  pagination.dto.ts                          |       0 |      100 |       0 |       0 | 1-30                                             
+  user.dto.ts                                |       0 |        0 |     100 |       0 | 1-45                                             
+ src/common/dtos-new                         |       0 |      100 |       0 |       0 |                                                  
+  index.ts                                   |       0 |      100 |       0 |       0 | 1-3                                              
+  response.dto.ts                            |       0 |      100 |     100 |       0 | 1-10                                             
+ src/common/enums                            |    22.5 |    23.07 |      30 |   22.64 |                                                  
+  db-error-code.enum.ts                      |       0 |        0 |       0 |       0 | 1-4                                              
+  error-type.enum.ts                         |       0 |        0 |       0 |       0 | 1-12                                             
+  index.ts                                   |       0 |      100 |       0 |       0 | 1-4                                              
+  media-type.enum.ts                         |     100 |      100 |     100 |     100 |                                                  
+  messaging.ts                               |       0 |        0 |       0 |       0 | 1-149                                            
+  operation-status.enum.ts                   |       0 |        0 |       0 |       0 | 1-8                                              
+  roles.ts                                   |     100 |      100 |     100 |     100 |                                                  
+  scopes.enum.ts                             |       0 |        0 |       0 |       0 | 1-46                                             
+  social-platform.enum.ts                    |     100 |      100 |     100 |     100 |                                                  
+  upload.enum.ts                             |     100 |      100 |     100 |     100 |                                                  
+ src/common/helpers                          |      25 |        0 |       0 |      30 |                                                  
+  app.ts                                     |      25 |        0 |       0 |      30 | 5-9,13,17-18,22-32                               
+ src/common/http                             |       0 |        0 |       0 |       0 |                                                  
+  http-error-type.ts                         |       0 |      100 |     100 |       0 | 1                                                
+  http-exception.filter.ts                   |       0 |        0 |       0 |       0 | 1-170                                            
+  index.ts                                   |       0 |      100 |       0 |       0 | 1-3                                              
+  response.interceptor.ts                    |       0 |      100 |       0 |       0 | 1-26                                             
+ src/common/http/exceptions                  |       0 |      100 |       0 |       0 |                                                  
+  access-token-expired.exception.ts          |       0 |      100 |       0 |       0 | 1-6                                              
+  disabled-user.exception.ts                 |       0 |      100 |       0 |       0 | 1-6                                              
+  foreign-key-conflict.exception.ts          |       0 |      100 |       0 |       0 | 1-6                                              
+  index.ts                                   |       0 |      100 |       0 |       0 | 1-22                                             
+  invalid-credentials.exception.ts           |       0 |      100 |       0 |       0 | 1-6                                              
+  invalid-current-password.exception.ts      |       0 |      100 |       0 |       0 | 1-6                                              
+  invalid-token.exception.ts                 |       0 |      100 |       0 |       0 | 1-6                                              
+  permission-exists.exception.ts             |       0 |      100 |       0 |       0 | 1-6                                              
+  refresh-token-expired.exception.ts         |       0 |      100 |       0 |       0 | 1-6                                              
+  role-exists.exception.ts                   |       0 |      100 |       0 |       0 | 1-6                                              
+  user-exists.exception.ts                   |       0 |      100 |       0 |       0 | 1-6                                              
+ src/common/interface                        |       0 |      100 |     100 |       0 |                                                  
+  base-response.interface.ts                 |       0 |      100 |     100 |       0 | 1-14                                             
+ src/common/pipes                            |       0 |        0 |       0 |       0 |                                                  
+  cross-platform-validation.pipe.ts          |       0 |        0 |       0 |       0 | 1-176                                            
+ src/common/types                            |       0 |      100 |     100 |       0 |                                                  
+  constants.ts                               |       0 |      100 |     100 |       0 | 1-2                                              
+  role.types.ts                              |       0 |      100 |     100 |       0 | 1-28                                             
+ src/cross-platform                          |       0 |        0 |       0 |       0 |                                                  
+  cross-platform.controller.ts               |       0 |        0 |       0 |       0 | 1-492                                            
+  cross-platform.module.ts                   |       0 |      100 |       0 |       0 | 1-84                                             
+  cross-platform.service.ts                  |       0 |        0 |       0 |       0 | 1-118                                            
+ src/cross-platform/entities                 |       0 |        0 |     100 |       0 |                                                  
+  analytics.entity.ts                        |       0 |        0 |     100 |       0 | 1-29                                             
+  publish.entity.ts                          |       0 |        0 |     100 |       0 | 1-45                                             
+  schedule.entity.ts                         |       0 |        0 |     100 |       0 | 1-62                                             
+ src/cross-platform/helpers                  |       0 |        0 |       0 |       0 |                                                  
+  cross-platform.interface.ts                |       0 |        0 |       0 |       0 | 13-63                                            
+ src/cross-platform/helpers/dtos             |       0 |        0 |       0 |       0 |                                                  
+  base-platform-params.dto.ts                |       0 |        0 |     100 |       0 | 1-5                                              
+  cross-platform.dto.ts                      |       0 |        0 |       0 |       0 | 1-113                                            
+  platform-post.dto.ts                       |       0 |        0 |       0 |       0 | 2-28                                             
+ src/cross-platform/services                 |       0 |        0 |       0 |       0 |                                                  
+  analytics.service.ts                       |       0 |        0 |       0 |       0 | 1-222                                            
+  content-publisher.service.ts               |       0 |        0 |       0 |       0 | 1-692                                            
+  retry-queue.service.ts                     |       0 |        0 |       0 |       0 | 1-168                                            
+  scheduler.service.ts                       |       0 |        0 |       0 |       0 | 1-240                                            
+ src/database                                |       0 |      100 |       0 |       0 |                                                  
+  1743242405377-migrations.ts                |       0 |      100 |       0 |       0 | 3-661                                            
+  1744473666481-migrations.ts                |       0 |      100 |       0 |       0 | 3-77                                             
+  1744621285654-migrations.ts                |       0 |      100 |       0 |       0 | 3-645                                            
+ src/database/migrations/config              |       0 |        0 |     100 |       0 |                                                  
+  typeorm.config.ts                          |       0 |        0 |     100 |       0 | 1-4                                              
+ src/database/migrations/luftsocialDB        |       0 |      100 |       0 |       0 |                                                  
+  1744905429582-migrations.ts                |       0 |      100 |       0 |       0 | 3-95                                             
+  1745201611152-migrations.ts                |       0 |      100 |       0 |       0 | 3-61                                             
+  1745242141317-migrations.ts                |       0 |      100 |       0 |       0 | 3-55                                             
+  1745914909918-migrations.ts                |       0 |      100 |       0 |       0 | 3-55                                             
+  1745915145148-migrations.ts                |       0 |      100 |       0 |       0 | 3-55                                             
+  1748156980608-migrations.ts                |       0 |      100 |       0 |       0 | 3-141                                            
+ src/decorators                              |       0 |      100 |       0 |       0 |                                                  
+  current-user.decorator.ts                  |       0 |      100 |       0 |       0 | 1-6                                              
+  permissions.decorator.ts                   |       0 |      100 |       0 |       0 | 1-4                                              
+  public.decorator.ts                        |       0 |      100 |       0 |       0 | 1-4                                              
+  roles.decorator.ts                         |       0 |      100 |       0 |       0 | 1-3                                              
+ src/guards                                  |       0 |        0 |       0 |       0 |                                                  
+  chat.guard.ts                              |       0 |        0 |       0 |       0 | 1-23                                             
+  clerk-auth.guard.ts                        |       0 |        0 |       0 |       0 | 1-55                                             
+  role-guard.ts                              |       0 |        0 |       0 |       0 | 1-42                                             
+  swagger.guard.ts                           |       0 |      100 |       0 |       0 | 1-8                                              
+  throttler-behind-proxy.guard.ts            |       0 |        0 |       0 |       0 | 1-9                                              
+  ws.guard.ts                                |       0 |        0 |       0 |       0 | 1-56                                             
+ src/health                                  |       0 |        0 |       0 |       0 |                                                  
+  health.controller.ts                       |       0 |        0 |       0 |       0 | 1-55                                             
+  health.module.ts                           |       0 |      100 |     100 |       0 | 1-9                                              
+ src/interceptors                            |       0 |        0 |       0 |       0 |                                                  
+  request-interceptor-2.ts                   |       0 |        0 |       0 |       0 | 1-30                                             
+ src/messaging/conversations                 |       0 |      100 |     100 |       0 |                                                  
+  conversation.module.ts                     |       0 |      100 |     100 |       0 | 1-31                                             
+ src/messaging/conversations/controllers     |       0 |        0 |       0 |       0 |                                                  
+  conversation.controller.ts                 |       0 |        0 |       0 |       0 | 2-150                                            
+ src/messaging/conversations/dto             |       0 |        0 |       0 |       0 |                                                  
+  conversation.dto.ts                        |       0 |        0 |       0 |       0 | 1-229                                            
+ src/messaging/conversations/entities        |      80 |    63.33 |       0 |      80 |                                                  
+  conversation.entity.ts                     |   83.33 |       75 |       0 |   85.71 | 27-28,35                                         
+  participant.entity.ts                      |   76.19 |    55.55 |       0 |   73.68 | 17-18,27,54,68                                   
+ src/messaging/conversations/repositories    |       0 |        0 |       0 |       0 |                                                  
+  conversation.repository.ts                 |       0 |        0 |       0 |       0 | 1-145                                            
+  participant.repository.ts                  |       0 |        0 |       0 |       0 | 1-124                                            
+ src/messaging/conversations/services        |       0 |        0 |       0 |       0 |                                                  
+  conversation.service.ts                    |       0 |        0 |       0 |       0 | 1-425                                            
+ src/messaging/messages                      |       0 |      100 |       0 |       0 |                                                  
+  message.module.ts                          |       0 |      100 |       0 |       0 | 1-38                                             
+ src/messaging/messages/controllers          |       0 |        0 |       0 |       0 |                                                  
+  message.controller.ts                      |       0 |        0 |       0 |       0 | 2-322                                            
+ src/messaging/messages/dto                  |       0 |        0 |       0 |       0 |                                                  
+  message-response.dto.ts                    |       0 |        0 |     100 |       0 | 1-245                                            
+  message.dto.ts                             |       0 |      100 |       0 |       0 | 1-115                                            
+ src/messaging/messages/entities             |   65.55 |       50 |    9.09 |   67.07 |                                                  
+  attachment.entity.ts                       |   84.61 |       75 |      25 |   86.11 | 25,101-113                                       
+  message.entity.ts                          |   50.98 |     42.3 |       0 |   52.17 | 29,37,54,83,110-158                              
+ src/messaging/messages/repositories         |       0 |        0 |       0 |       0 |                                                  
+  attachment.repository.ts                   |       0 |        0 |       0 |       0 | 1-111                                            
+  message.repository.ts                      |       0 |        0 |       0 |       0 | 1-164                                            
+ src/messaging/messages/services             |       0 |        0 |       0 |       0 |                                                  
+  message.service.ts                         |       0 |        0 |       0 |       0 | 1-850                                            
+ src/messaging/realtime                      |       0 |      100 |       0 |       0 |                                                  
+  realtime.module.ts                         |       0 |      100 |       0 |       0 | 1-33                                             
+ src/messaging/realtime/decorators           |       0 |        0 |       0 |       0 |                                                  
+  socket-handler.decorator.ts                |       0 |        0 |       0 |       0 | 1-131                                            
+ src/messaging/realtime/events               |       0 |        0 |       0 |       0 |                                                  
+  message-events.ts                          |       0 |        0 |       0 |       0 | 4-41                                             
+ src/messaging/realtime/gateways             |       0 |        0 |       0 |       0 |                                                  
+  messaging.gateway.ts                       |       0 |        0 |       0 |       0 | 2-449                                            
+ src/messaging/realtime/gateways/usecases    |       0 |        0 |       0 |       0 |                                                  
+  message.events.ts                          |       0 |        0 |       0 |       0 | 1-194                                            
+  participants.events.ts                     |       0 |        0 |       0 |       0 | 1-178                                            
+ src/messaging/realtime/interfaces           |       0 |        0 |       0 |       0 |                                                  
+  socket.interfaces.ts                       |       0 |        0 |       0 |       0 | 45-53                                            
+ src/messaging/realtime/pipes                |       0 |        0 |       0 |       0 |                                                  
+  websocket-sanitization.pipe.ts             |       0 |        0 |       0 |       0 | 1-19                                             
+ src/messaging/realtime/services             |       0 |        0 |       0 |       0 |                                                  
+  message-validator.service.ts               |       0 |        0 |       0 |       0 | 1-124                                            
+ src/messaging/realtime/utils                |       0 |        0 |       0 |       0 |                                                  
+  response.utils.ts                          |       0 |        0 |       0 |       0 | 12-61                                            
+  websocket.helpers.ts                       |       0 |        0 |       0 |       0 | 1-47                                             
+ src/messaging/shared/entities               |   77.77 |       75 |       0 |   77.77 |                                                  
+  common.entity.ts                           |   77.77 |       75 |       0 |   77.77 | 15,22                                            
+ src/messaging/shared/enums                  |     100 |      100 |     100 |     100 |                                                  
+  conversation-type.enum.ts                  |     100 |      100 |     100 |     100 |                                                  
+  message-type.enum.ts                       |     100 |      100 |     100 |     100 |                                                  
+  participant-role.enum.ts                   |     100 |      100 |     100 |     100 |                                                  
+ src/messaging/shared/interceptors           |       0 |      100 |       0 |       0 |                                                  
+  response.interceptor.ts                    |       0 |      100 |       0 |       0 | 1-26                                             
+ src/messaging/shared/interfaces             |     100 |      100 |     100 |     100 |                                                  
+  conversation-settings.interface.ts         |     100 |      100 |     100 |     100 |                                                  
+ src/messaging/shared/utils                  |       0 |        0 |       0 |       0 |                                                  
+  content-sanitizer.ts                       |       0 |        0 |       0 |       0 | 1-184                                            
+  redis-adapter.ts                           |       0 |        0 |       0 |       0 | 1-40                                             
+ src/middleware                              |       0 |        0 |       0 |       0 |                                                  
+  logger.middleware.ts                       |       0 |        0 |       0 |       0 | 1-34                                             
+  tenant.middleware.ts                       |       0 |        0 |       0 |       0 | 1-54                                             
+  ws.middleware.ts                           |       0 |        0 |       0 |       0 | 1-61                                             
+ src/platform-auth                           |       0 |        0 |       0 |       0 |                                                  
+  platform-auth.controller.ts                |       0 |        0 |       0 |       0 | 1-66                                             
+  platform-auth.module.ts                    |       0 |      100 |       0 |       0 | 1-113                                            
+  platform-auth.service.ts                   |       0 |        0 |       0 |       0 | 1-693                                            
+  platform-repos.provider.ts                 |       0 |      100 |       0 |       0 | 1-14                                             
+ src/platform-auth/config                    |       0 |      100 |       0 |       0 |                                                  
+  platform.config.ts                         |       0 |      100 |       0 |       0 | 1-10                                             
+ src/platforms                               |       0 |        0 |       0 |       0 |                                                  
+  platform-service.interface.ts              |       0 |        0 |     100 |       0 | 1-92                                             
+  platform.error.ts                          |       0 |      100 |       0 |       0 | 3-10                                             
+  platforms.module.ts                        |       0 |      100 |     100 |       0 | 1-13                                             
+  platforms.service.ts                       |       0 |        0 |       0 |       0 | 1-47                                             
+ src/platforms/entities/facebook-entities    |       0 |        0 |       0 |       0 |                                                  
+  auth-state.entity.ts                       |       0 |        0 |     100 |       0 | 1-30                                             
+  facebook-account.entity.ts                 |       0 |        0 |       0 |       0 | 1-51                                             
+  facebook-page-metric.entity.ts             |       0 |        0 |       0 |       0 | 1-43                                             
+  facebook-page.entity.ts                    |       0 |        0 |       0 |       0 | 1-58                                             
+  facebook-post-metric.entity.ts             |       0 |        0 |       0 |       0 | 1-53                                             
+  facebook-post.entity.ts                    |       0 |        0 |       0 |       0 | 1-57                                             
+ src/platforms/entities/instagram-entities   |       0 |        0 |       0 |       0 |                                                  
+  instagram-account.entity.ts                |       0 |        0 |       0 |       0 | 1-57                                             
+  instagram-metric.entity.ts                 |       0 |        0 |       0 |       0 | 1-52                                             
+  instagram-post.entity.ts                   |       0 |        0 |       0 |       0 | 1-62                                             
+  instagram-rate-limit.entity.ts             |       0 |        0 |       0 |       0 | 1-24                                             
+ src/platforms/entities/linkedin-entities    |       0 |        0 |       0 |       0 |                                                  
+  linkedin-account.entity.ts                 |       0 |        0 |       0 |       0 | 1-54                                             
+  linkedin-metric.entity.ts                  |       0 |        0 |       0 |       0 | 1-55                                             
+  linkedin-organization.entity.ts            |       0 |        0 |       0 |       0 | 1-46                                             
+  linkedin-post.entity.ts                    |       0 |        0 |       0 |       0 | 1-91                                             
+ src/platforms/entities/notifications        |       0 |        0 |       0 |       0 |                                                  
+  notification.entity.ts                     |       0 |        0 |       0 |       0 | 1-33                                             
+ src/platforms/entities/notifications/entity |       0 |        0 |       0 |       0 |                                                  
+  social-account.entity.ts                   |       0 |        0 |       0 |       0 | 1-53                                             
+ src/platforms/entities/tiktok-entities      |       0 |        0 |       0 |       0 |                                                  
+  tiktok-account.entity.ts                   |       0 |        0 |       0 |       0 | 1-72                                             
+  tiktok-metric.entity.ts                    |       0 |        0 |       0 |       0 | 1-58                                             
+  tiktok-video.entity.ts                     |       0 |        0 |       0 |       0 | 1-80                                             
+  tiktok_comments.entity.ts                  |       0 |        0 |       0 |       0 | 1-47                                             
+  tiktok_rate_limits.entity.ts               |       0 |        0 |       0 |       0 | 1-22                                             
+  tiktok_upload_session.entity.ts            |       0 |        0 |       0 |       0 | 1-44                                             
+ src/platforms/facebook                      |       0 |        0 |       0 |       0 |                                                  
+  facebook.controller.ts                     |       0 |        0 |       0 |       0 | 1-137                                            
+  facebook.module.ts                         |       0 |      100 |     100 |       0 | 1-45                                             
+  facebook.service.ts                        |       0 |        0 |       0 |       0 | 1-1615                                           
+ src/platforms/facebook/config               |       0 |      100 |       0 |       0 |                                                  
+  facebook.config.ts                         |       0 |      100 |       0 |       0 | 1-20                                             
+ src/platforms/facebook/helpers              |       0 |        0 |       0 |       0 |                                                  
+  facebook-api.exception.ts                  |       0 |        0 |       0 |       0 | 1-20                                             
+  facebook-error.interceptor.ts              |       0 |        0 |       0 |       0 | 1-52                                             
+  post.dto.ts                                |       0 |        0 |       0 |       0 | 1-123                                            
+  rate-limit.interceptor.ts                  |       0 |        0 |       0 |       0 | 1-53                                             
+ src/platforms/facebook/jobs                 |       0 |        0 |       0 |       0 |                                                  
+  page-insight.job.ts                        |       0 |        0 |       0 |       0 | 1-35                                             
+  page_metrics-collection.job.ts             |       0 |        0 |       0 |       0 | 1-46                                             
+  post-metrics-collection.job.ts             |       0 |        0 |       0 |       0 | 1-52                                             
+ src/platforms/facebook/repositories         |       0 |        0 |       0 |       0 |                                                  
+  facebook.repository.ts                     |       0 |        0 |       0 |       0 | 1-490                                            
+ src/platforms/instagram                     |       0 |        0 |       0 |       0 |                                                  
+  instagram.controller.ts                    |       0 |        0 |       0 |       0 | 1-74                                             
+  instagram.module.ts                        |       0 |      100 |       0 |       0 | 1-64                                             
+  instagram.service.ts                       |       0 |        0 |       0 |       0 | 1-605                                            
+ src/platforms/instagram/helpers             |       0 |        0 |       0 |       0 |                                                  
+  create-content.dto.ts                      |       0 |        0 |       0 |       0 | 1-58                                             
+  instagram-api.exception.ts                 |       0 |        0 |       0 |       0 | 1-27                                             
+  instagram-permission.guard.ts              |       0 |        0 |       0 |       0 | 1-27                                             
+  instagram.config.ts                        |       0 |      100 |       0 |       0 | 1-42                                             
+  rate-limits.constant.ts                    |       0 |      100 |     100 |       0 | 1                                                
+ src/platforms/instagram/interceptors        |       0 |        0 |       0 |       0 |                                                  
+  instagram-error.interceptor.ts             |       0 |        0 |       0 |       0 | 1-64                                             
+  rate-limit.interceptor.ts                  |       0 |        0 |       0 |       0 | 1-56                                             
+ src/platforms/instagram/jobs                |       0 |        0 |       0 |       0 |                                                  
+  metrics-collection.job.ts                  |       0 |        0 |       0 |       0 | 1-61                                             
+  token-refresh.job.ts                       |       0 |        0 |       0 |       0 | 1-43                                             
+ src/platforms/instagram/repositories        |       0 |        0 |       0 |       0 |                                                  
+  instagram.repository.ts                    |       0 |        0 |       0 |       0 | 1-263                                            
+ src/platforms/linkedin                      |       0 |        0 |       0 |       0 |                                                  
+  linkedin.controller.ts                     |       0 |        0 |       0 |       0 | 1-58                                             
+  linkedin.module.ts                         |       0 |      100 |     100 |       0 | 1-45                                             
+  linkedin.service.ts                        |       0 |        0 |       0 |       0 | 1-516                                            
+ src/platforms/linkedin/config               |       0 |      100 |       0 |       0 |                                                  
+  linkedin.config.ts                         |       0 |      100 |       0 |       0 | 1-35                                             
+ src/platforms/linkedin/helpers              |       0 |        0 |       0 |       0 |                                                  
+  create-post.dto.ts                         |       0 |        0 |     100 |       0 | 1-27                                             
+  linkedin-api.exception.ts                  |       0 |      100 |       0 |       0 | 1-7                                              
+  linkedin-error.interceptor.ts              |       0 |        0 |       0 |       0 | 1-29                                             
+  linkedin-organization.dto.ts               |       0 |      100 |     100 |       0 | 1-18                                             
+ src/platforms/linkedin/jobs                 |       0 |        0 |       0 |       0 |                                                  
+  metrics-collection.job.ts                  |       0 |        0 |       0 |       0 | 1-52                                             
+  token-refresh.job.ts                       |       0 |        0 |       0 |       0 | 1-41                                             
+ src/platforms/linkedin/repositories         |       0 |        0 |       0 |       0 |                                                  
+  linkedin.repository.ts                     |       0 |        0 |       0 |       0 | 1-274                                            
+ src/platforms/linkedin/utils                |       0 |        0 |       0 |       0 |                                                  
+  media.utils.ts                             |       0 |        0 |       0 |       0 | 1-41                                             
+ src/platforms/tiktok                        |       0 |        0 |       0 |       0 |                                                  
+  tiktok.controller.ts                       |       0 |        0 |       0 |       0 | 1-86                                             
+  tiktok.service.ts                          |       0 |        0 |       0 |       0 | 1-967                                            
+  titkot.module.ts                           |       0 |      100 |     100 |       0 | 1-63                                             
+ src/platforms/tiktok/config                 |       0 |      100 |       0 |       0 |                                                  
+  tiktok.config.ts                           |       0 |      100 |       0 |       0 | 1-44                                             
+ src/platforms/tiktok/helpers                |       0 |        0 |       0 |       0 |                                                  
+  create-video.dto.ts                        |       0 |        0 |       0 |       0 | 1-64                                             
+  rate-limit.interceptor.ts                  |       0 |        0 |       0 |       0 | 1-50                                             
+  tiktok-api.exception.ts                    |       0 |        0 |       0 |       0 | 1-18                                             
+  tiktok-error.interceptor.ts                |       0 |        0 |       0 |       0 | 1-68                                             
+  tiktok.interfaces.ts                       |       0 |        0 |       0 |       0 | 3-15                                             
+ src/platforms/tiktok/jobs                   |       0 |        0 |       0 |       0 |                                                  
+  metrics-collection.job.ts                  |       0 |        0 |       0 |       0 | 1-58                                             
+  token-refresh.job.ts                       |       0 |        0 |       0 |       0 | 1-43                                             
+ src/platforms/tiktok/repositories           |       0 |        0 |       0 |       0 |                                                  
+  tiktok.repository.ts                       |       0 |        0 |       0 |       0 | 1-362                                            
+ src/task                                    |       0 |        0 |       0 |       0 |                                                  
+  TaskModel.ts                               |       0 |      100 |       0 |       0 | 1-14                                             
+  task.controller.ts                         |       0 |        0 |       0 |       0 | 1-48                                             
+  task.module.ts                             |       0 |      100 |     100 |       0 | 1-9                                              
+  task.service.ts                            |       0 |        0 |       0 |       0 | 1-49                                             
+ src/task/dto                                |       0 |      100 |       0 |       0 |                                                  
+  TaskDto.ts                                 |       0 |      100 |       0 |       0 | 1-16                                             
+ src/user-management                         |    4.08 |     4.22 |       0 |    3.35 |                                                  
+  tenant.service.ts                          |   27.58 |       60 |       0 |   22.22 | 13-67                                            
+  user-management.module.ts                  |       0 |      100 |     100 |       0 | 1-23                                             
+  user-tenant.service.ts                     |       0 |        0 |       0 |       0 | 1-145                                            
+  user.controller.ts                         |       0 |        0 |       0 |       0 | 1-66                                             
+  user.service.ts                            |       0 |        0 |       0 |       0 | 1-212                                            
+ src/user-management/dtos                    |       0 |      100 |       0 |       0 |                                                  
+  TenantDto.ts                               |       0 |      100 |       0 |       0 | 1-17                                             
+ src/user-management/entities                |   72.22 |    63.33 |       0 |   79.41 |                                                  
+  permissions.entity.ts                      |     100 |       75 |     100 |     100 | 20                                               
+  role.entity.ts                             |   71.42 |    66.66 |       0 |   81.25 | 29,34,43                                         
+  team.entity.ts                             |    87.5 |       75 |       0 |    92.3 | 23                                               
+  tenant.entity.ts                           |      75 |       75 |       0 |   84.21 | 28,32,35                                         
+  user-role-change.entity.ts                 |       0 |        0 |     100 |       0 | 1-21                                             
+  user.entity.ts                             |   78.26 |       75 |       0 |   87.17 | 55,81,98,126,129                                 
+ src/user-management/interface               |       0 |        0 |       0 |       0 |                                                  
+  TenantModel.ts                             |       0 |        0 |       0 |       0 | 1-8                                              
+ src/utils                                   |       0 |        0 |       0 |       0 |                                                  
+  IsNotPastDate.ts                           |       0 |        0 |       0 |       0 | 1-22                                             
+  createSessionToken.ts                      |       0 |        0 |       0 |       0 | 2-51                                             
+ src/webhooks/clerk-webhook                  |       0 |        0 |       0 |       0 |                                                  
+  clerk-webhook.controller.ts                |       0 |        0 |       0 |       0 | 1-49                                             
+  clerk-webhook.module.ts                    |       0 |      100 |     100 |       0 | 1-14                                             
+  clerk-webhook.processor.ts                 |       0 |        0 |       0 |       0 | 1-43                                             
+  clerk-webhook.service.ts                   |       0 |        0 |       0 |       0 | 1-197                                            
+ src/webhooks/tiktok                         |       0 |        0 |       0 |       0 |                                                  
+  tiktok.controller.ts                       |       0 |        0 |       0 |       0 | 1-27                                             
+  tiktok.module.ts                           |       0 |      100 |     100 |       0 | 1-9                                              
+  tiktok.service.ts                          |       0 |      100 |     100 |       0 | 1-4                                              
+---------------------------------------------|---------|----------|---------|---------|--------------------------------------------------
+Jest: "global" coverage threshold for statements (40%) not met: 4.97%
+Jest: "global" coverage threshold for branches (40%) not met: 3.88%
+Jest: "global" coverage threshold for lines (40%) not met: 4.88%
+Jest: "global" coverage threshold for functions (40%) not met: 1.67%
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 30 skipped, 2 passed, 33 total
+Snapshots:   0 total
+Time:        16.582 s
+Ran all test suites matching /src\/asset-management\/media-storage\/media-storage.service.spec.ts/i with tests matching "generatePreSignedUrl".
+(node:63042) NOTE: The AWS SDK for JavaScript (v2) is in maintenance mode.
+ SDK releases are limited to address critical bug fixes and security issues only.
+
+Please migrate your code to use AWS SDK for JavaScript (v3).
+For more information, check the blog post at https://a.co/cUPnyil
+(Use `node --trace-warnings ...` to show where the warning was created)

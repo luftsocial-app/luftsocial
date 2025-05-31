@@ -1,0 +1,1 @@
+{"statusCode":401,"errorType":"UNAUTHORIZED","timestamp":1747921688326,"message":"Either `X-TENANT-ID` or `X-LUFTSOCIAL-ADMIN` header is required"}

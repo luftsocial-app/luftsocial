@@ -66,6 +66,7 @@ export class PlatformAuthService {
       await this.tokenCacheService.storeState(state, { platform, userId });
 
       if (platform === SocialPlatform.TIKTOK) {
+        // TODOS: Move to config file
         const baseUrl = 'https://www.tiktok.com/v2/auth/authorize/';
         const scope = encodeURIComponent(config.scopes.join(',')); // comma-separated + encoded
 

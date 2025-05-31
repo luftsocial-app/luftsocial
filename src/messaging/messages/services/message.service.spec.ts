@@ -13,25 +13,41 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { MessageEntity } from '../entities/message.entity';
-import { AttachmentEntity } from '../entities/attachment.entity';
+import { MessageInboxEntity } from '../entities/inbox.entity';
+import {
+  AttachmentEntity,
+  AttachmentStatus,
+} from '../entities/attachment.entity';
 import { PinoLogger } from 'nestjs-pino';
 import { TenantService } from '../../../user-management/tenant.service';
 import { ContentSanitizer } from '../../shared/utils/content-sanitizer';
+import { MessagingGateway } from '../../realtime/gateways/messaging.gateway';
+import { MediaStorageService } from '../../../asset-management/media-storage/media-storage.service';
+import { DataSource, QueryRunner } from 'typeorm';
+import { ParticipantRepository } from '../../conversations/repositories/participant.repository';
+import { MessageInboxRepository } from '../repositories/inbox.repository';
+import { UploadType } from '../../../common/enums/upload.enum';
+import { lookup } from 'mime-types';
 
 describe('MessageService', () => {
   let service: MessageService;
   let messageRepository: jest.Mocked<MessageRepository>;
+  let inboxRepository: jest.Mocked<MessageInboxRepository>;
   let attachmentRepository: jest.Mocked<AttachmentRepository>;
   let conversationService: jest.Mocked<ConversationService>;
   let contentSanitizer: ContentSanitizer;
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  let queryRunner: jest.Mocked<QueryRunner>;
+  let messagingGateway: jest.Mocked<MessagingGateway>;
   let tenantService: jest.Mocked<TenantService>;
+  let mediaStorageService: jest.Mocked<MediaStorageService>;
 
   const mockTenantId = 'tenant-123';
   const mockUserId = 'user-123';
   const mockConversationId = 'conv-123';
   const mockMessageId = 'msg-123';
+  const mockFileName = 'test.png';
+  const mockUploadSessionId = 'session-123';
+  const mockDetectedMimeType = 'image/png';
 
   const mockMessage: MessageEntity = Object.assign(new MessageEntity(), {
     id: mockMessageId,
@@ -100,40 +116,99 @@ describe('MessageService', () => {
     },
   });
 
+  const unreadMessages: MessageInboxEntity[] = [
+    {
+      id: 'inbox-1',
+      recipientId: mockUserId,
+      conversationId: mockConversationId,
+      messageId: 'msg-1',
+      message: undefined as any,
+      read: false,
+      readAt: null,
+      delivered: false,
+      deliveredAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      tenantId: mockTenantId,
+    },
+    {
+      id: 'inbox-2',
+      recipientId: mockUserId,
+      conversationId: mockConversationId,
+      messageId: 'msg-2',
+      message: undefined as any,
+      read: false,
+      readAt: null,
+      delivered: false,
+      deliveredAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      tenantId: mockTenantId,
+    },
+  ];
+
   const mockAttachment: Partial<AttachmentEntity> = {
     id: 'attachment-123',
     messageId: mockMessageId,
-    fileName: 'test.txt',
+    fileName: mockFileName,
     fileSize: 1024,
-    mimeType: 'text/plain',
+    mimeType: mockDetectedMimeType,
     url: 'http://example.com/test.txt',
-    processingStatus: 'completed',
     createdAt: new Date(),
+    tenantId: mockTenantId,
+    userId: mockUserId,
+    publicUrl: 'http://example.com/test.txt',
+    uploadSessionId: mockUploadSessionId,
   };
 
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
+  });
+
   beforeEach(async () => {
+    // Create a mock QueryRunner with proper typing
+    queryRunner = {
+      manager: {
+        save: jest.fn().mockImplementation((entity) => Promise.resolve(entity)),
+      },
+      connect: jest.fn().mockResolvedValue(undefined),
+      startTransaction: jest.fn().mockResolvedValue(undefined),
+      commitTransaction: jest.fn().mockResolvedValue(undefined),
+      rollbackTransaction: jest.fn().mockResolvedValue(undefined),
+      release: jest.fn().mockResolvedValue(undefined),
+      query: jest.fn().mockResolvedValue(undefined),
+      isTransactionActive: false,
+      isReleased: false,
+      isConnected: true,
+    } as unknown as jest.Mocked<QueryRunner>;
+
+    // Create a mock server for the messaging gateway
+    const mockServer = {
+      in: jest.fn().mockReturnThis(),
+      emit: jest.fn().mockReturnThis(),
+      fetchSockets: jest.fn().mockResolvedValue([]),
+      sockets: {
+        sockets: new Map(),
+      },
+      to: jest.fn().mockReturnThis(),
+    };
+
+    // Create a mock DataSource
+    const mockDataSource = {
+      createQueryRunner: jest.fn().mockReturnValue(queryRunner),
+      manager: {
+        save: jest.fn().mockImplementation((entity) => Promise.resolve(entity)),
+      },
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         MessageService,
-        ContentSanitizer,
         {
-          provide: PinoLogger,
+          provide: MessagingGateway,
           useValue: {
-            info: jest.fn(),
-            error: jest.fn(),
-            warn: jest.fn(),
-            debug: jest.fn(),
-            setContext: jest.fn(),
-          },
-        },
-        {
-          provide: PinoLogger,
-          useValue: {
-            info: jest.fn(),
-            error: jest.fn(),
-            warn: jest.fn(),
-            debug: jest.fn(),
-            setContext: jest.fn(),
+            server: mockServer,
           },
         },
         {
@@ -149,18 +224,52 @@ describe('MessageService', () => {
             markAsDeleted: jest.fn(),
             count: jest.fn(),
             getUnreadCount: jest.fn(),
+            findOne: jest.fn(),
           },
         },
         {
           provide: AttachmentRepository,
           useValue: {
             findByMessageId: jest.fn(),
+            findOneBy: jest.fn(),
+            createQueryBuilder: jest.fn().mockReturnThis(),
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            getMany: jest.fn(),
+            save: jest.fn(),
+            create: jest.fn().mockImplementation((entity) => entity),
+          },
+        },
+        {
+          provide: ParticipantRepository,
+          useValue: {
+            findByIdAndTenant: jest.fn(),
+            findByConversation: jest.fn(),
+            findMessageHistory: jest.fn(),
+            findThreadReplies: jest.fn(),
+            update: jest.fn(),
+            markAsDeleted: jest.fn(),
+            count: jest.fn(),
+            getUnreadCount: jest.fn(),
+            findOne: jest.fn(),
+            findByConversationId: jest.fn(),
+          },
+        },
+        {
+          provide: MessageInboxRepository,
+          useValue: {
+            create: jest.fn(),
+            save: jest.fn(),
+            find: jest.fn(),
+            findByIdAndTenant: jest.fn(),
+            createForRecipients: jest.fn(),
+            update: jest.fn(),
           },
         },
         {
           provide: ConversationService,
           useValue: {
-            validateAccess: jest.fn(),
+            validateAccess: jest.fn().mockResolvedValue(true),
             updateLastMessageTimestamp: jest.fn(),
           },
         },
@@ -185,34 +294,201 @@ describe('MessageService', () => {
               .mockImplementation((metadata) => metadata),
           },
         },
+        {
+          provide: MediaStorageService,
+          useValue: {
+            generatePreSignedUrl: jest.fn().mockResolvedValue({
+              key: 'test-key',
+              url: 'http://test-url.com',
+              cdnUrl: 'http://cdn.test-url.com',
+              preSignedUrl: 'http://presigned.test-url.com',
+            }),
+            getFileMetadata: jest.fn().mockResolvedValue({
+              ContentLength: 1024,
+            }),
+            verifyUpload: jest.fn().mockResolvedValue(true),
+          },
+        },
+        {
+          provide: PinoLogger,
+          useValue: {
+            info: jest.fn(),
+            error: jest.fn(),
+            warn: jest.fn(),
+            debug: jest.fn(),
+            setContext: jest.fn(),
+          },
+        },
+        {
+          provide: DataSource,
+          useValue: mockDataSource,
+        },
       ],
     }).compile();
 
     service = module.get<MessageService>(MessageService);
     messageRepository = module.get(MessageRepository);
+    inboxRepository = module.get(MessageInboxRepository);
     attachmentRepository = module.get(AttachmentRepository);
     conversationService = module.get(ConversationService);
     tenantService = module.get(TenantService);
     contentSanitizer = module.get(ContentSanitizer);
+    messagingGateway = module.get(MessagingGateway);
+    mediaStorageService = module.get(MediaStorageService);
   });
 
   describe('createMessage', () => {
+    // Update the test to properly mock the query runner and its manager
     it('should create a message successfully', async () => {
-      conversationService.validateAccess.mockResolvedValue(true);
-      messageRepository.create.mockImplementation((entity) =>
-        Object.assign(new MessageEntity(), mockMessage, entity),
-      );
-      messageRepository.save.mockResolvedValue(mockMessage);
+      console.log('Starting test: should create a message successfully');
 
+      // Setup mocks
+      const validateAccessSpy = jest
+        .spyOn(conversationService, 'validateAccess')
+        .mockImplementation(async () => {
+          console.log('validateAccess called');
+          return true;
+        });
+
+      // Create a mock message that will be returned by save
+      const savedMessage = new MessageEntity();
+      Object.assign(savedMessage, {
+        ...mockMessage,
+        id: mockMessageId,
+        content: 'Test message',
+        senderId: mockUserId,
+        conversationId: mockConversationId,
+        status: MessageStatus.SENT,
+        tenantId: mockTenantId,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      console.log('Created savedMessage:', savedMessage);
+
+      // Mock the query runner's manager.save
+      const mockSave = jest.fn().mockImplementation((entity) => {
+        console.log('mockSave called with:', entity);
+        return Promise.resolve(savedMessage);
+      });
+      queryRunner.manager.save = mockSave;
+
+      // Mock the message repository
+      const createSpy = jest
+        .spyOn(messageRepository, 'create')
+        .mockImplementation((data) => {
+          console.log('messageRepository.create called with:', data);
+          return Object.assign(new MessageEntity(), data);
+        });
+
+      // Mock the WebSocket server method chaining
+      const mockSockets = [
+        { id: 'socket-1', data: { userId: 'user-1' } },
+        { id: 'socket-2', data: { userId: 'user-2' } },
+      ];
+
+      console.log('Mocking WebSocket server...');
+
+      // Create mock functions for WebSocket methods
+      const mockFetchSockets = jest.fn().mockResolvedValue(mockSockets);
+      const mockEmit = jest.fn().mockReturnThis();
+
+      // Create a mock for the server.in() method chain
+      const mockInReturn = {
+        fetchSockets: mockFetchSockets,
+      };
+
+      // Create a mock for the server.to() method chain
+      const mockToReturn = {
+        emit: mockEmit,
+      };
+
+      // Create a typed mock server
+      const mockServer = {
+        // Socket.io Server methods
+        in: jest.fn().mockReturnValue(mockInReturn),
+        to: jest.fn().mockReturnValue(mockToReturn),
+        emit: jest.fn(),
+        on: jest.fn(),
+        off: jest.fn(),
+        use: jest.fn(),
+        // Other required server properties
+        sockets: new Map(),
+        fetchSockets: jest.fn(),
+      };
+
+      // Assign the mock server to the gateway
+      messagingGateway.server = mockServer as any;
+
+      // Mock the tenant service
+      jest.spyOn(tenantService, 'getTenantId').mockImplementation(() => {
+        console.log('getTenantId called, returning:', mockTenantId);
+        return mockTenantId;
+      });
+
+      // Mock the sanitize method
+      jest.spyOn(contentSanitizer, 'sanitize').mockImplementation((content) => {
+        console.log('sanitize called with:', content);
+        return content; // Return content as-is for testing
+      });
+
+      // Mock the updateLastMessageTimestamp method
+      jest
+        .spyOn(conversationService, 'updateLastMessageTimestamp')
+        .mockImplementation(async (conversationId) => {
+          console.log(
+            'updateLastMessageTimestamp called with:',
+            conversationId,
+          );
+          return Promise.resolve();
+        });
+
+      // Execute
       const result = await service.createMessage(
         mockConversationId,
         'Test message',
         mockUserId,
       );
 
+      // Verify
       expect(result).toBeDefined();
       expect(result.id).toBe(mockMessageId);
       expect(result.content).toBe('Test message');
+
+      // Verify access was validated
+      expect(validateAccessSpy).toHaveBeenCalledWith(
+        mockConversationId,
+        mockUserId,
+        mockTenantId,
+      );
+
+      // Verify query runner was used correctly
+      expect(queryRunner.connect).toHaveBeenCalled();
+      expect(queryRunner.startTransaction).toHaveBeenCalled();
+      expect(queryRunner.commitTransaction).toHaveBeenCalled();
+      expect(queryRunner.release).toHaveBeenCalled();
+
+      // Verify message was created with correct data
+      expect(createSpy).toHaveBeenCalledWith({
+        conversationId: mockConversationId,
+        content: 'Test message',
+        senderId: mockUserId,
+        status: MessageStatus.SENT,
+        tenantId: mockTenantId,
+      });
+
+      // Verify message was saved through the transaction with the correct properties
+      expect(mockSave).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: 'Test message',
+          conversationId: mockConversationId,
+          senderId: mockUserId,
+          status: MessageStatus.SENT,
+          tenantId: mockTenantId,
+        }),
+      );
+
+      // Verify conversation was updated
       expect(
         conversationService.updateLastMessageTimestamp,
       ).toHaveBeenCalledWith(mockConversationId);
@@ -426,6 +702,27 @@ describe('MessageService', () => {
     });
   });
 
+  describe('markInboxMessagesAsRead', () => {
+    it('should mark all unread inbox messages as read and save them', async () => {
+      inboxRepository.find.mockResolvedValue([
+        Object.assign(new MessageInboxEntity(), unreadMessages[0]),
+        Object.assign(new MessageInboxEntity(), unreadMessages[1]),
+      ]);
+      inboxRepository.save.mockResolvedValue(undefined);
+
+      await service.markInboxMessagesAsRead(mockUserId, mockConversationId);
+
+      expect(inboxRepository.find).toHaveBeenCalledWith({
+        where: {
+          recipientId: mockUserId,
+          conversationId: mockConversationId,
+          read: false,
+        },
+      });
+      expect(inboxRepository.save).toHaveBeenCalledTimes(unreadMessages.length);
+    });
+  });
+
   describe('getUnreadCount', () => {
     it('should return unread count for conversation', async () => {
       conversationService.validateAccess.mockResolvedValue(true);
@@ -465,6 +762,139 @@ describe('MessageService', () => {
       await expect(
         service.getUnreadCount(mockConversationId, mockUserId),
       ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  it('should throw BadRequestException if mime type is not detected', async () => {
+    const userId = mockUserId;
+    const fileName = 'file.unknown';
+    const conversationId = mockConversationId;
+    const uploadSessionId = 'session-123';
+
+    jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
+    conversationService.validateAccess.mockResolvedValue(true);
+
+    const lookupSpy = jest.spyOn({ lookup }, 'lookup').mockReturnValue(false);
+
+    const loggerSpy = jest.spyOn(service['logger'], 'debug');
+
+    await expect(
+      service.prepareAttachment(
+        userId,
+        fileName,
+        conversationId,
+        uploadSessionId,
+      ),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(loggerSpy).toHaveBeenCalledWith(
+      `Failed to detect MIME type for ${fileName}`,
+    );
+    lookupSpy.mockRestore();
+  });
+
+  describe('prepareAttachment', () => {
+    it('should prepare an attachment and return presigned url and attachment details', async () => {
+      // Arrange
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
+      conversationService.validateAccess.mockResolvedValue(true);
+
+      const lookupSpy = jest
+        .spyOn({ lookup }, 'lookup')
+        .mockReturnValue(mockDetectedMimeType);
+
+      const presignedMock = {
+        key: 'file-key',
+        url: 'http://example.com/url',
+        cdnUrl: 'http://example.com/cdn',
+        preSignedUrl: 'http://example.com/presigned',
+        bucket: 'luftsocial-assets',
+        assetId: 'asset-123',
+      } as const;
+      mediaStorageService.generatePreSignedUrl.mockResolvedValue(presignedMock);
+
+      const attachmentMock: any = {
+        ...mockAttachment,
+        id: 'attachment-id',
+        fileKey: presignedMock.key,
+        mimeType: mockDetectedMimeType,
+        type: 'image',
+        status: AttachmentStatus.PENDING,
+        publicUrl: presignedMock.cdnUrl,
+        uploadSessionId: mockUploadSessionId,
+      };
+      attachmentRepository.create.mockReturnValue(attachmentMock);
+      attachmentRepository.save.mockResolvedValue(attachmentMock);
+
+      const result = await service.prepareAttachment(
+        mockUserId,
+        mockFileName,
+        mockConversationId,
+        mockUploadSessionId,
+      );
+
+      expect(conversationService.validateAccess).toHaveBeenCalledWith(
+        mockConversationId,
+        mockUserId,
+        mockTenantId,
+      );
+      expect(mediaStorageService.generatePreSignedUrl).toHaveBeenCalledWith(
+        mockUserId,
+        mockFileName,
+        mockDetectedMimeType,
+        undefined,
+        undefined,
+        UploadType.MESSAGE,
+        mockConversationId,
+      );
+      expect(attachmentRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fileName: mockFileName,
+          mimeType: mockDetectedMimeType,
+          fileKey: presignedMock.key,
+          userId: mockUserId,
+          status: AttachmentStatus.PENDING,
+          tenantId: mockTenantId,
+          publicUrl: presignedMock.cdnUrl,
+          metadata: { originalName: mockFileName },
+          messageId: null,
+          conversationId: mockConversationId,
+          uploadSessionId: mockUploadSessionId,
+        }),
+      );
+      expect(attachmentRepository.save).toHaveBeenCalledWith(attachmentMock);
+
+      expect(result).toEqual({
+        presignedUrl: presignedMock.preSignedUrl,
+        attachmentId: attachmentMock.id,
+        fileKey: presignedMock.key,
+        cdnUrl: presignedMock.cdnUrl,
+        conversationId: mockConversationId,
+      });
+
+      lookupSpy.mockRestore();
+    });
+
+    it('should throw BadRequestException if mime type is not detected', async () => {
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
+      conversationService.validateAccess.mockResolvedValue(true);
+      const lookupSpy = jest.spyOn({ lookup }, 'lookup').mockReturnValue(false);
+
+      const loggerSpy = jest.spyOn(service['logger'], 'debug');
+
+      await expect(
+        service.prepareAttachment(
+          mockUserId,
+          'file.unknown',
+          mockConversationId,
+          mockUploadSessionId,
+        ),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(loggerSpy).toHaveBeenCalledWith(
+        `Failed to detect MIME type for file.unknown`,
+      );
+      lookupSpy.mockRestore();
     });
   });
 });

@@ -35,13 +35,56 @@ export class AttachmentResponseDto {
   mimeType: string;
 
   @ApiProperty({
-    description: 'File URL',
-    example: 'https://storage.example.com/files/document.pdf',
+    description: 'File key in storage (internal reference)',
+    example: 'uploads/messages/abc123.pdf',
   })
-  url: string;
+  fileKey: string;
 
   @ApiPropertyOptional({
-    description: 'Processing status',
+    description: 'Media type (image, video, document, etc.)',
+    example: 'document',
+  })
+  mediaType?: string;
+
+  @ApiPropertyOptional({
+    description: 'Thumbnail file key (if image/video and thumbnail generated)',
+    example: 'uploads/messages/thumbnails/abc123.jpg',
+  })
+  thumbnailKey?: string;
+
+  @ApiPropertyOptional({
+    description: 'Public URL to access the file',
+    example: 'https://storage.example.com/files/document.pdf',
+  })
+  url?: string;
+
+  @ApiProperty({
+    description: 'Public URL to access the file',
+    example: 'https://storage.example.com/files/document.pdf',
+  })
+  publicUrl?: string;
+
+  @ApiPropertyOptional({
+    description: 'Attachment status',
+    example: 'COMPLETED',
+  })
+  status?: string;
+
+  @ApiPropertyOptional({
+    description: 'Attachment type',
+    example: 'image',
+  })
+  type?: string;
+
+  @ApiPropertyOptional({
+    description: 'Public URL for the thumbnail (if available)',
+    example: 'https://storage.example.com/files/thumbnails/abc123.jpg',
+  })
+  thumbnailUrl?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Attachment processing status (e.g. "COMPLETED", "PROCESSING")',
     example: 'COMPLETED',
   })
   processingStatus?: string;
@@ -51,6 +94,12 @@ export class AttachmentResponseDto {
     example: '2023-01-01T12:00:00.000Z',
   })
   createdAt: Date;
+
+  @ApiPropertyOptional({
+    description: 'When the attachment was last updated',
+    example: '2023-01-01T12:10:00.000Z',
+  })
+  updatedAt?: Date;
 }
 
 export class MessageResponseDto {
@@ -141,10 +190,11 @@ export class MessageResponseDto {
       editHistory: ['Original message'],
     },
   })
-  metadata?: {
-    editHistory?: object[];
-    [key: string]: any;
-  };
+  @ApiPropertyOptional({
+    description: 'List of attachments for this message',
+    type: [AttachmentResponseDto],
+  })
+  attachments?: AttachmentResponseDto[];
 }
 
 export class MessageWithRelationsDto extends MessageResponseDto {
@@ -190,4 +240,11 @@ export class UnreadCountResponseDto {
     example: 'a1b2c3d4-e5f6-g7h8-i9j0',
   })
   conversationId: string;
+}
+
+export class MessageWithPresignedUrlDto extends MessageResponseDto {
+  presignedUrls?: {
+    url: string;
+    thumbnailUrl?: string;
+  }[];
 }

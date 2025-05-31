@@ -1,0 +1,31 @@
+meta {
+  name: Upload message attachments
+  type: http
+  seq: 6
+}
+
+put {
+  url: http://localhost:9000/luftsocial/messages/1/62746abc-c2eb-4ab0-8455-3900cc86b298/user_2xSLrOs6xezpOblVMZADkETSgjZ-1748195218377.pdf?Content-Type=application%2Fpdf&X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=admin%2F20250525%2Feu-west-2%2Fs3%2Faws4_request&X-Amz-Date=20250525T174658Z&X-Amz-Expires=360&X-Amz-Signature=909a78c8ebb1b1f6b53c338a6300d346506e683fe286b15bfc99db45e1e4ddbd&X-Amz-SignedHeaders=host%3Bx-amz-meta-content-type%3Bx-amz-meta-conversation-id%3Bx-amz-meta-tenant-id%3Bx-amz-meta-upload-timestamp%3Bx-amz-meta-upload-type%3Bx-amz-meta-user-id&x-amz-meta-content-type=application%2Fpdf&x-amz-meta-conversation-id=62746abc-c2eb-4ab0-8455-3900cc86b298&x-amz-meta-tenant-id=1&x-amz-meta-upload-timestamp=1748195218377&x-amz-meta-upload-type=MESSAGE&x-amz-meta-user-id=user_2xSLrOs6xezpOblVMZADkETSgjZ
+  body: file
+  auth: inherit
+}
+
+params:query {
+  Content-Type: application/pdf
+  X-Amz-Algorithm: AWS4-HMAC-SHA256
+  X-Amz-Credential: admin/20250525/eu-west-2/s3/aws4_request
+  X-Amz-Date: 20250525T174658Z
+  X-Amz-Expires: 360
+  X-Amz-Signature: 909a78c8ebb1b1f6b53c338a6300d346506e683fe286b15bfc99db45e1e4ddbd
+  X-Amz-SignedHeaders: host;x-amz-meta-content-type;x-amz-meta-conversation-id;x-amz-meta-tenant-id;x-amz-meta-upload-timestamp;x-amz-meta-upload-type;x-amz-meta-user-id
+  x-amz-meta-content-type: application/pdf
+  x-amz-meta-conversation-id: 62746abc-c2eb-4ab0-8455-3900cc86b298
+  x-amz-meta-tenant-id: 1
+  x-amz-meta-upload-timestamp: 1748195218377
+  x-amz-meta-upload-type: MESSAGE
+  x-amz-meta-user-id: user_2xSLrOs6xezpOblVMZADkETSgjZ
+}
+
+body:file {
+  file: @file(/Users/mac/Downloads/3c35e486-9821-ef11-840a-002248e3eebe_Food Waste Reduction Using ML& IoT.pdf.pdf) @contentType(application/pdf)
+}

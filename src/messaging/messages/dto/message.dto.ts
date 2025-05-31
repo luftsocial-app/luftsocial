@@ -4,8 +4,29 @@ import {
   IsUUID,
   IsOptional,
   Length,
+  IsArray,
+  ValidateNested,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+
+export class AttachmentDto {
+  @IsString()
+  fileName: string;
+
+  @IsString()
+  mimeType: string;
+
+  @IsString()
+  fileKey: string;
+
+  @IsString()
+  mediaType: string;
+
+  @IsOptional()
+  @IsString()
+  thumbnailKey?: string;
+}
 
 export class CreateMessageDto {
   @ApiProperty({
@@ -24,8 +45,8 @@ export class CreateMessageDto {
   })
   @IsString()
   @IsNotEmpty()
-  @Length(1, 5000)
-  content: string;
+  @Length(0, 5000)
+  content?: string;
 
   @ApiPropertyOptional({
     description: 'Optional parent message ID for threaded replies',
@@ -34,6 +55,10 @@ export class CreateMessageDto {
   @IsUUID()
   @IsOptional()
   parentMessageId?: string;
+
+  @IsString()
+  @IsOptional()
+  uploadSessionId?: string;
 }
 
 export class UpdateMessageDto {
@@ -44,9 +69,15 @@ export class UpdateMessageDto {
     maxLength: 5000,
   })
   @IsString()
-  @IsNotEmpty()
-  @Length(1, 5000)
-  content: string;
+  @IsOptional()
+  @Length(0, 5000)
+  content?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => AttachmentDto)
+  attachments?: AttachmentDto[];
 }
 
 export class ReactionDto {
@@ -57,4 +88,29 @@ export class ReactionDto {
   @IsString()
   @IsNotEmpty()
   emoji: string;
+}
+
+export class PrepareAttachmentDto {
+  @ApiProperty({ description: 'File name', example: 'example.pdf' })
+  @IsString()
+  @IsNotEmpty()
+  fileName: string;
+
+  @ApiProperty({
+    description:
+      'MIME type of the file (optional, will be detected from file extension if not provided)',
+    example: 'application/pdf',
+    required: false,
+  })
+  @IsString()
+  @IsOptional()
+  mimeType?: string;
+
+  @IsString()
+  @IsOptional()
+  uploadSessionId?: string;
+
+  @ApiProperty({ description: 'Conversation ID', example: 'conv_123' })
+  @IsUUID()
+  conversationId: string;
 }

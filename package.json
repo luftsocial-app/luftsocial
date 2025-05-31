@@ -58,6 +58,7 @@
     "http2": "^3.3.7",
     "joi": "^17.13.3",
     "js-yaml": "^4.1.0",
+    "mime-types": "^3.0.1",
     "nestjs-pino": "^4.3.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
@@ -73,7 +74,8 @@
     "svix": "^1.62.0",
     "swagger-ui-express": "^5.0.1",
     "typed-rest-client": "^2.1.0",
-    "typeorm": "^0.3.21"
+    "typeorm": "^0.3.21",
+    "zod": "^3.25.36"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

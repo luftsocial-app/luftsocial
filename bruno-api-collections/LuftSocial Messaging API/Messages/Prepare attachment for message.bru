@@ -1,0 +1,27 @@
+meta {
+  name: Prepare attachment for message
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/messages/attachments
+  body: json
+  auth: bearer
+}
+
+headers {
+  X-TENANT-ID: 1
+  Content-Type: application/json
+}
+
+auth:bearer {
+  token: {{token}}
+}
+
+body:json {
+  {
+    "fileName":"example.pdf",
+    "conversationId": "62746abc-c2eb-4ab0-8455-3900cc86b298"
+  }
+}
