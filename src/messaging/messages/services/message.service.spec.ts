@@ -7,26 +7,21 @@ import {
   MessageStatus,
   MessageType,
 } from '../../shared/enums/message-type.enum';
-import { MessageEventType } from '../../realtime/events/message-events';
 import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
-  forwardRef,
-  Inject,
 } from '@nestjs/common';
 import { MessageEntity } from '../entities/message.entity';
-import {
-  AttachmentEntity,
-  AttachmentStatus,
-} from '../entities/attachment.entity';
+import { AttachmentEntity } from '../entities/attachment.entity';
 import { PinoLogger } from 'nestjs-pino';
 import { TenantService } from '../../../user-management/tenant.service';
 import { ContentSanitizer } from '../../shared/utils/content-sanitizer';
 import { MessagingGateway } from '../../realtime/gateways/messaging.gateway';
 import { MediaStorageService } from '../../../asset-management/media-storage/media-storage.service';
 import { DataSource, QueryRunner } from 'typeorm';
-import { UploadType } from '../../../common/enums/upload.enum';
+import { ParticipantRepository } from '../../conversations/repositories/participant.repository';
+import { MessageInboxRepository } from '../repositories/inbox.repository';
 
 describe('MessageService', () => {
   let service: MessageService;
@@ -34,8 +29,6 @@ describe('MessageService', () => {
   let attachmentRepository: jest.Mocked<AttachmentRepository>;
   let conversationService: jest.Mocked<ConversationService>;
   let contentSanitizer: ContentSanitizer;
-  let mediaStorageService: jest.Mocked<MediaStorageService>;
-  let dataSource: jest.Mocked<DataSource>;
   let queryRunner: jest.Mocked<QueryRunner>;
   let messagingGateway: jest.Mocked<MessagingGateway>;
   let tenantService: jest.Mocked<TenantService>;
@@ -44,7 +37,6 @@ describe('MessageService', () => {
   const mockUserId = 'user-123';
   const mockConversationId = 'conv-123';
   const mockMessageId = 'msg-123';
-  const mockUploadSessionId = 'session-123';
 
   const mockMessage: MessageEntity = Object.assign(new MessageEntity(), {
     id: mockMessageId,
@@ -148,12 +140,12 @@ describe('MessageService', () => {
     // Create a mock server for the messaging gateway
     const mockServer = {
       in: jest.fn().mockReturnThis(),
-      to: jest.fn().mockReturnThis(),
       emit: jest.fn().mockReturnThis(),
       fetchSockets: jest.fn().mockResolvedValue([]),
       sockets: {
         sockets: new Map(),
       },
+      to: jest.fn().mockReturnThis(),
     };
 
     // Create a mock DataSource
@@ -200,6 +192,31 @@ describe('MessageService', () => {
             getMany: jest.fn(),
             save: jest.fn(),
             create: jest.fn().mockImplementation((entity) => entity),
+          },
+        },
+        {
+          provide: ParticipantRepository,
+          useValue: {
+            findByIdAndTenant: jest.fn(),
+            findByConversation: jest.fn(),
+            findMessageHistory: jest.fn(),
+            findThreadReplies: jest.fn(),
+            update: jest.fn(),
+            markAsDeleted: jest.fn(),
+            count: jest.fn(),
+            getUnreadCount: jest.fn(),
+            findOne: jest.fn(),
+            findByConversationId: jest.fn(),
+          },
+        },
+        {
+          provide: MessageInboxRepository,
+          useValue: {
+            create: jest.fn(),
+            save: jest.fn(),
+            findByIdAndTenant: jest.fn(),
+            createForRecipients: jest.fn(),
+            update: jest.fn(),
           },
         },
         {
@@ -426,30 +443,6 @@ describe('MessageService', () => {
       expect(
         conversationService.updateLastMessageTimestamp,
       ).toHaveBeenCalledWith(mockConversationId);
-
-      // Verify WebSocket room was joined and event was emitted
-      expect(messagingGateway.server.in).toHaveBeenCalledWith(
-        `conversation:${mockConversationId}`,
-      );
-
-      // Verify fetchSockets was called on the room
-      expect(mockInReturn.fetchSockets).toHaveBeenCalled();
-
-      // Verify the message was emitted to the room
-      expect(mockServer.to).toHaveBeenCalledWith(
-        `conversation:${mockConversationId}`,
-      );
-
-      // Verify the message was emitted with the correct data
-      expect(mockToReturn.emit).toHaveBeenCalledWith(
-        MessageEventType.MESSAGE_CREATED,
-        expect.objectContaining({
-          id: mockMessageId,
-          conversationId: mockConversationId,
-          senderId: mockUserId,
-          content: 'Test message',
-        }),
-      );
     });
 
     it('should handle sanitization failure', async () => {

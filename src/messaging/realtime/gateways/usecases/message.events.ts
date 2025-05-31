@@ -240,7 +240,7 @@ export class MessageEventHandler {
       });
 
       return createSuccessResponse();
-    } catch (error) {
+    } catch {
       return createErrorResponse(
         'INTERNAL_ERROR',
         'Failed to mark message as delivered',

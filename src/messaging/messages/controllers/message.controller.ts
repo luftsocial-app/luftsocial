@@ -50,9 +50,7 @@ import {
 // Services
 import { MessageService } from '../services/message.service';
 import { AuthObject } from '@clerk/express';
-import { MessageInboxEntity } from '../entities/inbox.entity';
-import { appError } from 'lib/helpers/error';
-import { apiResponse } from 'lib/helpers/app';
+import { apiResponse } from '../../../../lib/helpers/app';
 import { InboxQueryDto } from '../dto/inbox.query.dto';
 
 @ApiTags('Messages')

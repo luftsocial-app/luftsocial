@@ -18,11 +18,6 @@ describe('MessagingGateway', () => {
   let gateway: MessagingGateway;
   let participantHandler: ParticipantEventHandler;
   let conversationService: jest.Mocked<ConversationService>;
-  let messageService: jest.Mocked<MessageService>;
-  let messageValidator: jest.Mocked<MessageValidatorService>;
-  let configService: jest.Mocked<ConfigService>;
-  let websocketHelpers: jest.Mocked<WebsocketHelpers>;
-  let logger: PinoLogger;
   let mockServer: jest.Mocked<Server>;
 
   // Provide a minimal TenantRepository mock
@@ -51,7 +46,8 @@ describe('MessagingGateway', () => {
     leave: jest.fn(),
   };
 
-  const mockMessage = {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _mockMessage = {
     id: mockMessageId,
     conversationId: mockConversationId,
     content: 'Test message',
@@ -185,16 +181,7 @@ describe('MessagingGateway', () => {
     conversationService = module.get(
       ConversationService,
     ) as jest.Mocked<ConversationService>;
-    messageService = module.get(MessageService) as jest.Mocked<MessageService>;
-    messageValidator = module.get(
-      MessageValidatorService,
-    ) as jest.Mocked<MessageValidatorService>;
-    configService = module.get(ConfigService) as jest.Mocked<ConfigService>;
-    websocketHelpers = module.get(
-      WebsocketHelpers,
-    ) as jest.Mocked<WebsocketHelpers>;
-    logger = module.get(PinoLogger);
-
+    // Removed all assignments for unused mocks here
     gateway.server = mockServer;
   });
 

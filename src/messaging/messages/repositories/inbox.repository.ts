@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { DataSource, In } from 'typeorm';
 import { MessageInboxEntity } from '../entities/inbox.entity';
-import { appError } from 'lib/helpers/error';
+import { appError } from '../../../../lib/helpers/error';
 import { BaseRepository } from '../../../common/repositories/base.repository';
 
 @Injectable()

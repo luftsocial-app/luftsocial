@@ -37,7 +37,7 @@ import { Inject, forwardRef } from '@nestjs/common';
 import { MessagingGateway } from '../../../messaging/realtime/gateways/messaging.gateway';
 import { ParticipantRepository } from '../../conversations/repositories/participant.repository';
 import { MessageInboxRepository } from '../repositories/inbox.repository';
-import { appError } from 'lib/helpers/error';
+import { appError } from '../../../../lib/helpers/error';
 
 @Injectable()
 export class MessageService {

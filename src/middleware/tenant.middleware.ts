@@ -17,7 +17,7 @@ export class TenantMiddleware implements NestMiddleware {
     private readonly logger: PinoLogger,
     private configService: ConfigService,
     // private readonly clerkService: ClerkService,
-  ) { }
+  ) {}
 
   async use(req: Request, res: Response, next: NextFunction) {
     try {

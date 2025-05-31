@@ -20,8 +20,6 @@ import {} from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 import { UserService } from '../../../user-management/user.service';
 import { TenantService } from '../../../user-management/tenant.service';
-import { appError, notFoundError } from 'lib/helpers/error';
-import { ParticipantEntity } from '../entities/participant.entity';
 
 @Injectable()
 export class ConversationService {
