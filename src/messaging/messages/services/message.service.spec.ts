@@ -13,7 +13,11 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { MessageEntity } from '../entities/message.entity';
-import { AttachmentEntity } from '../entities/attachment.entity';
+import { MessageInboxEntity } from '../entities/inbox.entity';
+import {
+  AttachmentEntity,
+  AttachmentStatus,
+} from '../entities/attachment.entity';
 import { PinoLogger } from 'nestjs-pino';
 import { TenantService } from '../../../user-management/tenant.service';
 import { ContentSanitizer } from '../../shared/utils/content-sanitizer';
@@ -22,21 +26,28 @@ import { MediaStorageService } from '../../../asset-management/media-storage/med
 import { DataSource, QueryRunner } from 'typeorm';
 import { ParticipantRepository } from '../../conversations/repositories/participant.repository';
 import { MessageInboxRepository } from '../repositories/inbox.repository';
+import { UploadType } from '../../../common/enums/upload.enum';
+import { lookup } from 'mime-types';
 
 describe('MessageService', () => {
   let service: MessageService;
   let messageRepository: jest.Mocked<MessageRepository>;
+  let inboxRepository: jest.Mocked<MessageInboxRepository>;
   let attachmentRepository: jest.Mocked<AttachmentRepository>;
   let conversationService: jest.Mocked<ConversationService>;
   let contentSanitizer: ContentSanitizer;
   let queryRunner: jest.Mocked<QueryRunner>;
   let messagingGateway: jest.Mocked<MessagingGateway>;
   let tenantService: jest.Mocked<TenantService>;
+  let mediaStorageService: jest.Mocked<MediaStorageService>;
 
   const mockTenantId = 'tenant-123';
   const mockUserId = 'user-123';
   const mockConversationId = 'conv-123';
   const mockMessageId = 'msg-123';
+  const mockFileName = 'test.png';
+  const mockUploadSessionId = 'session-123';
+  const mockDetectedMimeType = 'image/png';
 
   const mockMessage: MessageEntity = Object.assign(new MessageEntity(), {
     id: mockMessageId,
@@ -105,14 +116,49 @@ describe('MessageService', () => {
     },
   });
 
+  const unreadMessages: MessageInboxEntity[] = [
+    {
+      id: 'inbox-1',
+      recipientId: mockUserId,
+      conversationId: mockConversationId,
+      messageId: 'msg-1',
+      message: undefined as any,
+      read: false,
+      readAt: null,
+      delivered: false,
+      deliveredAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      tenantId: mockTenantId,
+    },
+    {
+      id: 'inbox-2',
+      recipientId: mockUserId,
+      conversationId: mockConversationId,
+      messageId: 'msg-2',
+      message: undefined as any,
+      read: false,
+      readAt: null,
+      delivered: false,
+      deliveredAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      tenantId: mockTenantId,
+    },
+  ];
+
   const mockAttachment: Partial<AttachmentEntity> = {
     id: 'attachment-123',
     messageId: mockMessageId,
-    fileName: 'test.txt',
+    fileName: mockFileName,
     fileSize: 1024,
-    mimeType: 'text/plain',
+    mimeType: mockDetectedMimeType,
     url: 'http://example.com/test.txt',
     createdAt: new Date(),
+    tenantId: mockTenantId,
+    userId: mockUserId,
+    publicUrl: 'http://example.com/test.txt',
+    uploadSessionId: mockUploadSessionId,
   };
 
   afterEach(() => {
@@ -214,6 +260,7 @@ describe('MessageService', () => {
           useValue: {
             create: jest.fn(),
             save: jest.fn(),
+            find: jest.fn(),
             findByIdAndTenant: jest.fn(),
             createForRecipients: jest.fn(),
             update: jest.fn(),
@@ -281,11 +328,13 @@ describe('MessageService', () => {
 
     service = module.get<MessageService>(MessageService);
     messageRepository = module.get(MessageRepository);
+    inboxRepository = module.get(MessageInboxRepository);
     attachmentRepository = module.get(AttachmentRepository);
     conversationService = module.get(ConversationService);
     tenantService = module.get(TenantService);
     contentSanitizer = module.get(ContentSanitizer);
     messagingGateway = module.get(MessagingGateway);
+    mediaStorageService = module.get(MediaStorageService);
   });
 
   describe('createMessage', () => {
@@ -653,6 +702,27 @@ describe('MessageService', () => {
     });
   });
 
+  describe('markInboxMessagesAsRead', () => {
+    it('should mark all unread inbox messages as read and save them', async () => {
+      inboxRepository.find.mockResolvedValue([
+        Object.assign(new MessageInboxEntity(), unreadMessages[0]),
+        Object.assign(new MessageInboxEntity(), unreadMessages[1]),
+      ]);
+      inboxRepository.save.mockResolvedValue(undefined);
+
+      await service.markInboxMessagesAsRead(mockUserId, mockConversationId);
+
+      expect(inboxRepository.find).toHaveBeenCalledWith({
+        where: {
+          recipientId: mockUserId,
+          conversationId: mockConversationId,
+          read: false,
+        },
+      });
+      expect(inboxRepository.save).toHaveBeenCalledTimes(unreadMessages.length);
+    });
+  });
+
   describe('getUnreadCount', () => {
     it('should return unread count for conversation', async () => {
       conversationService.validateAccess.mockResolvedValue(true);
@@ -692,6 +762,139 @@ describe('MessageService', () => {
       await expect(
         service.getUnreadCount(mockConversationId, mockUserId),
       ).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  it('should throw BadRequestException if mime type is not detected', async () => {
+    const userId = mockUserId;
+    const fileName = 'file.unknown';
+    const conversationId = mockConversationId;
+    const uploadSessionId = 'session-123';
+
+    jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
+    conversationService.validateAccess.mockResolvedValue(true);
+
+    const lookupSpy = jest.spyOn({ lookup }, 'lookup').mockReturnValue(false);
+
+    const loggerSpy = jest.spyOn(service['logger'], 'debug');
+
+    await expect(
+      service.prepareAttachment(
+        userId,
+        fileName,
+        conversationId,
+        uploadSessionId,
+      ),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(loggerSpy).toHaveBeenCalledWith(
+      `Failed to detect MIME type for ${fileName}`,
+    );
+    lookupSpy.mockRestore();
+  });
+
+  describe('prepareAttachment', () => {
+    it('should prepare an attachment and return presigned url and attachment details', async () => {
+      // Arrange
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
+      conversationService.validateAccess.mockResolvedValue(true);
+
+      const lookupSpy = jest
+        .spyOn({ lookup }, 'lookup')
+        .mockReturnValue(mockDetectedMimeType);
+
+      const presignedMock = {
+        key: 'file-key',
+        url: 'http://example.com/url',
+        cdnUrl: 'http://example.com/cdn',
+        preSignedUrl: 'http://example.com/presigned',
+        bucket: 'luftsocial-assets',
+        assetId: 'asset-123',
+      } as const;
+      mediaStorageService.generatePreSignedUrl.mockResolvedValue(presignedMock);
+
+      const attachmentMock: any = {
+        ...mockAttachment,
+        id: 'attachment-id',
+        fileKey: presignedMock.key,
+        mimeType: mockDetectedMimeType,
+        type: 'image',
+        status: AttachmentStatus.PENDING,
+        publicUrl: presignedMock.cdnUrl,
+        uploadSessionId: mockUploadSessionId,
+      };
+      attachmentRepository.create.mockReturnValue(attachmentMock);
+      attachmentRepository.save.mockResolvedValue(attachmentMock);
+
+      const result = await service.prepareAttachment(
+        mockUserId,
+        mockFileName,
+        mockConversationId,
+        mockUploadSessionId,
+      );
+
+      expect(conversationService.validateAccess).toHaveBeenCalledWith(
+        mockConversationId,
+        mockUserId,
+        mockTenantId,
+      );
+      expect(mediaStorageService.generatePreSignedUrl).toHaveBeenCalledWith(
+        mockUserId,
+        mockFileName,
+        mockDetectedMimeType,
+        undefined,
+        undefined,
+        UploadType.MESSAGE,
+        mockConversationId,
+      );
+      expect(attachmentRepository.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          fileName: mockFileName,
+          mimeType: mockDetectedMimeType,
+          fileKey: presignedMock.key,
+          userId: mockUserId,
+          status: AttachmentStatus.PENDING,
+          tenantId: mockTenantId,
+          publicUrl: presignedMock.cdnUrl,
+          metadata: { originalName: mockFileName },
+          messageId: null,
+          conversationId: mockConversationId,
+          uploadSessionId: mockUploadSessionId,
+        }),
+      );
+      expect(attachmentRepository.save).toHaveBeenCalledWith(attachmentMock);
+
+      expect(result).toEqual({
+        presignedUrl: presignedMock.preSignedUrl,
+        attachmentId: attachmentMock.id,
+        fileKey: presignedMock.key,
+        cdnUrl: presignedMock.cdnUrl,
+        conversationId: mockConversationId,
+      });
+
+      lookupSpy.mockRestore();
+    });
+
+    it('should throw BadRequestException if mime type is not detected', async () => {
+      jest.spyOn(tenantService, 'getTenantId').mockReturnValue(mockTenantId);
+      conversationService.validateAccess.mockResolvedValue(true);
+      const lookupSpy = jest.spyOn({ lookup }, 'lookup').mockReturnValue(false);
+
+      const loggerSpy = jest.spyOn(service['logger'], 'debug');
+
+      await expect(
+        service.prepareAttachment(
+          mockUserId,
+          'file.unknown',
+          mockConversationId,
+          mockUploadSessionId,
+        ),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(loggerSpy).toHaveBeenCalledWith(
+        `Failed to detect MIME type for file.unknown`,
+      );
+      lookupSpy.mockRestore();
     });
   });
 });
